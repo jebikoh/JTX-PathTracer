@@ -1,16 +1,17 @@
 #pragma once
 
+#include <jtxlib/math/numerical.hpp>
 #include <jtxlib/math/vec3.hpp>
 #include <jtxlib/math/vecmath.hpp>
-#include <jtxlib/math/numerical.hpp>
 
 namespace jtx {
 
+    JTX_NUM_ONLY_T
     class Ray {
     public:
-        Point3f origin;
-        Vec3f dir;
-        float time;
+        Point3<T> origin;
+        Vec3<T> dir;
+        T time;
         // Add medium later
 
         [[nodiscard]] inline bool valid() const {
@@ -18,10 +19,10 @@ namespace jtx {
         }
 
         //region Constructors
-        Ray() : origin(), dir(), time(0.0f) {}
+        Ray() : origin(), dir(), time(JTX_ZERO) {}
 
-        Ray(const Point3f &origin, const Vec3f &direction, float time = 0.0f)
-                : origin(origin), dir(direction), time(time) {
+        Ray(const Point3<T> &origin, const Vec3<T> &direction, T time = JTX_ZERO)
+            : origin(origin), dir(direction), time(time) {
             ASSERT(valid());
         }
 
@@ -32,50 +33,51 @@ namespace jtx {
         ~Ray() = default;
         //endregion
 
-        [[nodiscard]] inline Point3f at(float t) const {
+        [[nodiscard]] inline Point3<T> at(T t) const {
             return origin + t * dir;
         }
     };
 
-    class RayDifferential : public Ray {
+    JTX_NUM_ONLY_T
+    class RayDifferential : public Ray<T> {
     public:
-        Point3f rxOrigin, ryOrigin;
-        Vec3f rxDirection, ryDirection;
+        Point3<T> rxOrigin, ryOrigin;
+        Vec3<T> rxDirection, ryDirection;
         bool hasDiffs;
 
-        // Intentionally hiding non-virtual function
         [[nodiscard]] inline bool valid() const {
-            return Ray::valid() &&
+            return Ray<T>::valid() &&
                    (!hasDiffs || (rxOrigin.valid() && ryOrigin.valid() && rxDirection.valid() && ryDirection.valid()));
         }
 
         //region Constructors
-        RayDifferential() : Ray(), rxOrigin(), ryOrigin(), rxDirection(), ryDirection(), hasDiffs(false) {}
+        RayDifferential() : Ray<T>(), rxOrigin(), ryOrigin(), rxDirection(), ryDirection(), hasDiffs(false) {}
 
-        RayDifferential(const Point3f &origin, const Vec3f &direction, float time = 0.0f)
-                : Ray(origin, direction, time), rxOrigin(), ryOrigin(), rxDirection(), ryDirection(), hasDiffs(false) {
+        RayDifferential(const Point3<T> &origin, const Vec3<T> &direction, T time = JTX_ZERO)
+            : Ray<T>(origin, direction, time), rxOrigin(), ryOrigin(), rxDirection(), ryDirection(), hasDiffs(false) {
             ASSERT(valid());
         }
 
-        explicit RayDifferential(const Ray &ray) : Ray(ray), rxOrigin(), ryOrigin(), rxDirection(), ryDirection(),
-                                                   hasDiffs(false) {
+        explicit RayDifferential(const Ray<T> &ray) : Ray<T>(ray), rxOrigin(), ryOrigin(), rxDirection(), ryDirection(),
+                                                      hasDiffs(false) {
             ASSERT(valid());
         }
 
-        RayDifferential(const RayDifferential &other) : Ray(other), rxOrigin(other.rxOrigin), ryOrigin(other.ryOrigin),
+        RayDifferential(const RayDifferential &other) : Ray<T>(other), rxOrigin(other.rxOrigin), ryOrigin(other.ryOrigin),
                                                         rxDirection(other.rxDirection), ryDirection(other.ryDirection),
                                                         hasDiffs(other.hasDiffs) {
             ASSERT(valid());
         }
         //endregion
 
-        inline void scale(float s) {
-            rxOrigin = origin + (rxOrigin - origin) * s;
-            ryOrigin = origin + (ryOrigin - origin) * s;
-            rxDirection = dir + (rxDirection - dir) * s;
-            ryDirection = dir + (ryDirection - dir) * s;
+        inline void scale(T s) {
+            rxOrigin = this->origin + (rxOrigin - this->origin) * s;
+            ryOrigin = this->origin + (ryOrigin - this->origin) * s;
+            rxDirection = this->dir + (rxDirection - this->dir) * s;
+            ryDirection = this->dir + (ryDirection - this->dir) * s;
         }
     };
 
-} // jtx
-
+    [[maybe_unused]] typedef Ray<float> Rayf;
+    [[maybe_unused]] typedef Ray<double> Rayd;
+}// namespace jtx

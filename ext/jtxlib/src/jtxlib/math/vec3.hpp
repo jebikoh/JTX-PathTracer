@@ -217,7 +217,7 @@ namespace jtx {
             return this->x * _x + this->y * _y + this->z * _z;
         }
 
-        inline Vec3 cross(const Vec3 &other) const {
+        [[nodiscard]] inline Vec3 cross(const Vec3 &other) const {
             return {jtx::dop(y, other.z, z, other.y),
                     jtx::dop(z, other.x, x, other.z),
                     jtx::dop(x, other.y, y, other.x)};
@@ -249,7 +249,7 @@ namespace jtx {
             return *this;
         }
 
-        inline T l1norm() const {
+        [[nodiscard]] inline T l1norm() const {
             return std::abs(x) + std::abs(y) + std::abs(z);
         }
 
@@ -275,7 +275,7 @@ namespace jtx {
             return std::max(z, std::max(x, y));
         }
 
-        inline T hprod() const {
+        [[nodiscard]] inline T hprod() const {
             return x * y * z;
         }
 
@@ -291,6 +291,7 @@ namespace jtx {
     //region Type aliases
     typedef Vec3<int> Vec3i;
     typedef Vec3<float> Vec3f;
+    typedef Vec3<double> Vec3d;
 
     JTX_NUM_ONLY_T
     using Point3 = Vec3<T>;

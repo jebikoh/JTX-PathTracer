@@ -21,7 +21,7 @@ namespace jtx {
         //region Constructors
         Ray() : origin(), dir(), time(JTX_ZERO) {}
 
-        Ray(const Point3<T> &origin, const Vec3<T> &direction, T time = JTX_ZERO)
+        Ray(const Point3<T> &origin, const Vec3<T> &direction, T time = T(0))
             : origin(origin), dir(direction), time(time) {
             ASSERT(valid());
         }
@@ -53,7 +53,7 @@ namespace jtx {
         //region Constructors
         RayDifferential() : Ray<T>(), rxOrigin(), ryOrigin(), rxDirection(), ryDirection(), hasDiffs(false) {}
 
-        RayDifferential(const Point3<T> &origin, const Vec3<T> &direction, T time = JTX_ZERO)
+        RayDifferential(const Point3<T> &origin, const Vec3<T> &direction, T time = T(0))
             : Ray<T>(origin, direction, time), rxOrigin(), ryOrigin(), rxDirection(), ryDirection(), hasDiffs(false) {
             ASSERT(valid());
         }

@@ -1,11 +1,11 @@
 #pragma once
 
-#include<cmath>
-#include<stdexcept>
+#include <cmath>
 #include <jtxlib/math/constants.hpp>
+#include <jtxlib/math/math.hpp>
 #include <jtxlib/math/numerical.hpp>
 #include <jtxlib/util/assert.hpp>
-#include <jtxlib/math/math.hpp>
+#include <stdexcept>
 
 namespace jtx {
     JTX_NUM_ONLY_T
@@ -19,7 +19,7 @@ namespace jtx {
         }
 
         //region Constructors
-        Vec3() : x(JTX_ZERO), y(JTX_ZERO), z(JTX_ZERO) {};
+        Vec3() : x(JTX_ZERO), y(JTX_ZERO), z(JTX_ZERO){};
 
         Vec3(T x, T y, T z) : x(x), y(y), z(z) { ASSERT(valid()); };
 
@@ -297,6 +297,7 @@ namespace jtx {
     using Point3 = Vec3<T>;
     typedef Point3<int> Point3i;
     typedef Point3<float> Point3f;
+    typedef Point3<double> Point3d;
 
     typedef Vec3<float> Normal3f;
     //endregion

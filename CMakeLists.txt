@@ -11,7 +11,8 @@ add_executable(rtx src/main.cpp
         src/sphere.hpp
         src/hittablelist.hpp
         src/rtx.hpp
-        src/interval.hpp)
+        src/interval.hpp
+        src/camera.hpp)
 
 target_link_libraries(rtx PRIVATE jtxlib)
 target_link_options(rtx PRIVATE -static)

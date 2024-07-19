@@ -15,6 +15,10 @@ public:
 
     [[nodiscard]] bool surrounds(double x) const { return x > min && x < max; }
 
+    [[nodiscard]] double clamp(double x) const {
+        return jtx::clamp(x, min, max);
+    }
+
     static const Interval empty, universe;
 };
 

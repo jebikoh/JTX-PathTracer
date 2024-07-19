@@ -5,7 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_subdirectory(ext/jtxlib)
 
-add_executable(rtx src/main.cpp)
+add_executable(rtx src/main.cpp
+        src/color.hpp)
 
 target_link_libraries(rtx PRIVATE jtxlib)
 target_link_options(rtx PRIVATE -static)

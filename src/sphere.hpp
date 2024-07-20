@@ -4,13 +4,18 @@
 
 class Sphere : public Hittable {
 public:
-    Sphere(const Point3d &center, double radius) : center(center), radius(fmax(0, radius)){};
+    Sphere(const Point3d &center,
+           double radius,
+           shared_ptr<Material> mat)
+        : center(center),
+          radius(fmax(0, radius)),
+          mat(mat){};
 
     bool hit(const Rayd &ray, double tmin, double tmax, HitRecord &rec) const override {
         Vec3d oc = center - ray.origin;
-        auto a = ray.dir.lenSqr();
-        auto h = dot(ray.dir, oc);
-        auto c = oc.lenSqr() - radius * radius;
+        auto a   = ray.dir.lenSqr();
+        auto h   = dot(ray.dir, oc);
+        auto c   = oc.lenSqr() - radius * radius;
 
         auto discriminant = h * h - a * c;
         if (discriminant < 0) return false;
@@ -36,9 +41,9 @@ public:
 
     bool hit(const Rayd &ray, const Interval &t, HitRecord &rec) const override {
         Vec3d oc = center - ray.origin;
-        auto a = ray.dir.lenSqr();
-        auto h = dot(ray.dir, oc);
-        auto c = oc.lenSqr() - radius * radius;
+        auto a   = ray.dir.lenSqr();
+        auto h   = dot(ray.dir, oc);
+        auto c   = oc.lenSqr() - radius * radius;
 
         auto discriminant = h * h - a * c;
         if (discriminant < 0) return false;
@@ -53,8 +58,9 @@ public:
             }
         }
 
-        rec.t = root;
-        rec.p = ray.at(rec.t);
+        rec.t   = root;
+        rec.p   = ray.at(rec.t);
+        rec.mat = mat;
 
         // Flips normal if the ray is inside the sphere
         Vec3d outwardNormal = (rec.p - center) / radius;
@@ -66,4 +72,5 @@ public:
 private:
     Point3d center;
     double radius;
+    shared_ptr<Material> mat;
 };

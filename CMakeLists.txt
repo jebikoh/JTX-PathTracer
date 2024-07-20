@@ -14,6 +14,7 @@ add_executable(rtx src/main.cpp
         src/interval.hpp
         src/camera.hpp
         src/rand.hpp
+        src/material.hpp
 )
 
 target_link_libraries(rtx PRIVATE jtxlib)

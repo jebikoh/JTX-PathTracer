@@ -2,7 +2,7 @@
 
 #include "color.hpp"
 #include "hittable.hpp"
-#include "rand.hpp"
+#include "material.hpp"
 #include "rtx.hpp"
 #include <jtxlib/util/rand.hpp>
 
@@ -16,7 +16,8 @@ public:
     void render(const Hittable &world) {
         initialize();
         for (int j = 0; j < image_height; ++j) {
-            std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
+            std::clog << "\rScanlines remaining: " << (image_height - j) << '\n'
+                      << std::flush;
             for (int i = 0; i < image_width; ++i) {
                 Color pixelColor(0, 0, 0);
                 for (int sample = 0; sample < samples_per_pixel; ++sample) {
@@ -77,13 +78,17 @@ private:
         if (depth <= 0) return {0, 0, 0};
 
         HitRecord rec;
-        if (world.hit(r, Interval(0, INFINITY_D), rec)) {
-            Vec3d direction = randomOnHemisphere(rec.normal);
-            return 0.5 * rayColor(Rayd(rec.p, direction), world, depth - 1);
+        if (world.hit(r, Interval(0.001, INFINITY_D), rec)) {
+            Rayd scattered;
+            Color attenuation;
+            if (rec.mat->scatter(r, rec, attenuation, scattered)) {
+                return attenuation * rayColor(scattered, world, depth - 1);
+            }
+            return {0, 0, 0};
         }
 
         auto unit = normalize(r.dir);
-        auto a    = 0.5 * (unit.y + 1.0);
+        auto a    = 0.8 * (unit.y + 1.0);
         return (1.0 - a) * Color(1.0, 1.0, 1.0) + a * Color(0.5, 0.7, 1.0);
     }
 };

@@ -1,10 +1,10 @@
 #pragma once
 
+#include <jtxlib/math/math.hpp>
+#include <jtxlib/math/numerical.hpp>
 #include <jtxlib/math/vec2.hpp>
 #include <jtxlib/math/vec3.hpp>
 #include <jtxlib/math/vec4.hpp>
-#include <jtxlib/math/numerical.hpp>
-#include <jtxlib/math/math.hpp>
 
 namespace jtx {
     //region Dot Product
@@ -278,15 +278,20 @@ namespace jtx {
     JTX_NUM_ONLY_T
     inline void coordinateSystem(const Vec3<T> v1, Vec3<T> *v2, Vec3<T> *v3) {
         float sign = std::copysign(1.0f, v1.z);
-        float a = -1.0f / (sign + v1.z);
-        float b = v1.x * v1.y * a;
-        *v2 = Vec3{1.0f + sign * v1.x * v1.x * a, sign * b, -sign * v1.x};
-        *v3 = Vec3{b, sign + v1.y * v1.y * a, -v1.y};
+        float a    = -1.0f / (sign + v1.z);
+        float b    = v1.x * v1.y * a;
+        *v2        = Vec3{1.0f + sign * v1.x * v1.x * a, sign * b, -sign * v1.x};
+        *v3        = Vec3{b, sign + v1.y * v1.y * a, -v1.y};
     }
 
     JTX_NUM_ONLY_T
     inline Vec3<T> align(const Vec3<T> &a, const Vec3<T> &b) {
         return (a.dot(b) < 0.0f) ? -a : a;
     }
+
+    JTX_NUM_ONLY_T
+    inline Vec3<T> reflect(const Vec3<T> &v, const Vec3<T> &n) {
+        return v - 2 * dot(v, n) * n;
+    }
     //endregion
-}
+}// namespace jtx

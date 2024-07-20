@@ -8,6 +8,11 @@
 using Color                   = jtx::Vec3d;
 static const double RGB_SCALE = 255.999;
 
+inline double linearToGamma(double linear) {
+    if (linear > 0) return sqrt(linear);
+    return 0;
+}
+
 struct RGB {
     unsigned char R;
     unsigned char G;
@@ -33,9 +38,9 @@ public:
     void writePixel(const Color &color, int row, int col) {
         static const Interval intensity(0.000, 0.999);
         int i       = row * w + col;
-        buffer[i].R = int(RGB_SCALE * intensity.clamp(color.x));
-        buffer[i].G = int(RGB_SCALE * intensity.clamp(color.y));
-        buffer[i].B = int(RGB_SCALE * intensity.clamp(color.z));
+        buffer[i].R = int(RGB_SCALE * intensity.clamp(linearToGamma(color.x)));
+        buffer[i].G = int(RGB_SCALE * intensity.clamp(linearToGamma(color.y)));
+        buffer[i].B = int(RGB_SCALE * intensity.clamp(linearToGamma(color.z)));
     }
 
     void save(const char *path) const {

@@ -12,7 +12,9 @@ add_executable(rtx src/main.cpp
         src/hittablelist.hpp
         src/rtx.hpp
         src/interval.hpp
-        src/camera.hpp)
+        src/camera.hpp
+        src/rand.hpp
+)
 
 target_link_libraries(rtx PRIVATE jtxlib)
 target_link_options(rtx PRIVATE -static)
@@ -21,6 +23,7 @@ target_include_directories(rtx
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/jtxlib/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext/stb
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")

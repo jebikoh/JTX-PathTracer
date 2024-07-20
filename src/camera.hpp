@@ -1,34 +1,36 @@
 #pragma once
 
+#include "color.hpp"
 #include "hittable.hpp"
+#include "rand.hpp"
 #include "rtx.hpp"
+#include <jtxlib/util/rand.hpp>
 
 class Camera {
 public:
     double aspect_ratio   = 1.0;
     int image_width       = 100;
     int samples_per_pixel = 10;
+    int max_depth         = 10;
 
     void render(const Hittable &world) {
         initialize();
-
-        std::cout
-                << "P3\n"
-                << image_width << ' ' << image_height << "\n255\n";
-
         for (int j = 0; j < image_height; ++j) {
             std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
             for (int i = 0; i < image_width; ++i) {
                 Color pixelColor(0, 0, 0);
                 for (int sample = 0; sample < samples_per_pixel; ++sample) {
                     Rayd r = getRay(i, j);
-                    pixelColor += rayColor(r, world);
+                    pixelColor += rayColor(r, world, max_depth);
                 }
-                writeColor(std::cout, pixel_samples_scale * pixelColor);
+                img.writePixel(pixel_samples_scale * pixelColor, j, i);
             }
         }
-
         std::clog << "\rDone.                        \n";
+    }
+
+    void save(const char *path) {
+        img.save(path);
     }
 
 private:
@@ -38,11 +40,14 @@ private:
     Point3d pixel00_loc;
     Point3d pixel_delta_u;
     Point3d pixel_delta_v;
+    RGBImage img;
 
     void initialize() {
         image_height        = std::max(1, int(image_width / aspect_ratio));
         center              = Point3d(0, 0, 0);
         pixel_samples_scale = 1.0 / samples_per_pixel;
+
+        img.resize(image_width, image_height);
 
         auto focal_length    = 1.0;
         auto viewport_height = 2.0;
@@ -58,7 +63,7 @@ private:
     }
 
     [[nodiscard]] static Vec3d sampleSquare() {
-        return {randomDouble() - 0.5, randomDouble(), 0};
+        return {jtx::random<double>() - 0.5, jtx::random<double>(), 0};
     }
 
     // Constructs a camera ray from origin directed at randomly sampled point around (i, j)
@@ -68,10 +73,13 @@ private:
         return {center, pixelSample - center};
     }
 
-    static Color rayColor(const Rayd &r, const Hittable &world) {
+    static Color rayColor(const Rayd &r, const Hittable &world, int depth) {
+        if (depth <= 0) return {0, 0, 0};
+
         HitRecord rec;
         if (world.hit(r, Interval(0, INFINITY_D), rec)) {
-            return 0.5 * (rec.normal + Color(1, 1, 1));
+            Vec3d direction = randomOnHemisphere(rec.normal);
+            return 0.5 * rayColor(Rayd(rec.p, direction), world, depth - 1);
         }
 
         auto unit = normalize(r.dir);

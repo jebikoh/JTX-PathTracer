@@ -1,6 +1,7 @@
 #pragma once
 
 #include <jtxlib/math/constants.hpp>
+#include <jtxlib/math/math.hpp>
 
 class Interval {
 public:
@@ -22,5 +23,5 @@ public:
     static const Interval empty, universe;
 };
 
-const Interval Interval::empty = Interval(+jtx::INFINITY_D, jtx::NEG_INFINITY_D);
+const Interval Interval::empty    = Interval(+jtx::INFINITY_D, jtx::NEG_INFINITY_D);
 const Interval Interval::universe = Interval(jtx::NEG_INFINITY_D, jtx::INFINITY_D);

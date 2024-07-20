@@ -6,15 +6,15 @@ add_compile_options(-O3 -mavx2)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Test" CACHE STRING "" FORCE)
 
-if(NOT CMAKE_BUILD_TYPE)
+if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build" FORCE)
-endif()
+endif ()
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(DEBUG_ASSERT)
-elseif(CMAKE_BUILD_TYPE STREQUAL "Test")
+elseif (CMAKE_BUILD_TYPE STREQUAL "Test")
     add_compile_definitions(TEST_ASSERT)
-endif()
+endif ()
 
 set(JTXLIB_MATH
         src/jtxlib/math/vec2.hpp
@@ -45,13 +45,14 @@ set(JTXLIB_HEADERS
         src/jtxlib.hpp
         src/jtxlib/math.hpp
         src/jtxlib/simd.hpp
-        src/jtxlib/util.hpp)
+        src/jtxlib/util.hpp
+        src/jtxlib/util/rand.hpp)
 
 add_library(jtxlib STATIC
-    ${JTXLIB_MATH}
-    ${JTXLIB_SIMD}
-    ${JTXLIB_UTIL}
-    ${JTXLIB_HEADERS}
+        ${JTXLIB_MATH}
+        ${JTXLIB_SIMD}
+        ${JTXLIB_UTIL}
+        ${JTXLIB_HEADERS}
 )
 
 set_target_properties(jtxlib PROPERTIES
@@ -66,11 +67,11 @@ target_include_directories(jtxlib
 
 option(BUILD_TESTS "Build tests" OFF)
 
-if(CMAKE_BUILD_TYPE STREQUAL "Test")
+if (CMAKE_BUILD_TYPE STREQUAL "Test")
     add_subdirectory("lib/Catch2")
     list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lib/Catch2/extras)
     include(CTest)
     include(Catch)
 
     add_subdirectory("tests")
-endif()
+endif ()

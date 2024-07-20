@@ -5,6 +5,7 @@
 #include <jtxlib/math/math.hpp>
 #include <jtxlib/math/numerical.hpp>
 #include <jtxlib/util/assert.hpp>
+#include <jtxlib/util/rand.hpp>
 #include <stdexcept>
 
 namespace jtx {
@@ -267,11 +268,11 @@ namespace jtx {
             return *this;
         }
 
-        inline auto min() const {
+        [[nodiscard]] inline auto min() const {
             return std::min(z, std::min(x, y));
         }
 
-        inline auto max() const {
+        [[nodiscard]] inline auto max() const {
             return std::max(z, std::max(x, y));
         }
 
@@ -284,6 +285,15 @@ namespace jtx {
                 (*this) = -(*this);
             }
             return *this;
+        }
+        //endregion
+        //region Random
+        static inline Vec3 random() {
+            return {jtx::random<T>(), jtx::random<T>(), jtx::random<T>()};
+        }
+
+        static inline Vec3 random(T min, T max) {
+            return {jtx::random<T>(min, max), jtx::random<T>(min, max), jtx::random<T>(min, max)};
         }
         //endregion
     };
@@ -300,6 +310,7 @@ namespace jtx {
     typedef Point3<double> Point3d;
 
     typedef Vec3<float> Normal3f;
+    typedef Vec3<double> Normal3d;
     //endregion
 
     inline std::string to_string(const Vec3f &vec) {

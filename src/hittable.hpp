@@ -18,7 +18,6 @@ struct HitRecord {
 
 class Hittable {
 public:
-    virtual ~Hittable()                                                             = default;
-    virtual bool hit(const Rayd &r, double tmin, double tmax, HitRecord &rec) const = 0;
-    virtual bool hit(const Rayd &r, const Interval &t, HitRecord &rec) const        = 0;
+    virtual ~Hittable()                                                      = default;
+    virtual bool hit(const Rayd &r, const Interval &t, HitRecord &rec) const = 0;
 };

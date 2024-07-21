@@ -18,32 +18,16 @@ public:
         objects.push_back(object);
     }
 
-    bool hit(const Rayd &ray, double tmin, double tmax, HitRecord &rec) const override {
-        HitRecord tempRec;
-        bool hitAnything = false;
-        auto closest = tmax;
-
-        for (const auto &obj: objects) {
-            if (obj->hit(ray, tmin, closest, tempRec)) {
-                hitAnything = true;
-                closest = tempRec.t;
-                rec = tempRec;
-            }
-        }
-
-        return hitAnything;
-    }
-
     bool hit(const Rayd &ray, const Interval &t, HitRecord &rec) const override {
         HitRecord tempRec;
         bool hitAnything = false;
-        auto closest = t.max;
+        auto closest     = t.max;
 
         for (const auto &obj: objects) {
-            if (obj->hit(ray, t.min, closest, tempRec)) {
+            if (obj->hit(ray, Interval(t.min, closest), tempRec)) {
                 hitAnything = true;
-                closest = tempRec.t;
-                rec = tempRec;
+                closest     = tempRec.t;
+                rec         = tempRec;
             }
         }
 

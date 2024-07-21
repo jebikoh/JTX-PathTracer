@@ -71,8 +71,8 @@ namespace jtx {
         //endregion
 
         inline void scale(T s) {
-            rxOrigin = this->origin + (rxOrigin - this->origin) * s;
-            ryOrigin = this->origin + (ryOrigin - this->origin) * s;
+            rxOrigin    = this->origin + (rxOrigin - this->origin) * s;
+            ryOrigin    = this->origin + (ryOrigin - this->origin) * s;
             rxDirection = this->dir + (rxDirection - this->dir) * s;
             ryDirection = this->dir + (ryDirection - this->dir) * s;
         }
@@ -80,4 +80,9 @@ namespace jtx {
 
     [[maybe_unused]] typedef Ray<float> Rayf;
     [[maybe_unused]] typedef Ray<double> Rayd;
+
+    JTX_NUM_ONLY_T
+    inline std::string to_string(const Ray<T> &ray) {
+        return jtx::to_string(ray.origin) + " + t * " + jtx::to_string(ray.dir) + " (t = " + std::to_string(ray.time) + ")";
+    }
 }// namespace jtx

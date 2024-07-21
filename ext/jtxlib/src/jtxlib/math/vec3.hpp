@@ -313,11 +313,8 @@ namespace jtx {
     typedef Vec3<double> Normal3d;
     //endregion
 
-    inline std::string to_string(const Vec3f &vec) {
-        return "Vec3f(" + std::to_string(vec.x) + ", " + std::to_string(vec.y) + ", " + std::to_string(vec.z) + ")";
-    }
-
-    inline std::string to_string(const Vec3i &vec) {
-        return "Vec3i(" + std::to_string(vec.x) + ", " + std::to_string(vec.y) + ", " + std::to_string(vec.z) + ")";
+    JTX_NUM_ONLY_T
+    inline std::string to_string(const Vec3<T> &vec) {
+        return "Vec3(" + std::to_string(vec.x) + ", " + std::to_string(vec.y) + ", " + std::to_string(vec.z) + ")";
     }
 }// namespace jtx

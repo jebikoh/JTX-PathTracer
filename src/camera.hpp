@@ -13,6 +13,15 @@ public:
     int samples_per_pixel = 10;
     int max_depth         = 10;
 
+    // Camera settings
+    double vfov      = 90;
+    Point3d lookFrom = {0, 0, 0};
+    Point3d lookAt   = {0, 0, -1};
+    Vec3d vup        = {0, 1, 0};
+
+    double defocusAngle = 0;
+    double focusDist    = 10;
+
     void render(const Hittable &world) {
         initialize();
         for (int j = 0; j < image_height; ++j) {
@@ -43,24 +52,38 @@ private:
     Point3d pixel_delta_v;
     RGBImage img;
 
+    // Camera settings
+    Vec3d u, v, w;
+    Vec3d defocusDisk_u;
+    Vec3d defocusDisk_v;
+
     void initialize() {
         image_height        = std::max(1, int(image_width / aspect_ratio));
-        center              = Point3d(0, 0, 0);
+        center              = lookFrom;
         pixel_samples_scale = 1.0 / samples_per_pixel;
 
         img.resize(image_width, image_height);
 
-        auto focal_length    = 1.0;
-        auto viewport_height = 2.0;
+        auto theta           = jtx::radians(vfov);
+        auto h               = tan(theta / 2);
+        auto viewport_height = 2.0 * h * focusDist;
         auto viewport_width  = viewport_height * (double(image_width) / image_height);
 
-        auto viewport_u = Vec3d(viewport_width, 0, 0);
-        auto viewport_v = Vec3d(0, -viewport_height, 0);
+        w = (lookFrom - lookAt).normalize();
+        u = cross(vup, w).normalize();
+        v = cross(w, u);
+
+        auto viewport_u = viewport_width * u;
+        auto viewport_v = viewport_height * -v;
         pixel_delta_u   = viewport_u / image_width;
         pixel_delta_v   = viewport_v / image_height;
 
-        auto viewport_upper_left = center - Vec3d(0, 0, focal_length) - viewport_u / 2 - viewport_v / 2;
+        auto viewport_upper_left = center - (focusDist * w) - viewport_u / 2 - viewport_v / 2;
         pixel00_loc              = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+        auto defocusRadius = focusDist * tan(radians(defocusAngle / 2));
+        defocusDisk_u      = u * defocusRadius;
+        defocusDisk_v      = v * defocusRadius;
     }
 
     [[nodiscard]] static Vec3d sampleSquare() {
@@ -71,7 +94,14 @@ private:
     [[nodiscard]] Rayd getRay(int i, int j) const {
         auto offset      = sampleSquare();
         auto pixelSample = pixel00_loc + ((i + offset.x) * pixel_delta_u) + ((j + offset.y) * pixel_delta_v);
-        return {center, pixelSample - center};
+        auto rayOrigin   = (defocusAngle <= 0) ? center : defocusDiskSample();
+
+        return {rayOrigin, pixelSample - rayOrigin};
+    }
+
+    [[nodiscard]] Point3d defocusDiskSample() const {
+        auto p = randomInUnitDisk();
+        return center + (p.x * defocusDisk_u) + (p.y * defocusDisk_v);
     }
 
     static Color rayColor(const Rayd &r, const Hittable &world, int depth) {

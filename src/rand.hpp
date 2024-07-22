@@ -19,3 +19,10 @@ inline Vec3d randomOnHemisphere(const Normal3d &normal) {
     if (dot(unit, normal) > 0.0) return unit;
     return -unit;
 }
+
+inline Vec3d randomInUnitDisk() {
+    while (true) {
+        auto p = Vec3d(random<double>(-1, 1), random<double>(-1, 1), 0);
+        if (p.lenSqr() < 1) return p;
+    }
+}

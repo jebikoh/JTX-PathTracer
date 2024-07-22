@@ -27,6 +27,14 @@ int main() {
     cam.samples_per_pixel = 100;
     cam.max_depth         = 50;
 
+    cam.vfov     = 20;
+    cam.lookFrom = Point3d(-2, 2, 1);
+    cam.lookAt   = Point3d(0, 0, -1);
+    cam.vup      = Vec3d(0, 1, 0);
+
+    cam.defocusAngle = 10.0;
+    cam.focusDist    = 3.4;
+
     cam.render(world);
     cam.save("image.png");
 }

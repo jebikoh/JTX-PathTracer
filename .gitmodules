@@ -1,0 +1,3 @@
+[submodule "ext/jtxlib"]
+	path = ext/jtxlib
+	url = https://github.com/jebikoh/jtxlib.git

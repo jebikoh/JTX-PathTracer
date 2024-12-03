@@ -1,34 +1,19 @@
 cmake_minimum_required(VERSION 3.28)
-project(rtx)
+project(RayTracer)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
+set(BUILD_TESTS OFF CACHE BOOL "Build tests for jtxlib" FORCE)
 add_subdirectory(ext/jtxlib)
 
-add_executable(rtx src/main.cpp
-        src/color.hpp
-        src/hittable.hpp
-        src/sphere.hpp
-        src/hittablelist.hpp
-        src/rtx.hpp
-        src/interval.hpp
-        src/camera.hpp
-        src/rand.hpp
-        src/material.hpp
-)
+add_executable(RayTracer src/main.cpp
+        src/rt.hpp
+        src/color.hpp)
 
-target_link_libraries(rtx PRIVATE jtxlib)
-target_link_options(rtx PRIVATE -static)
+target_link_libraries(RayTracer PRIVATE jtxlib)
 
-target_include_directories(rtx
+target_include_directories(RayTracer
         PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/jtxlib/src
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/stb
 )
-
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_definitions(rtx PRIVATE DEBUG_ASSERT)
-elseif (CMAKE_BUILD_TYPE STREQUAL "Test")
-    target_compile_definitions(rtx PRIVATE TEST_ASSERT)
-endif ()

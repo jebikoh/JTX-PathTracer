@@ -1,52 +1,14 @@
 #pragma once
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 
-#include "interval.hpp"
-#include "rtx.hpp"
-#include "stb_image_write.h"
+#include "rt.hpp"
 
-using Color                   = jtx::Vec3d;
-static const double RGB_SCALE = 255.999;
+using Color = vec3;
+static constexpr Float RGB_SCALE = 255.999;
 
-inline double linearToGamma(double linear) {
-    if (linear > 0) return sqrt(linear);
-    return 0;
+void writeColor(std::ostream &out, const Color &pixelColor) {
+    int r = int(RGB_SCALE * pixelColor.r);
+    int g = int(RGB_SCALE * pixelColor.g);
+    int b = int(RGB_SCALE * pixelColor.b);
+
+    out << r << ' ' << g << ' ' << b << '\n';
 }
-
-struct RGB {
-    unsigned char R;
-    unsigned char G;
-    unsigned char B;
-};
-
-class RGBImage {
-public:
-    int w;
-    int h;
-
-    RGBImage() : w(100), h(50){};
-    RGBImage(int width, int height) : w(width), h(height) {
-        buffer.resize(width * height);
-    }
-
-    void resize(int width, int height) {
-        w = width;
-        h = height;
-        buffer.resize(width * height);
-    }
-
-    void writePixel(const Color &color, int row, int col) {
-        static const Interval intensity(0.000, 0.999);
-        int i       = row * w + col;
-        buffer[i].R = int(RGB_SCALE * intensity.clamp(linearToGamma(color.x)));
-        buffer[i].G = int(RGB_SCALE * intensity.clamp(linearToGamma(color.y)));
-        buffer[i].B = int(RGB_SCALE * intensity.clamp(linearToGamma(color.z)));
-    }
-
-    void save(const char *path) const {
-        stbi_write_png(path, w, h, 3, buffer.data(), w * 3);
-    }
-
-private:
-    std::vector<RGB> buffer;
-};

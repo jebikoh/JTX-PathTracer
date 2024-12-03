@@ -8,7 +8,8 @@ add_subdirectory(ext/jtxlib)
 
 add_executable(RayTracer src/main.cpp
         src/rt.hpp
-        src/color.hpp)
+        src/color.hpp
+        src/camera.hpp)
 
 target_link_libraries(RayTracer PRIVATE jtxlib)
 

@@ -7,6 +7,22 @@ struct HitRecord {
     Vec3 point;
     Vec3 normal;
     Float t;
+    bool frontFace;
+
+    void setFaceNormal(const Ray &r, const Vec3 &n) {
+        frontFace = jtx::dot(r.dir, n) < 0;
+        normal = frontFace ? n : -n;
+    }
+};
+
+class Sphere;
+class HittableList;
+
+class Hittable : jtx::TaggedPtr<Sphere, HittableList> {
+public:
+    using TaggedPtr::TaggedPtr;
+
+    bool hit(const Ray &r, Float tMin, Float tMax, HitRecord &record) const;
 };
 
 class Sphere {
@@ -35,8 +51,8 @@ public:
 
         record.t = root;
         record.point = r.at(root);
-        record.normal = (record.point - _center) / _radius;
-
+        auto n = (record.point - _center) / _radius;
+        record.setFaceNormal(r, n);
         return true;
     }
 
@@ -45,13 +61,36 @@ private:
     Float _radius;
 };
 
-class Hittable : jtx::TaggedPtr<Sphere> {
+class HittableList {
 public:
-    using TaggedPtr::TaggedPtr;
+    HittableList() = default;
+    explicit HittableList(const std::shared_ptr<Hittable> &object) { add(object); }
+
+    void add(const std::shared_ptr<Hittable>& object) { _objects.push_back(object); }
+    void clear() { _objects.clear(); }
 
     bool hit(const Ray &r, Float tMin, Float tMax, HitRecord &record) const {
-        auto fn = [&](auto ptr) { return ptr->hit(r, tMin, tMax, record); };
-        return dispatch(fn);
+        HitRecord tmpRecord;
+        bool hitAnything = false;
+        auto closestSoFar = tMax;
+
+        for (const auto &object : _objects) {
+            if (object->hit(r, tMin, closestSoFar, tmpRecord)) {
+                hitAnything = true;
+                closestSoFar = tmpRecord.t;
+                record = tmpRecord;
+            }
+        }
+
+        return hitAnything;
     }
+
+private:
+    std::vector<std::shared_ptr<Hittable>> _objects;
 };
+
+inline bool Hittable::hit(const Ray &r, Float tMin, Float tMax, HitRecord &record) const {
+    auto fn = [&](auto ptr) { return ptr->hit(r, tMin, tMax, record); };
+    return dispatch(fn);
+}
 

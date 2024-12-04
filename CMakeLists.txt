@@ -12,6 +12,7 @@ add_executable(RayTracer src/main.cpp
         src/camera.hpp
         src/image.hpp
         src/hittable.hpp
+        src/interval.hpp
 )
 
 target_link_libraries(RayTracer PRIVATE jtxlib)

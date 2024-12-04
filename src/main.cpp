@@ -3,28 +3,14 @@
 #include "image.hpp"
 #include "hittable.hpp"
 
-Float hitSphere(const Vec3 &center, Float radius, const Ray &r) {
-    const Vec3 oc = center - r.origin;
-    const Float a = r.dir.lenSqr();
-    const Float h = jtx::dot(r.dir, oc);
-    const Float c = oc.lenSqr() - radius * radius;
-
-    const Float discriminant = h * h - a * c;
-    if (discriminant < 0) {
-        return -1.0;
-    }
-    return (h - std::sqrt(discriminant)) / a;
-}
-
-Color rayColor(const Ray &r) {
-    Float t = hitSphere(Vec3(0, 0, -1), 0.5, r);
-    if (t > 0.0) {
-        const Vec3 n = (r.at(t) - Vec3(0, 0, -1)).normalize();
-        return 0.5 * Color(n.x + 1, n.y + 1, n.z + 1);
+Color rayColor(const Ray &r, const HittableList &world) {
+    HitRecord record;
+    if (world.hit(r, 0, INF, record)) {
+        return 0.5 * (record.normal + Color(1, 1, 1));
     }
 
-    const Float a = 0.5 * (r.dir.y + 1.0);
-    return jtx::lerp(Color(1.0, 1.0, 1.0), Color(0.5, 0.7, 1.0), a);
+    const auto a = 0.5 * (r.dir.y + 1.0);
+    return jtx::lerp(Color(1, 1, 1), Color(0.5, 0.7, 1.0), a);
 }
 
 int main() {
@@ -35,6 +21,14 @@ int main() {
 
     // Image
     RGBImage img(IMAGE_WIDTH, IMAGE_HEIGHT);
+
+    // World
+    auto sphere1 = Sphere(Vec3(0, 0, -1), 0.5);
+    auto sphere2 = Sphere(Vec3(0, -100.5, -1), 100);
+
+    HittableList world;
+    world.add(std::make_shared<Hittable>(&sphere1));
+    world.add(std::make_shared<Hittable>(&sphere2));
 
     // Viewport
     constexpr Float viewportHeight = 2.0;
@@ -58,7 +52,7 @@ int main() {
             auto rayDirection = (center - cameraCenter).normalize();
             Ray r(cameraCenter, rayDirection);
 
-            Color pixelColor = rayColor(r);
+            Color pixelColor = rayColor(r, world);
             img.writePixel(pixelColor, j, i);
         }
     }

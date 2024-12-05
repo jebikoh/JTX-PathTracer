@@ -32,7 +32,7 @@ public:
                     Ray r = getRay(i, j);
                     pxColor += rayColor(r, world);
                 }
-                img.writePixel(pxColor / pxSampleScale, j, i);
+                img.writePixel(pxColor * pxSampleScale, j, i);
             }
         }
     }

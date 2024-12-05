@@ -5,7 +5,7 @@
 #include "camera.hpp"
 
 int main() {
-    Camera camera{};
+    Camera camera{IMAGE_WIDTH, IMAGE_HEIGHT, 100};
 
     // World
     auto sphere1 = Sphere(Vec3(0, 0, -1), 0.5);

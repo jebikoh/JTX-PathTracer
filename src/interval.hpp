@@ -23,6 +23,11 @@ struct Interval {
         return min < x && x < max;
     }
 
+    [[nodiscard]]
+    Float clamp(Float x) const {
+        return jtx::clamp(x, min, max);
+    }
+
     static const Interval EMPTY, UNIVERSE;
 };
 

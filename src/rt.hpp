@@ -4,6 +4,9 @@
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <random>
+
+#define RT_DOUBLE_PRECISION
 
 #ifdef RT_DOUBLE_PRECISION
 using Float = double;
@@ -24,4 +27,34 @@ inline Float radians(const Float degrees) {
 }
 
 #include "color.hpp"
-#include "interval.hpp"
+
+inline Float randomFloat() {
+    static std::uniform_real_distribution<Float> dist(0, 1);
+    static std::mt19937 gen;
+    return dist(gen);
+}
+
+inline Float randomFloat(Float min, Float max) {
+    return min + (max - min) * randomFloat();
+}
+
+inline Vec3 random() {
+    return {randomFloat(), randomFloat(), randomFloat()};
+}
+
+inline Vec3 random(Float min, Float max) {
+    return {randomFloat(min, max), randomFloat(min, max), randomFloat(min, max)};
+}
+
+inline Vec3 randomUnitVector() {
+    while (true) {
+        auto p = random(-1, 1);
+        auto lensq = p.lenSqr();
+        if (1e-160 < lensq && lensq <= 1) return p / jtx::sqrt(lensq);
+    }
+}
+
+inline Vec3 randomOnHemisphere(const Vec3 &normal) {
+    auto p = randomUnitVector();
+    return jtx::dot(p, normal) > 0 ? p : -p;
+}

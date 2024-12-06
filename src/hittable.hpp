@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rt.hpp"
+#include "interval.hpp"
 #include <jtxlib/util/taggedptr.hpp>
 
 struct HitRecord {

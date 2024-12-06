@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hittable.hpp"
+#include "interval.hpp"
 
 constexpr int IMAGE_WIDTH    = 800;
 constexpr int IMAGE_HEIGHT   = 450;
@@ -79,21 +80,22 @@ private:
     Ray getRay(int i, int j) {
         const auto offset    = sampleSquare();
         const auto sample = vp00 + ((i + offset.x) * du) + ((j + offset.y) * dv);
-        return {center, (sample - center).normalize()};
+        return {center, sample - center};
     }
 
     static Vec3 sampleSquare() {
-        return {jtx::random<Float>() - static_cast<Float>(0.5), jtx::random<Float>() - static_cast<Float>(0.5), 0};
+        return {randomFloat() - static_cast<Float>(0.5), randomFloat() - static_cast<Float>(0.5), 0};
     }
 
     static Color rayColor(const Ray &r, const HittableList &world) {
         // ReSharper disable once CppTooWideScopeInitStatement
         HitRecord record;
         if (world.hit(r, Interval(0, INF), record)) {
-            return 0.5 * (record.normal + Color(1, 1, 1));
+            Vec3 direction = randomOnHemisphere(record.normal);
+            return 0.5 * rayColor({record.point, direction}, world);
         }
 
-        const auto a = 0.5 * (r.dir.y + 1.0);
+        const auto a = 0.5 * (normalize(r.dir).y+ 1.0);
         return jtx::lerp(Color(1, 1, 1), Color(0.5, 0.7, 1.0), a);
     }
 };

@@ -4,9 +4,12 @@
 #include "interval.hpp"
 #include <jtxlib/util/taggedptr.hpp>
 
+class Material;
+
 struct HitRecord {
     Vec3 point;
     Vec3 normal;
+    std::shared_ptr<Material> material;
     Float t;
     bool frontFace;
 
@@ -28,7 +31,7 @@ public:
 
 class Sphere {
 public:
-    Sphere(const Vec3 &center, Float radius) : _center(center), _radius(radius) {}
+    Sphere(const Vec3 &center, Float radius, std::shared_ptr<Material> material) : _center(center), _radius(radius), _material(material) {}
 
     bool hit(const Ray &r, Interval t, HitRecord &record) const {
         const Vec3 oc = _center - r.origin;
@@ -54,12 +57,15 @@ public:
         record.point = r.at(root);
         auto n = (record.point - _center) / _radius;
         record.setFaceNormal(r, n);
+        record.material = _material;
+
         return true;
     }
 
 private:
     Vec3  _center;
     Float _radius;
+    std::shared_ptr<Material> _material;
 };
 
 class HittableList {

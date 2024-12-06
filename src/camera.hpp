@@ -92,16 +92,20 @@ private:
 
     static Color rayColor(const Ray &r, const HittableList &world, int depth) {
         Ray currRay = r;
-        Float attenuation = 1.0;
+        Float currAttenuation = 1.0;
         for (int i = 0; i < depth; ++i) {
             HitRecord record;
             if (world.hit(currRay, Interval(0.001, INF), record)) {
-                Vec3 direction = record.normal + randomUnitVector();
-                attenuation *= 0.5;
-                currRay = {record.point, direction};
+                Ray scattered;
+                Float attenuation;
+                if (record.material.scatter(currRay, record, attenuation, scattered)) {
+                    currAttenuation *= attenuation;
+                    currRay = scattered;
+                }
+                return {0, 0, 0};
             } else {
                 const auto a = 0.5 * (normalize(currRay.dir).y + 1.0);
-                return attenuation * jtx::lerp(Color(1, 1, 1), Color(0.5, 0.7, 1.0), a);
+                return currAttenuation * jtx::lerp(Color(1, 1, 1), Color(0.5, 0.7, 1.0), a);
             }
         }
 

@@ -13,6 +13,7 @@ add_executable(RayTracer src/main.cpp
         src/image.hpp
         src/hittable.hpp
         src/interval.hpp
+        src/material.hpp
 )
 
 target_link_libraries(RayTracer PRIVATE jtxlib)

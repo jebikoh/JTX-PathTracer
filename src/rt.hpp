@@ -12,14 +12,14 @@
 using Float = double;
 using Vec3  = jtx::Vec3d;
 using Ray   = jtx::Rayd;
-constexpr float INF = jtx::INFINITY_D;
-constexpr float PI  = jtx::PI;
+constexpr Float INF = jtx::INFINITY_D;
+constexpr Float PI  = jtx::PI;
 #else
 using Float = float;
 using Vec3  = jtx::Vec3f;
 using Ray   = jtx::Rayf;
-constexpr float INF = jtx::INFINITY_F;
-constexpr float PI  = jtx::PI_F;
+constexpr Float INF = jtx::INFINITY_F;
+constexpr Float PI  = jtx::PI_F;
 #endif
 
 inline Float radians(const Float degrees) {

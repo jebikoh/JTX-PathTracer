@@ -7,20 +7,22 @@ constexpr int IMAGE_WIDTH    = 800;
 constexpr int IMAGE_HEIGHT   = 450;
 constexpr Float ASPECT_RATIO = static_cast<Float>(IMAGE_WIDTH) / static_cast<Float>(IMAGE_HEIGHT);
 constexpr int SAMPLES_PER_PX = 10;
+constexpr int MAX_DEPTH      = 10;
 
 class Camera {
 public:
     explicit Camera(
-        const int width = IMAGE_WIDTH,
-        const int height = IMAGE_HEIGHT,
-        const Float aspectRatio = ASPECT_RATIO,
-        const int samplesPerPx = SAMPLES_PER_PX)
-    {
+            const int width         = IMAGE_WIDTH,
+            const int height        = IMAGE_HEIGHT,
+            const Float aspectRatio = ASPECT_RATIO,
+            const int samplesPerPx  = SAMPLES_PER_PX,
+            const int maxDepth      = MAX_DEPTH) {
         // No initializer list cuz its long and ugly to read here
         this->width        = width;
         this->height       = height;
         this->aspectRatio  = aspectRatio;
         this->samplesPerPx = samplesPerPx;
+        this->maxDepth     = maxDepth;
 
         init();
     }
@@ -31,7 +33,7 @@ public:
                 auto pxColor = Color(0, 0, 0);
                 for (int s = 0; s < samplesPerPx; ++s) {
                     Ray r = getRay(i, j);
-                    pxColor += rayColor(r, world);
+                    pxColor += rayColor(r, world, maxDepth);
                 }
                 img.writePixel(pxColor * pxSampleScale, j, i);
             }
@@ -49,6 +51,7 @@ private:
 
     int samplesPerPx;
     Float pxSampleScale;
+    int maxDepth;
 
     Vec3 center;
     Vec3 vp00;
@@ -69,16 +72,16 @@ private:
         // Viewport offsets
         const auto u = Vec3(viewportWidth, 0, 0);
         const auto v = Vec3(0, -viewportHeight, 0);
-        du      = u / IMAGE_WIDTH;
-        dv      = v / IMAGE_HEIGHT;
+        du           = u / IMAGE_WIDTH;
+        dv           = v / IMAGE_HEIGHT;
 
         // Viewport anchors
         const auto vpUpperLeft = center - Vec3(0, 0, focalLength) - u / 2 - v / 2;
-        vp00        = vpUpperLeft + 0.5 * (du + dv);
+        vp00                   = vpUpperLeft + 0.5 * (du + dv);
     }
 
     Ray getRay(int i, int j) {
-        const auto offset    = sampleSquare();
+        const auto offset = sampleSquare();
         const auto sample = vp00 + ((i + offset.x) * du) + ((j + offset.y) * dv);
         return {center, sample - center};
     }
@@ -87,15 +90,22 @@ private:
         return {randomFloat() - static_cast<Float>(0.5), randomFloat() - static_cast<Float>(0.5), 0};
     }
 
-    static Color rayColor(const Ray &r, const HittableList &world) {
-        // ReSharper disable once CppTooWideScopeInitStatement
-        HitRecord record;
-        if (world.hit(r, Interval(0, INF), record)) {
-            Vec3 direction = randomOnHemisphere(record.normal);
-            return 0.5 * rayColor({record.point, direction}, world);
+    static Color rayColor(const Ray &r, const HittableList &world, int depth) {
+        Ray currRay = r;
+        Float attenuation = 1.0;
+        for (int i = 0; i < depth; ++i) {
+            HitRecord record;
+            if (world.hit(currRay, Interval(0.001, INF), record)) {
+                Vec3 direction = record.normal + randomUnitVector();
+                attenuation *= 0.5;
+                currRay = {record.point, direction};
+            } else {
+                const auto a = 0.5 * (normalize(currRay.dir).y + 1.0);
+                return attenuation * jtx::lerp(Color(1, 1, 1), Color(0.5, 0.7, 1.0), a);
+            }
         }
 
-        const auto a = 0.5 * (normalize(r.dir).y+ 1.0);
-        return jtx::lerp(Color(1, 1, 1), Color(0.5, 0.7, 1.0), a);
+        // Exceeded bounce depth
+        return {0, 0, 0};
     }
 };

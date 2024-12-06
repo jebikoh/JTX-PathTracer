@@ -2,6 +2,7 @@
 
 #include "hittable.hpp"
 #include "interval.hpp"
+#include "material.hpp"
 
 constexpr int IMAGE_WIDTH    = 800;
 constexpr int IMAGE_HEIGHT   = 450;
@@ -14,13 +15,12 @@ public:
     explicit Camera(
             const int width         = IMAGE_WIDTH,
             const int height        = IMAGE_HEIGHT,
-            const Float aspectRatio = ASPECT_RATIO,
             const int samplesPerPx  = SAMPLES_PER_PX,
             const int maxDepth      = MAX_DEPTH) {
         // No initializer list cuz its long and ugly to read here
         this->width        = width;
         this->height       = height;
-        this->aspectRatio  = aspectRatio;
+        this->aspectRatio  = static_cast<Float>(width) / static_cast<Float>(height);
         this->samplesPerPx = samplesPerPx;
         this->maxDepth     = maxDepth;
 
@@ -92,17 +92,18 @@ private:
 
     static Color rayColor(const Ray &r, const HittableList &world, int depth) {
         Ray currRay = r;
-        Float currAttenuation = 1.0;
+        Color currAttenuation = {1.0, 1.0, 1.0};
         for (int i = 0; i < depth; ++i) {
             HitRecord record;
             if (world.hit(currRay, Interval(0.001, INF), record)) {
                 Ray scattered;
-                Float attenuation;
-                if (record.material.scatter(currRay, record, attenuation, scattered)) {
+                Color attenuation;
+                if (record.material->scatter(currRay, record, attenuation, scattered)) {
                     currAttenuation *= attenuation;
                     currRay = scattered;
+                } else {
+                    return {0, 0, 0};
                 }
-                return {0, 0, 0};
             } else {
                 const auto a = 0.5 * (normalize(currRay.dir).y + 1.0);
                 return currAttenuation * jtx::lerp(Color(1, 1, 1), Color(0.5, 0.7, 1.0), a);

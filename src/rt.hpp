@@ -38,17 +38,17 @@ inline Float randomFloat(Float min, Float max) {
     return min + (max - min) * randomFloat();
 }
 
-inline Vec3 random() {
+inline Vec3 randomVec3() {
     return {randomFloat(), randomFloat(), randomFloat()};
 }
 
-inline Vec3 random(Float min, Float max) {
+inline Vec3 randomVec3(Float min, Float max) {
     return {randomFloat(min, max), randomFloat(min, max), randomFloat(min, max)};
 }
 
 inline Vec3 randomUnitVector() {
     while (true) {
-        auto p = random(-1, 1);
+        auto p = randomVec3(-1, 1);
         auto lensq = p.lenSqr();
         if (1e-160 < lensq && lensq <= 1) return p / jtx::sqrt(lensq);
     }

@@ -6,7 +6,7 @@
 #include "material.hpp"
 
 int main() {
-    Camera camera{IMAGE_WIDTH, IMAGE_HEIGHT, 100};
+    Camera camera{IMAGE_WIDTH, IMAGE_HEIGHT, 100, 10};
 
     // Materials
     auto lambertianGround = Lambertian(Color(0.8, 0.8, 0.0));

@@ -4,8 +4,8 @@
 #include "interval.hpp"
 #include "material.hpp"
 
-constexpr int IMAGE_WIDTH    = 800;
-constexpr int IMAGE_HEIGHT   = 450;
+constexpr int IMAGE_WIDTH    = 400;
+constexpr int IMAGE_HEIGHT   = 224;
 constexpr Float ASPECT_RATIO = static_cast<Float>(IMAGE_WIDTH) / static_cast<Float>(IMAGE_HEIGHT);
 constexpr int SAMPLES_PER_PX = 10;
 constexpr int MAX_DEPTH      = 10;

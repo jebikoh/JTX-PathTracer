@@ -7,7 +7,7 @@ class Lambertian;
 class Metal;
 class Dielectric;
 
-class Material : jtx::TaggedPtr<Lambertian, Metal> {
+class Material : jtx::TaggedPtr<Lambertian, Metal, Dielectric> {
 public:
     using TaggedPtr::TaggedPtr;
 
@@ -45,6 +45,20 @@ public:
 private:
     Color _albedo;
     Float _fuzz;
+};
+
+class Dielectric {
+public:
+    explicit Dielectric(Float refractionIndex) : _refractionIndex(refractionIndex) {}
+
+    bool scatter(const Ray &r, const HitRecord &record, Color &attenuation, Ray &scattered) const {
+        attenuation = Color(1.0, 1.0, 1.0);
+        const Float ri =  record.frontFace ? (1.0 / _refractionIndex) : _refractionIndex;
+        scattered = Ray(record.point, jtx::refract(jtx::normalize(r.dir), record.normal, ri));
+        return true;
+    }
+private:
+    Float _refractionIndex;
 };
 
 bool Material::scatter(const Ray &r, const HitRecord &record, Color &attenuation, Ray &scattered) const {

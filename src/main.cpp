@@ -13,10 +13,11 @@ int main() {
     auto lambertianCenter = Lambertian(Color(0.1, 0.2, 0.5));
     auto metalLeft        = Metal(Color(0.8, 0.8, 0.8), 0.3);
     auto metalRight       = Metal(Color(0.8, 0.6, 0.2), 1.0);
+    auto dielectric       = Dielectric(1.5);
 
     auto materialGround = std::make_shared<Material>(&lambertianGround);
     auto materialCenter = std::make_shared<Material>(&lambertianCenter);
-    auto materialLeft   = std::make_shared<Material>(&metalLeft);
+    auto materialLeft   = std::make_shared<Material>(&dielectric);
     auto materialRight  = std::make_shared<Material>(&metalRight);
 
     // World

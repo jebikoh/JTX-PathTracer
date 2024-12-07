@@ -3,24 +3,21 @@
 #include "hittable.hpp"
 #include "interval.hpp"
 #include "material.hpp"
-
-constexpr int IMAGE_WIDTH    = 400;
-constexpr int IMAGE_HEIGHT   = 224;
-constexpr Float ASPECT_RATIO = static_cast<Float>(IMAGE_WIDTH) / static_cast<Float>(IMAGE_HEIGHT);
-constexpr int SAMPLES_PER_PX = 10;
-constexpr int MAX_DEPTH      = 10;
+#include "image.hpp"
 
 class Camera {
 public:
     explicit Camera(
-            const int width         = IMAGE_WIDTH,
-            const int height        = IMAGE_HEIGHT,
-            const int samplesPerPx  = SAMPLES_PER_PX,
-            const int maxDepth      = MAX_DEPTH) {
+            const int width,
+            const int height,
+            const Float yfov,
+            const int samplesPerPx,
+            const int maxDepth) {
         // No initializer list cuz its long and ugly to read here
         this->width        = width;
         this->height       = height;
         this->aspectRatio  = static_cast<Float>(width) / static_cast<Float>(height);
+        this->yfov         = yfov;
         this->samplesPerPx = samplesPerPx;
         this->maxDepth     = maxDepth;
 
@@ -47,6 +44,7 @@ public:
 private:
     int width, height;
     Float aspectRatio;
+    Float yfov;
     RGBImage img;
 
     int samplesPerPx;
@@ -61,19 +59,21 @@ private:
     void init() {
         center = Vec3(0, 0, 0);
 
-        constexpr Float viewportHeight = 2.0;
-        constexpr Float viewportWidth  = viewportHeight * ASPECT_RATIO;
-        constexpr Float focalLength    = 1.0;
-
         img = RGBImage(width, height);
 
         pxSampleScale = static_cast<Float>(1.0) / static_cast<Float>(samplesPerPx);
 
+        // Viewport dimensions
+        constexpr Float focalLength    = 1.0;
+        const Float h = jtx::tan(radians(yfov) / 2);
+        const Float viewportHeight = 2 * h * focalLength;
+        const Float viewportWidth  = viewportHeight * aspectRatio;
+
         // Viewport offsets
         const auto u = Vec3(viewportWidth, 0, 0);
         const auto v = Vec3(0, -viewportHeight, 0);
-        du           = u / IMAGE_WIDTH;
-        dv           = v / IMAGE_HEIGHT;
+        du           = u / width;
+        dv           = v / height;
 
         // Viewport anchors
         const auto vpUpperLeft = center - Vec3(0, 0, focalLength) - u / 2 - v / 2;

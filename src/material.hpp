@@ -47,6 +47,13 @@ private:
     Float _fuzz;
 };
 
+static Float reflectance(const Float cosine, const Float ri) {
+    Float r0 = (1 - ri) / (1 + ri);
+    r0       = r0 * r0;
+    return r0 + (1 - r0) * jtx::pow((1 - cosine), 5);
+}
+
+
 class Dielectric {
 public:
     explicit Dielectric(Float refractionIndex) : _refractionIndex(refractionIndex) {}
@@ -54,14 +61,26 @@ public:
     bool scatter(const Ray &r, const HitRecord &record, Color &attenuation, Ray &scattered) const {
         attenuation = Color(1.0, 1.0, 1.0);
         const Float ri =  record.frontFace ? (1.0 / _refractionIndex) : _refractionIndex;
-        scattered = Ray(record.point, jtx::refract(jtx::normalize(r.dir), record.normal, ri));
+
+        Vec3 dir = jtx::normalize(r.dir);
+        Float cosTheta = jtx::min(jtx::dot(-dir, record.normal), 1.0);
+        Float sinTheta = jtx::sqrt(1.0 - cosTheta * cosTheta);
+
+        Vec3 scatterDir;
+        if (ri * sinTheta > 1.0 || reflectance(cosTheta, ri) > randomFloat()) {
+            scatterDir = jtx::reflect(dir, record.normal);
+        } else {
+            scatterDir = jtx::refract(dir, record.normal, ri);
+        }
+
+        scattered = Ray(record.point, scatterDir);
         return true;
     }
 private:
     Float _refractionIndex;
 };
 
-bool Material::scatter(const Ray &r, const HitRecord &record, Color &attenuation, Ray &scattered) const {
+inline bool Material::scatter(const Ray &r, const HitRecord &record, Color &attenuation, Ray &scattered) const {
     auto fn = [&](auto ptr) { return ptr->scatter(r, record, attenuation, scattered); };
     return dispatch(fn);
 }

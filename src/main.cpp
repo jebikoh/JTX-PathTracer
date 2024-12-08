@@ -10,10 +10,22 @@ constexpr int IMAGE_HEIGHT   = 224;
 constexpr Float ASPECT_RATIO = static_cast<Float>(IMAGE_WIDTH) / static_cast<Float>(IMAGE_HEIGHT);
 constexpr int SAMPLES_PER_PX = 100;
 constexpr int MAX_DEPTH      = 10;
-constexpr Float YFOV         = 90;
+constexpr Float YFOV         = 20;
+
+const Vec3 CAM_POS    = Vec3(-2, 2, 1);
+const Vec3 CAM_TARGET = Vec3(0, 0, -1);
+const Vec3 CAM_UP     = Vec3(0, 1, 0);
 
 int main() {
-    Camera camera{IMAGE_WIDTH, IMAGE_HEIGHT, YFOV, SAMPLES_PER_PX, MAX_DEPTH};
+    Camera camera{
+            IMAGE_WIDTH,
+            IMAGE_HEIGHT,
+            YFOV,
+            CAM_POS,
+            CAM_TARGET,
+            CAM_UP,
+            SAMPLES_PER_PX,
+            MAX_DEPTH};
 
     // Materials
     auto lambertianGround = Lambertian(Color(0.8, 0.8, 0.0));

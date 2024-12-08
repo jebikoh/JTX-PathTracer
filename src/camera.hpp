@@ -14,6 +14,8 @@ public:
             const Vec3 &position,
             const Vec3 &target,
             const Vec3 &up,
+            const Float defocusAngle,
+            const Float focusDistance,
             const int samplesPerPx,
             const int maxDepth) {
         // No initializer list cuz its long and ugly to read here
@@ -27,6 +29,8 @@ public:
         this->center = position;
         this->target   = target;
         this->up       = up;
+        this->defocusAngle = defocusAngle;
+        this->focusDistance = focusDistance;
 
         init();
     }
@@ -67,14 +71,19 @@ private:
     Vec3 up;
     Vec3 u, v, w;
 
+    Float defocusAngle;
+    Float focusDistance;
+    Vec3 defocus_u;
+    Vec3 defocus_v;
+
+
     void init() {
         img = RGBImage(width, height);
         pxSampleScale = static_cast<Float>(1.0) / static_cast<Float>(samplesPerPx);
 
         // Viewport dimensions
-        const Float focalLength    = (center - target).len();
         const Float h              = jtx::tan(radians(yfov) / 2);
-        const Float viewportHeight = 2 * h * focalLength;
+        const Float viewportHeight = 2 * h * focusDistance;
         const Float viewportWidth  = viewportHeight * aspectRatio;
 
         w = normalize(center - target);
@@ -88,18 +97,32 @@ private:
         dv           = viewportV / height;
 
         // Viewport anchors
-        const auto vpUpperLeft = center - (focalLength * w) - viewportU / 2 - viewportV / 2;
+        const auto vpUpperLeft = center - (focusDistance * w) - viewportU / 2 - viewportV / 2;
         vp00                   = vpUpperLeft + 0.5 * (du + dv);
+
+        // Defocus disk
+        const Float defocusRadius = focusDistance * jtx::tan(radians(defocusAngle / 2));
+        defocus_u = defocusRadius * u;
+        defocus_v = defocusRadius * v;
     }
 
-    Ray getRay(int i, int j) {
+    [[nodiscard]]
+    Ray getRay(const int i, const int j) const {
         const auto offset = sampleSquare();
         const auto sample = vp00 + ((i + offset.x) * du) + ((j + offset.y) * dv);
-        return {center, sample - center};
+
+        auto origin = (defocusAngle <= 0) ? center : sampleDefocusDisc();
+        return {origin, sample - origin};
     }
 
     static Vec3 sampleSquare() {
         return {randomFloat() - static_cast<Float>(0.5), randomFloat() - static_cast<Float>(0.5), 0};
+    }
+
+    [[nodiscard]]
+    Vec3 sampleDefocusDisc() const {
+        Vec3 p = randomInUnitDisk();
+        return center + (p.x * defocus_u) + (p.y * defocus_v);
     }
 
     static Color rayColor(const Ray &r, const HittableList &world, int depth) {

@@ -5,16 +5,18 @@
 #include "material.hpp"
 #include "rt.hpp"
 
-constexpr int IMAGE_WIDTH    = 400;
-constexpr int IMAGE_HEIGHT   = 224;
-constexpr Float ASPECT_RATIO = static_cast<Float>(IMAGE_WIDTH) / static_cast<Float>(IMAGE_HEIGHT);
-constexpr int SAMPLES_PER_PX = 100;
-constexpr int MAX_DEPTH      = 10;
-constexpr Float YFOV         = 20;
-
-const Vec3 CAM_POS    = Vec3(-2, 2, 1);
-const Vec3 CAM_TARGET = Vec3(0, 0, -1);
-const Vec3 CAM_UP     = Vec3(0, 1, 0);
+// Camera Settings
+constexpr int IMAGE_WIDTH      = 400;
+constexpr int IMAGE_HEIGHT     = 224;
+constexpr Float ASPECT_RATIO   = static_cast<Float>(IMAGE_WIDTH) / static_cast<Float>(IMAGE_HEIGHT);
+constexpr int SAMPLES_PER_PX   = 100;
+constexpr int MAX_DEPTH        = 10;
+constexpr Float YFOV           = 20;
+const auto CAM_POS             = Vec3(-2, 2, 1);
+const auto CAM_TARGET          = Vec3(0, 0, -1);
+const auto CAM_UP              = Vec3(0, 1, 0);
+constexpr Float DEFOCUS_ANGLE  = 10.0;
+constexpr Float FOCUS_DISTANCE = 3.4;
 
 int main() {
     Camera camera{
@@ -24,6 +26,8 @@ int main() {
             CAM_POS,
             CAM_TARGET,
             CAM_UP,
+            DEFOCUS_ANGLE,
+            FOCUS_DISTANCE,
             SAMPLES_PER_PX,
             MAX_DEPTH};
 

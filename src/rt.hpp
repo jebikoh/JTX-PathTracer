@@ -59,6 +59,13 @@ inline Vec3 randomOnHemisphere(const Vec3 &normal) {
     return jtx::dot(p, normal) > 0 ? p : -p;
 }
 
+inline Vec3 randomInUnitDisk() {
+    while (true) {
+        auto p = Vec3(randomFloat(-1, 1), randomFloat(-1, 1), 0);
+        if (p.lenSqr() < 1) return p;
+    }
+}
+
 bool nearZero(const Vec3 &v) {
     constexpr Float s = 1e-8;
     return (jtx::abs(v.x) < s) && (jtx::abs(v.y) < s) && (jtx::abs(v.z) < s);

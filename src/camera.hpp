@@ -5,6 +5,8 @@
 #include "material.hpp"
 #include "image.hpp"
 
+#include <thread>
+
 class Camera {
 public:
     explicit Camera(
@@ -36,15 +38,39 @@ public:
     }
 
     void render(const HittableList &world) {
-        for (int j = 0; j < height; ++j) {
-            for (int i = 0; i < width; ++i) {
-                auto pxColor = Color(0, 0, 0);
-                for (int s = 0; s < samplesPerPx; ++s) {
-                    Ray r = getRay(i, j);
-                    pxColor += rayColor(r, world, maxDepth);
+        unsigned int threadCount = std::thread::hardware_concurrency();
+        if (threadCount == 0) threadCount = 4;
+
+        const auto rowsPerThread = height / threadCount;
+
+        std::cout << "Using " << threadCount << " threads" << std::endl;
+        std::cout << "Rows per thread: " << rowsPerThread << std::endl;
+
+        std::vector<std::thread> threads;
+        threads.reserve(threadCount);
+
+        int startRow = 0;
+        for (unsigned int t = 0; t < threadCount; ++t) {
+            int endRow = (t == threadCount - 1) ? height : startRow + rowsPerThread;
+
+            threads.emplace_back([this, startRow, endRow, &world]() {
+                for (int j = startRow; j < endRow; ++j) {
+                    for (int i = 0; i < width; ++i) {
+                        auto pxColor = Color(0, 0, 0);
+                        for (int s = 0; s < samplesPerPx; ++s) {
+                            Ray r = getRay(i, j);
+                            pxColor += rayColor(r, world, maxDepth);
+                        }
+                        img.writePixel(pxColor * pxSampleScale, j, i);
+                    }
                 }
-                img.writePixel(pxColor * pxSampleScale, j, i);
-            }
+            });
+
+            startRow = endRow;
+        }
+
+        for (auto &t : threads) {
+            t.join();
         }
     }
 

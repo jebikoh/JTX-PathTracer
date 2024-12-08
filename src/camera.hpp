@@ -11,6 +11,9 @@ public:
             const int width,
             const int height,
             const Float yfov,
+            const Vec3 &position,
+            const Vec3 &target,
+            const Vec3 &up,
             const int samplesPerPx,
             const int maxDepth) {
         // No initializer list cuz its long and ugly to read here
@@ -20,6 +23,10 @@ public:
         this->yfov         = yfov;
         this->samplesPerPx = samplesPerPx;
         this->maxDepth     = maxDepth;
+
+        this->center = position;
+        this->target   = target;
+        this->up       = up;
 
         init();
     }
@@ -56,27 +63,32 @@ private:
     Vec3 du;
     Vec3 dv;
 
+    Vec3 target;
+    Vec3 up;
+    Vec3 u, v, w;
+
     void init() {
-        center = Vec3(0, 0, 0);
-
         img = RGBImage(width, height);
-
         pxSampleScale = static_cast<Float>(1.0) / static_cast<Float>(samplesPerPx);
 
         // Viewport dimensions
-        constexpr Float focalLength    = 1.0;
-        const Float h = jtx::tan(radians(yfov) / 2);
+        const Float focalLength    = (center - target).len();
+        const Float h              = jtx::tan(radians(yfov) / 2);
         const Float viewportHeight = 2 * h * focalLength;
         const Float viewportWidth  = viewportHeight * aspectRatio;
 
+        w = normalize(center - target);
+        u = normalize(jtx::cross(up, w));
+        v = jtx::cross(w, u);
+
         // Viewport offsets
-        const auto u = Vec3(viewportWidth, 0, 0);
-        const auto v = Vec3(0, -viewportHeight, 0);
-        du           = u / width;
-        dv           = v / height;
+        const auto viewportU = viewportWidth * u;
+        const auto viewportV = viewportHeight * -v;
+        du           = viewportU / width;
+        dv           = viewportV / height;
 
         // Viewport anchors
-        const auto vpUpperLeft = center - Vec3(0, 0, focalLength) - u / 2 - v / 2;
+        const auto vpUpperLeft = center - (focalLength * w) - viewportU / 2 - viewportV / 2;
         vp00                   = vpUpperLeft + 0.5 * (du + dv);
     }
 

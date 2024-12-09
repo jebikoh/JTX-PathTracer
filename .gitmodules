@@ -1,3 +1,7 @@
 [submodule "ext/jtxlib"]
 	path = ext/jtxlib
 	url = https://github.com/jebikoh/jtxlib.git
+[submodule "ext/sdl"]
+	path = ext/sdl
+	url = https://github.com/libsdl-org/SDL.git
+	branch = release-2.30.x

@@ -7,17 +7,22 @@
 
 class Display {
 public:
-    Display(int width, int height);
+    Display(int width, int height, const RGBImage *img);
 
     bool init();
+    void destroy() const;
 
-    void updateTexture(const RGBImage &img) const;
+    void setImage(const RGBImage *img);
 
     void processEvents(bool &isRunning);
 
     void render() const;
 private:
     int width_, height_;
+    const RGBImage *img_;
+
+    int renderWidth_;
+    float scaleX_, scaleY_;
 
     SDL_Window *window_;
     SDL_GLContext glContext_;
@@ -30,4 +35,6 @@ private:
     bool initShaders();
     void initQuad();
     void initUI() const;
+
+    void updateScale();
 };

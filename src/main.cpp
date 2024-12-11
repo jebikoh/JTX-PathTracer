@@ -6,6 +6,8 @@
 #include "material.hpp"
 #include "rt.hpp"
 
+#include <thread>
+
 // Camera Settings
 constexpr int IMAGE_WIDTH      = 400;
 constexpr int IMAGE_HEIGHT     = 225;
@@ -62,9 +64,11 @@ int main() {
     world.add(std::make_shared<Hittable>(&rightSphere));
     world.add(std::make_shared<Hittable>(&bigSphere));
 
-    camera.render(world);
+    std::thread renderThread([&] {
+        camera.render(world);
+    });
 
-    Display display(IMAGE_WIDTH, IMAGE_HEIGHT);
+    Display display(IMAGE_WIDTH * 2 + 200, IMAGE_HEIGHT * 2, camera.image());
     if (!display.init()) {
         return -1;
     }
@@ -72,11 +76,15 @@ int main() {
     bool isRunning = true;
     while (isRunning) {
         display.processEvents(isRunning);
-        display.updateTexture(camera.image());
         display.render();
 
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
+
+    display.destroy();
+    renderThread.join();
+
+    camera.save("../output.png");
 
     return 0;
 }

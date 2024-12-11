@@ -79,8 +79,8 @@ public:
     }
 
     [[nodiscard]]
-    const RGBImage &image() const {
-        return img;
+    const RGBImage *image() const {
+        return &img;
     }
 
 private:

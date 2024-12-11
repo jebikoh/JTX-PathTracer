@@ -6,15 +6,19 @@
 #include <imgui_impl_sdl2.h>
 #include <iostream>
 
+constexpr int SIDEBAR_WIDTH = 200;
+
 const auto VERTEX_SOURCE = R"(
         #version 330 core
         layout(location = 0) in vec2 aPos;
         layout(location = 1) in vec2 aTexCoord;
 
         out vec2 TexCoord;
+        uniform mat4 uTransform;
 
         void main() {
-            gl_Position = vec4(aPos, 0.0, 1.0);
+            // Apply transformation to position
+            gl_Position = uTransform * vec4(aPos, 0.0, 1.0);
             TexCoord = aTexCoord;
         }
     )";
@@ -48,8 +52,20 @@ static GLuint compileShader(GLenum type, const char *source) {
     return shader;
 }
 
-Display::Display(const int width, const int height) : width_(width), height_(height), window_(nullptr), glContext_(nullptr), textureId_(0),
-                                          shaderProgram_(0), vao_(0), vbo_(0), ebo_(0) {}
+Display::Display(const int width, const int height, const RGBImage *img)
+    : width_(width),
+      height_(height),
+      renderWidth_(0),
+      scaleX_(0),
+      scaleY_(0),
+      window_(nullptr),
+      glContext_(nullptr),
+      textureId_(0),
+      shaderProgram_(0),
+      vao_(0),
+      vbo_(0),
+      ebo_(0),
+      img_(img) {}
 
 bool Display::init() {
     if (!initWindow()) {
@@ -71,12 +87,23 @@ bool Display::init() {
 
     initQuad();
 
+    updateScale();
+
     return true;
 }
 
-void Display::updateTexture(const RGBImage &img) const {
-    glBindTexture(GL_TEXTURE_2D, textureId_);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, img.w_, img.h_, 0, GL_RGB, GL_UNSIGNED_BYTE, img.data());
+void Display::destroy() const {
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+
+    SDL_GL_DeleteContext(glContext_);
+    SDL_DestroyWindow(window_);
+    SDL_Quit();
+}
+
+void Display::setImage(const RGBImage *img) {
+    this->img_ = img;
 }
 
 void Display::render() const {
@@ -84,19 +111,48 @@ void Display::render() const {
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::ShowDemoWindow();
+    glBindTexture(GL_TEXTURE_2D, textureId_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, img_->w_, img_->h_, 0, GL_RGB, GL_UNSIGNED_BYTE, img_->data());
 
-    ImGui::Render();
+    // renderwidth
+    glViewport(0, 0, renderWidth_, height_);
 
     glClearColor(0.f, 0.f, 0.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glUseProgram(shaderProgram_);
     glBindVertexArray(vao_);
+
+    // scaleX, scaleY
+    GLint transformLoc = glGetUniformLocation(shaderProgram_, "uTransform");
+    if (transformLoc != -1) {
+        // Construct a scale matrix
+        const float transform[16] = {
+                scaleX_, 0.0f, 0.0f, 0.0f,
+                0.0f, scaleY_, 0.0f, 0.0f,
+                0.0f, 0.0f, 1.0f, 0.0f,
+                0.0f, 0.0f, 0.0f, 1.0f};
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, transform);
+    }
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureId_);
     glUniform1i(glGetUniformLocation(shaderProgram_, "uTexture"), 0);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+    glViewport(0, 0, width_, height_);
+
+    ImGui::SetNextWindowPos(ImVec2(static_cast<float>(width_ - SIDEBAR_WIDTH), 0.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(static_cast<float>(SIDEBAR_WIDTH), static_cast<float>(height_)), ImGuiCond_Always);
+
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                                    ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse;
+
+    ImGui::Begin("Sidebar", nullptr, window_flags);
+    ImGui::Text("This is the sidebar area.");
+    ImGui::End();
+
+    ImGui::Render();
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -202,11 +258,26 @@ void Display::initQuad() {
 void Display::initUI() const {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    const ImGuiIO &io = ImGui::GetIO(); (void)io;
+    const ImGuiIO &io = ImGui::GetIO();
+    (void) io;
 
     ImGui::StyleColorsDark();
     ImGui_ImplSDL2_InitForOpenGL(window_, glContext_);
     ImGui_ImplOpenGL3_Init("#version 330");
+}
+void Display::updateScale() {
+    renderWidth_ = width_ - SIDEBAR_WIDTH;
+
+    const auto imageWidth  = static_cast<float>(img_->w_);
+    const auto imageHeight = static_cast<float>(img_->h_);
+
+    const float scale = std::min(static_cast<float>(renderWidth_) / imageWidth, static_cast<float>(height_) / imageHeight);
+
+    const float scaledWidth  = imageWidth * scale;
+    const float scaledHeight = imageHeight * scale;
+
+    scaleX_ = scaledWidth / static_cast<float>(renderWidth_);
+    scaleY_ = scaledHeight / static_cast<float>(height_);
 }
 
 void Display::processEvents(bool &isRunning) {
@@ -221,6 +292,7 @@ void Display::processEvents(bool &isRunning) {
             width_  = e.window.data1;
             height_ = e.window.data2;
             glViewport(0, 0, width_, height_);
+            updateScale();
         }
     }
 }

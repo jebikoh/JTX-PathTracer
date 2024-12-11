@@ -50,10 +50,12 @@ public:
         this->defocusAngle  = defocusAngle;
         this->focusDistance = focusDistance;
 
-        init();
+        img           = RGBImage(width, height);
     }
 
     void render(const HittableList &world) {
+        // Need to re-initialize everytime to reflect changes via UI
+        init();
         unsigned int threadCount = std::thread::hardware_concurrency();
         if (threadCount == 0) threadCount = 4;
 
@@ -105,7 +107,6 @@ private:
 
 
     void init() {
-        img           = RGBImage(width, height);
         pxSampleScale = static_cast<Float>(1.0) / static_cast<Float>(samplesPerPx);
 
         // Viewport dimensions

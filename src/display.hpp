@@ -1,25 +1,26 @@
 #pragma once
 
+#include "camera.hpp"
 #include "glad/glad.h"
-#include "image.hpp"
 
 #include <SDL_video.h>
 
+constexpr int SIDEBAR_WIDTH = 300;
+
 class Display {
 public:
-    Display(int width, int height, const RGBImage *img);
+    Display(int width, int height, Camera *camera);
 
     bool init();
-    void destroy() const;
 
-    void setImage(const RGBImage *img);
+    void destroy() const;
 
     void processEvents(bool &isRunning);
 
     void render() const;
 private:
     int width_, height_;
-    const RGBImage *img_;
+    Camera *camera_;
 
     int renderWidth_;
     float scaleX_, scaleY_;

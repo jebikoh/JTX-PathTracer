@@ -28,8 +28,6 @@ struct Interval {
         return jtx::clamp(x, min, max);
     }
 
-    static const Interval EMPTY, UNIVERSE;
+    static const Interval EMPTY;
+    static const Interval UNIVERSE;
 };
-
-const Interval Interval::EMPTY    = Interval(INF, -INF);
-const Interval Interval::UNIVERSE = Interval(-INF, INF);

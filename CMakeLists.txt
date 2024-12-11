@@ -31,6 +31,7 @@ add_executable(RayTracer src/main.cpp
         src/display.hpp
         src/display.cpp
         src/image.cpp
+        src/interval.cpp
 )
 
 target_link_libraries(RayTracer PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui)

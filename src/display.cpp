@@ -6,8 +6,6 @@
 #include <imgui_impl_sdl2.h>
 #include <iostream>
 
-constexpr int SIDEBAR_WIDTH = 200;
-
 const auto VERTEX_SOURCE = R"(
         #version 330 core
         layout(location = 0) in vec2 aPos;
@@ -52,7 +50,7 @@ static GLuint compileShader(GLenum type, const char *source) {
     return shader;
 }
 
-Display::Display(const int width, const int height, const RGBImage *img)
+Display::Display(const int width, const int height, Camera *camera)
     : width_(width),
       height_(height),
       renderWidth_(0),
@@ -65,7 +63,7 @@ Display::Display(const int width, const int height, const RGBImage *img)
       vao_(0),
       vbo_(0),
       ebo_(0),
-      img_(img) {}
+      camera_(camera) {}
 
 bool Display::init() {
     if (!initWindow()) {
@@ -102,17 +100,13 @@ void Display::destroy() const {
     SDL_Quit();
 }
 
-void Display::setImage(const RGBImage *img) {
-    this->img_ = img;
-}
-
 void Display::render() const {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
     glBindTexture(GL_TEXTURE_2D, textureId_);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, img_->w_, img_->h_, 0, GL_RGB, GL_UNSIGNED_BYTE, img_->data());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, camera_->width, camera_->height, 0, GL_RGB, GL_UNSIGNED_BYTE, camera_->img.data());
 
     // renderwidth
     glViewport(0, 0, renderWidth_, height_);
@@ -149,7 +143,51 @@ void Display::render() const {
                                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse;
 
     ImGui::Begin("Sidebar", nullptr, window_flags);
-    ImGui::Text("This is the sidebar area.");
+    if (ImGui::TreeNode("Configuration")) {
+        ImGui::SeparatorText("Image");
+        int dimensions[2] = {camera_->width, camera_->height};
+        ImGui::Text("Dimensions");
+        ImGui::InputInt2("##Dimensions", dimensions);
+
+        ImGui::SeparatorText("Ray Tracing");
+
+        ImGui::Text("SPP");
+        ImGui::InputInt("##SPP", &camera_->samplesPerPx);
+
+        ImGui::Text("Max Depth");
+        ImGui::InputInt("##MaxDepth", &camera_->maxDepth);
+
+        ImGui::TreePop();
+    }
+    if (ImGui::TreeNode("Camera Settings")) {
+        ImGui::SeparatorText("Orientation");
+
+        ImGui::Text("Position");
+        // cast the current position to floats (stored as doubles)
+        auto pos = static_cast<jtx::Vec3f>(camera_->center);
+        ImGui::InputFloat3("##Position", &pos.x);
+
+        ImGui::Text("Target");
+        auto target = static_cast<jtx::Vec3f>(camera_->target);
+        ImGui::InputFloat3("##Target", &target.x);
+
+        ImGui::Text("Up");
+        auto up = static_cast<jtx::Vec3f>(camera_->up);
+        ImGui::InputFloat3("##Up", &up.x);
+
+        ImGui::SeparatorText("Lens");
+
+        ImGui::Text("Y-FOV");
+        ImGui::InputDouble("##Y-FOV", &camera_->yfov);
+
+        ImGui::Text("Focus Angle");
+        ImGui::InputDouble("##FocusAngle", &camera_->defocusAngle);
+
+        ImGui::Text("Focus Distance");
+        ImGui::InputDouble("##FocusDistance", &camera_->focusDistance);
+        
+        ImGui::TreePop();
+    }
     ImGui::End();
 
     ImGui::Render();
@@ -268,8 +306,8 @@ void Display::initUI() const {
 void Display::updateScale() {
     renderWidth_ = width_ - SIDEBAR_WIDTH;
 
-    const auto imageWidth  = static_cast<float>(img_->w_);
-    const auto imageHeight = static_cast<float>(img_->h_);
+    const auto imageWidth  = static_cast<float>(camera_->width);
+    const auto imageHeight = static_cast<float>(camera_->height);
 
     const float scale = std::min(static_cast<float>(renderWidth_) / imageWidth, static_cast<float>(height_) / imageHeight);
 

@@ -1,14 +1,31 @@
 #pragma once
 
 #include "hittable.hpp"
+#include "image.hpp"
 #include "interval.hpp"
 #include "material.hpp"
-#include "image.hpp"
 
 #include <thread>
 
 class Camera {
 public:
+    // Image properties
+    int width, height;
+    Float aspectRatio;
+    int samplesPerPx;
+    int maxDepth;
+
+    RGBImage img;
+
+    // Camera properties
+    Vec3 center;
+    Vec3 target;
+    Vec3 up;
+    Float yfov;
+    Float defocusAngle;
+    Float focusDistance;
+
+
     explicit Camera(
             const int width,
             const int height,
@@ -28,10 +45,10 @@ public:
         this->samplesPerPx = samplesPerPx;
         this->maxDepth     = maxDepth;
 
-        this->center = position;
-        this->target   = target;
-        this->up       = up;
-        this->defocusAngle = defocusAngle;
+        this->center        = position;
+        this->target        = target;
+        this->up            = up;
+        this->defocusAngle  = defocusAngle;
         this->focusDistance = focusDistance;
 
         init();
@@ -69,7 +86,7 @@ public:
             startRow = endRow;
         }
 
-        for (auto &t : threads) {
+        for (auto &t: threads) {
             t.join();
         }
     }
@@ -78,38 +95,18 @@ public:
         img.save(path);
     }
 
-    [[nodiscard]]
-    const RGBImage *image() const {
-        return &img;
-    }
-
 private:
-    int width, height;
-    Float aspectRatio;
-    Float yfov;
-    RGBImage img;
-
-    int samplesPerPx;
     Float pxSampleScale;
-    int maxDepth;
-
-    Vec3 center;
     Vec3 vp00;
     Vec3 du;
     Vec3 dv;
-
-    Vec3 target;
-    Vec3 up;
     Vec3 u, v, w;
-
-    Float defocusAngle;
-    Float focusDistance;
     Vec3 defocus_u;
     Vec3 defocus_v;
 
 
     void init() {
-        img = RGBImage(width, height);
+        img           = RGBImage(width, height);
         pxSampleScale = static_cast<Float>(1.0) / static_cast<Float>(samplesPerPx);
 
         // Viewport dimensions
@@ -123,9 +120,9 @@ private:
 
         // Viewport offsets
         const auto viewportU = viewportWidth * u;
-        const auto viewportV = viewportHeight * -v;
-        du           = viewportU / width;
-        dv           = viewportV / height;
+        const auto viewportV = viewportHeight * v;
+        du                   = viewportU / width;
+        dv                   = viewportV / height;
 
         // Viewport anchors
         const auto vpUpperLeft = center - (focusDistance * w) - viewportU / 2 - viewportV / 2;
@@ -133,12 +130,11 @@ private:
 
         // Defocus disk
         const Float defocusRadius = focusDistance * jtx::tan(radians(defocusAngle / 2));
-        defocus_u = defocusRadius * u;
-        defocus_v = defocusRadius * v;
+        defocus_u                 = defocusRadius * u;
+        defocus_v                 = defocusRadius * v;
     }
 
-    [[nodiscard]]
-    Ray getRay(const int i, const int j) const {
+    [[nodiscard]] Ray getRay(const int i, const int j) const {
         const auto offset = sampleSquare();
         const auto sample = vp00 + ((i + offset.x) * du) + ((j + offset.y) * dv);
 
@@ -150,14 +146,13 @@ private:
         return {randomFloat() - static_cast<Float>(0.5), randomFloat() - static_cast<Float>(0.5), 0};
     }
 
-    [[nodiscard]]
-    Vec3 sampleDefocusDisc() const {
+    [[nodiscard]] Vec3 sampleDefocusDisc() const {
         Vec3 p = randomInUnitDisk();
         return center + (p.x * defocus_u) + (p.y * defocus_v);
     }
 
     static Color rayColor(const Ray &r, const HittableList &world, int depth) {
-        Ray currRay = r;
+        Ray currRay           = r;
         Color currAttenuation = {1.0, 1.0, 1.0};
         for (int i = 0; i < depth; ++i) {
             HitRecord record;

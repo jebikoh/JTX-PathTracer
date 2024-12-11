@@ -2,17 +2,16 @@
 #include "color.hpp"
 #include "display.hpp"
 #include "hittable.hpp"
-#include "image.hpp"
 #include "material.hpp"
 #include "rt.hpp"
 
 #include <thread>
 
 // Camera Settings
-constexpr int IMAGE_WIDTH      = 400;
-constexpr int IMAGE_HEIGHT     = 225;
+constexpr int IMAGE_WIDTH      = 800;
+constexpr int IMAGE_HEIGHT     = 450;
 constexpr Float ASPECT_RATIO   = static_cast<Float>(IMAGE_WIDTH) / static_cast<Float>(IMAGE_HEIGHT);
-constexpr int SAMPLES_PER_PX   = 100;
+constexpr int SAMPLES_PER_PX   = 10;
 constexpr int MAX_DEPTH        = 10;
 constexpr Float YFOV           = 20;
 const auto CAM_POS             = Vec3(-2, 2, 1);
@@ -68,7 +67,7 @@ int main() {
         camera.render(world);
     });
 
-    Display display(IMAGE_WIDTH * 2 + 200, IMAGE_HEIGHT * 2, camera.image());
+    Display display(IMAGE_WIDTH + SIDEBAR_WIDTH, IMAGE_HEIGHT, &camera);
     if (!display.init()) {
         return -1;
     }

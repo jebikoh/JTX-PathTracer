@@ -17,7 +17,9 @@ public:
 
     void processEvents(bool &isRunning);
 
-    void render() const;
+    void render();
+
+    void setWorld(HittableList *world) { this->world = world; }
 private:
     int width_, height_;
     Camera *camera_;
@@ -32,10 +34,15 @@ private:
     GLuint shaderProgram_;
     GLuint vao_, vbo_, ebo_;
 
+    HittableList *world;
+
     bool initWindow();
     bool initShaders();
     void initQuad();
     void initUI() const;
+
+    void renderWorld();
+    bool isRendering_ = false;
 
     void updateScale();
 };

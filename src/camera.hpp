@@ -25,7 +25,6 @@ public:
     Float defocusAngle;
     Float focusDistance;
 
-
     explicit Camera(
             const int width,
             const int height,

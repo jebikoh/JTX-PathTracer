@@ -63,14 +63,15 @@ int main() {
     world.add(std::make_shared<Hittable>(&rightSphere));
     world.add(std::make_shared<Hittable>(&bigSphere));
 
-    std::thread renderThread([&] {
-        camera.render(world);
-    });
+    // std::thread renderThread([&] {
+    //     camera.render(world);
+    // });
 
     Display display(IMAGE_WIDTH + SIDEBAR_WIDTH, IMAGE_HEIGHT, &camera);
     if (!display.init()) {
         return -1;
     }
+    display.setWorld(&world);
 
     bool isRunning = true;
     while (isRunning) {
@@ -81,8 +82,7 @@ int main() {
     }
 
     display.destroy();
-    renderThread.join();
-
+    // renderThread.join();
     camera.save("../output.png");
 
     return 0;

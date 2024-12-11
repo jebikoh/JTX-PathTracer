@@ -66,7 +66,7 @@ inline Vec3 randomInUnitDisk() {
     }
 }
 
-bool nearZero(const Vec3 &v) {
+inline bool nearZero(const Vec3 &v) {
     constexpr Float s = 1e-8;
     return (jtx::abs(v.x) < s) && (jtx::abs(v.y) < s) && (jtx::abs(v.z) < s);
 }

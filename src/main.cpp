@@ -1,5 +1,6 @@
 #include "camera.hpp"
 #include "color.hpp"
+#include "display.hpp"
 #include "hittable.hpp"
 #include "image.hpp"
 #include "material.hpp"
@@ -7,7 +8,7 @@
 
 // Camera Settings
 constexpr int IMAGE_WIDTH      = 400;
-constexpr int IMAGE_HEIGHT     = 224;
+constexpr int IMAGE_HEIGHT     = 225;
 constexpr Float ASPECT_RATIO   = static_cast<Float>(IMAGE_WIDTH) / static_cast<Float>(IMAGE_HEIGHT);
 constexpr int SAMPLES_PER_PX   = 100;
 constexpr int MAX_DEPTH        = 10;
@@ -62,5 +63,21 @@ int main() {
     world.add(std::make_shared<Hittable>(&bigSphere));
 
     camera.render(world);
-    camera.save("../output.png");
+
+    Display display(IMAGE_WIDTH, IMAGE_HEIGHT);
+    if (!display.init()) {
+        return -1;
+    }
+
+    bool isRunning = true;
+    while (isRunning) {
+        display.processEvents(isRunning);
+        display.updateTexture(camera.image());
+        display.render();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
+    }
+
+    return 0;
 }
+

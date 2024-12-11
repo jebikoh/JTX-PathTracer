@@ -2,8 +2,6 @@
 
 #include "color.hpp"
 #include "rt.hpp"
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
 
 constexpr Float MIN_INTENSITY = 0;
 constexpr Float MAX_INTENSITY = 0.999;
@@ -45,14 +43,11 @@ public:
         buffer[i].B = static_cast<int>(RGB_SCALE * clampIntensity(linearToGamma(color.b)));
     }
 
-    void save(const char *path) const {
-        stbi_write_png(path, w_, h_, 3, buffer.data(), w_ * 3);
-    }
+    void save(const char *path) const;
 
-    RGB *data() {
+    const RGB *data() const {
         return buffer.data();
     }
-
 private:
     std::vector<RGB> buffer;
 };

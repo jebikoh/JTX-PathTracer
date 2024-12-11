@@ -78,6 +78,11 @@ public:
         img.save(path);
     }
 
+    [[nodiscard]]
+    const RGBImage &image() const {
+        return img;
+    }
+
 private:
     int width, height;
     Float aspectRatio;

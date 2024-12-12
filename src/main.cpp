@@ -48,7 +48,7 @@ int main() {
     auto materialRight      = std::make_shared<Material>(&metalHiFuzz);
 
     // World
-    auto centerSphere = Sphere(Vec3(0, 0, -1.2), 0.5, materialCenter);
+    auto centerSphere = Sphere(Vec3(0, 1, -1.2), Vec3(0, 0, -1.2), 0.5, materialCenter);
     auto leftSphere   = Sphere(Vec3(-1, 0, -1), 0.5, materialLeft);
     auto leftBubble   = Sphere(Vec3(-1, 0, -1), 0.4, materialLeftBubble);
     auto rightSphere  = Sphere(Vec3(1, 0, -1), 0.5, materialRight);
@@ -62,10 +62,6 @@ int main() {
     world.add(std::make_shared<Hittable>(&leftBubble));
     world.add(std::make_shared<Hittable>(&rightSphere));
     world.add(std::make_shared<Hittable>(&bigSphere));
-
-    // std::thread renderThread([&] {
-    //     camera.render(world);
-    // });
 
     Display display(IMAGE_WIDTH + SIDEBAR_WIDTH, IMAGE_HEIGHT, &camera);
     if (!display.init()) {
@@ -87,4 +83,3 @@ int main() {
 
     return 0;
 }
-

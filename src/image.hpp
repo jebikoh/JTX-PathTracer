@@ -36,6 +36,10 @@ public:
         buffer.resize(w * h);
     }
 
+    void clear() {
+        std::ranges::fill(buffer, RGB{0, 0, 0});
+    }
+
     void writePixel(const Color &color, int r, int c) {
         int i = r * w_ + c;
         buffer[i].R = static_cast<int>(RGB_SCALE * clampIntensity(linearToGamma(color.r)));
@@ -45,6 +49,7 @@ public:
 
     void save(const char *path) const;
 
+    [[nodiscard]]
     const RGB *data() const {
         return buffer.data();
     }

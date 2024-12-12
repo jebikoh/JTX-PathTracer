@@ -45,4 +45,5 @@ private:
     bool isRendering_ = false;
 
     void updateScale();
+    int getWindowScale() const;
 };

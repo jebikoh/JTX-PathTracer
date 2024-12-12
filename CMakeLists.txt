@@ -4,6 +4,7 @@ project(RayTracer)
 set(CMAKE_CXX_STANDARD 20)
 
 set(BUILD_TESTS OFF CACHE BOOL "Build tests for jtxlib" FORCE)
+set(NDEBUG OFF CACHE BOOL "Disable debug assertions" FORCE)
 add_subdirectory(ext/jtxlib)
 
 add_subdirectory(ext/sdl EXCLUDE_FROM_ALL)

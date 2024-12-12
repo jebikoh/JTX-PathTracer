@@ -96,6 +96,19 @@ public:
         img.save(path);
     }
 
+    void resize(const int w, const int h) {
+        this->width = w;
+        this->height = h;
+        this->aspectRatio = static_cast<Float>(w) / static_cast<Float>(h);
+
+        this->img.clear();
+        this->img.resize(w, h);
+    }
+
+    void clear() {
+        this->img.clear();
+    }
+
 private:
     Float pxSampleScale;
     Vec3 vp00;
@@ -139,7 +152,7 @@ private:
         const auto sample = vp00 + ((i + offset.x) * du) + ((j + offset.y) * dv);
 
         auto origin = (defocusAngle <= 0) ? center : sampleDefocusDisc();
-        return {origin, sample - origin};
+        return {origin, sample - origin, randomFloat()};
     }
 
     static Vec3 sampleSquare() {

@@ -5,7 +5,9 @@
 
 #include <SDL_video.h>
 
+// Both in logical pixels
 constexpr int SIDEBAR_WIDTH = 300;
+constexpr int FONT_SIZE     = 14;
 
 class Display {
 public:
@@ -22,6 +24,8 @@ public:
     void setWorld(HittableList *world) { this->world = world; }
 private:
     int width_, height_;
+    int logicalWidth_, logicalHeight_;
+    float windowScale_;
     Camera *camera_;
 
     int renderWidth_;
@@ -45,5 +49,4 @@ private:
     bool isRendering_ = false;
 
     void updateScale();
-    int getWindowScale() const;
 };

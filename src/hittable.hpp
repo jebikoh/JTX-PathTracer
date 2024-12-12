@@ -1,7 +1,7 @@
 #pragma once
 
-#include "rt.hpp"
 #include "interval.hpp"
+#include "rt.hpp"
 #include <jtxlib/util/taggedptr.hpp>
 
 class Material;
@@ -15,7 +15,7 @@ struct HitRecord {
 
     void setFaceNormal(const Ray &r, const Vec3 &n) {
         frontFace = jtx::dot(r.dir, n) < 0;
-        normal = frontFace ? n : -n;
+        normal    = frontFace ? n : -n;
     }
 };
 
@@ -31,21 +31,31 @@ public:
 
 class Sphere {
 public:
-    Sphere(const Vec3 &center, Float radius, std::shared_ptr<Material> material) : _center(center), _radius(radius), _material(material) {}
+    Sphere(const Vec3 &center, const Float radius, const std::shared_ptr<Material> &material)
+        : _center(center, Vec3(0, 0, 0)),
+          _radius(radius),
+          _material(material) {}
 
-    bool hit(const Ray &r, Interval t, HitRecord &record) const {
-        const Vec3 oc = _center - r.origin;
-        const Float a = r.dir.lenSqr();
-        const Float h = jtx::dot(r.dir, oc);
-        const Float c = oc.lenSqr() - _radius * _radius;
+    // Moving spheres
+    Sphere(const Vec3 &start, const Vec3 &end, Float radius, const std::shared_ptr<Material> &material)
+        : _center(start, end - start),
+          _radius(radius),
+          _material(material) {}
+
+    bool hit(const Ray &r, const Interval t, HitRecord &record) const {
+        const auto currentCenter = _center.at(r.time);
+        const Vec3 oc            = currentCenter - r.origin;
+        const Float a            = r.dir.lenSqr();
+        const Float h            = jtx::dot(r.dir, oc);
+        const Float c            = oc.lenSqr() - _radius * _radius;
 
         const Float discriminant = h * h - a * c;
         if (discriminant < 0) {
             return false;
         }
 
-        auto sqrtd = jtx::sqrt(discriminant);
-        auto root = (h - sqrtd) / a;
+        const auto sqrtd = jtx::sqrt(discriminant);
+        auto root        = (h - sqrtd) / a;
         if (!t.surrounds(root)) {
             root = (h + sqrtd) / a;
             if (!t.surrounds(root)) {
@@ -53,9 +63,9 @@ public:
             }
         }
 
-        record.t = root;
+        record.t     = root;
         record.point = r.at(root);
-        auto n = (record.point - _center) / _radius;
+        const auto n = (record.point - currentCenter) / _radius;
         record.setFaceNormal(r, n);
         record.material = _material;
 
@@ -63,7 +73,7 @@ public:
     }
 
 private:
-    Vec3  _center;
+    Ray _center;
     Float _radius;
     std::shared_ptr<Material> _material;
 };
@@ -73,19 +83,19 @@ public:
     HittableList() = default;
     explicit HittableList(const std::shared_ptr<Hittable> &object) { add(object); }
 
-    void add(const std::shared_ptr<Hittable>& object) { _objects.push_back(object); }
+    void add(const std::shared_ptr<Hittable> &object) { _objects.push_back(object); }
     void clear() { _objects.clear(); }
 
     bool hit(const Ray &r, Interval t, HitRecord &record) const {
         HitRecord tmpRecord;
-        bool hitAnything = false;
+        bool hitAnything  = false;
         auto closestSoFar = t.max;
 
-        for (const auto &object : _objects) {
+        for (const auto &object: _objects) {
             if (object->hit(r, Interval(t.min, closestSoFar), tmpRecord)) {
-                hitAnything = true;
+                hitAnything  = true;
                 closestSoFar = tmpRecord.t;
-                record = tmpRecord;
+                record       = tmpRecord;
             }
         }
 
@@ -96,8 +106,7 @@ private:
     std::vector<std::shared_ptr<Hittable>> _objects;
 };
 
-inline bool Hittable::hit(const Ray &r, Interval  t, HitRecord &record) const {
+inline bool Hittable::hit(const Ray &r, Interval t, HitRecord &record) const {
     auto fn = [&](auto ptr) { return ptr->hit(r, t, record); };
     return dispatch(fn);
 }
-

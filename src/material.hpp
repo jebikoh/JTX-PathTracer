@@ -24,7 +24,7 @@ public:
             scatterDir = record.normal;
         }
 
-        scattered = Ray(record.point, scatterDir);
+        scattered = Ray(record.point, scatterDir, r.time);
         attenuation = _albedo;
         return true;
     }
@@ -34,11 +34,11 @@ private:
 
 class Metal {
 public:
-    Metal(const Color &albedo, Float fuzz) : _albedo(albedo), _fuzz(fuzz) {}
+    Metal(const Color &albedo, const Float fuzz) : _albedo(albedo), _fuzz(fuzz) {}
 
     bool scatter(const Ray &r, const HitRecord &record, Color &attenuation, Ray &scattered) const {
         Vec3 reflected = jtx::reflect(r.dir, record.normal).normalize() + _fuzz * randomUnitVector();
-        scattered = Ray(record.point, reflected);
+        scattered = Ray(record.point, reflected, r.time);
         attenuation = _albedo;
         return (jtx::dot(scattered.dir, record.normal) > 0);
     }
@@ -56,7 +56,7 @@ static Float reflectance(const Float cosine, const Float ri) {
 
 class Dielectric {
 public:
-    explicit Dielectric(Float refractionIndex) : _refractionIndex(refractionIndex) {}
+    explicit Dielectric(const Float refractionIndex) : _refractionIndex(refractionIndex) {}
 
     bool scatter(const Ray &r, const HitRecord &record, Color &attenuation, Ray &scattered) const {
         attenuation = Color(1.0, 1.0, 1.0);
@@ -73,7 +73,7 @@ public:
             scatterDir = jtx::refract(dir, record.normal, ri);
         }
 
-        scattered = Ray(record.point, scatterDir);
+        scattered = Ray(record.point, scatterDir, r.time);
         return true;
     }
 private:

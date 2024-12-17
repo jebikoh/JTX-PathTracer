@@ -34,40 +34,35 @@ int main() {
             MAX_DEPTH};
 
     // Materials
-    auto lambertianGround = Lambertian(Color(0.8, 0.8, 0.0));
-    auto lambertianCenter = Lambertian(Color(0.1, 0.2, 0.5));
-    auto metalLoFuzz      = Metal(Color(0.8, 0.8, 0.8), 0.3);
-    auto metalHiFuzz      = Metal(Color(0.8, 0.6, 0.2), 1.0);
-    auto glass            = Dielectric(1.5);
-    auto glassBubble      = Dielectric(1.00 / 1.50);
+    auto lambertianGround    = Lambertian(Color(0.8, 0.8, 0.0));
+    auto lambertianCenter    = Lambertian(Color(0.1, 0.2, 0.5));
+    auto metalLoFuzz    = Metal(Color(0.8, 0.8, 0.8), 0.3);
+    auto metalHiFuzz    = Metal(Color(0.8, 0.6, 0.2), 1.0);
+    auto glass    = Dielectric(1.5);
+    auto glassBubble    = Dielectric(1.00 / 1.50);
 
-    auto materialGround     = std::make_shared<Material>(&lambertianGround);
-    auto materialCenter     = std::make_shared<Material>(&lambertianCenter);
-    auto materialLeft       = std::make_shared<Material>(&glass);
-    auto materialLeftBubble = std::make_shared<Material>(&glassBubble);
-    auto materialRight      = std::make_shared<Material>(&metalHiFuzz);
 
     // World
-    auto centerSphere = Sphere(Vec3(0, 1, -1.2), Vec3(0, 0, -1.2), 0.5, materialCenter);
-    auto leftSphere   = Sphere(Vec3(-1, 0, -1), 0.5, materialLeft);
-    auto leftBubble   = Sphere(Vec3(-1, 0, -1), 0.4, materialLeftBubble);
-    auto rightSphere  = Sphere(Vec3(1, 0, -1), 0.5, materialRight);
+    auto centerSphere = Sphere(Vec3(0, 0, -1.2), 0.5, Material(&lambertianCenter));
+    auto leftSphere   = Sphere(Vec3(-1, 0, -1), 0.5, Material(&glass));
+    auto leftBubble   = Sphere(Vec3(-1, 0, -1), 0.4, Material(&glassBubble));
+    auto rightSphere  = Sphere(Vec3(1, 0, -1), 0.5, Material(&metalHiFuzz));
+    auto groundSphere    = Sphere(Vec3(0, -100.5, -1), 100, Material(&lambertianGround));
 
-    auto bigSphere = Sphere(Vec3(0, -100.5, -1), 100, materialGround);
-
-
-    HittableList world;
-    world.add(std::make_shared<Hittable>(&centerSphere));
-    world.add(std::make_shared<Hittable>(&leftSphere));
-    world.add(std::make_shared<Hittable>(&leftBubble));
-    world.add(std::make_shared<Hittable>(&rightSphere));
-    world.add(std::make_shared<Hittable>(&bigSphere));
+    HittableList objects;
+    objects.add(Hittable(&centerSphere));
+    objects.add(Hittable(&leftSphere));
+    objects.add(Hittable(&leftBubble));
+    objects.add(Hittable(&rightSphere));
+    objects.add(Hittable(&groundSphere));
+    // BVHNode bvh(objects);
+    // HittableList world{Hittable(&bvh)};
 
     Display display(IMAGE_WIDTH + SIDEBAR_WIDTH, IMAGE_HEIGHT, &camera);
     if (!display.init()) {
         return -1;
     }
-    display.setWorld(&world);
+    display.setWorld(&objects);
 
     bool isRunning = true;
     while (isRunning) {

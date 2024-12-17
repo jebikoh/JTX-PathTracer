@@ -28,6 +28,12 @@ struct Interval {
         return jtx::clamp(x, min, max);
     }
 
+    [[nodiscard]]
+    Interval expand(Float delta) const {
+        const auto padding = delta / 2;
+        return {min - padding, max + padding};
+    }
+
     static const Interval EMPTY;
     static const Interval UNIVERSE;
 };

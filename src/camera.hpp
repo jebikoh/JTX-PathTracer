@@ -7,6 +7,7 @@
 
 #include <thread>
 
+// Update this to use PBRv4 Camera
 class Camera {
 public:
     // Image properties

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hittable.hpp"
+#include "hit.hpp"
 #include <jtxlib/util/taggedptr.hpp>
 
 class Lambertian;
@@ -52,7 +52,6 @@ static Float reflectance(const Float cosine, const Float ri) {
     r0       = r0 * r0;
     return r0 + (1 - r0) * jtx::pow((1 - cosine), 5);
 }
-
 
 class Dielectric {
 public:

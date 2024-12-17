@@ -3,21 +3,8 @@
 #include "interval.hpp"
 #include "rt.hpp"
 #include <jtxlib/util/taggedptr.hpp>
-
-class Material;
-
-struct HitRecord {
-    Vec3 point;
-    Vec3 normal;
-    std::shared_ptr<Material> material;
-    Float t;
-    bool frontFace;
-
-    void setFaceNormal(const Ray &r, const Vec3 &n) {
-        frontFace = jtx::dot(r.dir, n) < 0;
-        normal    = frontFace ? n : -n;
-    }
-};
+#include "hit.hpp"
+#include "material.hpp"
 
 class Sphere;
 class HittableList;
@@ -31,13 +18,13 @@ public:
 
 class Sphere {
 public:
-    Sphere(const Vec3 &center, const Float radius, const std::shared_ptr<Material> &material)
+    Sphere(const Vec3 &center, const Float radius, const Material &material)
         : _center(center, Vec3(0, 0, 0)),
           _radius(radius),
           _material(material) {}
 
     // Moving spheres
-    Sphere(const Vec3 &start, const Vec3 &end, Float radius, const std::shared_ptr<Material> &material)
+    Sphere(const Vec3 &start, const Vec3 &end, Float radius, const Material &material)
         : _center(start, end - start),
           _radius(radius),
           _material(material) {}
@@ -67,7 +54,7 @@ public:
         record.point = r.at(root);
         const auto n = (record.point - currentCenter) / _radius;
         record.setFaceNormal(r, n);
-        record.material = _material;
+        record.material = &_material;
 
         return true;
     }
@@ -75,24 +62,24 @@ public:
 private:
     Ray _center;
     Float _radius;
-    std::shared_ptr<Material> _material;
+    Material _material;
 };
 
 class HittableList {
 public:
     HittableList() = default;
-    explicit HittableList(const std::shared_ptr<Hittable> &object) { add(object); }
+    explicit HittableList(const Hittable &object) { add(object); }
 
-    void add(const std::shared_ptr<Hittable> &object) { _objects.push_back(object); }
+    void add(const Hittable &object) { _objects.push_back(object); }
     void clear() { _objects.clear(); }
 
-    bool hit(const Ray &r, Interval t, HitRecord &record) const {
-        HitRecord tmpRecord;
+    bool hit(const Ray &r, const Interval t, HitRecord &record) const {
+        HitRecord tmpRecord{};
         bool hitAnything  = false;
         auto closestSoFar = t.max;
 
         for (const auto &object: _objects) {
-            if (object->hit(r, Interval(t.min, closestSoFar), tmpRecord)) {
+            if (object.hit(r, Interval(t.min, closestSoFar), tmpRecord)) {
                 hitAnything  = true;
                 closestSoFar = tmpRecord.t;
                 record       = tmpRecord;
@@ -103,7 +90,7 @@ public:
     }
 
 private:
-    std::vector<std::shared_ptr<Hittable>> _objects;
+    std::vector<Hittable> _objects;
 };
 
 inline bool Hittable::hit(const Ray &r, Interval t, HitRecord &record) const {

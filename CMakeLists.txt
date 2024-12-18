@@ -17,7 +17,8 @@ add_subdirectory(ext/glad)
 # ImGUI
 set(IMGUI_PATH  "ext/imgui")
 file(GLOB IMGUI_SOURCES ${IMGUI_PATH}/*.cpp)
-add_library(imgui STATIC ${IMGUI_SOURCES})
+add_library(imgui STATIC ${IMGUI_SOURCES}
+        src/primitives/sphere.hpp)
 target_include_directories(imgui PUBLIC ${IMGUI_PATH})
 target_link_libraries(imgui PRIVATE glad SDL2::SDL2)
 

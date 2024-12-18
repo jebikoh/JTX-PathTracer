@@ -158,7 +158,7 @@ public:
         }
 
         const bool hitLeft = left_.hit(r, t, record);
-        const bool hitRight = right_.hit(r, t, record);
+        const bool hitRight = right_.hit(r, Interval(t.min, hitLeft ? record.t : t.max), record);
         return hitLeft || hitRight;
     }
 

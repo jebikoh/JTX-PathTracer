@@ -74,7 +74,6 @@ int main() {
     }
 
     display.destroy();
-    // renderThread.join();
     camera.save("../output.png");
 
     destroyBVHTree(&bvh, false);

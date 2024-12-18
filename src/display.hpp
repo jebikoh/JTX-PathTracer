@@ -22,6 +22,10 @@ public:
     void render();
 
     void setWorld(HittableList *world) { this->world = world; }
+
+    bool isRendering() const {
+        return isRendering_;
+    }
 private:
     int width_, height_;
     int logicalWidth_, logicalHeight_;

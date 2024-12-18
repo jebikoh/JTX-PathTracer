@@ -55,12 +55,7 @@ public:
             auto tNear        = (pmin[i] - o[i]) * invDir;
             auto tFar         = (pmax[i] - o[i]) * invDir;
 
-            if (tNear > tFar) {
-                const auto tmp = tNear;
-                tNear = tFar;
-                tFar = tmp;
-            }
-                // jtx::swap(tNear, tFar);
+            if (tNear > tFar) jstd::swap(tNear, tFar);
             t0 = tNear > t0 ? tNear : t0;
             t1 = tFar < t1 ? tFar : t1;
             if (t0 > t1) return false;

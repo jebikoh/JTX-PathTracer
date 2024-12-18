@@ -69,13 +69,14 @@ int main() {
     while (isRunning) {
         display.processEvents(isRunning);
         display.render();
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
+    }
 
+    while (display.isRendering()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 
     display.destroy();
-    camera.save("../output.png");
-
     destroyBVHTree(&bvh, false);
 
     return 0;

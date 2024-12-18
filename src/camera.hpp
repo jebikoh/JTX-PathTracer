@@ -57,6 +57,8 @@ public:
     void render(const HittableList &world) {
         // Need to re-initialize everytime to reflect changes via UI
         init();
+        stopRender = false;
+
         unsigned int threadCount = std::thread::hardware_concurrency();
         if (threadCount == 0) threadCount = 4;
 
@@ -71,10 +73,10 @@ public:
         int startRow = 0;
         for (unsigned int t = 0; t < threadCount; ++t) {
             int endRow = (t == threadCount - 1) ? height : startRow + rowsPerThread;
-
             threads.emplace_back([this, startRow, endRow, &world]() {
                 for (int j = startRow; j < endRow; ++j) {
                     for (int i = 0; i < width; ++i) {
+                        if (stopRender) return;
                         auto pxColor = Color(0, 0, 0);
                         for (int s = 0; s < samplesPerPx; ++s) {
                             Ray r = getRay(i, j);
@@ -110,6 +112,10 @@ public:
         this->img.clear();
     }
 
+    void terminateRender() {
+        stopRender = true;
+    }
+
 private:
     Float pxSampleScale;
     Vec3 vp00;
@@ -118,6 +124,8 @@ private:
     Vec3 u, v, w;
     Vec3 defocus_u;
     Vec3 defocus_v;
+
+    bool stopRender = false;
 
 
     void init() {

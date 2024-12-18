@@ -446,6 +446,7 @@ void Display::processEvents(bool &isRunning) {
 
         if (e.type == SDL_QUIT) {
             isRunning = false;
+            camera_->terminateRender();
         }
         if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_RESIZED) {
             SDL_GetWindowSize(window_, &logicalWidth_, &logicalHeight_);

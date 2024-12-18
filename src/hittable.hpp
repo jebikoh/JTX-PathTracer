@@ -12,25 +12,16 @@ class Sphere;
 class HittableList;
 class BVHNode;
 
-class Hittable : jtx::TaggedPtr<Sphere, HittableList, BVHNode> {
+class Hittable : public jtx::TaggedPtr<Sphere, HittableList, BVHNode> {
 public:
     using TaggedPtr::TaggedPtr;
 
     bool hit(const Ray &r, Interval t, HitRecord &record) const;
 
     AABB bounds() const;
-
-    unsigned int tag() const {
-        return getTag();
-    }
-
-    template <typename T>
-    const T *cast() const {
-        return cast<T>();
-    }
 };
 
-constexpr unsigned int BVH_TAG_IDX = jtx::TaggedPtr<Sphere, HittableList, BVHNode>::tagIndex<BVHNode>();
+constexpr unsigned int BVH_TAG_IDX = Hittable::tagIndex<BVHNode>();
 
 class Sphere {
 public:
@@ -99,18 +90,18 @@ public:
     explicit HittableList(const Hittable &object) { add(object); }
 
     void add(const Hittable &object) {
-        _objects.push_back(object);
+        objects_.push_back(object);
         bbox_.expand(object.bounds());
     }
 
-    void clear() { _objects.clear(); }
+    void clear() { objects_.clear(); }
 
     bool hit(const Ray &r, const Interval t, HitRecord &record) const {
         HitRecord tmpRecord{};
         bool hitAnything  = false;
         auto closestSoFar = t.max;
 
-        for (const auto &object: _objects) {
+        for (const auto &object: objects_) {
             if (object.hit(r, Interval(t.min, closestSoFar), tmpRecord)) {
                 hitAnything  = true;
                 closestSoFar = tmpRecord.t;
@@ -125,13 +116,16 @@ public:
         return bbox_;
     }
 
+    friend class BVHNode;
 private:
-    std::vector<Hittable> _objects;
+    std::vector<Hittable> objects_;
     AABB bbox_ = AABB::EMPTY;
 };
 
 class BVHNode {
 public:
+    BVHNode(HittableList &list) : BVHNode(list.objects_, 0, list.objects_.size()) {}
+
     BVHNode(std::vector<Hittable> &objects, const size_t start, const size_t end) {
         bbox_ = AABB::EMPTY;
         for (auto i = start; i < end; ++i) {
@@ -158,8 +152,14 @@ public:
         }
     }
 
-    bool hit(const Ray &r, Interval t, HitRecord &record) const {
-        return false;
+    bool hit(const Ray &r, const Interval t, HitRecord &record) const {
+        if (!bbox_.hit(r.origin, r.dir, t)) {
+            return false;
+        }
+
+        const bool hitLeft = left_.hit(r, t, record);
+        const bool hitRight = right_.hit(r, t, record);
+        return hitLeft || hitRight;
     }
 
     AABB bounds() const {
@@ -182,10 +182,10 @@ inline void destroyBVHTree(BVHNode *root, const bool freeRoot = false) {
     if (freeRoot) {
         stack.push_back(Hittable(root));
     } else {
-        if (root->left_.tag() == BVH_TAG_IDX) {
+        if (root->left_.getTag() == BVH_TAG_IDX) {
             stack.push_back(root->left_);
         }
-        if (root->right_.tag() == BVH_TAG_IDX) {
+        if (root->right_.getTag() == BVH_TAG_IDX) {
             stack.push_back(root->right_);
         }
     }
@@ -195,12 +195,12 @@ inline void destroyBVHTree(BVHNode *root, const bool freeRoot = false) {
         auto curr = stack.back();
         stack.pop_back();
 
-        if (curr.tag() == BVH_TAG_IDX) {
+        if (curr.getTag() == BVH_TAG_IDX) {
             const auto node = curr.cast<BVHNode>();
-            if (node->left_.tag() == BVH_TAG_IDX) {
+            if (node->left_.getTag() == BVH_TAG_IDX) {
                 stack.push_back(node->left_);
             }
-            if (node->right_.tag() == BVH_TAG_IDX) {
+            if (node->right_.getTag() == BVH_TAG_IDX) {
                 stack.push_back(node->right_);
             }
             delete node;

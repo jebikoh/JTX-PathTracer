@@ -55,14 +55,15 @@ int main() {
     objects.add(Hittable(&leftBubble));
     objects.add(Hittable(&rightSphere));
     objects.add(Hittable(&groundSphere));
-    // BVHNode bvh(objects);
-    // HittableList world{Hittable(&bvh)};
+    BVHNode bvh(objects);
+    HittableList world;
+    world.add(Hittable(&bvh));
 
     Display display(IMAGE_WIDTH + SIDEBAR_WIDTH, IMAGE_HEIGHT, &camera);
     if (!display.init()) {
         return -1;
     }
-    display.setWorld(&objects);
+    display.setWorld(&world);
 
     bool isRunning = true;
     while (isRunning) {
@@ -75,6 +76,8 @@ int main() {
     display.destroy();
     // renderThread.join();
     camera.save("../output.png");
+
+    destroyBVHTree(&bvh, false);
 
     return 0;
 }

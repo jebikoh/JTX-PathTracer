@@ -169,7 +169,7 @@ void Display::render() {
     ImGui::NewFrame();
 
     glBindTexture(GL_TEXTURE_2D, textureId_);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, camera_->width, camera_->height, 0, GL_RGB, GL_UNSIGNED_BYTE, camera_->img.data());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, camera_->width_, camera_->height_, 0, GL_RGB, GL_UNSIGNED_BYTE, camera_->img_.data());
 
     // renderwidth
     glViewport(0, 0, renderWidth_, height_);
@@ -233,10 +233,10 @@ void Display::render() {
         ImGui::SeparatorText("Ray Tracing");
 
         ImGui::Text("SPP");
-        ImGui::InputInt("##SPP", &camera_->samplesPerPx);
+        ImGui::InputInt("##SPP", &camera_->samplesPerPx_);
 
         ImGui::Text("Max Depth");
-        ImGui::InputInt("##MaxDepth", &camera_->maxDepth);
+        ImGui::InputInt("##MaxDepth", &camera_->maxDepth_);
 
         ImGui::TreePop();
     }
@@ -245,42 +245,42 @@ void Display::render() {
 
         ImGui::Text("Position");
         // cast the current position to floats (stored as doubles)
-        auto pos = static_cast<jtx::Vec3f>(camera_->center);
+        auto pos = static_cast<jtx::Vec3f>(camera_->properties_.center);
         if (ImGui::InputFloat3("##Position", &pos.x)) {
-            camera_->center = static_cast<Vec3>(pos);
+            camera_->properties_.center = static_cast<Vec3>(pos);
         }
 
         ImGui::Text("Target");
-        auto target = static_cast<jtx::Vec3f>(camera_->target);
+        auto target = static_cast<jtx::Vec3f>(camera_->properties_.target);
         if (ImGui::InputFloat3("##Target", &target.x)) {
-            camera_->target = static_cast<Vec3>(target);
+            camera_->properties_.target = static_cast<Vec3>(target);
         }
 
         ImGui::Text("Up");
-        auto up = static_cast<jtx::Vec3f>(camera_->up);
+        auto up = static_cast<jtx::Vec3f>(camera_->properties_.up);
         if (ImGui::InputFloat3("##Up", &up.x)) {
-            camera_->up = static_cast<Vec3>(up);
+            camera_->properties_.up = static_cast<Vec3>(up);
         }
 
         ImGui::SeparatorText("Lens");
 
         ImGui::Text("Y-FOV");
 #ifdef RT_DOUBLE_PRECISION
-        ImGui::InputDouble("##Y-FOV", &camera_->yfov);
+        ImGui::InputDouble("##Y-FOV", &camera_->properties_.yfov);
 #else
         ImGui::InputFloat("##Y-FOV", &camera_->yfov);
 #endif
 
         ImGui::Text("Focus Angle");
 #ifdef RT_DOUBLE_PRECISION
-        ImGui::InputDouble("##FocusAngle", &camera_->defocusAngle);
+        ImGui::InputDouble("##FocusAngle", &camera_->properties_.defocusAngle);
 #else
         ImGui::InputFloat("##FocusAngle", &camera_->defocusAngle);
 #endif
 
         ImGui::Text("Focus Distance");
 #ifdef RT_DOUBLE_PRECISION
-        ImGui::InputDouble("##FocusDistance", &camera_->focusDistance);
+        ImGui::InputDouble("##FocusDistance", &camera_->properties_.focusDistance);
 #else
         ImGui::InputFloat("##FocusDistance", &camera_->focusDistance);
 #endif
@@ -427,8 +427,8 @@ void Display::updateScale() {
     windowScale_ = static_cast<float>(width_) / static_cast<float>(logicalWidth_);
     renderWidth_ = width_ - (SIDEBAR_WIDTH * windowScale_);
 
-    const auto imageWidth  = static_cast<float>(camera_->width);
-    const auto imageHeight = static_cast<float>(camera_->height);
+    const auto imageWidth  = static_cast<float>(camera_->width_);
+    const auto imageHeight = static_cast<float>(camera_->height_);
 
     const float scale = std::min(static_cast<float>(renderWidth_) / imageWidth, static_cast<float>(height_) / imageHeight);
 

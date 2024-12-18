@@ -11,20 +11,33 @@
 class Camera {
 public:
     // Image properties
-    int width, height;
-    Float aspectRatio;
-    int samplesPerPx;
-    int maxDepth;
+    int width_, height_;
+    Float aspectRatio_;
+    int samplesPerPx_;
+    int maxDepth_;
 
-    RGBImage img;
+    RGBImage img_;
 
     // Camera properties
-    Vec3 center;
-    Vec3 target;
-    Vec3 up;
-    Float yfov;
-    Float defocusAngle;
-    Float focusDistance;
+    struct Properties {
+        Vec3 center;
+        Vec3 target;
+        Vec3 up;
+        Float yfov;
+        Float defocusAngle;
+        Float focusDistance;
+    };
+
+    Properties properties_;
+
+    explicit Camera(const int width, const int height, const Properties &cameraProperties, const int samplesPerPx, const int maxDepth)
+        : width_(width),
+          height_(height),
+          aspectRatio_(static_cast<Float>(width) / static_cast<Float>(height)),
+          properties_(cameraProperties),
+          samplesPerPx_(samplesPerPx),
+          maxDepth_(maxDepth),
+          img_(width, height) {}
 
     explicit Camera(
             const int width,
@@ -38,31 +51,31 @@ public:
             const int samplesPerPx,
             const int maxDepth) {
         // No initializer list cuz its long and ugly to read here
-        this->width        = width;
-        this->height       = height;
-        this->aspectRatio  = static_cast<Float>(width) / static_cast<Float>(height);
-        this->yfov         = yfov;
-        this->samplesPerPx = samplesPerPx;
-        this->maxDepth     = maxDepth;
+        this->width_           = width;
+        this->height_          = height;
+        this->aspectRatio_     = static_cast<Float>(width) / static_cast<Float>(height);
+        this->properties_.yfov = yfov;
+        this->samplesPerPx_    = samplesPerPx;
+        this->maxDepth_        = maxDepth;
 
-        this->center        = position;
-        this->target        = target;
-        this->up            = up;
-        this->defocusAngle  = defocusAngle;
-        this->focusDistance = focusDistance;
+        this->properties_.center        = position;
+        this->properties_.target        = target;
+        this->properties_.up            = up;
+        this->properties_.defocusAngle  = defocusAngle;
+        this->properties_.focusDistance = focusDistance;
 
-        img           = RGBImage(width, height);
+        img_ = RGBImage(width, height);
     }
 
     void render(const HittableList &world) {
         // Need to re-initialize everytime to reflect changes via UI
         init();
-        stopRender = false;
+        stopRender_ = false;
 
         unsigned int threadCount = std::thread::hardware_concurrency();
         if (threadCount == 0) threadCount = 4;
 
-        const auto rowsPerThread = height / threadCount;
+        const auto rowsPerThread = height_ / threadCount;
 
         std::cout << "Using " << threadCount << " threads" << std::endl;
         std::cout << "Rows per thread: " << rowsPerThread << std::endl;
@@ -72,17 +85,17 @@ public:
 
         int startRow = 0;
         for (unsigned int t = 0; t < threadCount; ++t) {
-            int endRow = (t == threadCount - 1) ? height : startRow + rowsPerThread;
+            int endRow = (t == threadCount - 1) ? height_ : startRow + rowsPerThread;
             threads.emplace_back([this, startRow, endRow, &world]() {
                 for (int j = startRow; j < endRow; ++j) {
-                    for (int i = 0; i < width; ++i) {
-                        if (stopRender) return;
+                    for (int i = 0; i < width_; ++i) {
+                        if (stopRender_) return;
                         auto pxColor = Color(0, 0, 0);
-                        for (int s = 0; s < samplesPerPx; ++s) {
+                        for (int s = 0; s < samplesPerPx_; ++s) {
                             Ray r = getRay(i, j);
-                            pxColor += rayColor(r, world, maxDepth);
+                            pxColor += rayColor(r, world, maxDepth_);
                         }
-                        img.writePixel(pxColor * pxSampleScale, j, i);
+                        img_.writePixel(pxColor * pxSampleScale_, j, i);
                     }
                 }
             });
@@ -96,71 +109,75 @@ public:
     }
 
     void save(const char *path) const {
-        img.save(path);
+        img_.save(path);
     }
 
     void resize(const int w, const int h) {
-        this->width = w;
-        this->height = h;
-        this->aspectRatio = static_cast<Float>(w) / static_cast<Float>(h);
+        this->width_       = w;
+        this->height_      = h;
+        this->aspectRatio_ = static_cast<Float>(w) / static_cast<Float>(h);
 
-        this->img.clear();
-        this->img.resize(w, h);
+        this->img_.clear();
+        this->img_.resize(w, h);
     }
 
     void clear() {
-        this->img.clear();
+        this->img_.clear();
     }
 
     void terminateRender() {
-        stopRender = true;
+        stopRender_ = true;
+    }
+
+    void updateCameraProperties(const Properties &properties) {
+        properties_ = properties;
     }
 
 private:
-    Float pxSampleScale;
-    Vec3 vp00;
-    Vec3 du;
-    Vec3 dv;
-    Vec3 u, v, w;
-    Vec3 defocus_u;
-    Vec3 defocus_v;
+    Float pxSampleScale_;
+    Vec3 vp00_;
+    Vec3 du_;
+    Vec3 dv_;
+    Vec3 u_, v_, w_;
+    Vec3 defocus_u_;
+    Vec3 defocus_v_;
 
-    bool stopRender = false;
+    bool stopRender_ = false;
 
 
     void init() {
-        pxSampleScale = static_cast<Float>(1.0) / static_cast<Float>(samplesPerPx);
+        pxSampleScale_ = static_cast<Float>(1.0) / static_cast<Float>(samplesPerPx_);
 
         // Viewport dimensions
-        const Float h              = jtx::tan(radians(yfov) / 2);
-        const Float viewportHeight = 2 * h * focusDistance;
-        const Float viewportWidth  = viewportHeight * aspectRatio;
+        const Float h              = jtx::tan(radians(properties_.yfov) / 2);
+        const Float viewportHeight = 2 * h * properties_.focusDistance;
+        const Float viewportWidth  = viewportHeight * aspectRatio_;
 
-        w = normalize(center - target);
-        u = normalize(jtx::cross(up, w));
-        v = jtx::cross(w, u);
+        w_ = normalize(properties_.center - properties_.target);
+        u_ = normalize(jtx::cross(properties_.up, w_));
+        v_ = jtx::cross(w_, u_);
 
         // Viewport offsets
-        const auto viewportU = viewportWidth * u;
-        const auto viewportV = viewportHeight * v;
-        du                   = viewportU / width;
-        dv                   = viewportV / height;
+        const auto viewportU = viewportWidth * u_;
+        const auto viewportV = viewportHeight * v_;
+        du_                  = viewportU / width_;
+        dv_                  = viewportV / height_;
 
         // Viewport anchors
-        const auto vpUpperLeft = center - (focusDistance * w) - viewportU / 2 - viewportV / 2;
-        vp00                   = vpUpperLeft + 0.5 * (du + dv);
+        const auto vpUpperLeft = properties_.center - (properties_.focusDistance * w_) - viewportU / 2 - viewportV / 2;
+        vp00_                  = vpUpperLeft + 0.5 * (du_ + dv_);
 
         // Defocus disk
-        const Float defocusRadius = focusDistance * jtx::tan(radians(defocusAngle / 2));
-        defocus_u                 = defocusRadius * u;
-        defocus_v                 = defocusRadius * v;
+        const Float defocusRadius = properties_.focusDistance * jtx::tan(radians(properties_.defocusAngle / 2));
+        defocus_u_                = defocusRadius * u_;
+        defocus_v_                = defocusRadius * v_;
     }
 
     [[nodiscard]] Ray getRay(const int i, const int j) const {
         const auto offset = sampleSquare();
-        const auto sample = vp00 + ((i + offset.x) * du) + ((j + offset.y) * dv);
+        const auto sample = vp00_ + ((i + offset.x) * du_) + ((j + offset.y) * dv_);
 
-        auto origin = (defocusAngle <= 0) ? center : sampleDefocusDisc();
+        auto origin = (properties_.defocusAngle <= 0) ? properties_.center : sampleDefocusDisc();
         return {origin, sample - origin, randomFloat()};
     }
 
@@ -170,7 +187,7 @@ private:
 
     [[nodiscard]] Vec3 sampleDefocusDisc() const {
         Vec3 p = randomInUnitDisk();
-        return center + (p.x * defocus_u) + (p.y * defocus_v);
+        return properties_.center + (p.x * defocus_u_) + (p.y * defocus_v_);
     }
 
     static Color rayColor(const Ray &r, const HittableList &world, int depth) {

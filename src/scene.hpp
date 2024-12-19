@@ -18,4 +18,6 @@ struct Scene {
     Camera::Properties cameraProperties;
 };
 
-Scene createDefaultScene();
+Scene createDefaultScene(Scene &scene);
+
+Scene createCoverScene(Scene &scene);

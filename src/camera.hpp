@@ -7,7 +7,7 @@
 
 #include <thread>
 
-// Update this to use PBRv4 Camera
+// Update this to use PBRTv4 Camera
 class Camera {
 public:
     // Image properties
@@ -67,7 +67,7 @@ public:
         img_ = RGBImage(width, height);
     }
 
-    void render(const HittableList &world) {
+    void render(const BVHNode &world) {
         // Need to re-initialize everytime to reflect changes via UI
         init();
         stopRender_ = false;
@@ -190,7 +190,7 @@ private:
         return properties_.center + (p.x * defocus_u_) + (p.y * defocus_v_);
     }
 
-    static Color rayColor(const Ray &r, const HittableList &world, int depth) {
+    static Color rayColor(const Ray &r, const BVHNode &world, const int depth) {
         Ray currRay           = r;
         Color currAttenuation = {1.0, 1.0, 1.0};
         for (int i = 0; i < depth; ++i) {

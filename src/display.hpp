@@ -21,7 +21,7 @@ public:
 
     void render();
 
-    void setWorld(HittableList *world) { this->world = world; }
+    void setWorld(BVHNode *world) { this->world = world; }
 
     bool isRendering() const {
         return isRendering_;
@@ -42,7 +42,7 @@ private:
     GLuint shaderProgram_;
     GLuint vao_, vbo_, ebo_;
 
-    HittableList *world;
+    BVHNode *world;
 
     bool initWindow();
     bool initShaders();

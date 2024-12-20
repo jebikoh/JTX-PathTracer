@@ -11,26 +11,24 @@ Scene createDefaultScene(Scene &scene) {
     scene.cameraProperties.defocusAngle  = 10.0;
     scene.cameraProperties.focusDistance = 3.4;
 
-    scene.lambertians.reserve(10);
-    scene.metals.reserve(10);
-    scene.dielectrics.reserve(10);
+    scene.materials.reserve(10);
     scene.spheres.reserve(10);
 
     // Objects & Materials
-    scene.lambertians.emplace_back(Color(0.8, 0.8, 0.0));
-    scene.spheres.emplace_back(Vec3(0, -100.5, -1), 100, Material(&scene.lambertians.back()));
+    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.8, 0.8, 0.0)});
+    scene.spheres.emplace_back(Vec3(0, -100.5, -1), 100, scene.materials.back());
 
-    scene.lambertians.emplace_back(Color(0.1, 0.2, 0.5));
-    scene.spheres.emplace_back(Vec3(0, 0, -1.2), 0.5, Material(&scene.lambertians.back()));
+    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.1, 0.2, 0.5)});
+    scene.spheres.emplace_back(Vec3(0, 0, -1.2), 0.5, scene.materials.back());
 
-    scene.metals.emplace_back(Color(0.8, 0.6, 0.2), 1.0);
-    scene.spheres.emplace_back(Vec3(1, 0, -1), 0.5, Material(&scene.metals.back()));
+    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 1.0});
+    scene.spheres.emplace_back(Vec3(1, 0, -1), 0.5, scene.materials.back());
 
-    scene.dielectrics.emplace_back(1.5);
-    scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.5, Material(&scene.dielectrics.back()));
+    scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.5});
+    scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.5, scene.materials.back());
 
-    scene.dielectrics.emplace_back(1.00 / 1.50);
-    scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.4, Material(&scene.dielectrics.back()));
+    scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.00 / 1.50});
+    scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.4, scene.materials.back());
 
     for (int i = 0; i < scene.spheres.size(); ++i) {
         scene.objects.add(Hittable(&scene.spheres[i]));
@@ -47,17 +45,15 @@ Scene createCoverScene(Scene &scene) {
 
     // There are around 500 spheres in this scene
     scene.spheres.reserve(500);
-
-    scene.lambertians.reserve(500);
-    scene.metals.reserve(200);
-    scene.dielectrics.reserve(1);
-
-    // Ground
-    scene.lambertians.emplace_back(Color(0.5, 0.5, 0.5));
-    scene.spheres.emplace_back(Vec3(0, -1000, 0), 1000, Material(&scene.lambertians.back()));
+    scene.materials.reserve(500);
 
     // Glass
-    scene.dielectrics.emplace_back(1.5);
+    scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.5});
+
+    // Ground
+    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.5, 0.5, 0.5)});
+    scene.spheres.emplace_back(Vec3(0, -1000, 0), 1000, scene.materials.back());
+
 
     for (int a = -11; a < 11; ++a) {
         for (int b = -11; b < 11; ++b) {
@@ -67,27 +63,28 @@ Scene createCoverScene(Scene &scene) {
             if ((center - Vec3(4, 0.2, 0)).len() > 0.9) {
                 if (matIdx < DIFFUSE_PROBABILITY) {
                     auto albedo = randomVec3() * randomVec3();
-                    scene.lambertians.emplace_back(albedo);
-                    scene.spheres.emplace_back(center, 0.2, Material(&scene.lambertians.back()));
+                    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = albedo});
+                    scene.spheres.emplace_back(center, 0.2, scene.materials.back());
                 } else if (matIdx < METAL_CUTOFF) {
                     auto albedo = randomVec3(0.5, 1);
                     auto fuzz   = randomFloat(0, 0.5);
-                    scene.metals.emplace_back(albedo, fuzz);
-                    scene.spheres.emplace_back(center, 0.2, Material(&scene.metals.back()));
+                    scene.materials.push_back({.type = Material::METAL, .albedo = albedo, .fuzz = fuzz});
+                    scene.spheres.emplace_back(center, 0.2, scene.materials.back());
                 } else {
-                    scene.spheres.emplace_back(center, 0.2, Material(&scene.dielectrics.back()));
+                    // Dielectric glass always at the front
+                    scene.spheres.emplace_back(center, 0.2, scene.materials.front());
                 }
             }
         }
     }
 
-    scene.spheres.emplace_back(Vec3(0, 1, 0), 1.0, Material(&scene.dielectrics.back()));
+    scene.spheres.emplace_back(Vec3(0, 1, 0), 1.0, scene.materials.front());
 
-    scene.lambertians.emplace_back(Vec3(0.4, 0.2, 0.1));
-    scene.spheres.emplace_back(Vec3(-4, 1, 0), 1.0, Material(&scene.lambertians.back()));
+    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.4, 0.2, 0.1)});
+    scene.spheres.emplace_back(Vec3(-4, 1, 0), 1.0, scene.materials.back());
 
-    scene.metals.emplace_back(Color(0.7, 0.6, 0.5), 0.0);
-    scene.spheres.emplace_back(Vec3(4, 1, 0), 1.0, Material(&scene.metals.back()));
+    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.7, 0.6, 0.5), .fuzz = 0.0});
+    scene.spheres.emplace_back(Vec3(4, 1, 0), 1.0, scene.materials.back());
 
     scene.cameraProperties.yfov          = 20;
     scene.cameraProperties.center        = {13, 2, 3};

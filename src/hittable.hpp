@@ -1,7 +1,6 @@
 #pragma once
 
 #include "aabb.hpp"
-#include "hit.hpp"
 #include "interval.hpp"
 #include "material.hpp"
 #include "rt.hpp"
@@ -80,7 +79,7 @@ public:
 private:
     Ray center_;
     Float radius_;
-    Material material_;
+    const Material &material_;
     AABB bbox_;
 };
 

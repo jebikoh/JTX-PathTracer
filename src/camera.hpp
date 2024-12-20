@@ -5,8 +5,9 @@
 #include "interval.hpp"
 #include "material.hpp"
 
-#include <thread>
+// ReSharper disable once CppUnusedIncludeDirective
 #include <chrono>
+#include <thread>
 
 // Update this to use PBRTv4 Camera
 class Camera {
@@ -73,7 +74,7 @@ public:
         init();
         stopRender_ = false;
 
-#ifdef ENABLE_MULTITHREADING
+#ifdef ENABLE_MULTITHREADINGa
         unsigned int threadCount = std::thread::hardware_concurrency();
         if (threadCount == 0) threadCount = 4;
 
@@ -114,6 +115,8 @@ public:
         int numRays = 0;
         for (int j = 0; j < height_; ++j) {
             for (int i = 0; i < width_; ++i) {
+                // ReSharper disable once CppDFAConstantConditions
+                // ReSharper disable once CppDFAUnreachableCode
                 if (stopRender_) return;
                 auto pxColor = Color(0, 0, 0);
                 for (int s = 0; s < samplesPerPx_; ++s) {
@@ -130,8 +133,8 @@ public:
 
         std::cout << "Total render time: " << renderTimeSeconds << "s" << std::endl;
         std::cout << "Num rays: " << numRays << std::endl;
-        std::cout << "Mrays/s: " << numRays / 1000000.0 /renderTimeSeconds << std::endl;
-        std::cout << "ms/ray: " << renderTimeMillis / numRays << std::endl;
+        std::cout << "**Mrays/s**: " << numRays / 1000000.0 /renderTimeSeconds << std::endl;
+        std::cout << "**ms/ray**: " << renderTimeMillis / numRays << std::endl;
 #endif
 #endif
     }
@@ -227,7 +230,7 @@ private:
             if (world.hit(currRay, Interval(0.001, INF), record)) {
                 Ray scattered;
                 Color attenuation;
-                if (record.material->scatter(currRay, record, attenuation, scattered)) {
+                if (scatter(record.material,currRay, record, attenuation, scattered)) {
                     currAttenuation *= attenuation;
                     currRay = scattered;
                 } else {

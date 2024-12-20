@@ -8,18 +8,21 @@ set(NDEBUG OFF CACHE BOOL "Disable debug assertions" FORCE)
 
 option(ENABLE_MULTITHREADING "Enable multithreading" OFF)
 if (ENABLE_MULTITHREADING)
-    add_definitions(-DENABLE_MULTITHREADING)
+    add_compile_definitions(-DENABLE_MULTITHREADING)
 endif()
 
-option(ENABLE_PROFILING "Enable profiling" OFF)
+option(ENABLE_PROFILING "Enable profiling" ON)
 if (ENABLE_PROFILING)
-    add_definitions(-DENABLE_PROFILING)
+    add_compile_definitions(-DENABLE_PROFILING)
 endif()
 
 option(USE_DOUBLE_PRECISION "Use double precision" OFF)
 if (USE_DOUBLE_PRECISION)
-    add_definitions(-DUSE_DOUBLE_PRECISION)
+    add_compile_definitions(-DUSE_DOUBLE_PRECISION)
 endif()
+
+#add_compile_options(-O3)
+add_compile_options(-ffast-math)
 
 add_subdirectory(ext/jtxlib)
 
@@ -52,7 +55,6 @@ add_executable(RayTracer src/main.cpp
         src/interval.cpp
         src/aabb.hpp
         src/aabb.cpp
-        src/hit.hpp
         src/scene.hpp
         src/scene.cpp
 )

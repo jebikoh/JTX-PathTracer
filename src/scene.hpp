@@ -8,10 +8,7 @@
 struct Scene {
     std::string name;
 
-    std::vector<Lambertian> lambertians;
-    std::vector<Dielectric> dielectrics;
-    std::vector<Metal> metals;
-
+    std::vector<Material> materials;
     std::vector<Sphere> spheres;
 
     HittableList objects;

@@ -21,8 +21,8 @@ constexpr Float FOCUS_DISTANCE = 3.4;
 
 int main() {
     Scene scene{};
-    createDefaultScene(scene);
-    // createCoverScene(scene);
+    // createDefaultScene(scene);
+    createCoverScene(scene);
 
     Camera camera{
         IMAGE_WIDTH,

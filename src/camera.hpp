@@ -36,10 +36,10 @@ public:
         : width_(width),
           height_(height),
           aspectRatio_(static_cast<Float>(width) / static_cast<Float>(height)),
-          properties_(cameraProperties),
           samplesPerPx_(samplesPerPx),
           maxDepth_(maxDepth),
-          img_(width, height) {}
+          img_(width, height),
+          properties_(cameraProperties) {}
 
     explicit Camera(
             const int width,
@@ -73,8 +73,8 @@ public:
         // Need to re-initialize everytime to reflect changes via UI
         init();
         stopRender_ = false;
-
-#ifdef ENABLE_MULTITHREADINGa
+        int numRays = 0;
+#ifdef ENABLE_MULTITHREADING
         unsigned int threadCount = std::thread::hardware_concurrency();
         if (threadCount == 0) threadCount = 4;
 
@@ -82,23 +82,26 @@ public:
 
         std::vector<std::thread> threads;
         threads.reserve(threadCount);
-
         int startRow = 0;
+
+        const auto startTime = std::chrono::high_resolution_clock::now();
+
         for (unsigned int t = 0; t < threadCount; ++t) {
             int endRow = (t == threadCount - 1) ? height_ : startRow + rowsPerThread;
-            threads.emplace_back([this, startRow, endRow, &world]() {
+            threads.emplace_back([this, startRow, endRow, &world, &numRays]() {
+                int localNumRays = 0;
                 for (int j = startRow; j < endRow; ++j) {
                     for (int i = 0; i < width_; ++i) {
                         if (stopRender_) return;
                         auto pxColor = Color(0, 0, 0);
-                        int numRays = 0;
                         for (int s = 0; s < samplesPerPx_; ++s) {
                             Ray r = getRay(i, j);
-                            pxColor += rayColor(r, world, maxDepth_, numRays);
+                            pxColor += rayColor(r, world, maxDepth_, localNumRays);
                         }
                         img_.writePixel(pxColor * pxSampleScale_, j, i);
                     }
                 }
+                numRays += localNumRays;
             });
 
             startRow = endRow;
@@ -108,11 +111,7 @@ public:
             t.join();
         }
 #else
-#ifdef ENABLE_PROFILING
         const auto startTime = std::chrono::high_resolution_clock::now();
-#endif
-
-        int numRays = 0;
         for (int j = 0; j < height_; ++j) {
             for (int i = 0; i < width_; ++i) {
                 // ReSharper disable once CppDFAConstantConditions
@@ -126,17 +125,15 @@ public:
                 img_.writePixel(pxColor * pxSampleScale_, j, i);
             }
         }
-#ifdef ENABLE_PROFILING
+#endif
         const auto stopTime = std::chrono::high_resolution_clock::now();
         const double renderTimeSeconds = std::chrono::duration_cast<std::chrono::seconds>(stopTime - startTime).count();
         const double renderTimeMillis = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
 
         std::cout << "Total render time: " << renderTimeSeconds << "s" << std::endl;
         std::cout << "Num rays: " << numRays << std::endl;
-        std::cout << "**Mrays/s**: " << numRays / 1000000.0 /renderTimeSeconds << std::endl;
-        std::cout << "**ms/ray**: " << renderTimeMillis / numRays << std::endl;
-#endif
-#endif
+        std::cout << " - **Mrays/s**: " << numRays / 1000000.0 /renderTimeSeconds << std::endl;
+        std::cout << " - **ms/ray**: " << renderTimeMillis / numRays << std::endl;
     }
 
     void save(const char *path) const {

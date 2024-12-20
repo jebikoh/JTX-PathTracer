@@ -1,8 +1,6 @@
 #include "camera.hpp"
-#include "color.hpp"
 #include "display.hpp"
 #include "hittable.hpp"
-#include "material.hpp"
 #include "rt.hpp"
 #include "scene.hpp"
 
@@ -23,10 +21,9 @@ constexpr Float FOCUS_DISTANCE = 3.4;
 
 int main() {
     Scene scene{};
-    // createDefaultScene(scene);
-    createCoverScene(scene);
+    createDefaultScene(scene);
+    // createCoverScene(scene);
 
-    // return 0;
     Camera camera{
         IMAGE_WIDTH,
         IMAGE_HEIGHT,

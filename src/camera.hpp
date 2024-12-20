@@ -6,6 +6,7 @@
 #include "material.hpp"
 
 #include <thread>
+#include <chrono>
 
 // Update this to use PBRTv4 Camera
 class Camera {
@@ -72,13 +73,11 @@ public:
         init();
         stopRender_ = false;
 
+#ifdef ENABLE_MULTITHREADING
         unsigned int threadCount = std::thread::hardware_concurrency();
         if (threadCount == 0) threadCount = 4;
 
         const auto rowsPerThread = height_ / threadCount;
-
-        std::cout << "Using " << threadCount << " threads" << std::endl;
-        std::cout << "Rows per thread: " << rowsPerThread << std::endl;
 
         std::vector<std::thread> threads;
         threads.reserve(threadCount);
@@ -91,9 +90,10 @@ public:
                     for (int i = 0; i < width_; ++i) {
                         if (stopRender_) return;
                         auto pxColor = Color(0, 0, 0);
+                        int numRays = 0;
                         for (int s = 0; s < samplesPerPx_; ++s) {
                             Ray r = getRay(i, j);
-                            pxColor += rayColor(r, world, maxDepth_);
+                            pxColor += rayColor(r, world, maxDepth_, numRays);
                         }
                         img_.writePixel(pxColor * pxSampleScale_, j, i);
                     }
@@ -106,6 +106,34 @@ public:
         for (auto &t: threads) {
             t.join();
         }
+#else
+#ifdef ENABLE_PROFILING
+        const auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
+        int numRays = 0;
+        for (int j = 0; j < height_; ++j) {
+            for (int i = 0; i < width_; ++i) {
+                if (stopRender_) return;
+                auto pxColor = Color(0, 0, 0);
+                for (int s = 0; s < samplesPerPx_; ++s) {
+                    Ray r = getRay(i, j);
+                    pxColor += rayColor(r, world, maxDepth_, numRays);
+                }
+                img_.writePixel(pxColor * pxSampleScale_, j, i);
+            }
+        }
+#ifdef ENABLE_PROFILING
+        const auto stopTime = std::chrono::high_resolution_clock::now();
+        const double renderTimeSeconds = std::chrono::duration_cast<std::chrono::seconds>(stopTime - startTime).count();
+        const double renderTimeMillis = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
+
+        std::cout << "Total render time: " << renderTimeSeconds << "s" << std::endl;
+        std::cout << "Num rays: " << numRays << std::endl;
+        std::cout << "Mrays/s: " << numRays / 1000000.0 /renderTimeSeconds << std::endl;
+        std::cout << "ms/ray: " << renderTimeMillis / numRays << std::endl;
+#endif
+#endif
     }
 
     void save(const char *path) const {
@@ -190,10 +218,11 @@ private:
         return properties_.center + (p.x * defocus_u_) + (p.y * defocus_v_);
     }
 
-    static Color rayColor(const Ray &r, const BVHNode &world, const int depth) {
+    static Color rayColor(const Ray &r, const BVHNode &world, const int depth, int &numRays) {
         Ray currRay           = r;
         Color currAttenuation = {1.0, 1.0, 1.0};
         for (int i = 0; i < depth; ++i) {
+            ++numRays;
             HitRecord record;
             if (world.hit(currRay, Interval(0.001, INF), record)) {
                 Ray scattered;
@@ -205,7 +234,7 @@ private:
                     return {0, 0, 0};
                 }
             } else {
-                const auto a = 0.5 * (normalize(currRay.dir).y + 1.0);
+                const Float a = 0.5 * (normalize(currRay.dir).y + 1.0);
                 return currAttenuation * jtx::lerp(Color(1, 1, 1), Color(0.5, 0.7, 1.0), a);
             }
         }

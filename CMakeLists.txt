@@ -5,6 +5,22 @@ set(CMAKE_CXX_STANDARD 20)
 
 set(BUILD_TESTS OFF CACHE BOOL "Build tests for jtxlib" FORCE)
 set(NDEBUG OFF CACHE BOOL "Disable debug assertions" FORCE)
+
+option(ENABLE_MULTITHREADING "Enable multithreading" OFF)
+if (ENABLE_MULTITHREADING)
+    add_definitions(-DENABLE_MULTITHREADING)
+endif()
+
+option(ENABLE_PROFILING "Enable profiling" OFF)
+if (ENABLE_PROFILING)
+    add_definitions(-DENABLE_PROFILING)
+endif()
+
+option(USE_DOUBLE_PRECISION "Use double precision" OFF)
+if (USE_DOUBLE_PRECISION)
+    add_definitions(-DUSE_DOUBLE_PRECISION)
+endif()
+
 add_subdirectory(ext/jtxlib)
 
 add_subdirectory(ext/sdl EXCLUDE_FROM_ALL)

@@ -1,14 +1,9 @@
 #pragma once
 
 #include <jtxlib/math.hpp>
-#include <iostream>
-#include <limits>
-#include <memory>
 #include <random>
 
-#define RT_DOUBLE_PRECISION
-
-#ifdef RT_DOUBLE_PRECISION
+#ifdef USE_DOUBLE_PRECISION
 using Float = double;
 using Vec3  = jtx::Vec3d;
 using Ray   = jtx::Rayd;
@@ -25,8 +20,6 @@ constexpr Float PI  = jtx::PI_F;
 inline Float radians(const Float degrees) {
     return degrees * PI / static_cast<float>(180.0);
 }
-
-#include "color.hpp"
 
 inline Float randomFloat() {
     static std::uniform_real_distribution<Float> dist(0, 1);
@@ -48,9 +41,8 @@ inline Vec3 randomVec3(Float min, Float max) {
 
 inline Vec3 randomUnitVector() {
     while (true) {
-        auto p = randomVec3(-1, 1);
-        auto lensq = p.lenSqr();
-        if (1e-160 < lensq && lensq <= 1) return p / jtx::sqrt(lensq);
+        auto p           = randomVec3(-1, 1);
+        if (const auto lensq = p.lenSqr(); 1e-160 < lensq && lensq <= 1) return p / jtx::sqrt(lensq);
     }
 }
 

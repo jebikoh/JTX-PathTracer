@@ -265,24 +265,24 @@ void Display::render() {
         ImGui::SeparatorText("Lens");
 
         ImGui::Text("Y-FOV");
-#ifdef RT_DOUBLE_PRECISION
+#ifdef USE_DOUBLE_PRECISION
         ImGui::InputDouble("##Y-FOV", &camera_->properties_.yfov);
 #else
-        ImGui::InputFloat("##Y-FOV", &camera_->yfov);
+        ImGui::InputFloat("##Y-FOV", &camera_->properties_.yfov);
 #endif
 
         ImGui::Text("Focus Angle");
-#ifdef RT_DOUBLE_PRECISION
+#ifdef USE_DOUBLE_PRECISION
         ImGui::InputDouble("##FocusAngle", &camera_->properties_.defocusAngle);
 #else
-        ImGui::InputFloat("##FocusAngle", &camera_->defocusAngle);
+        ImGui::InputFloat("##FocusAngle", &camera_->properties_.defocusAngle);
 #endif
 
         ImGui::Text("Focus Distance");
-#ifdef RT_DOUBLE_PRECISION
+#ifdef USE_DOUBLE_PRECISION
         ImGui::InputDouble("##FocusDistance", &camera_->properties_.focusDistance);
 #else
-        ImGui::InputFloat("##FocusDistance", &camera_->focusDistance);
+        ImGui::InputFloat("##FocusDistance", &camera_->properties_.focusDistance);
 #endif
 
         ImGui::TreePop();

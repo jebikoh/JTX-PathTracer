@@ -1,5 +1,6 @@
 #pragma once
 
+#include "color.hpp"
 #include "hit.hpp"
 #include <jtxlib/util/taggedptr.hpp>
 
@@ -59,11 +60,11 @@ public:
 
     bool scatter(const Ray &r, const HitRecord &record, Color &attenuation, Ray &scattered) const {
         attenuation = Color(1.0, 1.0, 1.0);
-        const Float ri =  record.frontFace ? (1.0 / _refractionIndex) : _refractionIndex;
+        const Float ri = record.frontFace ? (1.0 / _refractionIndex) : _refractionIndex;
 
-        Vec3 dir = jtx::normalize(r.dir);
-        Float cosTheta = jtx::min(jtx::dot(-dir, record.normal), 1.0);
-        Float sinTheta = jtx::sqrt(1.0 - cosTheta * cosTheta);
+        const Vec3 dir = jtx::normalize(r.dir);
+        const Float cosTheta = jtx::min(jtx::dot(-dir, record.normal), static_cast<Float>(1.0));
+        const Float sinTheta = jtx::sqrt(1.0 - cosTheta * cosTheta);
 
         Vec3 scatterDir;
         if (ri * sinTheta > 1.0 || reflectance(cosTheta, ri) > randomFloat()) {

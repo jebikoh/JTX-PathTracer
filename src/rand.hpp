@@ -29,15 +29,10 @@ inline Vec3 randomVec3(Float min, Float max) {
 }
 
 inline Vec3 randomUnitVector() {
-    // const float z = randomFloat() * 2.0f - 1.0f;
-    // const float a = randomFloat() * 2.0f * PI;
-    // const float r = jtx::sqrt(1.0f - z * z);
-    // return {r * jtx::cos(a), r * jtx::sin(a), z};
-
-    while (true) {
-        auto p           = randomVec3(-1, 1);
-        if (const auto lensq = p.lenSqr(); 1e-160 < lensq && lensq <= 1) return p / jtx::sqrt(lensq);
-    }
+    const float z = randomFloat() * 2.0f - 1.0f;
+    const float a = randomFloat() * 2.0f * PI;
+    const float r = jtx::sqrt(1.0f - z * z);
+    return {r * jtx::cos(a), r * jtx::sin(a), z};
 }
 
 inline Vec3 randomOnHemisphere(const Vec3 &normal) {

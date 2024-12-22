@@ -1,6 +1,7 @@
 #pragma once
 
 #include "color.hpp"
+#include "rand.hpp"
 
 struct Material {
     enum Type {

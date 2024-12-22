@@ -2,12 +2,10 @@
 
 #include "hittable.hpp"
 #include "image.hpp"
-#include "interval.hpp"
-#include "material.hpp"
+#include "rand.hpp"
 
 // ReSharper disable once CppUnusedIncludeDirective
 #include <chrono>
-#include <thread>
 
 // Update this to use PBRTv4 Camera
 class Camera {

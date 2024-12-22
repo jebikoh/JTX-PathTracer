@@ -1,4 +1,5 @@
 #include "camera.hpp"
+#include <thread>
 
 struct RayTraceJob {
     uint32_t startRow;

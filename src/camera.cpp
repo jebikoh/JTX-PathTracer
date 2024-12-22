@@ -20,7 +20,7 @@ void Camera::render(const World &world) {
     // Need to re-initialize everytime to reflect changes via UI
     init();
     stopRender_ = false;
-// #ifdef ENABLE_MULTITHREADING
+
     // Set up threads
     unsigned int threadCount = std::thread::hardware_concurrency();
     if (threadCount == 0) threadCount = 4;
@@ -72,55 +72,22 @@ void Camera::render(const World &world) {
         });
     }
 
-    // for (unsigned int t = 0; t < threadCount; ++t) {
-    //     int endRow = (t == threadCount - 1) ? height_ : startRow + rowsPerThread;
-    //     threads.emplace_back([this, startRow, endRow, &world, &numRays]() {
-    //         int localNumRays = 0;
-    //         for (int j = startRow; j < endRow; ++j) {
-    //             for (int i = 0; i < width_; ++i) {
-    //                 if (stopRender_) return;
-    //                 auto pxColor = Color(0, 0, 0);
-    //                 for (int s = 0; s < samplesPerPx_; ++s) {
-    //                     Ray r = getRay(i, j);
-    //                     pxColor += rayColor(r, world, maxDepth_, localNumRays);
-    //                 }
-    //                 img_.writePixel(pxColor * pxSampleScale_, j, i);
-    //             }
-    //         }
-    //         numRays.fetch_add(localNumRays, std::memory_order_relaxed);
-    //     });
-    //
-    //     startRow = endRow;
-    // }
-
     for (auto &t: threads) {
         t.join();
     }
-// #else
-//     const auto startTime = std::chrono::high_resolution_clock::now();
-//     for (int j = 0; j < height_; ++j) {
-//         for (int i = 0; i < width_; ++i) {
-//             // ReSharper disable once CppDFAConstantConditions
-//             // ReSharper disable once CppDFAUnreachableCode
-//             if (stopRender_) return;
-//             auto pxColor = Color(0, 0, 0);
-//             for (int s = 0; s < samplesPerPx_; ++s) {
-//                 Ray r = getRay(i, j);
-//                 pxColor += rayColor(r, world, maxDepth_, numRays);
-//             }
-//             img_.writePixel(pxColor * pxSampleScale_, j, i);
-//         }
-//     }
-// #endif
+
     const auto stopTime            = std::chrono::high_resolution_clock::now();
     const double renderTimeSeconds = std::chrono::duration_cast<std::chrono::seconds>(stopTime - startTime).count();
-    const double renderTimeMillis  = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
+    const auto renderTimeMillis  = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
 
     const auto numBounces = queue.totalBounces.load();
+
+    const auto mrays = numBounces / 1000000.0 / renderTimeSeconds;
+    const auto msPerRay = renderTimeMillis / static_cast<double>(numBounces);
     std::cout << "Total render time: " << renderTimeSeconds << "s" << std::endl;
     std::cout << "Num rays: " << numBounces << std::endl;
-    std::cout << " - **Mrays/s**: " << numBounces / 1000000.0 / renderTimeSeconds << std::endl;
-    std::cout << std::fixed << " - **ms/ray**: " << renderTimeMillis / numBounces << std::endl;
+    std::cout << " - **Mrays/s**: " << mrays << std::endl;
+    std::cout << std::fixed << " - **ms/ray**: " << msPerRay << std::endl;
 }
 
 void Camera::init() {

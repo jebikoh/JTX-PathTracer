@@ -6,11 +6,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(BUILD_TESTS OFF CACHE BOOL "Build tests for jtxlib" FORCE)
 set(NDEBUG OFF CACHE BOOL "Disable debug assertions" FORCE)
 
-option(ENABLE_MULTITHREADING "Enable multithreading" OFF)
-if (ENABLE_MULTITHREADING)
-    add_compile_definitions(-DENABLE_MULTITHREADING)
-endif()
-
 option(ENABLE_PROFILING "Enable profiling" ON)
 if (ENABLE_PROFILING)
     add_compile_definitions(-DENABLE_PROFILING)

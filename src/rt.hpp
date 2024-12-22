@@ -3,6 +3,9 @@
 #include <jtxlib/math.hpp>
 #include <random>
 
+
+// #define USE_BVH
+
 #ifdef USE_DOUBLE_PRECISION
 using Float = double;
 using Vec3  = jtx::Vec3d;

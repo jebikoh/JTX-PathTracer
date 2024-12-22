@@ -38,7 +38,7 @@ int main() {
     }
 
 #ifdef USE_BVH
-    BVHNode world(scene.objects);
+    World world(scene.objects);
     display.setWorld(&world);
 #else
     display.setWorld(&scene.objects);

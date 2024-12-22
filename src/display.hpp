@@ -21,7 +21,11 @@ public:
 
     void render();
 
+#ifdef USE_BVH
     void setWorld(BVHNode *world) { this->world = world; }
+#else
+    void setWorld(HittableList *world) { this->world_ = world; }
+#endif
 
     bool isRendering() const {
         return isRendering_;
@@ -42,7 +46,7 @@ private:
     GLuint shaderProgram_;
     GLuint vao_, vbo_, ebo_;
 
-    BVHNode *world;
+    World *world_;
 
     bool initWindow();
     bool initShaders();

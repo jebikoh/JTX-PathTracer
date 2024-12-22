@@ -11,6 +11,13 @@ class Sphere;
 class HittableList;
 class BVHNode;
 
+// For profiling purposes, we will make this a compile-time switch
+#ifdef USE_BVH
+using World = BVHNode;
+#else
+using World = HittableList;
+#endif
+
 class Hittable : public jtx::TaggedPtr<Sphere, HittableList, BVHNode> {
 public:
     using TaggedPtr::TaggedPtr;

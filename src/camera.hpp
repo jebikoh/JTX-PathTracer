@@ -69,7 +69,7 @@ public:
         img_ = RGBImage(width, height);
     }
 
-    void render(const BVHNode &world);
+    void render(const World &world);
 
     void save(const char *path) const {
         img_.save(path);
@@ -127,5 +127,5 @@ private:
         return properties_.center + (p.x * defocus_u_) + (p.y * defocus_v_);
     }
 
-    static Color rayColor(const Ray &r, const BVHNode &world, const int depth, int &numRays);
+    static Color rayColor(const Ray &r, const World &world, const int depth, int &numRays);
 };

@@ -38,7 +38,7 @@ Scene createDefaultScene(Scene &scene) {
 }
 
 Scene createTestScene(Scene &scene) {
-    scene.cameraProperties.center        = Vec3(0, 3, 10);
+    scene.cameraProperties.center        = Vec3(0, 3, 8);
     scene.cameraProperties.target        = Vec3(0, 2, -1);
     scene.cameraProperties.up            = Vec3(0, 1, 0);
     scene.cameraProperties.yfov          = 20;

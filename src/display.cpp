@@ -418,7 +418,7 @@ void Display::renderWorld() {
 
     isRendering_ = true;
     std::thread([this]() {
-        camera_->render(*world);
+        camera_->render(*world_);
         isRendering_ = false;
     }).detach();
 }

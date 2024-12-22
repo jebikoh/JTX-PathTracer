@@ -1,10 +1,25 @@
 #include "camera.hpp"
 
-void Camera::render(const BVHNode &world) {
+struct RayTraceJob {
+    uint32_t startRow;
+    uint32_t endRow;
+
+    const World *world;
+    RGBImage *img;
+};
+// i really like mich <3
+struct WorkQueue {
+    std::vector<RayTraceJob> jobs;
+
+    volatile uint64_t nextJobIndex;
+    volatile uint64_t totalBounces;
+};
+
+void Camera::render(const World &world) {
     // Need to re-initialize everytime to reflect changes via UI
     init();
     stopRender_ = false;
-    int numRays = 0;
+    std::atomic<int> numRays{0};
 #ifdef ENABLE_MULTITHREADING
     unsigned int threadCount = std::thread::hardware_concurrency();
     if (threadCount == 0) threadCount = 4;
@@ -32,7 +47,7 @@ void Camera::render(const BVHNode &world) {
                     img_.writePixel(pxColor * pxSampleScale_, j, i);
                 }
             }
-            numRays += localNumRays;
+            numRays.fetch_add(localNumRays, std::memory_order_relaxed);
         });
 
         startRow = endRow;
@@ -62,9 +77,9 @@ void Camera::render(const BVHNode &world) {
     const double renderTimeMillis  = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
 
     std::cout << "Total render time: " << renderTimeSeconds << "s" << std::endl;
-    std::cout << "Num rays: " << numRays << std::endl;
-    std::cout << " - **Mrays/s**: " << numRays / 1000000.0 / renderTimeSeconds << std::endl;
-    std::cout << " - **ms/ray**: " << renderTimeMillis / numRays << std::endl;
+    std::cout << "Num rays: " << numRays.load() << std::endl;
+    std::cout << " - **Mrays/s**: " << numRays.load() / 1000000.0 / renderTimeSeconds << std::endl;
+    std::cout << std::fixed << " - **ms/ray**: " << renderTimeMillis / numRays << std::endl;
 }
 
 void Camera::init() {
@@ -95,7 +110,7 @@ void Camera::init() {
     defocus_v_                = defocusRadius * v_;
 }
 
-Color Camera::rayColor(const Ray &r, const BVHNode &world, const int depth, int &numRays) {
+Color Camera::rayColor(const Ray &r, const World &world, const int depth, int &numRays) {
     Ray currRay           = r;
     Color currAttenuation = {1.0, 1.0, 1.0};
     for (int i = 0; i < depth; ++i) {

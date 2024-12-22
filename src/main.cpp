@@ -10,7 +10,7 @@
 constexpr int IMAGE_WIDTH      = 800;
 constexpr int IMAGE_HEIGHT     = 450;
 constexpr Float ASPECT_RATIO   = static_cast<Float>(IMAGE_WIDTH) / static_cast<Float>(IMAGE_HEIGHT);
-constexpr int SAMPLES_PER_PX   = 10;
+constexpr int SAMPLES_PER_PX   = 50;
 constexpr int MAX_DEPTH        = 10;
 constexpr Float YFOV           = 20;
 const auto CAM_POS             = Vec3(-2, 2, 1);
@@ -37,8 +37,12 @@ int main() {
         return -1;
     }
 
+#ifdef USE_BVH
     BVHNode world(scene.objects);
     display.setWorld(&world);
+#else
+    display.setWorld(&scene.objects);
+#endif
 
     bool isRunning = true;
     while (isRunning) {
@@ -52,7 +56,9 @@ int main() {
     }
 
     display.destroy();
+#ifdef USE_BVH
     destroyBVHTree(&world, false);
+#endif
 
     return 0;
 }

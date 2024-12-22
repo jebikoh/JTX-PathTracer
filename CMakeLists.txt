@@ -56,6 +56,7 @@ add_executable(RayTracer src/main.cpp
         src/aabb.cpp
         src/scene.hpp
         src/scene.cpp
+        src/camera.cpp
 )
 
 target_link_libraries(RayTracer PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui)

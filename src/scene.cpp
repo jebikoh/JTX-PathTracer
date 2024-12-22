@@ -37,6 +37,62 @@ Scene createDefaultScene(Scene &scene) {
     return scene;
 }
 
+Scene createTestScene(Scene &scene) {
+    scene.cameraProperties.center        = Vec3(0, 3, 10);
+    scene.cameraProperties.target        = Vec3(0, 2, -1);
+    scene.cameraProperties.up            = Vec3(0, 1, 0);
+    scene.cameraProperties.yfov          = 20;
+    scene.cameraProperties.defocusAngle  = 0;
+    scene.cameraProperties.focusDistance = 3.4;
+
+    scene.materials.reserve(20);
+    scene.spheres.reserve(20);
+
+    // Glass bubbles
+    scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.5f});
+    scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.0f / 1.5f});
+
+    // Ground
+    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.8, 0.8, 0.0)});
+    scene.spheres.push_back({Vec3(0, -100.5, -1), 100, scene.materials.back()});
+
+    // Row one
+    scene.spheres.push_back({Vec3(-1, 1, -1), 0.5, scene.materials[0]});
+    scene.spheres.push_back({Vec3(-1, 1, -1), 0.4, scene.materials[1]});
+
+    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.1, 0.2, 0.5)});
+    scene.spheres.push_back({Vec3(0, 1, -1), 0.5, scene.materials.back()});
+
+    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 1.0});
+    scene.spheres.emplace_back(Vec3(1, 1, -1), 0.5, scene.materials.back());
+
+    // Row two
+    scene.spheres.push_back({Vec3(1, 2, -1), 0.5, scene.materials[0]});
+    scene.spheres.push_back({Vec3(1, 2, -1), 0.4, scene.materials[1]});
+
+    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(1, 0.3, 0.5)});
+    scene.spheres.push_back({Vec3(-1, 2, -1), 0.5, scene.materials.back()});
+
+    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.8, 0.8), .fuzz = 0.5});
+    scene.spheres.emplace_back(Vec3(0, 2, -1), 0.5, scene.materials.back());
+
+    // Row 3
+    scene.spheres.push_back({Vec3(0, 3, -1), 0.5, scene.materials[0]});
+    scene.spheres.push_back({Vec3(0, 3, -1), 0.4, scene.materials[1]});
+
+    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.5, 0.3, 0.5)});
+    scene.spheres.push_back({Vec3(1, 3, -1), 0.5, scene.materials.back()});
+
+    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 0});
+    scene.spheres.emplace_back(Vec3(-1, 3, -1), 0.5, scene.materials.back());
+
+    for (int i = 0; i < scene.spheres.size(); ++i) {
+        scene.objects.add(Hittable(&scene.spheres[i]));
+    }
+
+    return scene;
+}
+
 Scene createCoverScene(Scene &scene) {
     constexpr float DIFFUSE_PROBABILITY = 0.8;
     constexpr float METAL_PROBABILITY   = 0.15;

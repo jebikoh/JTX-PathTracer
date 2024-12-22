@@ -16,5 +16,5 @@ struct Scene {
 };
 
 Scene createDefaultScene(Scene &scene);
-
+Scene createTestScene(Scene &scene);
 Scene createCoverScene(Scene &scene);

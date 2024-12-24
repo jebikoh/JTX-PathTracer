@@ -30,10 +30,6 @@ Scene createDefaultScene(Scene &scene) {
     scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.00 / 1.50});
     scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.4, scene.materials.back());
 
-    for (int i = 0; i < scene.spheres.size(); ++i) {
-        scene.objects.add(Hittable(&scene.spheres[i]));
-    }
-
     return scene;
 }
 
@@ -85,10 +81,6 @@ Scene createTestScene(Scene &scene) {
 
     scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 0});
     scene.spheres.emplace_back(Vec3(-1, 3, -1), 0.5, scene.materials.back());
-
-    for (int i = 0; i < scene.spheres.size(); ++i) {
-        scene.objects.add(Hittable(&scene.spheres[i]));
-    }
 
     return scene;
 }
@@ -148,10 +140,6 @@ Scene createCoverScene(Scene &scene) {
     scene.cameraProperties.up            = {0, 1, 0};
     scene.cameraProperties.defocusAngle  = 0.6;
     scene.cameraProperties.focusDistance = 10.0;
-
-    for (int i = 0; i < scene.spheres.size(); ++i) {
-        scene.objects.add(Hittable(&scene.spheres[i]));
-    }
 
     return scene;
 }

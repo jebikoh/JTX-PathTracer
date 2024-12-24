@@ -1,7 +1,7 @@
 #pragma once
 
 #include "interval.hpp"
-#include "rt.hpp"
+#include "../rt.hpp"
 
 // TO-DO: Replace with version from PBRTv4
 class AABB {

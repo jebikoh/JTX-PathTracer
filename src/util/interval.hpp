@@ -1,5 +1,5 @@
 #pragma once
-#include "rt.hpp"
+#include "../rt.hpp"
 
 struct Interval {
     Float min, max;

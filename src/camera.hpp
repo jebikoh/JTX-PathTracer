@@ -1,8 +1,7 @@
 #pragma once
 
-#include "hittable.hpp"
 #include "image.hpp"
-#include "rand.hpp"
+#include "util/rand.hpp"
 
 // ReSharper disable once CppUnusedIncludeDirective
 #include <chrono>

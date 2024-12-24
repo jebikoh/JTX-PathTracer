@@ -37,12 +37,8 @@ int main() {
         return -1;
     }
 
-#ifdef USE_BVH
-    World world(scene.objects);
+    PrimitiveList world(scene);
     display.setWorld(&world);
-#else
-    display.setWorld(&scene.objects);
-#endif
 
     bool isRunning = true;
     while (isRunning) {

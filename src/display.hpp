@@ -2,6 +2,7 @@
 
 #include "camera.hpp"
 #include "glad/glad.h"
+#include "rt.hpp"
 
 #include <SDL_video.h>
 
@@ -21,11 +22,9 @@ public:
 
     void render();
 
-#ifdef USE_BVH
-    void setWorld(BVHNode *world) { this->world = world; }
-#else
-    void setWorld(HittableList *world) { this->world_ = world; }
-#endif
+    void setWorld(const World *world) {
+        world_ = world;
+    }
 
     bool isRendering() const {
         return isRendering_;
@@ -39,14 +38,14 @@ private:
     int renderWidth_;
     float scaleX_, scaleY_;
 
+    const World *world_;
+
     SDL_Window *window_;
     SDL_GLContext glContext_;
 
     GLuint textureId_;
     GLuint shaderProgram_;
     GLuint vao_, vbo_, ebo_;
-
-    World *world_;
 
     bool initWindow();
     bool initShaders();

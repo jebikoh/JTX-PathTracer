@@ -1,4 +1,5 @@
 #include "camera.hpp"
+#include "hittable.hpp"
 #include <thread>
 
 struct RayTraceJob {
@@ -16,7 +17,7 @@ struct WorkQueue {
     std::atomic<uint64_t> nextJobIndex;
 };
 
-void Camera::render(const World &world) {
+void Camera::render(const PrimitiveList &world) {
     // Need to re-initialize everytime to reflect changes via UI
     init();
     stopRender_ = false;

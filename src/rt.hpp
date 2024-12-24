@@ -1,10 +1,15 @@
 #pragma once
 
 #include <jtxlib/math.hpp>
-#include <random>
 
+class BVHNode;
+class PrimitiveList;
 
-// #define USE_BVH
+#ifdef USE_BVH_AS_WORLD
+using World = BVHNode;
+#else
+using World = PrimitiveList;
+#endif
 
 #ifdef USE_DOUBLE_PRECISION
 using Float = double;

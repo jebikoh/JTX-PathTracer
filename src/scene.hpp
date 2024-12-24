@@ -1,7 +1,7 @@
 #pragma once
 #include "camera.hpp"
-#include "hittable.hpp"
 #include "material.hpp"
+#include "primitives.hpp"
 
 // Very basic scene struct
 // Will change if this starts running into performance issues
@@ -11,7 +11,6 @@ struct Scene {
     std::vector<Material> materials;
     std::vector<Sphere> spheres;
 
-    HittableList objects;
     Camera::Properties cameraProperties;
 };
 

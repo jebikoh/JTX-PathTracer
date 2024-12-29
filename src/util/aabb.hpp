@@ -8,7 +8,12 @@ class AABB {
 public:
     Vec3 pmin, pmax;
 
-    AABB() = default;
+    AABB() {
+        float minNum = std::numeric_limits<float>::lowest();
+        float maxNum = std::numeric_limits<float>::max();
+        pmin = {maxNum, maxNum, maxNum};
+        pmax = {minNum, minNum, minNum};
+    }
 
     AABB(const Vec3 &a, const Vec3 &b) {
         pmin = jtx::min(a, b);
@@ -30,6 +35,11 @@ public:
         pmax = jtx::max(pmax, other.pmax);
     }
 
+    void expand(const Vec3 &p) {
+        pmin = jtx::min(pmin, p);
+        pmax = jtx::max(pmax, p);
+    }
+
     [[nodiscard]] Interval axis(const int i) const {
         if (i == 0) return {pmin.x, pmax.x};
         if (i == 1) return {pmin.y, pmax.y};
@@ -37,13 +47,18 @@ public:
     }
 
     [[nodiscard]] int longestAxis() const {
-        const auto x = pmax.x - pmin.x;
-        const auto y = pmax.y - pmin.y;
-        const auto z = pmax.z - pmin.z;
-        if (x > y) {
-            return x > z ? 0 : 2;
-        }
-        return y > z ? 1 : 2;
+        const Vec3 d = diagonal();
+        if (d.x > d.y && d.x > d.z) return 0;
+        if (d.y > d.z) return 1;
+        return 2;
+    }
+
+    Vec3 offset(Vec3 p) const {
+        Vec3 o = p - pmin;
+        if (pmax.x > pmin.x) o.x /= pmax.x - pmin.x;
+        if (pmax.y > pmin.y) o.y /= pmax.y - pmin.y;
+        if (pmax.z > pmin.z) o.z /= pmax.z - pmin.z;
+        return o;
     }
 
     [[nodiscard]] bool hit(const Vec3 &o, const Vec3 &d, const Interval &t) const {
@@ -61,6 +76,20 @@ public:
             if (t0 > t1) return false;
         }
         return true;
+    }
+
+    Vec3 diagonal() const {
+        return pmax - pmin;
+    }
+
+    float surfaceArea() const {
+        const Vec3 d = diagonal();
+        return 2 * (d.x * d.y + d.x * d.z + d.y * d.z);
+    }
+
+    float volume() const {
+        const Vec3 d = diagonal();
+        return d.x * d.y * d.z;
     }
 
     static const AABB EMPTY;

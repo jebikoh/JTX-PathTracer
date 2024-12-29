@@ -2,7 +2,7 @@
 
 #include <jtxlib/math.hpp>
 
-class BVHNode;
+struct BVHNode;
 class PrimitiveList;
 
 #ifdef USE_BVH_AS_WORLD

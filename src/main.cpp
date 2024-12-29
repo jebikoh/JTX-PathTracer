@@ -1,6 +1,6 @@
+#include "bvh.hpp"
 #include "camera.hpp"
 #include "display.hpp"
-#include "hittable.hpp"
 #include "rt.hpp"
 #include "scene.hpp"
 
@@ -10,7 +10,7 @@
 constexpr int IMAGE_WIDTH      = 800;
 constexpr int IMAGE_HEIGHT     = 450;
 constexpr Float ASPECT_RATIO   = static_cast<Float>(IMAGE_WIDTH) / static_cast<Float>(IMAGE_HEIGHT);
-constexpr int SAMPLES_PER_PX   = 50;
+constexpr int SAMPLES_PER_PX   = 200;
 constexpr int MAX_DEPTH        = 10;
 constexpr Float YFOV           = 20;
 const auto CAM_POS             = Vec3(-2, 2, 1);

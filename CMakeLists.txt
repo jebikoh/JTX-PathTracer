@@ -39,7 +39,7 @@ add_executable(RayTracer src/main.cpp
         src/color.hpp
         src/camera.hpp
         src/image.hpp
-        src/hittable.hpp
+        src/bvh.hpp
         src/material.hpp
         src/display.hpp
         src/display.cpp
@@ -55,6 +55,7 @@ add_executable(RayTracer src/main.cpp
         src/util/interval.cpp
         src/util/aabb.hpp
         src/util/aabb.cpp
+        src/bvh.cpp
 )
 
 target_link_libraries(RayTracer PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui)

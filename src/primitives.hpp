@@ -1,6 +1,7 @@
 #pragma once
 
 #include "util/aabb.hpp"
+#include "material.hpp"
 
 struct Primitive {
     enum Type {
@@ -9,7 +10,12 @@ struct Primitive {
     };
 
     Type type;
-    int index;
+    size_t index;
+    AABB bounds;
+
+    Vec3 centroid() const {
+        return 0.5f * bounds.pmin + 0.5f * bounds.pmax;
+    }
 };
 
 class Sphere {
@@ -19,7 +25,6 @@ public:
           radius_(radius),
           material_(material) {
         const auto r = Vec3(radius, radius, radius);
-        bbox_ = AABB(center - r, center + r);
     }
 
     // Moving spheres
@@ -28,8 +33,6 @@ public:
           radius_(radius),
           material_(material) {
         const auto r = Vec3(radius, radius, radius);
-        bbox_ = AABB(center_.at(0) - r, center_.at(0) + r);
-        bbox_.expand(AABB(center_.at(1) - r, center_.at(1) + r));
     }
 
     bool hit(const Ray &r, const Interval t, HitRecord &record) const {
@@ -63,12 +66,13 @@ public:
     }
 
     AABB bounds() const {
-        return bbox_;
+        auto bbox = AABB(center_.at(0) - radius_, center_.at(0) + radius_);
+        bbox.expand(AABB(center_.at(1) - radius_, center_.at(1) + radius_));
+        return bbox;
     }
 
 private:
     Ray center_;
     Float radius_;
     const Material &material_;
-    AABB bbox_;
 };

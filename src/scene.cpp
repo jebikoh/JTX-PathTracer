@@ -53,34 +53,34 @@ Scene createTestScene(Scene &scene) {
     scene.spheres.push_back({Vec3(0, -100.5, -1), 100, scene.materials.back()});
 
     // Row one
-    scene.spheres.push_back({Vec3(-1, 1, -1), 0.5, scene.materials[0]});
-    scene.spheres.push_back({Vec3(-1, 1, -1), 0.4, scene.materials[1]});
+    scene.spheres.push_back({Vec3(-1, 1, -1), 0.4, scene.materials[0]});
+    scene.spheres.push_back({Vec3(-1, 1, -1), 0.3, scene.materials[1]});
 
     scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.1, 0.2, 0.5)});
-    scene.spheres.push_back({Vec3(0, 1, -1), 0.5, scene.materials.back()});
+    scene.spheres.push_back({Vec3(0, 1, -1), 0.4, scene.materials.back()});
 
     scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 1.0});
-    scene.spheres.emplace_back(Vec3(1, 1, -1), 0.5, scene.materials.back());
+    scene.spheres.emplace_back(Vec3(1, 1, -1), 0.4, scene.materials.back());
 
     // Row two
-    scene.spheres.push_back({Vec3(1, 2, -1), 0.5, scene.materials[0]});
-    scene.spheres.push_back({Vec3(1, 2, -1), 0.4, scene.materials[1]});
+    scene.spheres.push_back({Vec3(1, 2, -1), 0.4, scene.materials[0]});
+    scene.spheres.push_back({Vec3(1, 2, -1), 0.3, scene.materials[1]});
 
     scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(1, 0.3, 0.5)});
-    scene.spheres.push_back({Vec3(-1, 2, -1), 0.5, scene.materials.back()});
+    scene.spheres.push_back({Vec3(-1, 2, -1), 0.4, scene.materials.back()});
 
     scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.8, 0.8), .fuzz = 0.5});
-    scene.spheres.emplace_back(Vec3(0, 2, -1), 0.5, scene.materials.back());
+    scene.spheres.emplace_back(Vec3(0, 2, -1), 0.4, scene.materials.back());
 
     // Row 3
-    scene.spheres.push_back({Vec3(0, 3, -1), 0.5, scene.materials[0]});
-    scene.spheres.push_back({Vec3(0, 3, -1), 0.4, scene.materials[1]});
+    scene.spheres.push_back({Vec3(0, 3, -1), 0.4, scene.materials[0]});
+    scene.spheres.push_back({Vec3(0, 3, -1), 0.3, scene.materials[1]});
 
     scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.5, 0.3, 0.5)});
-    scene.spheres.push_back({Vec3(1, 3, -1), 0.5, scene.materials.back()});
+    scene.spheres.push_back({Vec3(1, 3, -1), 0.4, scene.materials.back()});
 
     scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 0});
-    scene.spheres.emplace_back(Vec3(-1, 3, -1), 0.5, scene.materials.back());
+    scene.spheres.emplace_back(Vec3(-1, 3, -1), 0.4, scene.materials.back());
 
     return scene;
 }

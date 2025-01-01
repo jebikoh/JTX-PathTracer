@@ -11,17 +11,29 @@ BVHTree::BVHTree(const Scene &scene, const int maxPrimsInNode)
     // This will start out as all of them
     std::vector<Primitive> bvhPrimitives(primitives_.size());
     for (size_t i = 0; i < scene.spheres.size(); ++i) {
-        primitives_[i]    = Primitive{Primitive::SPHERE, i, scene.spheres[i].bounds()};
+        primitives_[i]   = Primitive{Primitive::SPHERE, i, scene.spheres[i].bounds()};
         bvhPrimitives[i] = Primitive{Primitive::SPHERE, i, scene.spheres[i].bounds()};
     }
     // Add rest of types when we get them
-    BVHNode *root;
     // We will order as we build
     std::vector<Primitive> orderedPrimitives(primitives_.size());
 
-    int totalNodes = 1;
+    int totalNodes             = 1;
     int orderedPrimitiveOffset = 0;
-    root_ = buildTree(bvhPrimitives, &totalNodes, &orderedPrimitiveOffset, orderedPrimitives);
+
+    const BVHNode *root = buildTree(bvhPrimitives, &totalNodes, &orderedPrimitiveOffset, orderedPrimitives);
+    primitives_.swap(orderedPrimitives);
+
+    bvhPrimitives.resize(0);
+    bvhPrimitives.shrink_to_fit();
+
+    nodes_     = new LinearBVHNode[totalNodes];
+    int offset = 0;
+    flattenBVH(root, &offset);
+
+    // Clean-up the tree
+    root->destroy();
+    delete root;
 }
 
 struct BVHBucket {
@@ -29,12 +41,38 @@ struct BVHBucket {
     AABB bounds;
 };
 
+bool BVHTree::hit(const Ray &r, const Interval t, HitRecord &record) {
+    const auto invDir = 1 / r.dir;
+    const int dirIsNeg[3] = { static_cast<int>(invDir.x < 0), static_cast<int>(invDir.y < 0), static_cast<int>(invDir.z < 0)};
+
+    int toVisitOffset = 0;
+    int currentNodeIndex = 0;
+    int stack[64];
+
+    while (true) {
+        const LinearBVHNode *node = &nodes_[currentNodeIndex];
+        if (node->bbox.hit(r.origin, r.dir, t)) {
+            if (node->numPrimitives > 0) {
+                for (int i  = 0; i < node->numPrimitives; ++i) {
+                    
+                }
+            }
+            else {
+
+            }
+        }
+        else {
+            if (toVisitOffset == 0) break;
+            currentNodeIndex = stack[--toVisitOffset];
+        }
+    }
+}
 BVHNode *BVHTree::buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes, int *orderedPrimitiveOffset, std::vector<Primitive> &orderedPrimitives) {
     const auto node = new BVHNode();
     (*totalNodes)++;
 
     AABB bounds;
-    for (const auto &prim : bvhPrimitives) {
+    for (const auto &prim: bvhPrimitives) {
         bounds.expand(prim.bounds);
     }
 
@@ -43,7 +81,7 @@ BVHNode *BVHTree::buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes,
         const int firstOffset = *orderedPrimitiveOffset;
         *orderedPrimitiveOffset += bvhPrimitives.size();
         for (size_t i = 0; i < bvhPrimitives.size(); ++i) {
-            const int index = bvhPrimitives[i].index;
+            const int index                    = bvhPrimitives[i].index;
             orderedPrimitives[firstOffset + i] = primitives_[index];
         }
         node->initLeaf(firstOffset, bvhPrimitives.size(), bounds);
@@ -51,7 +89,7 @@ BVHNode *BVHTree::buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes,
     } else {
         // Chose split dimensions
         AABB centroidBounds;
-        for (const auto &prim : bvhPrimitives) {
+        for (const auto &prim: bvhPrimitives) {
             centroidBounds.expand(prim.centroid());
         }
         int dim = centroidBounds.longestAxis();
@@ -61,7 +99,7 @@ BVHNode *BVHTree::buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes,
             const int firstOffset = *orderedPrimitiveOffset;
             *orderedPrimitiveOffset += bvhPrimitives.size();
             for (size_t i = 0; i < bvhPrimitives.size(); ++i) {
-                const int index = bvhPrimitives[i].index;
+                const int index                    = bvhPrimitives[i].index;
                 orderedPrimitives[firstOffset + i] = primitives_[index];
             }
             node->initLeaf(firstOffset, bvhPrimitives.size(), bounds);
@@ -71,20 +109,19 @@ BVHNode *BVHTree::buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes,
         int mid = bvhPrimitives.size() / 2;
 
         if (bvhPrimitives.size() == 2) {
-            mid = bvhPrimitives.size() / 2;
             std::nth_element(
-                bvhPrimitives.begin(),
-                bvhPrimitives.begin() + mid,
-                bvhPrimitives.end(),
-                [dim](const Primitive &a, const Primitive &b) {
-                   return a.centroid()[dim] < b.centroid()[dim];
-                });
+                    bvhPrimitives.begin(),
+                    bvhPrimitives.begin() + mid,
+                    bvhPrimitives.end(),
+                    [dim](const Primitive &a, const Primitive &b) {
+                        return a.centroid()[dim] < b.centroid()[dim];
+                    });
         } else {
             // Setup buckets
             constexpr int BVH_NUM_BUCKETS = 12;
             BVHBucket buckets[BVH_NUM_BUCKETS];
 
-            for (const auto &prim : bvhPrimitives) {
+            for (const auto &prim: bvhPrimitives) {
                 int b = BVH_NUM_BUCKETS * centroidBounds.offset(prim.centroid())[dim];
                 if (b == BVH_NUM_BUCKETS) b = BVH_NUM_BUCKETS - 1;
                 buckets[b].count++;
@@ -93,7 +130,7 @@ BVHNode *BVHTree::buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes,
 
             // Setup bucket costs
             constexpr int BVH_NUM_SPLITS = BVH_NUM_BUCKETS - 1;
-            float costs[BVH_NUM_SPLITS] = {};
+            float costs[BVH_NUM_SPLITS]  = {};
 
             // Forward pass
             int countBelow = 0;
@@ -118,14 +155,14 @@ BVHNode *BVHTree::buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes,
             float minCost = INF;
             for (int i = 0; i < BVH_NUM_SPLITS; ++i) {
                 if (costs[i] < minCost) {
-                    minCost = costs[i];
+                    minCost   = costs[i];
                     minBucket = i;
                 }
             }
 
             // Calculate split cost
             const float leafCost = bvhPrimitives.size();
-            minCost = 0.5f + minCost / bounds.surfaceArea();
+            minCost              = 0.5f + minCost / bounds.surfaceArea();
             if (bvhPrimitives.size() > maxPrimsInNode_ || minCost < leafCost) {
                 // Build interior node
                 auto midIterator = std::partition(bvhPrimitives.begin(), bvhPrimitives.end(), [=](const Primitive &p) {
@@ -133,13 +170,13 @@ BVHNode *BVHTree::buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes,
                     if (b == BVH_NUM_BUCKETS) b = BVH_NUM_BUCKETS - 1;
                     return b <= minBucket;
                 });
-                mid = midIterator - bvhPrimitives.begin();
+                mid              = midIterator - bvhPrimitives.begin();
             } else {
                 // Build leaf node
                 const int firstOffset = *orderedPrimitiveOffset;
                 *orderedPrimitiveOffset += bvhPrimitives.size();
                 for (size_t i = 0; i < bvhPrimitives.size(); ++i) {
-                    const int index = bvhPrimitives[i].index;
+                    const int index                    = bvhPrimitives[i].index;
                     orderedPrimitives[firstOffset + i] = primitives_[index];
                 }
                 node->initLeaf(firstOffset, bvhPrimitives.size(), bounds);
@@ -154,4 +191,20 @@ BVHNode *BVHTree::buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes,
     }
 
     return node;
+}
+
+int BVHTree::flattenBVH(const BVHNode *node, int *offset) {
+    LinearBVHNode *linearNode = &nodes_[*offset];
+    linearNode->bbox          = node->bbox;
+    const int nodeOffset      = (*offset)++;
+    if (node->numPrimitives > 0) {
+        linearNode->primitivesOffset = node->firstPrimOffset;
+        linearNode->numPrimitives    = node->numPrimitives;
+    } else {
+        linearNode->axis          = node->splitAxis;
+        linearNode->numPrimitives = 0;
+        flattenBVH(node->children[0], offset);
+        linearNode->secondChildOffset = flattenBVH(node->children[1], offset);
+    }
+    return nodeOffset;
 }

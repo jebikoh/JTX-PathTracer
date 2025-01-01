@@ -21,9 +21,9 @@ constexpr Float FOCUS_DISTANCE = 3.4;
 
 int main() {
     Scene scene{};
-    // createTestScene(scene);
+    createTestScene(scene);
     // createDefaultScene(scene);
-    createCoverScene(scene);
+    // createCoverScene(scene);
 
     Camera camera{
         IMAGE_WIDTH,
@@ -37,7 +37,7 @@ int main() {
         return -1;
     }
 
-    PrimitiveList world(scene);
+    const PrimitiveList world(scene);
     display.setWorld(&world);
 
     bool isRunning = true;
@@ -52,9 +52,6 @@ int main() {
     }
 
     display.destroy();
-#ifdef USE_BVH
-    destroyBVHTree(&world, false);
-#endif
 
     return 0;
 }

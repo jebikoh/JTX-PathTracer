@@ -13,6 +13,7 @@ struct Primitive {
     size_t index;
     AABB bounds;
 
+    [[nodiscard]]
     Vec3 centroid() const {
         return 0.5f * bounds.pmin + 0.5f * bounds.pmax;
     }

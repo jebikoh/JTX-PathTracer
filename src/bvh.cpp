@@ -41,24 +41,43 @@ struct BVHBucket {
     AABB bounds;
 };
 
-bool BVHTree::hit(const Ray &r, const Interval t, HitRecord &record) {
+bool BVHTree::hit(const Ray &r, Interval t, HitRecord &record) {
     const auto invDir = 1 / r.dir;
     const int dirIsNeg[3] = { static_cast<int>(invDir.x < 0), static_cast<int>(invDir.y < 0), static_cast<int>(invDir.z < 0)};
 
     int toVisitOffset = 0;
     int currentNodeIndex = 0;
     int stack[64];
+    bool hitAnything = false;
 
     while (true) {
         const LinearBVHNode *node = &nodes_[currentNodeIndex];
+        // 1. Check the ray intersects the current node
+        //    If it doesn't, pop the stack and continue
         if (node->bbox.hit(r.origin, r.dir, t)) {
+            // 2. If we are at a leaf node, loop through all primitives
+            //    Otherwise, push the children onto the stack
             if (node->numPrimitives > 0) {
+                // Leaf node
                 for (int i  = 0; i < node->numPrimitives; ++i) {
-                    
+                    if (scene_.hit(primitives_[node->primitivesOffset + i], r, t, record)) {
+                        hitAnything = true;
+                        t.max = record.t;
+                    }
                 }
+                if (toVisitOffset == 0) break;
+                currentNodeIndex = stack[--toVisitOffset];
             }
             else {
-
+                // Interior node
+                if (dirIsNeg[node->axis]) {
+                    stack[toVisitOffset++] = currentNodeIndex + 1;
+                    currentNodeIndex = node->secondChildOffset;
+                }
+                else {
+                    stack[toVisitOffset++] = node->secondChildOffset;
+                    currentNodeIndex = currentNodeIndex + 1;
+                }
             }
         }
         else {
@@ -66,7 +85,10 @@ bool BVHTree::hit(const Ray &r, const Interval t, HitRecord &record) {
             currentNodeIndex = stack[--toVisitOffset];
         }
     }
+
+    return hitAnything;
 }
+
 BVHNode *BVHTree::buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes, int *orderedPrimitiveOffset, std::vector<Primitive> &orderedPrimitives) {
     const auto node = new BVHNode();
     (*totalNodes)++;

@@ -14,6 +14,21 @@ struct Scene {
 
     Camera::Properties cameraProperties;
 
+    bool hit(const Primitive &primitive, const Ray &r, const Interval t, HitRecord &record) const {
+        switch(primitive.type) {
+            case Primitive::SPHERE: {
+                return spheres[primitive.index].hit(r, t, record);
+            }
+            case Primitive::RECTANGLE:
+                break;
+            default:
+                break;
+        }
+
+        return false;
+    }
+
+    [[nodiscard]]
     int numPrimitives() const {
         return spheres.size();
     }

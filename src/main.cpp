@@ -1,3 +1,5 @@
+#include <SDL.h>
+
 #include "bvh.hpp"
 #include "camera.hpp"
 #include "display.hpp"
@@ -9,19 +11,12 @@
 // Camera Settings
 constexpr int IMAGE_WIDTH      = 800;
 constexpr int IMAGE_HEIGHT     = 450;
-constexpr Float ASPECT_RATIO   = static_cast<Float>(IMAGE_WIDTH) / static_cast<Float>(IMAGE_HEIGHT);
 constexpr int SAMPLES_PER_PX   = 200;
 constexpr int MAX_DEPTH        = 10;
-constexpr Float YFOV           = 20;
-const auto CAM_POS             = Vec3(-2, 2, 1);
-const auto CAM_TARGET          = Vec3(0, 0, -1);
-const auto CAM_UP              = Vec3(0, 1, 0);
-constexpr Float DEFOCUS_ANGLE  = 10.0;
-constexpr Float FOCUS_DISTANCE = 3.4;
 
-int main() {
+int main(int argc, char* argv[]) {
     Scene scene{};
-    createTestScene(scene);
+//    createTestScene(scene);
     // createDefaultScene(scene);
     // createCoverScene(scene);
 
@@ -37,6 +32,7 @@ int main() {
         return -1;
     }
 
+    const BVHTree bvh(scene, 1);
     const PrimitiveList world(scene);
     display.setWorld(&world);
 

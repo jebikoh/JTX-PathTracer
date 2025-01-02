@@ -2,11 +2,14 @@
 
 #include <jtxlib/math.hpp>
 
-struct BVHNode;
+
+class BVHTree;
 class PrimitiveList;
 
+#define USE_BVH_AS_WORLD
+
 #ifdef USE_BVH_AS_WORLD
-using World = BVHNode;
+using World = BVHTree;
 #else
 using World = PrimitiveList;
 #endif

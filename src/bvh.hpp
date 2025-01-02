@@ -71,7 +71,7 @@ public:
         return nodes_[0].bbox;
     }
 
-    bool hit(const Ray &r, const Interval t, HitRecord &record);
+    bool hit(const Ray &r, Interval t, HitRecord &record) const;
 
 private:
     BVHNode *buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes, int *orderedPrimitiveOffset, std::vector<Primitive> &orderedPrimitives);

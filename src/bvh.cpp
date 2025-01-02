@@ -41,7 +41,7 @@ struct BVHBucket {
     AABB bounds;
 };
 
-bool BVHTree::hit(const Ray &r, Interval t, HitRecord &record) {
+bool BVHTree::hit(const Ray &r, Interval t, HitRecord &record) const {
     const auto invDir = 1 / r.dir;
     const int dirIsNeg[3] = { static_cast<int>(invDir.x < 0), static_cast<int>(invDir.y < 0), static_cast<int>(invDir.z < 0)};
 

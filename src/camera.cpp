@@ -17,7 +17,7 @@ struct WorkQueue {
     std::atomic<uint64_t> nextJobIndex;
 };
 
-void Camera::render(const PrimitiveList &world) {
+void Camera::render(const World &world) {
     // Need to re-initialize everytime to reflect changes via UI
     init();
     stopRender_ = false;

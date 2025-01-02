@@ -17,8 +17,8 @@ constexpr int MAX_DEPTH        = 10;
 int main(int argc, char* argv[]) {
     Scene scene{};
 //    createTestScene(scene);
-    // createDefaultScene(scene);
-    // createCoverScene(scene);
+//    createDefaultScene(scene);
+    createCoverScene(scene);
 
     Camera camera{
         IMAGE_WIDTH,
@@ -32,8 +32,12 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    const BVHTree bvh(scene, 1);
+#ifdef USE_BVH_AS_WORLD
+    const BVHTree world(scene, 1);
+#else
     const PrimitiveList world(scene);
+#endif
+
     display.setWorld(&world);
 
     bool isRunning = true;

@@ -6,6 +6,27 @@ set(CMAKE_CXX_STANDARD 20)
 set(BUILD_TESTS OFF CACHE BOOL "Build tests for jtxlib" FORCE)
 set(NDEBUG OFF CACHE BOOL "Disable debug assertions" FORCE)
 
+option(ENABLE_CUDA_BACKEND "Enable CUDA backend" ON)
+
+if (ENABLE_CUDA_BACKEND)
+    include(CheckLanguage)
+    check_language(CUDA)
+
+    if(CMAKE_CUDA_COMPILER)
+        enable_language(CUDA)
+        set(USE_CUDA ON CACHE BOOL "Use CUDA backend" FORCE)
+
+        message(STATUS "CUDA compiler: ${CMAKE_CUDA_COMPILER}")
+        message(STATUS "CUDA compiler version: ${CMAKE_CUDA_COMPILER_VERSION}")
+    else()
+        set(USE_CUDA OFF CACHE BOOL "Use CUDA backend" FORCE)
+        message(STATUS "CUDA compiler not found, continuing without CUDA support")
+
+    endif()
+else()
+    message(STATUS "CUDA support disabled")
+endif()
+
 option(ENABLE_PROFILING "Enable profiling" ON)
 if (ENABLE_PROFILING)
     add_compile_definitions(-DENABLE_PROFILING)

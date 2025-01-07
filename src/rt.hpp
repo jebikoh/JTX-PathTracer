@@ -27,3 +27,15 @@ using Ray   = jtx::Rayf;
 constexpr Float INF = jtx::INFINITY_F;
 constexpr Float PI  = jtx::PI_F;
 #endif
+
+#ifdef ENABLE_CUDA_BACKEND
+#define HOSTDEV __host__ __device__
+#define DEV __device__
+#define HOST __host__
+#define INLINE __forceinline__
+#else
+#define HOSTDEV
+#define DEV
+#define HOST
+#define INLINE inline
+#endif

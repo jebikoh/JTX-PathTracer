@@ -1,7 +1,7 @@
 #pragma once
 
-#include "color.hpp"
 #include "rt.hpp"
+#include "util/color.hpp"
 
 constexpr Float MIN_INTENSITY = 0;
 constexpr Float MAX_INTENSITY = 0.999;

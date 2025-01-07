@@ -1,8 +1,8 @@
 #pragma once
 
+#include "primitives.hpp"
 #include "rt.hpp"
 #include "scene.hpp"
-#include "primitives.hpp"
 
 struct alignas(32) LinearBVHNode {
     AABB bbox;
@@ -21,14 +21,14 @@ struct BVHNode {
     int firstPrimOffset;
     int numPrimitives;
 
-    void initLeaf(const int first, const int n, const AABB &bounds) {
+    HOST void initLeaf(const int first, const int n, const AABB &bounds) {
         firstPrimOffset = first;
         numPrimitives = n;
         bbox = bounds;
         children[0] = children[1] = nullptr;
     }
 
-    void initBranch(const int axis, BVHNode *child0, BVHNode *child1) {
+    HOST void initBranch(const int axis, BVHNode *child0, BVHNode *child1) {
         children[0] = child0;
         children[1] = child1;
         bbox = AABB(child0->bbox, child1->bbox);
@@ -36,15 +36,15 @@ struct BVHNode {
         numPrimitives = 0;
     }
 
-    bool isLeaf() const {
+    HOSTDEV [[nodiscard]] bool isLeaf() const {
         return children[0] == nullptr && children[1] == nullptr;
     }
 
-    bool isBranch() const {
+    HOSTDEV bool isBranch() const {
         return !isLeaf();
     }
 
-    void destroy() const {
+    HOST void destroy() const {
         if (isBranch()) {
             children[0]->destroy();
             children[1]->destroy();

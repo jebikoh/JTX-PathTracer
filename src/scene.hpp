@@ -19,8 +19,6 @@ struct Scene {
             case Primitive::SPHERE: {
                 return spheres[primitive.index].hit(r, t, record);
             }
-            case Primitive::RECTANGLE:
-                break;
             default:
                 break;
         }

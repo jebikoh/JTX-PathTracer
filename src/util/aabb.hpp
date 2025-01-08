@@ -30,14 +30,16 @@ public:
         pmax = jtx::max(a.pmax, b.pmax);
     }
 
-    void expand(const AABB &other) {
+    AABB expand(const AABB &other) {
         pmin = jtx::min(pmin, other.pmin);
         pmax = jtx::max(pmax, other.pmax);
+        return *this;
     }
 
-    void expand(const Vec3 &p) {
+    AABB expand(const Vec3 &p) {
         pmin = jtx::min(pmin, p);
         pmax = jtx::max(pmax, p);
+        return *this;
     }
 
     [[nodiscard]] Interval axis(const int i) const {

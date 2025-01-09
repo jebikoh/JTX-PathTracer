@@ -1,6 +1,6 @@
 #pragma once
 
-#include "camera.hpp"
+#include "engine.hpp"
 #include "glad/glad.h"
 #include "rt.hpp"
 

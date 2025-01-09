@@ -1,60 +1,83 @@
 #pragma once
 
 #include "../rt.hpp"
+#include "hash.hpp"
 
-static constexpr uint32_t PCG32_MULT_32 = 747796405u;
-static constexpr uint32_t PCG32_INCR_32 = 2891336453u;
+static constexpr auto PCG32_DEFAULT_STATE  = 0x853c49e6748fea9bULL;
+static constexpr auto PCG32_DEFAULT_STREAM = 0xda3e39cb94b95bdbULL;
+static constexpr auto PCG32_MULT           = 0x5851f42d4c957f2dULL;
 
-static constexpr uint32_t PCG32_DEFAULT_STATE_32 = 0x853c49e5u;
-static constexpr uint32_t PCG32_DEFAULT_OFFST_32 = 0xDA3E39CBu;
+static constexpr auto RXS_M_XS_MULT = 747796405u;
+static constexpr auto RXS_M_XS_INCR = 2891336453u;
 
-static constexpr float PCG32_FP_SCALE = 0x1p-32f;
-
-// Modified version of RNG in PBRTv4
+// We use PCG32 for random number generation
 class RNG {
 public:
-    RNG() {
-        state_ = 0;
-        setSeed(PCG32_DEFAULT_STATE_32, PCG32_DEFAULT_OFFST_32);
+    RNG() : state_(PCG32_DEFAULT_STATE), inc_(PCG32_DEFAULT_STREAM) {}
+
+    RNG(const uint64_t index, const uint64_t offset) {
+        setSequence(index, offset);
     }
 
-    explicit RNG(const uint32_t seed, const uint32_t offset = PCG32_DEFAULT_OFFST_32) {
-        state_ = 0;
-        setSeed(seed, offset);
+    explicit RNG(const uint64_t index) {
+        setSequence(index);
+    }
+    void setSequence(const uint64_t index, const uint64_t offset) {
+        state_ = 0u;
+        inc_ = (index << 1u) | 1u;
+        sampleU32();
+        state_ += offset;
+        sampleU32();
     }
 
-    void setSeed(const uint32_t seed, const uint32_t offset = PCG32_DEFAULT_OFFST_32) {
-        state_ = 0;
-        pcg();
-        state_ += seed + offset;
-        pcg();
+    void setSequence(const uint64_t index) {
+        setSequence(index, mixBits(index));
     }
 
-    float randomFloat() {
-#ifdef USE_PCG_24_BIT_MASKING
-        return (pcg() & 0xFFFFFF) / 16777216.0f;
-#else
-        return jtx::min(jtx::ONE_MINUS_EPSILON, pcg() * PCG32_FP_SCALE);
-#endif
+    void advance(const int64_t idelta) {
+        uint64_t curMult = PCG32_MULT, curPlus = inc_, accMult = 1u;
+        uint64_t accPlus = 0u, delta = static_cast<uint64_t>(idelta);
+        while (delta > 0) {
+            if (delta & 1) {
+                accMult *= curMult;
+                accPlus = accPlus * curMult + curPlus;
+            }
+            curPlus = (curMult + 1) * curPlus;
+            curMult *= curMult;
+            delta /= 2;
+        }
+        state_ = accMult * state_ + accPlus;
     }
 
+    uint32_t sampleU32() {
+        const uint64_t oldState = state_;
+        state_ = oldState * PCG32_MULT + inc_;
+        const uint32_t xorShifted = static_cast<uint32_t>(((oldState >> 18u) ^ oldState) >> 27u);
+        const uint32_t rot = static_cast<uint32_t>(oldState >> 59u);
+        return (xorShifted >> rot) | (xorShifted << ((~rot + 1u) & 31));
+    }
+
+    float sampleFP() {
+        return jtx::min(jtx::ONE_MINUS_EPSILON, sampleU32() * 0x1p-32f);
+    }
 private:
-    uint32_t pcg() {
-        const auto state = state_;
-        state_           = state_ * PCG32_MULT_32 + PCG32_INCR_32;
-        const auto word  = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
-        return (word >> 2u) ^ word;
-    }
-
-    uint32_t state_;
+    uint64_t state_;
+    uint64_t inc_;
 };
 
+// Used exclusively for quick single floats or small hashes
+// RXS-M-XS for 32-bit hashing
+inline uint32_t pcgHash(const uint32_t x) {
+    const uint32_t state = x * RXS_M_XS_MULT + RXS_M_XS_INCR;
+    const uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+}
 
-// Thread-managed version of the above PCG
-uint32_t randPCG();
+// Thread local PCG generator
+uint32_t pcgRand();
 
 inline Float randomFloat() {
-    return (randPCG() & 0xFFFFFF) / 16777216.0f;
+    return (pcgRand() & 0xFFFFFF) / 16777216.0f;
 }
 
 inline Float randomFloat(const Float min, const Float max) {

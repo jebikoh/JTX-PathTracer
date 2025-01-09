@@ -1,8 +1,8 @@
 #include <SDL.h>
 
 #include "bvh.hpp"
-#include "camera.hpp"
 #include "display.hpp"
+#include "engine.hpp"
 #include "rt.hpp"
 #include "scene.hpp"
 

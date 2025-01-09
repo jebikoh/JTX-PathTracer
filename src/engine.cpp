@@ -1,5 +1,5 @@
-#include "camera.hpp"
 #include "bvh.hpp"
+#include "engine.hpp"
 #include <thread>
 
 struct RayTraceJob {

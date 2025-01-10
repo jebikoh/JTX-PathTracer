@@ -9,34 +9,31 @@
 #include <thread>
 
 // Camera Settings
-constexpr int IMAGE_WIDTH      = 800;
-constexpr int IMAGE_HEIGHT     = 450;
-constexpr int SAMPLES_PER_PX   = 200;
-constexpr int MAX_DEPTH        = 10;
+constexpr int IMAGE_WIDTH    = 800;
+constexpr int IMAGE_HEIGHT   = 450;
+constexpr int SAMPLES_PER_PX = 200;
+constexpr int MAX_DEPTH      = 10;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     Scene scene{};
-//    createTestScene(scene);
-//    createDefaultScene(scene);
-    createCoverScene(scene);
+    // createTestScene(scene);
+    // createDefaultScene(scene);
+    // createCoverScene(scene);
+    createMeshScene(scene);
 
     Camera camera{
-        IMAGE_WIDTH,
-        IMAGE_HEIGHT,
-        scene.cameraProperties,
-        SAMPLES_PER_PX,
-        MAX_DEPTH
-    };
+            IMAGE_WIDTH,
+            IMAGE_HEIGHT,
+            scene.cameraProperties,
+            SAMPLES_PER_PX,
+            MAX_DEPTH};
+
     Display display(IMAGE_WIDTH + SIDEBAR_WIDTH, IMAGE_HEIGHT, &camera);
     if (!display.init()) {
         return -1;
     }
 
-#ifdef USE_BVH_AS_WORLD
-    const BVHTree world(scene, 1);
-#else
-    const PrimitiveList world(scene);
-#endif
+    BVHTree world(scene, 1);
 
     display.setWorld(&world);
 
@@ -51,7 +48,8 @@ int main(int argc, char* argv[]) {
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 
+    world.destroy();
     display.destroy();
-
+    scene.destroy();
     return 0;
 }

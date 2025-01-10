@@ -1,6 +1,6 @@
 #include "scene.hpp"
 
-Scene createDefaultScene(Scene &scene) {
+void createDefaultScene(Scene &scene) {
     scene.name = "Default Scene";
 
     // Camera
@@ -29,11 +29,9 @@ Scene createDefaultScene(Scene &scene) {
 
     scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.00 / 1.50});
     scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.4, scene.materials.back());
-
-    return scene;
 }
 
-Scene createTestScene(Scene &scene) {
+void createTestScene(Scene &scene) {
     scene.cameraProperties.center        = Vec3(0, 3, 8);
     scene.cameraProperties.target        = Vec3(0, 2, -1);
     scene.cameraProperties.up            = Vec3(0, 1, 0);
@@ -81,11 +79,9 @@ Scene createTestScene(Scene &scene) {
 
     scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 0});
     scene.spheres.emplace_back(Vec3(-1, 3, -1), 0.4, scene.materials.back());
-
-    return scene;
 }
 
-Scene createCoverScene(Scene &scene) {
+void createCoverScene(Scene &scene) {
     constexpr float DIFFUSE_PROBABILITY = 0.8;
     constexpr float METAL_PROBABILITY   = 0.15;
 
@@ -110,12 +106,12 @@ Scene createCoverScene(Scene &scene) {
             const auto matIdx = randomFloat();
             if ((center - Vec3(4, 0.2, 0)).len() > 0.9) {
                 if (matIdx < DIFFUSE_PROBABILITY) {
-                    auto albedo = randomVec3() * randomVec3();
+                    const auto albedo = randomVec3() * randomVec3();
                     scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = albedo});
                     scene.spheres.emplace_back(center, 0.2, scene.materials.back());
                 } else if (matIdx < METAL_CUTOFF) {
-                    auto albedo = randomVec3(0.5, 1);
-                    auto fuzz   = randomFloat(0, 0.5);
+                    const auto albedo = randomVec3(0.5, 1);
+                    const auto fuzz   = randomFloat(0, 0.5);
                     scene.materials.push_back({.type = Material::METAL, .albedo = albedo, .fuzz = fuzz});
                     scene.spheres.emplace_back(center, 0.2, scene.materials.back());
                 } else {
@@ -140,6 +136,34 @@ Scene createCoverScene(Scene &scene) {
     scene.cameraProperties.up            = {0, 1, 0};
     scene.cameraProperties.defocusAngle  = 0.6;
     scene.cameraProperties.focusDistance = 10.0;
+}
 
-    return scene;
+void createMeshScene(Scene &scene) {
+    scene.cameraProperties.center        = Vec3(0, 0, 8);
+    scene.cameraProperties.target        = Vec3(0, 0, -1);
+    scene.cameraProperties.up            = Vec3(0, 1, 0);
+    scene.cameraProperties.yfov          = 20;
+    scene.cameraProperties.defocusAngle  = 0;
+    scene.cameraProperties.focusDistance = 3.4;
+
+    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.8, 0.8, 0.0)});
+
+    const auto vertices = new Vec3[4];
+    vertices[0] = Vec3(-1, -1, -1);
+    vertices[1] = Vec3( -1, 1, -1);
+    vertices[2] = Vec3(1, 1,  -1);
+    vertices[3] = Vec3( 1, -1,  -1);
+
+    const auto indices = new Vec3i[2];
+    indices[0] = Vec3i(0, 1, 2);
+    indices[1] = Vec3i(0, 2, 3);
+
+    const auto normals = new Vec3[2];
+    normals[0] = Vec3(0, 0, 1);
+    normals[1] = Vec3(0, 0, 1);
+
+    scene.meshes.push_back({indices, vertices, normals, scene.materials.back()});
+
+    scene.triangles.push_back({0, 0});
+    scene.triangles.push_back({1, 0});
 }

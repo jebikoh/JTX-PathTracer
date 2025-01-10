@@ -14,6 +14,11 @@ BVHTree::BVHTree(const Scene &scene, const int maxPrimsInNode)
         primitives_[i]   = Primitive{Primitive::SPHERE, i, scene.spheres[i].bounds()};
         bvhPrimitives[i] = Primitive{Primitive::SPHERE, i, scene.spheres[i].bounds()};
     }
+    const size_t j = scene.spheres.size();
+    for (size_t i = 0; i < scene.triangles.size(); ++i) {
+        primitives_[j + i]   = Primitive{Primitive::TRIANGLE, i, scene.meshes[scene.triangles[i].meshIndex].tBounds(scene.triangles[i].index)};
+        bvhPrimitives[j + i] = Primitive{Primitive::TRIANGLE, i, scene.meshes[scene.triangles[i].meshIndex].tBounds(scene.triangles[i].index)};
+    }
     // Add rest of types when we get them
     // We will order as we build
     std::vector<Primitive> orderedPrimitives(primitives_.size());
@@ -42,10 +47,10 @@ struct BVHBucket {
 };
 
 bool BVHTree::hit(const Ray &r, Interval t, HitRecord &record) const {
-    const auto invDir = 1 / r.dir;
-    const int dirIsNeg[3] = { static_cast<int>(invDir.x < 0), static_cast<int>(invDir.y < 0), static_cast<int>(invDir.z < 0)};
+    const auto invDir     = 1 / r.dir;
+    const int dirIsNeg[3] = {static_cast<int>(invDir.x < 0), static_cast<int>(invDir.y < 0), static_cast<int>(invDir.z < 0)};
 
-    int toVisitOffset = 0;
+    int toVisitOffset    = 0;
     int currentNodeIndex = 0;
     int stack[64];
     bool hitAnything = false;
@@ -59,28 +64,25 @@ bool BVHTree::hit(const Ray &r, Interval t, HitRecord &record) const {
             //    Otherwise, push the children onto the stack
             if (node->numPrimitives > 0) {
                 // Leaf node
-                for (int i  = 0; i < node->numPrimitives; ++i) {
+                for (int i = 0; i < node->numPrimitives; ++i) {
                     if (scene_.hit(primitives_[node->primitivesOffset + i], r, t, record)) {
                         hitAnything = true;
-                        t.max = record.t;
+                        t.max       = record.t;
                     }
                 }
                 if (toVisitOffset == 0) break;
                 currentNodeIndex = stack[--toVisitOffset];
-            }
-            else {
+            } else {
                 // Interior node
                 if (dirIsNeg[node->axis]) {
                     stack[toVisitOffset++] = currentNodeIndex + 1;
-                    currentNodeIndex = node->secondChildOffset;
-                }
-                else {
+                    currentNodeIndex       = node->secondChildOffset;
+                } else {
                     stack[toVisitOffset++] = node->secondChildOffset;
-                    currentNodeIndex = currentNodeIndex + 1;
+                    currentNodeIndex       = currentNodeIndex + 1;
                 }
             }
-        }
-        else {
+        } else {
             if (toVisitOffset == 0) break;
             currentNodeIndex = stack[--toVisitOffset];
         }

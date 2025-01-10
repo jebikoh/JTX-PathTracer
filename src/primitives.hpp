@@ -6,7 +6,7 @@
 struct Primitive {
     enum Type {
         SPHERE = 0,
-        RECTANGLE = 1
+        TRIANGLE = 1,
     };
 
     Type type;

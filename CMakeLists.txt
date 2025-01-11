@@ -84,7 +84,6 @@ add_executable(RayTracer src/main.cpp
         src/util/hash.hpp
         src/filter.hpp
         src/mesh.hpp
-        src/mesh.cpp
 )
 
 target_link_libraries(RayTracer PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui)

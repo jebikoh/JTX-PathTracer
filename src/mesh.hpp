@@ -4,14 +4,16 @@
 #include "rt.hpp"
 #include "util/aabb.hpp"
 
+#include <complex>
+
 struct Mesh {
     const Vec3i *indices;
     const Vec3 *vertices;
     const Vec3 *normals;
 
-    const Material &material;
+    Material &material;
 
-    Mesh(const Vec3i *indices, const Vec3 *vertices, const Vec3 *normals, const Material &material)
+    Mesh(const Vec3i *indices, const Vec3 *vertices, const Vec3 *normals, Material &material)
         : indices(indices),
           vertices(vertices),
           normals(normals),
@@ -36,8 +38,11 @@ struct Mesh {
         return 0.5f * jtx::cross(v1 - v0, v2 - v0).len();
     }
 
-    void getNormal(const int index, Vec3 &n) const {
-        n = normals[index];
+    void getNormals(const int index, Vec3 &n0, Vec3 &n1, Vec3 &n2) const {
+        const Vec3i i = indices[index];
+        n0 = normals[i[0]];
+        n1 = normals[i[1]];
+        n2 = normals[i[2]];
     }
 
     bool tHit(const Ray &r, const Interval t, HitRecord &record, const int index, float &u, float &v) const {
@@ -66,8 +71,12 @@ struct Mesh {
         record.t        = root;
         record.point    = r.at(root);
         record.material = &material;
-        Vec3 n;
-        getNormal(index, n);
+
+        Vec3 n0, n1, n2;
+        getNormals(index, n0, n1, n2);
+
+        // Interpolate with barycentric
+        const Vec3 n = (1 - u - v) * n0 + u * n1 + v * n2;
         record.setFaceNormal(r, n);
 
         return true;
@@ -79,8 +88,6 @@ struct Mesh {
         if (normals) delete[] normals;
     }
 };
-
-std::vector<Mesh> loadMesh(const std::string &path);
 
 struct Triangle {
     int index;

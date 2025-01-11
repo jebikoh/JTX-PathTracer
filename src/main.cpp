@@ -15,11 +15,18 @@ constexpr int SAMPLES_PER_PX = 200;
 constexpr int MAX_DEPTH      = 10;
 
 int main(int argc, char *argv[]) {
-    Scene scene{};
-    // createTestScene(scene);
-    // createDefaultScene(scene);
-    // createCoverScene(scene);
-    createMeshScene(scene);
+    Scene scene;
+    scene.loadMesh("../src/assets/f22.obj");
+
+    scene.cameraProperties.center        = Vec3(0, 0, 8);
+    scene.cameraProperties.target        = Vec3(0, 0, 0);
+    scene.cameraProperties.up            = Vec3(0, 1, 0);
+    scene.cameraProperties.yfov          = 20;
+    scene.cameraProperties.defocusAngle  = 0;
+    scene.cameraProperties.focusDistance = 1;
+
+    scene.meshes[0].material.type = Material::DIELECTRIC;
+    scene.meshes[0].material.refractionIndex = 1.5f;
 
     Camera camera{
             IMAGE_WIDTH,

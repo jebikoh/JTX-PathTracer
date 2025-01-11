@@ -45,6 +45,8 @@ struct Scene {
     int numPrimitives() const {
         return spheres.size() + triangles.size();
     }
+
+    void loadMesh(const std::string &path);
 };
 
 void createDefaultScene(Scene &scene);

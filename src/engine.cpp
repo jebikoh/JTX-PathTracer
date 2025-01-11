@@ -136,7 +136,7 @@ Color Camera::rayColor(const Ray &r, const World &world, const int depth, int &n
             }
         } else {
             const Float a = 0.5 * (normalize(currRay.dir).y + 1.0);
-            return currAttenuation * jtx::lerp(Color(1, 1, 1), Color(0.5, 0.7, 1.0), a);
+            return currAttenuation * jtx::lerp(Color(0.5, 0.5, 0.5), Color(0.2, 0.2, 0.2), a);
         }
     }
 

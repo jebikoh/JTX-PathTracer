@@ -25,8 +25,18 @@ int main(int argc, char *argv[]) {
     scene.cameraProperties.defocusAngle  = 0;
     scene.cameraProperties.focusDistance = 1;
 
+    std::cout << scene.meshes[0].numVertices << std::endl;
+    std::cout << scene.meshes[0].numIndices << std::endl;
+
     scene.meshes[0].material.type = Material::DIELECTRIC;
     scene.meshes[0].material.refractionIndex = 1.5f;
+
+    jtx::Mat4 m = jtx::rotateX(25);
+    // Transform all verts and norms
+    for (int i = 0; i < scene.meshes[0].numVertices; ++i) {
+        scene.meshes[0].vertices[i] = m.applyToPoint(scene.meshes[0].vertices[i]);
+        scene.meshes[0].normals[i]  = m.applyToNormal(scene.meshes[0].normals[i]);
+    }
 
     Camera camera{
             IMAGE_WIDTH,

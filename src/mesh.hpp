@@ -7,14 +7,19 @@
 #include <complex>
 
 struct Mesh {
-    const Vec3i *indices;
-    const Vec3 *vertices;
-    const Vec3 *normals;
+    int numVertices;
+    int numIndices;
+
+    Vec3i *indices;
+    Vec3 *vertices;
+    Vec3 *normals;
 
     Material &material;
 
-    Mesh(const Vec3i *indices, const Vec3 *vertices, const Vec3 *normals, Material &material)
-        : indices(indices),
+    Mesh(Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Material &material)
+        : numVertices(numVertices),
+          numIndices(numIndices),
+          indices(indices),
           vertices(vertices),
           normals(normals),
           material(material) {}
@@ -40,9 +45,9 @@ struct Mesh {
 
     void getNormals(const int index, Vec3 &n0, Vec3 &n1, Vec3 &n2) const {
         const Vec3i i = indices[index];
-        n0 = normals[i[0]];
-        n1 = normals[i[1]];
-        n2 = normals[i[2]];
+        n0            = normals[i[0]];
+        n1            = normals[i[1]];
+        n2            = normals[i[2]];
     }
 
     bool tHit(const Ray &r, const Interval t, HitRecord &record, const int index, float &u, float &v) const {

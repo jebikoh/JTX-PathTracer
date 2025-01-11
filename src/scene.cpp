@@ -83,7 +83,7 @@ void Scene::loadMesh(const std::string &path) {
 
         // Create the Mesh and store it
         // Use the default material we pushed earlier: materials.back()
-        meshes.emplace_back(finalIndices, finalVerts, finalNormals, materials.back());
+        meshes.emplace_back(finalIndices, shapeTriIndices.size(), finalVerts, shapeVerts.size(), finalNormals, materials.back());
 
         // Now register all triangles from this mesh in the scene
         int meshIndex   = static_cast<int>(meshes.size()) - 1;
@@ -262,7 +262,7 @@ void createMeshScene(Scene &scene) {
     normals[2] = Vec3(0, 0, 1);
     normals[3] = Vec3(0, 0, 1);
 
-    scene.meshes.push_back({indices, vertices, normals, scene.materials.back()});
+    scene.meshes.push_back({indices, 2, vertices, 4, normals, scene.materials.back()});
 
     scene.triangles.push_back({0, 0});
     scene.triangles.push_back({1, 0});

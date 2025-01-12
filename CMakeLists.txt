@@ -61,7 +61,7 @@ target_link_libraries(imgui PRIVATE glad SDL2::SDL2)
 add_executable(RayTracer src/main.cpp
         src/rt.hpp
         src/util/color.hpp
-        src/engine.hpp
+        src/camera.hpp
         src/image.hpp
         src/bvh.hpp
         src/material.hpp
@@ -70,7 +70,7 @@ add_executable(RayTracer src/main.cpp
         src/image.cpp
         src/scene.hpp
         src/scene.cpp
-        src/engine.cpp
+        src/camera.cpp
         src/primitives.hpp
         src/primitives.hpp
         src/util/rand.hpp

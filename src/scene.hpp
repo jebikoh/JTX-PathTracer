@@ -1,5 +1,5 @@
 #pragma once
-#include "engine.hpp"
+#include "camera.hpp"
 #include "material.hpp"
 #include "mesh.hpp"
 #include "primitives.hpp"

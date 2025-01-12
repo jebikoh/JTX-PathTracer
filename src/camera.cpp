@@ -1,5 +1,5 @@
+#include "camera.hpp"
 #include "bvh.hpp"
-#include "engine.hpp"
 #include <thread>
 
 struct RayTraceJob {
@@ -60,11 +60,11 @@ void Camera::render(const World &world) {
                     for (int col = 0; col < width_; ++col) {
                         if (stopRender_) return;
                         auto pxColor = Color(0, 0, 0);
-                    for (int s = 0; s < samplesPerPx_; ++s) {
-                        Ray r = getRay(col, row);
-                        pxColor += rayColor(r, *job.world, maxDepth_, numRays);
-                    }
-                    img_.writePixel(pxColor * pxSampleScale_, row, col);
+                        for (int s = 0; s < samplesPerPx_; ++s) {
+                            Ray r = getRay(col, row);
+                            pxColor += rayColor(r, *job.world, maxDepth_, numRays);
+                        }
+                        img_.writePixel(pxColor * pxSampleScale_, row, col);
                     }
                 }
             }
@@ -79,11 +79,11 @@ void Camera::render(const World &world) {
 
     const auto stopTime            = std::chrono::high_resolution_clock::now();
     const double renderTimeSeconds = std::chrono::duration_cast<std::chrono::seconds>(stopTime - startTime).count();
-    const auto renderTimeMillis  = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
+    const auto renderTimeMillis    = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
 
     const auto numBounces = queue.totalBounces.load();
 
-    const auto mrays = numBounces / 1000000.0 / renderTimeSeconds;
+    const auto mrays    = numBounces / 1000000.0 / renderTimeSeconds;
     const auto msPerRay = renderTimeMillis / static_cast<double>(numBounces);
     std::cout << "Total render time: " << renderTimeSeconds << "s" << std::endl;
     std::cout << "Num rays: " << numBounces << std::endl;
@@ -128,15 +128,14 @@ Color Camera::rayColor(const Ray &r, const World &world, const int depth, int &n
         if (world.hit(currRay, Interval(0.001, INF), record)) {
             Ray scattered;
             Color attenuation;
-            if (scatter(record.material,currRay, record, attenuation, scattered)) {
+            if (scatter(record.material, currRay, record, attenuation, scattered)) {
                 currAttenuation *= attenuation;
                 currRay = scattered;
             } else {
                 return {0, 0, 0};
             }
         } else {
-            const Float a = 0.5 * (normalize(currRay.dir).y + 1.0);
-            return currAttenuation * jtx::lerp(Color(0.5, 0.5, 0.5), Color(0.2, 0.2, 0.2), a);
+            return background_;
         }
     }
 

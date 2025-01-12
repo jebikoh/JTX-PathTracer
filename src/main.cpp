@@ -2,7 +2,7 @@
 
 #include "bvh.hpp"
 #include "display.hpp"
-#include "engine.hpp"
+#include "camera.hpp"
 #include "rt.hpp"
 #include "scene.hpp"
 
@@ -28,11 +28,15 @@ int main(int argc, char *argv[]) {
     std::cout << scene.meshes[0].numVertices << std::endl;
     std::cout << scene.meshes[0].numIndices << std::endl;
 
-    scene.meshes[0].material.type = Material::DIELECTRIC;
-    scene.meshes[0].material.refractionIndex = 1.5f;
+    // scene.meshes[0].material.type = Material::DIELECTRIC;
+    // scene.meshes[0].material.refractionIndex = 1.5f;
+
+    scene.meshes[0].material.type = Material::METAL;
+    scene.meshes[0].material.albedo =  Color(0.8, 0.6, 0.2);
+    scene.meshes[0].material.fuzz = 0.25;
 
     jtx::Mat4 m = jtx::rotateX(25);
-    // Transform all verts and norms
+    // // Transform all verts and norms
     for (int i = 0; i < scene.meshes[0].numVertices; ++i) {
         scene.meshes[0].vertices[i] = m.applyToPoint(scene.meshes[0].vertices[i]);
         scene.meshes[0].normals[i]  = m.applyToNormal(scene.meshes[0].normals[i]);

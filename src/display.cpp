@@ -1,5 +1,7 @@
 #include "display.hpp"
 
+#include "camera.hpp"
+
 #include <SDL.h>
 #include <future>
 #include <imgui.h>
@@ -195,7 +197,7 @@ void Display::render() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureId_);
     glUniform1i(glGetUniformLocation(shaderProgram_, "uTexture"), 0);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
     glViewport(0, 0, width_, height_);
 

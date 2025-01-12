@@ -14,6 +14,7 @@ public:
     Float aspectRatio_;
     int samplesPerPx_;
     int maxDepth_;
+    Color background_ = Color(0.5, 0.5, 0.5);
 
     RGBImage img_;
 
@@ -124,5 +125,5 @@ private:
         return properties_.center + (p.x * defocus_u_) + (p.y * defocus_v_);
     }
 
-    static Color rayColor(const Ray &r, const World &world, const int depth, int &numRays);
+    Color rayColor(const Ray &r, const World &world, const int depth, int &numRays);
 };

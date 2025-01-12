@@ -7,7 +7,8 @@ struct Material {
     enum Type {
         LAMBERTIAN,
         METAL,
-        DIELECTRIC
+        DIELECTRIC,
+        DIFFUSE_LIGHT
     };
 
     Type type;

@@ -119,34 +119,38 @@ void Camera::init() {
     defocus_v_                = defocusRadius * v_;
 }
 
-Color Camera::rayColor(const Ray &r, const World &world, const int depth, int &numRays) {
+Color Camera::rayColor(const Ray &r, const World &world, const int depth, int &numRays) const {
     Ray currRay           = r;
     Color currAttenuation = {1.0, 1.0, 1.0};
+    Color currColor       = {0.0f, 0.0f, 0.0f};
+
     for (int i = 0; i < depth; ++i) {
         ++numRays;
-        HitRecord record;
-        if (world.hit(currRay, Interval(0.001, INF), record)) {
-            Ray scattered;
-            Color attenuation;
-            if (scatter(record.material, currRay, record, attenuation, scattered)) {
-                currAttenuation *= attenuation;
-                currRay = scattered;
 
-                // If this was recursive, we'd do something like this
-                // cScatter = attenuation * rayColor(...)
-                // cEmission = ... (if DIFFUSE_LIGHT)
-                // return cScatter + cEmission
-            } else {
-                if (record.material->type == Material::DIFFUSE_LIGHT) {
-                    return record.material->emission;
-                }
-                return {0, 0, 0};
-            }
-        } else {
-            return background_;
+        HitRecord record;
+        if (!world.hit(currRay, Interval(0.001, INF), record)) {
+            // Missed everything; return background color
+            currColor += currAttenuation * properties_.background;
+            return currColor;
         }
+
+        // Add contribution from emission
+        if (record.material->type == Material::DIFFUSE_LIGHT) {
+            currColor += currAttenuation * record.material->emission;
+        }
+
+        Ray scattered;
+        Color attenuation;
+        if (!scatter(record.material, currRay, record, attenuation, scattered)) {
+            // Ray was absorbed, return the current color
+            return currColor;
+        }
+
+        // Ray was scattered, update attenuation and ray
+        currAttenuation *= attenuation;
+        currRay = scattered;
     }
 
     // Exceeded bounce depth
-    return {0, 0, 0};
+    return currColor;
 }

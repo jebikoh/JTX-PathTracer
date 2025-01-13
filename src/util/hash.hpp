@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../rt.hpp"
+#include <cstring>
 
 // All hashing here is taken straight from PBRTv4
 // https://github.com/mmp/pbrt-v4/blob/88645ffd6a451bd030d062a55a70a701c58a55d0/src/pbrt/util/hash.h

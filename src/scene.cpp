@@ -36,8 +36,8 @@ void Scene::loadMesh(const std::string &path) {
         }
 
         // Prepare CPU-side arrays (vectors first for ease)
-        std::vector<Vec3>  shapeVerts(numIndices);
-        std::vector<Vec3>  shapeNormals(numIndices);
+        std::vector<Vec3> shapeVerts(numIndices);
+        std::vector<Vec3> shapeNormals(numIndices);
         std::vector<Vec3i> shapeTriIndices(numIndices / 3);
 
         // Fill vertices and normals
@@ -53,22 +53,21 @@ void Scene::loadMesh(const std::string &path) {
 
             // If a normal index is available, read it; otherwise set a default normal
             if (idx.normal_index >= 0) {
-                float nx = attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 0];
-                float ny = attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 1];
-                float nz = attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 2];
+                float nx        = attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 0];
+                float ny        = attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 1];
+                float nz        = attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 2];
                 shapeNormals[i] = Vec3(nx, ny, nz);
             } else {
-                shapeNormals[i] = Vec3(0.0f, 1.0f, 0.0f); // fallback normal
+                shapeNormals[i] = Vec3(0.0f, 1.0f, 0.0f);// fallback normal
             }
         }
 
         // Build the index array, grouping by 3 for each triangle
         for (size_t f = 0; f < numIndices / 3; f++) {
             shapeTriIndices[f] = Vec3i(
-                static_cast<int>(3 * f + 0),
-                static_cast<int>(3 * f + 1),
-                static_cast<int>(3 * f + 2)
-            );
+                    static_cast<int>(3 * f + 0),
+                    static_cast<int>(3 * f + 1),
+                    static_cast<int>(3 * f + 2));
         }
 
         // Allocate dynamic arrays for Mesh constructor
@@ -77,7 +76,7 @@ void Scene::loadMesh(const std::string &path) {
         auto *finalIndices = new Vec3i[numIndices / 3];
 
         // Copy data from std::vector to raw arrays
-        std::memcpy(finalVerts,   shapeVerts.data(),   numIndices * sizeof(Vec3));
+        std::memcpy(finalVerts, shapeVerts.data(), numIndices * sizeof(Vec3));
         std::memcpy(finalNormals, shapeNormals.data(), numIndices * sizeof(Vec3));
         std::memcpy(finalIndices, shapeTriIndices.data(), (numIndices / 3) * sizeof(Vec3i));
 
@@ -86,7 +85,7 @@ void Scene::loadMesh(const std::string &path) {
         meshes.emplace_back(finalIndices, shapeTriIndices.size(), finalVerts, shapeVerts.size(), finalNormals, materials.back());
 
         // Now register all triangles from this mesh in the scene
-        int meshIndex   = static_cast<int>(meshes.size()) - 1;
+        int meshIndex     = static_cast<int>(meshes.size()) - 1;
         int triangleCount = static_cast<int>(numIndices / 3);
 
         for (int t = 0; t < triangleCount; t++) {
@@ -108,6 +107,7 @@ void createDefaultScene(Scene &scene) {
     scene.cameraProperties.yfov          = 20;
     scene.cameraProperties.defocusAngle  = 10.0;
     scene.cameraProperties.focusDistance = 3.4;
+    scene.cameraProperties.background    = Color(0.7, 0.8, 1.0);
 
     scene.materials.reserve(10);
     scene.spheres.reserve(10);
@@ -136,6 +136,7 @@ void createTestScene(Scene &scene) {
     scene.cameraProperties.yfov          = 20;
     scene.cameraProperties.defocusAngle  = 0;
     scene.cameraProperties.focusDistance = 3.4;
+    scene.cameraProperties.background    = Color(0.7, 0.8, 1.0);
 
     scene.materials.reserve(20);
     scene.spheres.reserve(20);
@@ -234,6 +235,7 @@ void createCoverScene(Scene &scene) {
     scene.cameraProperties.up            = {0, 1, 0};
     scene.cameraProperties.defocusAngle  = 0.6;
     scene.cameraProperties.focusDistance = 10.0;
+    scene.cameraProperties.background    = Color(0.7, 0.8, 1.0);
 }
 
 void createMeshScene(Scene &scene) {
@@ -243,27 +245,51 @@ void createMeshScene(Scene &scene) {
     scene.cameraProperties.yfov          = 20;
     scene.cameraProperties.defocusAngle  = 0;
     scene.cameraProperties.focusDistance = 3.4;
+    scene.cameraProperties.background    = Color(0.7, 0.8, 1.0);
 
     scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(1, 0.3, 0.5)});
 
     const auto vertices = new Vec3[4];
-    vertices[0] = Vec3(-1, -1, -1);
-    vertices[1] = Vec3( -1, 1, -1);
-    vertices[2] = Vec3(1, 1,  -1);
-    vertices[3] = Vec3( 1, -1,  -1);
+    vertices[0]         = Vec3(-1, -1, -1);
+    vertices[1]         = Vec3(-1, 1, -1);
+    vertices[2]         = Vec3(1, 1, -1);
+    vertices[3]         = Vec3(1, -1, -1);
 
     const auto indices = new Vec3i[2];
-    indices[0] = Vec3i(0, 1, 2);
-    indices[1] = Vec3i(0, 2, 3);
+    indices[0]         = Vec3i(0, 1, 2);
+    indices[1]         = Vec3i(0, 2, 3);
 
     const auto normals = new Vec3[4];
-    normals[0] = Vec3(0, 0, 1);
-    normals[1] = Vec3(0, 0, 1);
-    normals[2] = Vec3(0, 0, 1);
-    normals[3] = Vec3(0, 0, 1);
+    normals[0]         = Vec3(0, 0, 1);
+    normals[1]         = Vec3(0, 0, 1);
+    normals[2]         = Vec3(0, 0, 1);
+    normals[3]         = Vec3(0, 0, 1);
 
     scene.meshes.push_back({indices, 2, vertices, 4, normals, scene.materials.back()});
 
     scene.triangles.push_back({0, 0});
     scene.triangles.push_back({1, 0});
+}
+
+void createObjScene(Scene &scene, std::string &path, const Mat4 &t, const Material &material, const Color &background) {
+    scene.loadMesh(path);
+
+    scene.cameraProperties.center        = Vec3(0, 0, 8);
+    scene.cameraProperties.target        = Vec3(0, 0, 0);
+    scene.cameraProperties.up            = Vec3(0, 1, 0);
+    scene.cameraProperties.yfov          = 20;
+    scene.cameraProperties.defocusAngle  = 0;
+    scene.cameraProperties.focusDistance = 1;
+    scene.cameraProperties.background    = background;
+
+    std::cout << scene.meshes[0].numVertices << std::endl;
+    std::cout << scene.meshes[0].numIndices << std::endl;
+
+    scene.meshes[0].material = material;
+
+    // Transform all verts and norms
+    for (int i = 0; i < scene.meshes[0].numVertices; ++i) {
+        scene.meshes[0].vertices[i] = t.applyToPoint(scene.meshes[0].vertices[i]);
+        scene.meshes[0].normals[i]  = t.applyToNormal(scene.meshes[0].normals[i]);
+    }
 }

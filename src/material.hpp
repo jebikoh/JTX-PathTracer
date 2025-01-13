@@ -12,12 +12,10 @@ struct Material {
     };
 
     Type type;
-    union {
-        Vec3 albedo;
-        Vec3 emission;
-    };
+    Vec3 albedo;
     Float fuzz;
     Float refractionIndex;
+    Vec3 emission;
 };
 
 struct HitRecord {
@@ -46,23 +44,23 @@ inline bool scatter(const Material *mat, const Ray &r, const HitRecord &record, 
             scatterDir = record.normal;
         }
 
-        scattered = Ray(record.point, scatterDir, r.time);
+        scattered   = Ray(record.point, scatterDir, r.time);
         attenuation = mat->albedo;
         return true;
     }
 
     if (mat->type == Material::METAL) {
         Vec3 reflected = jtx::reflect(r.dir, record.normal).normalize() + mat->fuzz * randomUnitVector();
-        scattered = Ray(record.point, reflected, r.time);
-        attenuation = mat->albedo;
+        scattered      = Ray(record.point, reflected, r.time);
+        attenuation    = mat->albedo;
         return (jtx::dot(scattered.dir, record.normal) > 0);
     }
 
     if (mat->type == Material::DIELECTRIC) {
-        attenuation = Color(1.0, 1.0, 1.0);
+        attenuation    = Color(1.0, 1.0, 1.0);
         const Float ri = record.frontFace ? (1.0 / mat->refractionIndex) : mat->refractionIndex;
 
-        const Vec3 dir = jtx::normalize(r.dir);
+        const Vec3 dir       = jtx::normalize(r.dir);
         const Float cosTheta = jtx::min(jtx::dot(-dir, record.normal), static_cast<Float>(1.0));
         const Float sinTheta = jtx::sqrt(1.0 - cosTheta * cosTheta);
 

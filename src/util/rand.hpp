@@ -69,7 +69,7 @@ private:
 // RXS-M-XS for 32-bit hashing
 inline uint32_t pcgHash(const uint32_t x) {
     const uint32_t state = x * RXS_M_XS_MULT + RXS_M_XS_INCR;
-    const uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    const uint32_t word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
     return (word >> 22u) ^ word;
 }
 

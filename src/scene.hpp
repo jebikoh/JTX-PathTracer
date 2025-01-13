@@ -53,3 +53,4 @@ void createDefaultScene(Scene &scene);
 void createTestScene(Scene &scene);
 void createCoverScene(Scene &scene);
 void createMeshScene(Scene &scene);
+void createObjScene(Scene &scene, std::string &path, const Mat4 &t, const Material &material, const Color &background = Color(0.7, 0.8, 1.0));

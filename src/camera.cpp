@@ -131,7 +131,15 @@ Color Camera::rayColor(const Ray &r, const World &world, const int depth, int &n
             if (scatter(record.material, currRay, record, attenuation, scattered)) {
                 currAttenuation *= attenuation;
                 currRay = scattered;
+
+                // If this was recursive, we'd do something like this
+                // cScatter = attenuation * rayColor(...)
+                // cEmission = ... (if DIFFUSE_LIGHT)
+                // return cScatter + cEmission
             } else {
+                if (record.material->type == Material::DIFFUSE_LIGHT) {
+                    return record.material->emission;
+                }
                 return {0, 0, 0};
             }
         } else {

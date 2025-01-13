@@ -12,7 +12,10 @@ struct Material {
     };
 
     Type type;
-    Vec3 albedo;
+    union {
+        Vec3 albedo;
+        Vec3 emission;
+    };
     Float fuzz;
     Float refractionIndex;
 };

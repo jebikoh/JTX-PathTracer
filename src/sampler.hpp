@@ -85,7 +85,7 @@ private:
     int xPixelSamples_, yPixelSamples_;
     int seed_;
     bool jitter_;
-    RNG rng_;
+    PCG32 rng_;
     Vec2i pixel_;
     int sampleIndex_ = 0;
     int dimension_   = 0;

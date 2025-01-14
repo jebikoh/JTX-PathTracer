@@ -10,21 +10,25 @@ static constexpr auto PCG32_MULT           = 0x5851f42d4c957f2dULL;
 static constexpr auto RXS_M_XS_MULT = 747796405u;
 static constexpr auto RXS_M_XS_INCR = 2891336453u;
 
-// We use PCG32 for random number generation
-class RNG {
-public:
-    RNG() : state_(PCG32_DEFAULT_STATE), inc_(PCG32_DEFAULT_STREAM) {}
+static constexpr auto FNV_1_PRIME = 16777619u;
+static constexpr auto FNV_1_OFFST = 2166136261u;
 
-    RNG(const uint64_t index, const uint64_t offset) {
+class PCG32 {
+public:
+    PCG32()
+        : state_(PCG32_DEFAULT_STATE),
+          inc_(PCG32_DEFAULT_STREAM) {}
+
+    PCG32(const uint64_t index, const uint64_t offset) {
         setSequence(index, offset);
     }
 
-    explicit RNG(const uint64_t index) {
+    explicit PCG32(const uint64_t index) {
         setSequence(index);
     }
     void setSequence(const uint64_t index, const uint64_t offset) {
         state_ = 0u;
-        inc_ = (index << 1u) | 1u;
+        inc_   = (index << 1u) | 1u;
         sampleU32();
         state_ += offset;
         sampleU32();
@@ -50,27 +54,48 @@ public:
     }
 
     uint32_t sampleU32() {
-        const uint64_t oldState = state_;
-        state_ = oldState * PCG32_MULT + inc_;
+        const uint64_t oldState   = state_;
+        state_                    = oldState * PCG32_MULT + inc_;
         const uint32_t xorShifted = static_cast<uint32_t>(((oldState >> 18u) ^ oldState) >> 27u);
-        const uint32_t rot = static_cast<uint32_t>(oldState >> 59u);
+        const uint32_t rot        = static_cast<uint32_t>(oldState >> 59u);
         return (xorShifted >> rot) | (xorShifted << ((~rot + 1u) & 31));
     }
 
     float sampleFP() {
         return jtx::min(jtx::ONE_MINUS_EPSILON, sampleU32() * 0x1p-32f);
     }
+
 private:
     uint64_t state_;
     uint64_t inc_;
+};
+
+//RXS-M-XS
+class RNG {
+
 };
 
 // Used exclusively for quick single floats or small hashes
 // RXS-M-XS for 32-bit hashing
 inline uint32_t pcgHash(const uint32_t x) {
     const uint32_t state = x * RXS_M_XS_MULT + RXS_M_XS_INCR;
-    const uint32_t word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    const uint32_t word  = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
     return (word >> 22u) ^ word;
+}
+
+// FNV-1a for 3 32-bit integer seeding hash
+inline uint32_t fnv1a_3(uint32_t x, uint32_t y, uint32_t s) {
+    uint32_t hash  = FNV_1_OFFST;
+    uint32_t prime = FNV_1_PRIME;
+
+    hash ^= x;
+    hash *= prime;
+    hash ^= y;
+    hash *= prime;
+    hash ^= s;
+    hash *= prime;
+
+    return hash;
 }
 
 // Thread local PCG generator

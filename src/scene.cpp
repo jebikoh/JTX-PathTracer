@@ -287,6 +287,10 @@ void createObjScene(Scene &scene, std::string &path, const Mat4 &t, const Materi
 
     scene.meshes[0].material = material;
 
+    // Add a diffuse light
+    scene.materials.push_back({.type = Material::DIFFUSE_LIGHT, .emission = Color(1, 1, 1)});
+    scene.spheres.push_back({Vec3(0, 1, 0), 0.5, scene.materials.back()});
+
     // Transform all verts and norms
     for (int i = 0; i < scene.meshes[0].numVertices; ++i) {
         scene.meshes[0].vertices[i] = t.applyToPoint(scene.meshes[0].vertices[i]);

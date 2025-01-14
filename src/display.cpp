@@ -224,7 +224,7 @@ void Display::render() {
         camera_->clear();
     }
 
-    if (ImGui::TreeNode("Configuration")) {
+    if (ImGui::CollapsingHeader("Configuration")) {
         // ImGui::SeparatorText("Image");
         // int dimensions[2] = {camera_->width, camera_->height};
         // ImGui::Text("Dimensions");
@@ -240,9 +240,8 @@ void Display::render() {
         ImGui::Text("Max Depth");
         ImGui::InputInt("##MaxDepth", &camera_->maxDepth_);
 
-        ImGui::TreePop();
     }
-    if (ImGui::TreeNode("Camera Settings")) {
+    if (ImGui::CollapsingHeader("Camera Settings")) {
         ImGui::SeparatorText("Orientation");
 
         ImGui::Text("Position");
@@ -267,27 +266,13 @@ void Display::render() {
         ImGui::SeparatorText("Lens");
 
         ImGui::Text("Y-FOV");
-#ifdef USE_DOUBLE_PRECISION
-        ImGui::InputDouble("##Y-FOV", &camera_->properties_.yfov);
-#else
         ImGui::InputFloat("##Y-FOV", &camera_->properties_.yfov);
-#endif
 
         ImGui::Text("Focus Angle");
-#ifdef USE_DOUBLE_PRECISION
-        ImGui::InputDouble("##FocusAngle", &camera_->properties_.defocusAngle);
-#else
         ImGui::InputFloat("##FocusAngle", &camera_->properties_.defocusAngle);
-#endif
 
         ImGui::Text("Focus Distance");
-#ifdef USE_DOUBLE_PRECISION
-        ImGui::InputDouble("##FocusDistance", &camera_->properties_.focusDistance);
-#else
         ImGui::InputFloat("##FocusDistance", &camera_->properties_.focusDistance);
-#endif
-
-        ImGui::TreePop();
     }
 
     if (inputDisabled) {

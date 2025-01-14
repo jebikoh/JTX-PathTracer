@@ -15,7 +15,7 @@ struct Material {
     Vec3 albedo;
     Float fuzz;
     Float refractionIndex;
-    Vec3 emission;
+    Vec3 emission = Color(0, 0, 0);
 };
 
 struct HitRecord {

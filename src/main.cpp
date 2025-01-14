@@ -17,12 +17,17 @@ constexpr int MAX_DEPTH      = 10;
 int main(int argc, char *argv[]) {
     Scene scene;
 
-    std::string path = "../src/assets/f22.obj";
-    auto t = jtx::rotateX(25);
-    auto m = Material{.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 0.25};
-    auto background = Color(0.7, 0.8, 1.0);
+//    std::string path = "../src/assets/f22.obj";
+//    auto t = jtx::rotateX(25);
+//    auto m = Material{.type = Material::LAMBERTIAN, .albedo = Color(0.8, 0.6, 0.2)};
+//    auto background = Color(0, 0, 0);
+//
+//    createObjScene(scene, path, t, m, background);
 
-    createObjScene(scene, path, t, m, background);
+    createDefaultScene(scene);
+    scene.cameraProperties.background = Color(0, 0, 0);
+    scene.materials[1].type = Material::DIFFUSE_LIGHT;
+    scene.materials[1].emission = Color(1, 1, 1);
 
     Camera camera{
             IMAGE_WIDTH,

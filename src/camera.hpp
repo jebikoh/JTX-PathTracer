@@ -69,7 +69,7 @@ public:
         acc_ = AccumulationBuffer(width, height);
     }
 
-    void render(const World &world);
+    void render(const BVHTree &world);
 
     void save(const char *path) const {
         img_.save(path);
@@ -130,5 +130,5 @@ private:
         return properties_.center + (p.x * defocus_u_) + (p.y * defocus_v_);
     }
 
-    Color rayColor(const Ray &r, const World &world, const int depth, int &numRays, RNG &rng) const;
+    Color rayColor(const Ray &r, const BVHTree &world, const int depth, int &numRays, RNG &rng) const;
 };

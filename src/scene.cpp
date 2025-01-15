@@ -130,6 +130,8 @@ void createDefaultScene(Scene &scene) {
 }
 
 void createTestScene(Scene &scene) {
+    scene.name = "Test Scene";
+
     scene.cameraProperties.center        = Vec3(0, 3, 8);
     scene.cameraProperties.target        = Vec3(0, 2, -1);
     scene.cameraProperties.up            = Vec3(0, 1, 0);
@@ -181,6 +183,8 @@ void createTestScene(Scene &scene) {
 }
 
 void createCoverScene(Scene &scene) {
+    scene.name = "Cover Scene";
+
     constexpr float DIFFUSE_PROBABILITY = 0.8;
     constexpr float METAL_PROBABILITY   = 0.15;
 
@@ -240,6 +244,8 @@ void createCoverScene(Scene &scene) {
 }
 
 void createMeshScene(Scene &scene) {
+    scene.name = "Mesh Scene";
+
     scene.cameraProperties.center        = Vec3(0, 0, 8);
     scene.cameraProperties.target        = Vec3(0, 0, -1);
     scene.cameraProperties.up            = Vec3(0, 1, 0);
@@ -273,6 +279,7 @@ void createMeshScene(Scene &scene) {
 }
 
 void createObjScene(Scene &scene, std::string &path, const Mat4 &t, const Material &material, const Color &background) {
+    scene.name = "OBJ Scene";
     scene.loadMesh(path);
 
     scene.cameraProperties.center        = Vec3(0, 0, 8);

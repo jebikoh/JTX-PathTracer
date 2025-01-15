@@ -6,8 +6,6 @@
 class BVHTree;
 class PrimitiveList;
 
-using World = BVHTree;
-
 using Float = float;
 using Vec3  = jtx::Vec3f;
 using Vec2f = jtx::Vec2f;

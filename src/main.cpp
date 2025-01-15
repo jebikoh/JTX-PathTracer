@@ -29,6 +29,9 @@ int main(int argc, char *argv[]) {
     scene.materials[1].type = Material::DIFFUSE_LIGHT;
     scene.materials[1].emission = Color(1, 1, 1);
 
+    // createTestScene(scene);
+    // createCoverScene(scene);
+
     Camera camera{
             IMAGE_WIDTH,
             IMAGE_HEIGHT,

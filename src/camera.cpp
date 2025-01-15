@@ -7,7 +7,7 @@ struct RayTraceJob {
     uint32_t startRow;
     uint32_t endRow;
 
-    const World *world;
+    const BVHTree *world;
     RGBImage *img;
 };
 // i really like mich <3
@@ -18,7 +18,7 @@ struct WorkQueue {
     std::atomic<uint64_t> nextJobIndex;
 };
 
-void Camera::render(const World &world) {
+void Camera::render(const BVHTree &world) {
     // Need to re-initialize everytime to reflect changes via UI
     init();
     stopRender_ = false;
@@ -133,7 +133,7 @@ void Camera::init() {
     defocus_v_                = defocusRadius * v_;
 }
 
-Color Camera::rayColor(const Ray &r, const World &world, const int depth, int &numRays, RNG &rng) const {
+Color Camera::rayColor(const Ray &r, const BVHTree &world, const int depth, int &numRays, RNG &rng) const {
     Color aColor = {0.0f, 0.0f, 0.0f};
     Color attenuation = {1.0, 1.0, 1.0};
     Ray currRay = r;

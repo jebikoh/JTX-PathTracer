@@ -275,6 +275,10 @@ void Display::render() {
         ImGui::InputFloat("##FocusDistance", &camera_->properties_.focusDistance);
     }
 
+    if(ImGui::CollapsingHeader("Scene")) {
+        
+    }
+
     if (inputDisabled) {
         ImGui::EndDisabled();
     }

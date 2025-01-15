@@ -15,7 +15,7 @@ constexpr int SAMPLES_PER_PX = 200;
 constexpr int MAX_DEPTH      = 10;
 
 int main(int argc, char *argv[]) {
-    Scene scene;
+    Scene scene = createDefaultScene();
 
 //    std::string path = "../src/assets/f22.obj";
 //    auto t = jtx::rotateX(25);
@@ -24,7 +24,6 @@ int main(int argc, char *argv[]) {
 //
 //    createObjScene(scene, path, t, m, background);
 
-    createDefaultScene(scene);
     scene.cameraProperties.background = Color(0, 0, 0);
     scene.materials[1].type = Material::DIFFUSE_LIGHT;
     scene.materials[1].emission = Color(1, 1, 1);

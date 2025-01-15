@@ -97,7 +97,8 @@ void Scene::loadMesh(const std::string &path) {
     }
 }
 
-void createDefaultScene(Scene &scene) {
+Scene createDefaultScene() {
+    Scene scene;
     scene.name = "Default Scene";
 
     // Camera
@@ -127,9 +128,12 @@ void createDefaultScene(Scene &scene) {
 
     scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.00 / 1.50});
     scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.4, scene.materials.back());
+
+    return scene;
 }
 
-void createTestScene(Scene &scene) {
+Scene createTestScene() {
+    Scene scene;
     scene.name = "Test Scene";
 
     scene.cameraProperties.center        = Vec3(0, 3, 8);
@@ -180,9 +184,12 @@ void createTestScene(Scene &scene) {
 
     scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 0});
     scene.spheres.emplace_back(Vec3(-1, 3, -1), 0.4, scene.materials.back());
+
+    return scene;
 }
 
-void createCoverScene(Scene &scene) {
+Scene createCoverScene() {
+    Scene scene;
     scene.name = "Cover Scene";
 
     constexpr float DIFFUSE_PROBABILITY = 0.8;
@@ -241,9 +248,12 @@ void createCoverScene(Scene &scene) {
     scene.cameraProperties.defocusAngle  = 0.6;
     scene.cameraProperties.focusDistance = 10.0;
     scene.cameraProperties.background    = Color(0.7, 0.8, 1.0);
+
+    return scene;
 }
 
-void createMeshScene(Scene &scene) {
+Scene createMeshScene() {
+    Scene scene;
     scene.name = "Mesh Scene";
 
     scene.cameraProperties.center        = Vec3(0, 0, 8);
@@ -276,9 +286,12 @@ void createMeshScene(Scene &scene) {
 
     scene.triangles.push_back({0, 0});
     scene.triangles.push_back({1, 0});
+
+    return scene;
 }
 
-void createObjScene(Scene &scene, std::string &path, const Mat4 &t, const Material &material, const Color &background) {
+Scene createObjScene(std::string &path, const Mat4 &t, const Material &material, const Color &background) {
+    Scene scene;
     scene.name = "OBJ Scene";
     scene.loadMesh(path);
 
@@ -304,4 +317,6 @@ void createObjScene(Scene &scene, std::string &path, const Mat4 &t, const Materi
         scene.meshes[0].vertices[i] = t.applyToPoint(scene.meshes[0].vertices[i]);
         scene.meshes[0].normals[i]  = t.applyToNormal(scene.meshes[0].normals[i]);
     }
+
+    return scene;
 }

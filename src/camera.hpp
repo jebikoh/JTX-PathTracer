@@ -30,6 +30,8 @@ public:
 
     Properties properties_;
 
+    std::atomic<int> currentSample_;
+
     explicit Camera(const int width, const int height, const Properties &cameraProperties, const int samplesPerPx, const int maxDepth)
         : width_(width),
           height_(height),

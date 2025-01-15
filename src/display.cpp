@@ -212,6 +212,13 @@ void Display::render() {
     bool inputDisabled = false;
     if (isRendering_) {
         inputDisabled = true;
+
+        const float progress = static_cast<float>(camera_->currentSample_.load()) / static_cast<float>(camera_->samplesPerPx_);
+        constexpr auto barSize = ImVec2(0.0f, 20.0f);
+        char overlayText[64];
+        snprintf(overlayText, sizeof(overlayText), "%.1f%%", progress * 100.0f);
+        ImGui::ProgressBar(progress, barSize, overlayText);
+
         ImGui::BeginDisabled();
     }
 
@@ -222,6 +229,11 @@ void Display::render() {
     ImGui::SameLine();
     if (ImGui::Button("Clear")) {
         camera_->clear();
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Save")) {
+        camera_->save("output.png");
     }
 
     if (ImGui::CollapsingHeader("Configuration")) {
@@ -275,8 +287,23 @@ void Display::render() {
         ImGui::InputFloat("##FocusDistance", &camera_->properties_.focusDistance);
     }
 
-    if(ImGui::CollapsingHeader("Scene")) {
-        
+    if(ImGui::CollapsingHeader("Scene Editor")) {
+        const char *items[] = {"Cornell Box", "Spheres"};
+        static int item_current = 0;
+
+        const char *preview_value = items[item_current];
+        if (ImGui::BeginCombo("Scene", preview_value)) {
+            for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
+                const bool is_selected = (item_current == n);
+                if (ImGui::Selectable(items[n], is_selected)) {
+                    item_current = n;
+                }
+                if (is_selected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
     }
 
     if (inputDisabled) {

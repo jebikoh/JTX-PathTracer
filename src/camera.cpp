@@ -41,10 +41,11 @@ void Camera::render(const BVHTree &world) {
     unsigned int threadCount = std::thread::hardware_concurrency();
     if (threadCount == 0) threadCount = 4;
 
-    std::atomic<int> currentSample{0};
+    // reset the current sample to 0
+    currentSample_.store(0);
 
     std::barrier endBarrier(threadCount, [&]() noexcept {
-        currentSample.fetch_add(1);
+        currentSample_.fetch_add(1);
         queue.nextJobIndex = 0;
     });
 
@@ -53,9 +54,9 @@ void Camera::render(const BVHTree &world) {
 
     // const auto startTime = std::chrono::high_resolution_clock::now();
     for (unsigned int t = 0; t < threadCount; ++t) {
-        threads.emplace_back([this, &queue, &currentSample, &endBarrier] {
+        threads.emplace_back([this, &queue, &endBarrier] {
            while (true) {
-               const int sample = currentSample.load();
+               const int sample = currentSample_.load();
                if (sample >= samplesPerPx_ || stopRender_) { break; }
 
                int numRays = 0;

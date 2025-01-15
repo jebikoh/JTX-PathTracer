@@ -197,20 +197,21 @@ void createCoverScene(Scene &scene) {
     scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.5, 0.5, 0.5)});
     scene.spheres.emplace_back(Vec3(0, -1000, 0), 1000, scene.materials.back());
 
+    RNG rng(42);
 
     for (int a = -11; a < 11; ++a) {
         for (int b = -11; b < 11; ++b) {
-            const Vec3 center(a + 0.9 * randomFloat(), 0.2, b + 0.9 * randomFloat());
+            const Vec3 center(a + 0.9 * rng.sampleFP(), 0.2, b + 0.9 * rng.sampleFP());
 
-            const auto matIdx = randomFloat();
+            const auto matIdx = rng.sampleFP();
             if ((center - Vec3(4, 0.2, 0)).len() > 0.9) {
                 if (matIdx < DIFFUSE_PROBABILITY) {
-                    const auto albedo = randomVec3() * randomVec3();
+                    const auto albedo = rng.sampleVec3() * rng.sampleVec3();
                     scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = albedo});
                     scene.spheres.emplace_back(center, 0.2, scene.materials.back());
                 } else if (matIdx < METAL_CUTOFF) {
-                    const auto albedo = randomVec3(0.5, 1);
-                    const auto fuzz   = randomFloat(0, 0.5);
+                    const auto albedo = rng.sampleVec3(0.5, 1);
+                    const auto fuzz   = rng.sampleFP(0, 0.5);
                     scene.materials.push_back({.type = Material::METAL, .albedo = albedo, .fuzz = fuzz});
                     scene.spheres.emplace_back(center, 0.2, scene.materials.back());
                 } else {

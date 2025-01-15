@@ -74,7 +74,6 @@ add_executable(RayTracer src/main.cpp
         src/primitives.hpp
         src/primitives.hpp
         src/util/rand.hpp
-        src/util/rand.cpp
         src/util/interval.hpp
         src/util/interval.cpp
         src/util/aabb.hpp

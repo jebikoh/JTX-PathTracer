@@ -46,8 +46,6 @@ void Camera::render(const World &world) {
     std::barrier endBarrier(threadCount, [&]() noexcept {
         currentSample.fetch_add(1);
         queue.nextJobIndex = 0;
-        std::cout << "Completed sample pass " << currentSample.load()
-                  << " of " << samplesPerPx_ << "\n";
     });
 
     std::vector<std::thread> threads;
@@ -55,7 +53,7 @@ void Camera::render(const World &world) {
 
     // const auto startTime = std::chrono::high_resolution_clock::now();
     for (unsigned int t = 0; t < threadCount; ++t) {
-        threads.emplace_back([this, t, &queue, &currentSample, &endBarrier, threadCount] {
+        threads.emplace_back([this, &queue, &currentSample, &endBarrier] {
            while (true) {
                const int sample = currentSample.load();
                if (sample >= samplesPerPx_ || stopRender_) { break; }
@@ -71,8 +69,12 @@ void Camera::render(const World &world) {
                        for (int col = 0; col < width_; ++col) {
                            if (stopRender_) break;
 
-                           Ray r             = getRay(col, row);
-                           Color sampleColor = rayColor(r, *job.world, maxDepth_, numRays);
+                           // Seeds with FNV1-a
+                           // PCG via RXS-M-XS
+                           RNG sampler(row, col, sample + 1);
+
+                           Ray r             = getRay(col, row, sampler);
+                           Color sampleColor = rayColor(r, *job.world, maxDepth_, numRays, sampler);
 
                            auto currAcc = acc_.updatePixel(sampleColor, row, col);
                            img_.setPixel(currAcc / static_cast<float>(sample + 1), row, col);
@@ -131,7 +133,7 @@ void Camera::init() {
     defocus_v_                = defocusRadius * v_;
 }
 
-Color Camera::rayColor(const Ray &r, const World &world, const int depth, int &numRays) const {
+Color Camera::rayColor(const Ray &r, const World &world, const int depth, int &numRays, RNG &rng) const {
     Color aColor = {0.0f, 0.0f, 0.0f};
     Color attenuation = {1.0, 1.0, 1.0};
     Ray currRay = r;
@@ -152,7 +154,7 @@ Color Camera::rayColor(const Ray &r, const World &world, const int depth, int &n
             Color sAttenuation;
 
             // Check if we scatter
-            if (scatter(record.material, currRay, record, sAttenuation, sRay)) {
+            if (scatter(record.material, currRay, record, sAttenuation, sRay, rng)) {
                 // Ray is scattered: update rolling attenuation and current ray
                 attenuation *= sAttenuation;
                 currRay = sRay;

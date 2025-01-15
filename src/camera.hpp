@@ -113,22 +113,22 @@ private:
 
     void init();
 
-    [[nodiscard]] Ray getRay(const int i, const int j) const {
-        const auto offset = sampleSquare();
+    [[nodiscard]] Ray getRay(const int i, const int j, RNG &rng) const {
+        const auto offset = sampleSquare(rng);
         const auto sample = vp00_ + ((i + offset.x) * du_) + ((j + offset.y) * dv_);
 
-        auto origin = (properties_.defocusAngle <= 0) ? properties_.center : sampleDefocusDisc();
-        return {origin, sample - origin, randomFloat()};
+        auto origin = (properties_.defocusAngle <= 0) ? properties_.center : sampleDefocusDisc(rng);
+        return {origin, sample - origin, rng.sampleFP()};
     }
 
-    static Vec3 sampleSquare() {
-        return {randomFloat() - static_cast<Float>(0.5), randomFloat() - static_cast<Float>(0.5), 0};
+    static Vec3 sampleSquare(RNG &rng) {
+        return {rng.sampleFP() - static_cast<Float>(0.5), rng.sampleFP() - static_cast<Float>(0.5), 0};
     }
 
-    [[nodiscard]] Vec3 sampleDefocusDisc() const {
-        Vec3 p = randomInUnitDisk();
+    [[nodiscard]] Vec3 sampleDefocusDisc(RNG &rng) const {
+        Vec3 p = rng.sampleUnitDisc();
         return properties_.center + (p.x * defocus_u_) + (p.y * defocus_v_);
     }
 
-    Color rayColor(const Ray &r, const World &world, const int depth, int &numRays) const;
+    Color rayColor(const Ray &r, const World &world, const int depth, int &numRays, RNG &rng) const;
 };

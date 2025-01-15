@@ -40,8 +40,8 @@ public:
         std::ranges::fill(buffer, RGB{0, 0, 0});
     }
 
-    void writePixel(const Color &color, int r, int c) {
-        int i = r * w_ + c;
+    void setPixel(const Color &color, const int r, const int c) {
+        const int i = r * w_ + c;
         buffer[i].R = static_cast<int>(RGB_SCALE * clampIntensity(linearToGamma(color.r)));
         buffer[i].G = static_cast<int>(RGB_SCALE * clampIntensity(linearToGamma(color.g)));
         buffer[i].B = static_cast<int>(RGB_SCALE * clampIntensity(linearToGamma(color.b)));
@@ -55,4 +55,26 @@ public:
     }
 private:
     std::vector<RGB> buffer;
+};
+
+class AccumulationBuffer {
+public:
+    int w_, h_;
+
+    AccumulationBuffer() : w_(1920), h_(1080) {}
+    AccumulationBuffer(const int w, const int h) : w_(w), h_(h) { buffer_.resize(w_ * h_); }
+
+    void resize(const int w, const int h) { buffer_.resize(w_ * h_); }
+    void clear() { std::ranges::fill(buffer_, Vec3{0, 0, 0}); }
+
+    Vec3 &updatePixel(const Vec3 &v, const int row, const int col) {
+        const int i = row * w_ + col;
+        buffer_[i] += v;
+        return buffer_[i];
+    }
+
+    const Vec3 *data() const { return buffer_.data(); }
+
+private:
+    std::vector<Vec3> buffer_;
 };

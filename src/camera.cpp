@@ -1,6 +1,7 @@
 #include "camera.hpp"
 #include "bvh.hpp"
 #include <thread>
+#include <barrier>
 
 struct RayTraceJob {
     uint32_t startRow;
@@ -21,19 +22,12 @@ void Camera::render(const World &world) {
     // Need to re-initialize everytime to reflect changes via UI
     init();
     stopRender_ = false;
-
-    // Set up threads
-    unsigned int threadCount = std::thread::hardware_concurrency();
-    if (threadCount == 0) threadCount = 4;
-
-    std::vector<std::thread> threads;
-    threads.reserve(threadCount);
+    acc_.clear();
 
     // Setup work queue and work orders
     WorkQueue queue{};
     queue.totalBounces = 0;
     queue.nextJobIndex = 0;
-    // Set up a work-order for each row:
     for (int r = 0; r < height_; ++r) {
         RayTraceJob job{};
         job.world    = &world;
@@ -43,52 +37,70 @@ void Camera::render(const World &world) {
         queue.jobs.push_back(job);
     }
 
-    // Now we have to adapt this to use the work queue.
-    const auto startTime = std::chrono::high_resolution_clock::now();
+    // Set up threads
+    unsigned int threadCount = std::thread::hardware_concurrency();
+    if (threadCount == 0) threadCount = 4;
 
+    std::atomic<int> currentSample{0};
+
+    std::barrier endBarrier(threadCount, [&]() noexcept {
+        currentSample.fetch_add(1);
+        queue.nextJobIndex = 0;
+        std::cout << "Completed sample pass " << currentSample.load()
+                  << " of " << samplesPerPx_ << "\n";
+    });
+
+    std::vector<std::thread> threads;
+    threads.reserve(threadCount);
+
+    // const auto startTime = std::chrono::high_resolution_clock::now();
     for (unsigned int t = 0; t < threadCount; ++t) {
-        threads.emplace_back([this, &queue] {
-            int numRays = 0;
+        threads.emplace_back([this, t, &queue, &currentSample, &endBarrier, threadCount] {
+           while (true) {
+               const int sample = currentSample.load();
+               if (sample >= samplesPerPx_ || stopRender_) { break; }
 
-            while (true) {
-                const auto jobIndex = queue.nextJobIndex.fetch_add(1, std::memory_order_relaxed);
-                if (jobIndex >= queue.jobs.size()) { break; }
+               int numRays = 0;
+               while (true) {
+                   const auto jobIndex = queue.nextJobIndex.fetch_add(1, std::memory_order_relaxed);
+                   if (jobIndex >= queue.jobs.size()) { break; }
 
-                const auto &job = queue.jobs[jobIndex];
+                   const auto &job = queue.jobs[jobIndex];
 
-                for (int row = job.startRow; row < job.endRow; ++row) {
-                    for (int col = 0; col < width_; ++col) {
-                        if (stopRender_) return;
-                        auto pxColor = Color(0, 0, 0);
-                        for (int s = 0; s < samplesPerPx_; ++s) {
-                            Ray r = getRay(col, row);
-                            pxColor += rayColor(r, *job.world, maxDepth_, numRays);
-                        }
-                        img_.writePixel(pxColor * pxSampleScale_, row, col);
-                    }
-                }
-            }
+                   for (int row = job.startRow; row < job.endRow; ++row) {
+                       for (int col = 0; col < width_; ++col) {
+                           if (stopRender_) break;
 
-            queue.totalBounces.fetch_add(numRays, std::memory_order_relaxed);
+                           Ray r             = getRay(col, row);
+                           Color sampleColor = rayColor(r, *job.world, maxDepth_, numRays);
+
+                           auto currAcc = acc_.updatePixel(sampleColor, row, col);
+                           img_.setPixel(currAcc / static_cast<float>(sample + 1), row, col);
+                       }
+                   }
+               }
+               queue.totalBounces.fetch_add(numRays, std::memory_order_relaxed);
+               endBarrier.arrive_and_wait();
+           }
         });
     }
 
-    for (auto &t: threads) {
-        t.join();
+    for (auto &thread : threads) {
+        thread.join();
     }
 
-    const auto stopTime            = std::chrono::high_resolution_clock::now();
-    const double renderTimeSeconds = std::chrono::duration_cast<std::chrono::seconds>(stopTime - startTime).count();
-    const auto renderTimeMillis    = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
-
-    const auto numBounces = queue.totalBounces.load();
-
-    const auto mrays    = numBounces / 1000000.0 / renderTimeSeconds;
-    const auto msPerRay = renderTimeMillis / static_cast<double>(numBounces);
-    std::cout << "Total render time: " << renderTimeSeconds << "s" << std::endl;
-    std::cout << "Num rays: " << numBounces << std::endl;
-    std::cout << " - **Mrays/s**: " << mrays << std::endl;
-    std::cout << std::fixed << " - **ms/ray**: " << msPerRay << std::endl;
+    // const auto stopTime            = std::chrono::high_resolution_clock::now();
+    // const double renderTimeSeconds = std::chrono::duration_cast<std::chrono::seconds>(stopTime - startTime).count();
+    // const auto renderTimeMillis    = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
+    //
+    // const auto numBounces = queue.totalBounces.load();
+    //
+    // const auto mrays    = numBounces / 1000000.0 / renderTimeSeconds;
+    // const auto msPerRay = renderTimeMillis / static_cast<double>(numBounces);
+    // std::cout << "Total render time: " << renderTimeSeconds << "s" << std::endl;
+    // std::cout << "Num rays: " << numBounces << std::endl;
+    // std::cout << " - **Mrays/s**: " << mrays << std::endl;
+    // std::cout << std::fixed << " - **ms/ray**: " << msPerRay << std::endl;
 }
 
 void Camera::init() {

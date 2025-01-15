@@ -37,7 +37,8 @@ public:
           samplesPerPx_(samplesPerPx),
           maxDepth_(maxDepth),
           img_(width, height),
-          properties_(cameraProperties) {}
+          properties_(cameraProperties),
+          acc_(width, height) {}
 
     explicit Camera(
             const int width,
@@ -65,6 +66,7 @@ public:
         this->properties_.focusDistance = focusDistance;
 
         img_ = RGBImage(width, height);
+        acc_ = AccumulationBuffer(width, height);
     }
 
     void render(const World &world);
@@ -105,6 +107,9 @@ private:
 
     bool stopRender_ = false;
 
+    // Similar to img, but stores floats
+    // Accumulate here, then divide by sample # for img_
+    AccumulationBuffer acc_;
 
     void init();
 

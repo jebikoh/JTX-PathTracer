@@ -9,7 +9,9 @@ static constexpr int SCENE_MATERIAL_LIMIT = 64;
 static Material DEFAULT_MAT = {.type = Material::LAMBERTIAN, .albedo = Color(1, 0.3, 0.5)};
 
 void Scene::loadMesh(const std::string &path) {
-    materials.reserve(SCENE_MATERIAL_LIMIT);
+    if (materials.capacity() < SCENE_MATERIAL_LIMIT) {
+        materials.reserve(SCENE_MATERIAL_LIMIT);
+    }
     materials.push_back(DEFAULT_MAT);
 
     tinyobj::ObjReaderConfig reader_config;
@@ -346,8 +348,6 @@ Scene createCornellBox() {
     scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(.65, .05, .05)});
     scene.meshes[4].material = &scene.materials.back();
 
-    scene.spheres.push_back({Vec3(0, 4, 0), 100, &scene.materials.back()});
-
     scene.cameraProperties.center       = Vec3(278, 273, -800);
     scene.cameraProperties.target       = Vec3(278, 273, 0);
     scene.cameraProperties.up           = Vec3(0, 1, 0);
@@ -359,15 +359,37 @@ Scene createCornellBox() {
     return scene;
 }
 
-Scene createF22Scene() {
-    std::string path = "../src/assets/f22.obj";
-    Scene scene      = createObjScene(path, jtx::scale(2.0f), Color(0.5, 0.5, 0.5));
-    scene.materials[0] = {.type = Material::METAL, .albedo = Color(0.2, 0.2, 0.2)};
-    // scene.materials.push_back({.type = Material::DIFFUSE_LIGHT, .emission = 15 * WHITE});
+Scene createF22Scene(bool isDielectric) {
+    std::string path = "../src/assets/f22_box.obj";
+    Scene scene      = createObjScene(path, Mat4::identity(), Color(0.2, 0.2, 0.2));
 
-    // scene.spheres.push_back({Vec3(0, 4, 0), 1, &scene.materials.back()});
+    scene.materials.push_back({.type = Material::DIFFUSE_LIGHT, .emission = 15 * WHITE});
+    scene.meshes.back().material = &scene.materials.back();
 
-    scene.cameraProperties.center = Vec3(0, 0, 15);
-    // scene.cameraProperties.background = BLACK;
+    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(.73, .73, .73)});
+    scene.meshes[1].material = &scene.materials.back();
+    scene.meshes[2].material = &scene.materials.back();
+    scene.meshes[3].material = &scene.materials.back();
+
+    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(.12, .45, .15)});
+    scene.meshes[4].material = &scene.materials.back();
+
+    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(.65, .05, .05)});
+    scene.meshes[5].material = &scene.materials.back();
+
+    if (!isDielectric) {
+        *scene.meshes[0].material = {.type = Material::METAL, .albedo = Color(0.8, 0.8, 0.8), .fuzz = 0.0f};
+    } else {
+        *scene.meshes[0].material = {.type = Material::DIELECTRIC, .refractionIndex = 1.5f};
+    }
+
+    scene.cameraProperties.center = Vec3(0, 1, 3.5);
+    scene.cameraProperties.target = Vec3(0, 1, 0);
+    scene.cameraProperties.up           = Vec3(0, 1, 0);
+    scene.cameraProperties.defocusAngle = 0;
+    scene.cameraProperties.yfov         = 40;
+
+    scene.cameraProperties.background = BLACK;
+
     return scene;
 }

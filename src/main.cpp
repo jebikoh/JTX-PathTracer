@@ -10,26 +10,18 @@
 
 // Camera Settings
 constexpr int IMAGE_WIDTH    = 800;
-constexpr int IMAGE_HEIGHT   = 450;
+constexpr int IMAGE_HEIGHT   = 800;
 constexpr int SAMPLES_PER_PX = 200;
 constexpr int MAX_DEPTH      = 10;
 
 int main(int argc, char *argv[]) {
-    const auto scene = createCornellBox();
+    const auto scene = createF22Scene();
     Camera camera{
-        600,
-        600,
+        IMAGE_WIDTH,
+        IMAGE_HEIGHT,
         scene.cameraProperties,
         SAMPLES_PER_PX,
         MAX_DEPTH};
-
-    // const auto scene = createF22Scene();
-    // Camera camera{
-    //         IMAGE_WIDTH,
-    //         IMAGE_HEIGHT,
-    //         scene.cameraProperties,
-    //         SAMPLES_PER_PX,
-    //         MAX_DEPTH};
 
     Display display(IMAGE_WIDTH + SIDEBAR_WIDTH, IMAGE_HEIGHT, &camera);
     if (!display.init()) {

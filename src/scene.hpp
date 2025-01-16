@@ -53,4 +53,6 @@ Scene createDefaultScene();
 Scene createTestScene();
 Scene createCoverScene();
 Scene createMeshScene();
-Scene createObjScene(std::string &path, const Mat4 &t, const Material &material, const Color &background = Color(0.7, 0.8, 1.0));
+Scene createObjScene(std::string &path, const Mat4 &t, const Color &background = Color(0.7, 0.8, 1.0));
+Scene createCornellBox();
+Scene createF22Scene();

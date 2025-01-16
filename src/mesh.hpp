@@ -14,9 +14,9 @@ struct Mesh {
     Vec3 *vertices;
     Vec3 *normals;
 
-    Material &material;
+    Material *material;
 
-    Mesh(Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Material &material)
+    Mesh(Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Material *material)
         : numVertices(numVertices),
           numIndices(numIndices),
           indices(indices),
@@ -75,7 +75,7 @@ struct Mesh {
 
         record.t        = root;
         record.point    = r.at(root);
-        record.material = &material;
+        record.material = material;
 
         Vec3 n0, n1, n2;
         getNormals(index, n0, n1, n2);

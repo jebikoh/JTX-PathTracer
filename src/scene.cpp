@@ -4,9 +4,12 @@
 #include "mesh.hpp"
 #include "tiny_obj_loader.h"
 
+static constexpr int SCENE_MATERIAL_LIMIT = 64;
+
 static Material DEFAULT_MAT = {.type = Material::LAMBERTIAN, .albedo = Color(1, 0.3, 0.5)};
 
 void Scene::loadMesh(const std::string &path) {
+    materials.reserve(SCENE_MATERIAL_LIMIT);
     materials.push_back(DEFAULT_MAT);
 
     tinyobj::ObjReaderConfig reader_config;
@@ -82,7 +85,7 @@ void Scene::loadMesh(const std::string &path) {
 
         // Create the Mesh and store it
         // Use the default material we pushed earlier: materials.back()
-        meshes.emplace_back(finalIndices, shapeTriIndices.size(), finalVerts, shapeVerts.size(), finalNormals, materials.back());
+        meshes.emplace_back(finalIndices, shapeTriIndices.size(), finalVerts, shapeVerts.size(), finalNormals, &materials.back());
 
         // Now register all triangles from this mesh in the scene
         int meshIndex     = static_cast<int>(meshes.size()) - 1;
@@ -115,19 +118,19 @@ Scene createDefaultScene() {
 
     // Objects & Materials
     scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.8, 0.8, 0.0)});
-    scene.spheres.emplace_back(Vec3(0, -100.5, -1), 100, scene.materials.back());
+    scene.spheres.emplace_back(Vec3(0, -100.5, -1), 100, &scene.materials.back());
 
     scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.1, 0.2, 0.5)});
-    scene.spheres.emplace_back(Vec3(0, 0, -1.2), 0.5, scene.materials.back());
+    scene.spheres.emplace_back(Vec3(0, 0, -1.2), 0.5, &scene.materials.back());
 
     scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 1.0});
-    scene.spheres.emplace_back(Vec3(1, 0, -1), 0.5, scene.materials.back());
+    scene.spheres.emplace_back(Vec3(1, 0, -1), 0.5, &scene.materials.back());
 
     scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.5});
-    scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.5, scene.materials.back());
+    scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.5, &scene.materials.back());
 
     scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.00 / 1.50});
-    scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.4, scene.materials.back());
+    scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.4, &scene.materials.back());
 
     return scene;
 }
@@ -153,37 +156,37 @@ Scene createTestScene() {
 
     // Ground
     scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.8, 0.8, 0.0)});
-    scene.spheres.push_back({Vec3(0, -100.5, -1), 100, scene.materials.back()});
+    scene.spheres.push_back({Vec3(0, -100.5, -1), 100, &scene.materials.back()});
 
     // Row one
-    scene.spheres.push_back({Vec3(-1, 1, -1), 0.4, scene.materials[0]});
-    scene.spheres.push_back({Vec3(-1, 1, -1), 0.3, scene.materials[1]});
+    scene.spheres.push_back({Vec3(-1, 1, -1), 0.4, &scene.materials[0]});
+    scene.spheres.push_back({Vec3(-1, 1, -1), 0.3, &scene.materials[1]});
 
     scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.1, 0.2, 0.5)});
-    scene.spheres.push_back({Vec3(0, 1, -1), 0.4, scene.materials.back()});
+    scene.spheres.push_back({Vec3(0, 1, -1), 0.4, &scene.materials.back()});
 
     scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 1.0});
-    scene.spheres.emplace_back(Vec3(1, 1, -1), 0.4, scene.materials.back());
+    scene.spheres.emplace_back(Vec3(1, 1, -1), 0.4, &scene.materials.back());
 
     // Row two
-    scene.spheres.push_back({Vec3(1, 2, -1), 0.4, scene.materials[0]});
-    scene.spheres.push_back({Vec3(1, 2, -1), 0.3, scene.materials[1]});
+    scene.spheres.push_back({Vec3(1, 2, -1), 0.4, &scene.materials[0]});
+    scene.spheres.push_back({Vec3(1, 2, -1), 0.3, &scene.materials[1]});
 
     scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(1, 0.3, 0.5)});
-    scene.spheres.push_back({Vec3(-1, 2, -1), 0.4, scene.materials.back()});
+    scene.spheres.push_back({Vec3(-1, 2, -1), 0.4, &scene.materials.back()});
 
     scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.8, 0.8), .fuzz = 0.5});
-    scene.spheres.emplace_back(Vec3(0, 2, -1), 0.4, scene.materials.back());
+    scene.spheres.emplace_back(Vec3(0, 2, -1), 0.4, &scene.materials.back());
 
     // Row 3
-    scene.spheres.push_back({Vec3(0, 3, -1), 0.4, scene.materials[0]});
-    scene.spheres.push_back({Vec3(0, 3, -1), 0.3, scene.materials[1]});
+    scene.spheres.push_back({Vec3(0, 3, -1), 0.4, &scene.materials[0]});
+    scene.spheres.push_back({Vec3(0, 3, -1), 0.3, &scene.materials[1]});
 
     scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.5, 0.3, 0.5)});
-    scene.spheres.push_back({Vec3(1, 3, -1), 0.4, scene.materials.back()});
+    scene.spheres.push_back({Vec3(1, 3, -1), 0.4, &scene.materials.back()});
 
     scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 0});
-    scene.spheres.emplace_back(Vec3(-1, 3, -1), 0.4, scene.materials.back());
+    scene.spheres.emplace_back(Vec3(-1, 3, -1), 0.4, &scene.materials.back());
 
     return scene;
 }
@@ -206,7 +209,7 @@ Scene createCoverScene() {
 
     // Ground
     scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.5, 0.5, 0.5)});
-    scene.spheres.emplace_back(Vec3(0, -1000, 0), 1000, scene.materials.back());
+    scene.spheres.emplace_back(Vec3(0, -1000, 0), 1000, &scene.materials.back());
 
     RNG rng(42);
 
@@ -219,27 +222,27 @@ Scene createCoverScene() {
                 if (matIdx < DIFFUSE_PROBABILITY) {
                     const auto albedo = rng.sampleVec3() * rng.sampleVec3();
                     scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = albedo});
-                    scene.spheres.emplace_back(center, 0.2, scene.materials.back());
+                    scene.spheres.emplace_back(center, 0.2, &scene.materials.back());
                 } else if (matIdx < METAL_CUTOFF) {
                     const auto albedo = rng.sampleVec3(0.5, 1);
                     const auto fuzz   = rng.sampleFP(0, 0.5);
                     scene.materials.push_back({.type = Material::METAL, .albedo = albedo, .fuzz = fuzz});
-                    scene.spheres.emplace_back(center, 0.2, scene.materials.back());
+                    scene.spheres.emplace_back(center, 0.2, &scene.materials.back());
                 } else {
                     // Dielectric glass always at the front
-                    scene.spheres.emplace_back(center, 0.2, scene.materials.front());
+                    scene.spheres.emplace_back(center, 0.2, &scene.materials.front());
                 }
             }
         }
     }
 
-    scene.spheres.emplace_back(Vec3(0, 1, 0), 1.0, scene.materials.front());
+    scene.spheres.emplace_back(Vec3(0, 1, 0), 1.0, &scene.materials.front());
 
     scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.4, 0.2, 0.1)});
-    scene.spheres.emplace_back(Vec3(-4, 1, 0), 1.0, scene.materials.back());
+    scene.spheres.emplace_back(Vec3(-4, 1, 0), 1.0, &scene.materials.back());
 
     scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.7, 0.6, 0.5), .fuzz = 0.0});
-    scene.spheres.emplace_back(Vec3(4, 1, 0), 1.0, scene.materials.back());
+    scene.spheres.emplace_back(Vec3(4, 1, 0), 1.0, &scene.materials.back());
 
     scene.cameraProperties.yfov          = 20;
     scene.cameraProperties.center        = {13, 2, 3};
@@ -282,7 +285,7 @@ Scene createMeshScene() {
     normals[2]         = Vec3(0, 0, 1);
     normals[3]         = Vec3(0, 0, 1);
 
-    scene.meshes.push_back({indices, 2, vertices, 4, normals, scene.materials.back()});
+    scene.meshes.push_back({indices, 2, vertices, 4, normals, &scene.materials.back()});
 
     scene.triangles.push_back({0, 0});
     scene.triangles.push_back({1, 0});
@@ -290,7 +293,7 @@ Scene createMeshScene() {
     return scene;
 }
 
-Scene createObjScene(std::string &path, const Mat4 &t, const Material &material, const Color &background) {
+Scene createObjScene(std::string &path, const Mat4 &t, const Color &background) {
     Scene scene;
     scene.name = "OBJ Scene";
     scene.loadMesh(path);
@@ -303,14 +306,16 @@ Scene createObjScene(std::string &path, const Mat4 &t, const Material &material,
     scene.cameraProperties.focusDistance = 1;
     scene.cameraProperties.background    = background;
 
-    std::cout << scene.meshes[0].numVertices << std::endl;
-    std::cout << scene.meshes[0].numIndices << std::endl;
+    std::cout << "Scene loaded with:" << std::endl;
+    std::cout << " - " << scene.meshes.size() << " meshes" << std::endl;
+    std::cout << " - " << scene.triangles.size() << " triangles" << std::endl;
 
-    scene.meshes[0].material = material;
+    int numVertices = 0;
+    for (auto &mesh: scene.meshes) {
+        numVertices += mesh.numVertices;
+    }
 
-    // Add a diffuse light
-    scene.materials.push_back({.type = Material::DIFFUSE_LIGHT, .emission = Color(1, 1, 1)});
-    scene.spheres.push_back({Vec3(0, 1, 0), 0.5, scene.materials.back()});
+    std::cout << " - " << numVertices << " vertices" << std::endl;
 
     // Transform all verts and norms
     for (int i = 0; i < scene.meshes[0].numVertices; ++i) {
@@ -318,5 +323,51 @@ Scene createObjScene(std::string &path, const Mat4 &t, const Material &material,
         scene.meshes[0].normals[i]  = t.applyToNormal(scene.meshes[0].normals[i]);
     }
 
+    return scene;
+}
+
+Scene createCornellBox() {
+    std::string path = "../src/assets/cornell_box.obj";
+    Scene scene      = createObjScene(path, Mat4::identity(), Color(0.7, 0.8, 1.0));
+
+    scene.materials.push_back({.type = Material::DIFFUSE_LIGHT, .emission = 15 * WHITE});
+    scene.meshes.back().material = &scene.materials.back();
+
+    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(.73, .73, .73)});
+    scene.meshes[0].material = &scene.materials.back();
+    scene.meshes[1].material = &scene.materials.back();
+    scene.meshes[2].material = &scene.materials.back();
+    scene.meshes[5].material = &scene.materials.back();
+    scene.meshes[6].material = &scene.materials.back();
+
+    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(.12, .45, .15)});
+    scene.meshes[3].material = &scene.materials.back();
+
+    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(.65, .05, .05)});
+    scene.meshes[4].material = &scene.materials.back();
+
+    scene.spheres.push_back({Vec3(0, 4, 0), 100, &scene.materials.back()});
+
+    scene.cameraProperties.center       = Vec3(278, 273, -800);
+    scene.cameraProperties.target       = Vec3(278, 273, 0);
+    scene.cameraProperties.up           = Vec3(0, 1, 0);
+    scene.cameraProperties.defocusAngle = 0;
+    scene.cameraProperties.yfov         = 40;
+
+    scene.cameraProperties.background = BLACK;
+
+    return scene;
+}
+
+Scene createF22Scene() {
+    std::string path = "../src/assets/f22.obj";
+    Scene scene      = createObjScene(path, jtx::scale(2.0f), Color(0.5, 0.5, 0.5));
+    scene.materials[0] = {.type = Material::METAL, .albedo = Color(0.2, 0.2, 0.2)};
+    // scene.materials.push_back({.type = Material::DIFFUSE_LIGHT, .emission = 15 * WHITE});
+
+    // scene.spheres.push_back({Vec3(0, 4, 0), 1, &scene.materials.back()});
+
+    scene.cameraProperties.center = Vec3(0, 0, 15);
+    // scene.cameraProperties.background = BLACK;
     return scene;
 }

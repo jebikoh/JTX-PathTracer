@@ -21,7 +21,7 @@ struct Primitive {
 
 class Sphere {
 public:
-    Sphere(const Vec3 &center, const Float radius, const Material &material)
+    Sphere(const Vec3 &center, const Float radius, Material *material)
         : center_(center, Vec3(0, 0, 0)),
           radius_(radius),
           material_(material) {
@@ -29,7 +29,7 @@ public:
     }
 
     // Moving spheres
-    Sphere(const Vec3 &start, const Vec3 &end, Float radius, const Material &material)
+    Sphere(const Vec3 &start, const Vec3 &end, Float radius, Material *material)
         : center_(start, end - start),
           radius_(radius),
           material_(material) {
@@ -61,7 +61,7 @@ public:
         record.point = r.at(root);
         const auto n = (record.point - currentCenter) / radius_;
         record.setFaceNormal(r, n);
-        record.material = &material_;
+        record.material = material_;
 
         return true;
     }
@@ -75,5 +75,5 @@ public:
 private:
     Ray center_;
     Float radius_;
-    const Material &material_;
+    Material *material_;
 };

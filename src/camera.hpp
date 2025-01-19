@@ -13,6 +13,8 @@ public:
     int width_, height_;
     Float aspectRatio_;
     int samplesPerPx_;
+    int xPixelSamples_;
+    int yPixelSamples_;
     int maxDepth_;
 
     RGBImage img_;
@@ -30,6 +32,8 @@ public:
 
     Properties properties_;
 
+    std::atomic<int> currentSample_;
+
     explicit Camera(const int width, const int height, const Properties &cameraProperties, const int samplesPerPx, const int maxDepth)
         : width_(width),
           height_(height),
@@ -37,7 +41,8 @@ public:
           samplesPerPx_(samplesPerPx),
           maxDepth_(maxDepth),
           img_(width, height),
-          properties_(cameraProperties) {}
+          properties_(cameraProperties),
+          acc_(width, height) {}
 
     explicit Camera(
             const int width,
@@ -65,9 +70,10 @@ public:
         this->properties_.focusDistance = focusDistance;
 
         img_ = RGBImage(width, height);
+        acc_ = AccumulationBuffer(width, height);
     }
 
-    void render(const World &world);
+    void render(const BVHTree &world);
 
     void save(const char *path) const {
         img_.save(path);
@@ -94,6 +100,10 @@ public:
         properties_ = properties;
     }
 
+    int getSpp() const {
+        return xPixelSamples_ * yPixelSamples_;
+    }
+
 private:
     Float pxSampleScale_;
     Vec3 vp00_;
@@ -105,25 +115,35 @@ private:
 
     bool stopRender_ = false;
 
+    // Similar to img, but stores floats
+    // Accumulate here, then divide by sample # for img_
+    AccumulationBuffer acc_;
 
     void init();
 
-    [[nodiscard]] Ray getRay(const int i, const int j) const {
-        const auto offset = sampleSquare();
-        const auto sample = vp00_ + ((i + offset.x) * du_) + ((j + offset.y) * dv_);
+    [[nodiscard]] Ray getRay(const int i, const int j, const int stratum, RNG &rng) const {
+        // Find stratum of pixel (j, i)
+        const int x = stratum % xPixelSamples_;
+        const int y = stratum / xPixelSamples_;
 
-        auto origin = (properties_.defocusAngle <= 0) ? properties_.center : sampleDefocusDisc();
-        return {origin, sample - origin, randomFloat()};
+        const float dx = rng.sampleFP();
+        const float dy = rng.sampleFP();
+
+        const auto offset = Vec2f((x + dx) / xPixelSamples_, (y + dy) / yPixelSamples_);
+        const auto sample = vp00_ + (i + offset.x) * du_ + (j + offset.y) * dv_;
+
+        auto origin = (properties_.defocusAngle <= 0) ? properties_.center : sampleDefocusDisc(rng);
+        return {origin, sample - origin, rng.sampleFP()};
     }
 
-    static Vec3 sampleSquare() {
-        return {randomFloat() - static_cast<Float>(0.5), randomFloat() - static_cast<Float>(0.5), 0};
+    static Vec3 sampleSquare(RNG &rng) {
+        return {rng.sampleFP() - static_cast<Float>(0.5), rng.sampleFP() - static_cast<Float>(0.5), 0};
     }
 
-    [[nodiscard]] Vec3 sampleDefocusDisc() const {
-        Vec3 p = randomInUnitDisk();
+    [[nodiscard]] Vec3 sampleDefocusDisc(RNG &rng) const {
+        Vec3 p = rng.sampleUnitDisc();
         return properties_.center + (p.x * defocus_u_) + (p.y * defocus_v_);
     }
 
-    Color rayColor(const Ray &r, const World &world, const int depth, int &numRays) const;
+    Color rayColor(const Ray &r, const BVHTree &world, const int depth, int &numRays, RNG &rng) const;
 };

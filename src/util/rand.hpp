@@ -70,70 +70,101 @@ private:
     uint64_t inc_;
 };
 
-//RXS-M-XS
-class RNG {
+// FNV-1a for 3 32-bit integer seeding hash
+inline uint32_t fnv1a_3(const uint32_t x, const uint32_t y, const uint32_t n) {
+    uint32_t hash  = FNV_1_OFFST;
 
+    hash ^= x;
+    hash *= FNV_1_PRIME;
+    hash ^= y;
+    hash *= FNV_1_PRIME;
+    hash ^= n;
+    hash *= FNV_1_PRIME;
+
+    return hash;
+}
+
+inline uint32_t fnv1a_4(const uint32_t x, uint32_t y, uint32_t n, uint32_t stratum) {
+    uint32_t hash  = FNV_1_OFFST;
+
+    hash ^= x;
+    hash *= FNV_1_PRIME;
+    hash ^= y;
+    hash *= FNV_1_PRIME;
+    hash ^= n;
+    hash *= FNV_1_PRIME;
+    hash ^= stratum;
+    hash *= FNV_1_PRIME;
+
+    return hash;
+}
+
+// RXS-M-XS
+class RNG {
+public:
+    RNG() : state_(0) {}
+
+    explicit RNG(const uint32_t seed) : state_(seed) {}
+
+    RNG(const uint32_t x, const uint32_t y, const uint32_t n) {
+        state_ = fnv1a_3(x, y, n);
+    }
+
+    void setSeed(const uint32_t seed) {
+        this->state_ = seed;
+    }
+
+    float sampleFP() {
+        return (advance() & 0xFFFFFF) / 16777216.0f;
+    }
+
+    float sampleFP(const float min, const float max) {
+        return min + (max - min) * sampleFP();
+    }
+
+    Vec3 sampleVec3() {
+        return {sampleFP(), sampleFP(), sampleFP()};
+    }
+
+    Vec3 sampleVec3(const float min, const float max) {
+        return {sampleFP(min, max),sampleFP(min, max), sampleFP(min, max)};
+    }
+
+    Vec3 sampleUnitVector() {
+        const float z = sampleFP() * 2.0f - 1.0f;
+        const float a = sampleFP() * 2.0f * PI;
+        const float r = jtx::sqrt(1.0f - z * z);
+        return {r * jtx::cos(a), r * jtx::sin(a), z};
+    }
+
+    Vec3 sampleOnHemisphere(const Vec3 &normal) {
+        auto p = sampleUnitVector();
+        return jtx::dot(p, normal) > 0 ? p : -p;
+    }
+
+    Vec3 sampleUnitDisc() {
+        while (true) {
+            auto p = Vec3(sampleFP(-1, 1), sampleFP(-1, 1), 0);
+            if (p.lenSqr() < 1) return p;
+        }
+    }
+
+private:
+    uint32_t advance() {
+        const auto state = state_;
+        state_ = state_ * RXS_M_XS_MULT + RXS_M_XS_INCR;
+        const auto word  = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+        return (word >> 2u) ^ word;
+    }
+
+    uint32_t state_;
 };
 
-// Used exclusively for quick single floats or small hashes
 // RXS-M-XS for 32-bit hashing
 inline uint32_t pcgHash(const uint32_t x) {
     const uint32_t state = x * RXS_M_XS_MULT + RXS_M_XS_INCR;
     const uint32_t word  = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
     return (word >> 22u) ^ word;
-}
-
-// FNV-1a for 3 32-bit integer seeding hash
-inline uint32_t fnv1a_3(uint32_t x, uint32_t y, uint32_t s) {
-    uint32_t hash  = FNV_1_OFFST;
-    uint32_t prime = FNV_1_PRIME;
-
-    hash ^= x;
-    hash *= prime;
-    hash ^= y;
-    hash *= prime;
-    hash ^= s;
-    hash *= prime;
-
-    return hash;
-}
-
-// Thread local PCG generator
-uint32_t pcgRand();
-
-inline Float randomFloat() {
-    return (pcgRand() & 0xFFFFFF) / 16777216.0f;
-}
-
-inline Float randomFloat(const Float min, const Float max) {
-    return min + (max - min) * randomFloat();
-}
-
-inline Vec3 randomVec3() {
-    return {randomFloat(), randomFloat(), randomFloat()};
-}
-
-inline Vec3 randomVec3(Float min, Float max) {
-    return {randomFloat(min, max), randomFloat(min, max), randomFloat(min, max)};
-}
-
-inline Vec3 randomUnitVector() {
-    const float z = randomFloat() * 2.0f - 1.0f;
-    const float a = randomFloat() * 2.0f * PI;
-    const float r = jtx::sqrt(1.0f - z * z);
-    return {r * jtx::cos(a), r * jtx::sin(a), z};
-}
-
-inline Vec3 randomOnHemisphere(const Vec3 &normal) {
-    auto p = randomUnitVector();
-    return jtx::dot(p, normal) > 0 ? p : -p;
-}
-
-inline Vec3 randomInUnitDisk() {
-    while (true) {
-        auto p = Vec3(randomFloat(-1, 1), randomFloat(-1, 1), 0);
-        if (p.lenSqr() < 1) return p;
-    }
 }
 
 inline bool nearZero(const Vec3 &v) {

@@ -9,32 +9,22 @@
 #include <thread>
 
 // Camera Settings
-constexpr int IMAGE_WIDTH    = 800;
-constexpr int IMAGE_HEIGHT   = 450;
+constexpr int IMAGE_WIDTH    = 600;
+constexpr int IMAGE_HEIGHT   = 600;
 constexpr int SAMPLES_PER_PX = 200;
-constexpr int MAX_DEPTH      = 10;
+constexpr int MAX_DEPTH      = 50;
 
 int main(int argc, char *argv[]) {
-    Scene scene;
-
-//    std::string path = "../src/assets/f22.obj";
-//    auto t = jtx::rotateX(25);
-//    auto m = Material{.type = Material::LAMBERTIAN, .albedo = Color(0.8, 0.6, 0.2)};
-//    auto background = Color(0, 0, 0);
-//
-//    createObjScene(scene, path, t, m, background);
-
-    createDefaultScene(scene);
-    scene.cameraProperties.background = Color(0, 0, 0);
-    scene.materials[1].type = Material::DIFFUSE_LIGHT;
-    scene.materials[1].emission = Color(1, 1, 1);
-
+    // const auto scene = createF22Scene();
+    const auto scene = createCornellBox();
     Camera camera{
-            IMAGE_WIDTH,
-            IMAGE_HEIGHT,
-            scene.cameraProperties,
-            SAMPLES_PER_PX,
-            MAX_DEPTH};
+        IMAGE_WIDTH,
+        IMAGE_HEIGHT,
+        scene.cameraProperties,
+        SAMPLES_PER_PX,
+        MAX_DEPTH};
+    camera.xPixelSamples_ = 8;
+    camera.yPixelSamples_ = 8;
 
     Display display(IMAGE_WIDTH + SIDEBAR_WIDTH, IMAGE_HEIGHT, &camera);
     if (!display.init()) {

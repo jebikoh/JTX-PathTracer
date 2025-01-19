@@ -14,10 +14,11 @@ BVHTree::BVHTree(const Scene &scene, const int maxPrimsInNode)
         primitives_[i]   = Primitive{Primitive::SPHERE, i, scene.spheres[i].bounds()};
         bvhPrimitives[i] = Primitive{Primitive::SPHERE, i, scene.spheres[i].bounds()};
     }
-    const size_t j = scene.spheres.size();
+
+    const size_t tOffset = scene.spheres.size();
     for (size_t i = 0; i < scene.triangles.size(); ++i) {
-        primitives_[j + i]   = Primitive{Primitive::TRIANGLE, i, scene.meshes[scene.triangles[i].meshIndex].tBounds(scene.triangles[i].index)};
-        bvhPrimitives[j + i] = Primitive{Primitive::TRIANGLE, i, scene.meshes[scene.triangles[i].meshIndex].tBounds(scene.triangles[i].index)};
+        primitives_[tOffset + i]   = Primitive{Primitive::TRIANGLE, i, scene.meshes[scene.triangles[i].meshIndex].tBounds(scene.triangles[i].index)};
+        bvhPrimitives[tOffset + i] = Primitive{Primitive::TRIANGLE, i, scene.meshes[scene.triangles[i].meshIndex].tBounds(scene.triangles[i].index)};
     }
     // Add rest of types when we get them
     // We will order as we build
@@ -105,8 +106,8 @@ BVHNode *BVHTree::buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes,
         const int firstOffset = *orderedPrimitiveOffset;
         *orderedPrimitiveOffset += bvhPrimitives.size();
         for (size_t i = 0; i < bvhPrimitives.size(); ++i) {
-            const int index                    = bvhPrimitives[i].index;
-            orderedPrimitives[firstOffset + i] = primitives_[index];
+            // const int index                    = ;
+            orderedPrimitives[firstOffset + i] = bvhPrimitives[i];
         }
         node->initLeaf(firstOffset, bvhPrimitives.size(), bounds);
         return node;
@@ -123,8 +124,8 @@ BVHNode *BVHTree::buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes,
             const int firstOffset = *orderedPrimitiveOffset;
             *orderedPrimitiveOffset += bvhPrimitives.size();
             for (size_t i = 0; i < bvhPrimitives.size(); ++i) {
-                const int index                    = bvhPrimitives[i].index;
-                orderedPrimitives[firstOffset + i] = primitives_[index];
+                // const int index                    = bvhPrimitives[i].index;
+                orderedPrimitives[firstOffset + i] = bvhPrimitives[i];
             }
             node->initLeaf(firstOffset, bvhPrimitives.size(), bounds);
             return node;
@@ -200,8 +201,8 @@ BVHNode *BVHTree::buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes,
                 const int firstOffset = *orderedPrimitiveOffset;
                 *orderedPrimitiveOffset += bvhPrimitives.size();
                 for (size_t i = 0; i < bvhPrimitives.size(); ++i) {
-                    const int index                    = bvhPrimitives[i].index;
-                    orderedPrimitives[firstOffset + i] = primitives_[index];
+                    // const int index                    = bvhPrimitives[i].index;
+                    orderedPrimitives[firstOffset + i] = bvhPrimitives[i];
                 }
                 node->initLeaf(firstOffset, bvhPrimitives.size(), bounds);
                 return node;

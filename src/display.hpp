@@ -22,7 +22,7 @@ public:
 
     void render();
 
-    void setWorld(const World *world) {
+    void setWorld(const BVHTree *world) {
         world_ = world;
     }
 
@@ -38,7 +38,7 @@ private:
     int renderWidth_;
     float scaleX_, scaleY_;
 
-    const World *world_;
+    const BVHTree *world_;
 
     SDL_Window *window_;
     SDL_GLContext glContext_;

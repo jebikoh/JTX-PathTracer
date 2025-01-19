@@ -60,36 +60,34 @@ if (ENABLE_CUDA_BACKEND)
     add_executable(RayTracer src/cuda/main.cu)
 else()
     add_executable(RayTracer src/main.cpp
-            src/rt.hpp
-            src/util/color.hpp
-            src/camera.hpp
-            src/image.hpp
-            src/bvh.hpp
-            src/material.hpp
-            src/display.hpp
-            src/display.cpp
-            src/image.cpp
-            src/scene.hpp
-            src/scene.cpp
-            src/camera.cpp
-            src/primitives.hpp
-            src/primitives.hpp
-            src/util/rand.hpp
-            src/util/rand.cpp
-            src/util/interval.hpp
-            src/util/interval.cpp
-            src/util/aabb.hpp
-            src/util/aabb.cpp
-            src/bvh.cpp
-            src/sampler.hpp
-            src/util/hash.hpp
-            src/filter.hpp
-            src/mesh.hpp
+    src/rt.hpp
+    src/util/color.hpp
+    src/camera.hpp
+    src/image.hpp
+    src/bvh.hpp
+    src/material.hpp
+    src/display.hpp
+    src/display.cpp
+    src/image.cpp
+    src/scene.hpp
+    src/scene.cpp
+    src/camera.cpp
+    src/primitives.hpp
+    src/primitives.hpp
+    src/util/rand.hpp
+    src/util/interval.hpp
+    src/util/interval.cpp
+    src/util/aabb.hpp
+    src/util/aabb.cpp
+    src/bvh.cpp
+    src/sampler.hpp
+    src/util/hash.hpp
+    src/filter.hpp
+    src/mesh.hpp
     )
 
     add_compile_options(-O3 -ffast-math)
 endif()
-
 
 target_link_libraries(RayTracer PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui)
 

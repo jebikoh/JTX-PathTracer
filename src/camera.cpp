@@ -52,12 +52,13 @@ void Camera::render(const BVHTree &world) {
     std::vector<std::thread> threads;
     threads.reserve(threadCount);
 
-    // const auto startTime = std::chrono::high_resolution_clock::now();
+    const int spp = xPixelSamples_ * yPixelSamples_;
+
     for (unsigned int t = 0; t < threadCount; ++t) {
-        threads.emplace_back([this, &queue, &endBarrier] {
+        threads.emplace_back([this, &queue, &endBarrier, &spp] {
            while (true) {
                const int sample = currentSample_.load();
-               if (sample >= samplesPerPx_ || stopRender_) { break; }
+               if (sample >= spp || stopRender_) { break; }
 
                int numRays = 0;
                while (true) {
@@ -69,12 +70,11 @@ void Camera::render(const BVHTree &world) {
                    for (int row = job.startRow; row < job.endRow; ++row) {
                        for (int col = 0; col < width_; ++col) {
                            if (stopRender_) break;
-
                            // Seeds with FNV1-a
                            // PCG via RXS-M-XS
                            RNG sampler(row, col, sample + 1);
 
-                           Ray r             = getRay(col, row, sampler);
+                           Ray r             = getRay(col, row, sample, sampler);
                            Color sampleColor = rayColor(r, *job.world, maxDepth_, numRays, sampler);
 
                            auto currAcc = acc_.updatePixel(sampleColor, row, col);
@@ -91,19 +91,6 @@ void Camera::render(const BVHTree &world) {
     for (auto &thread : threads) {
         thread.join();
     }
-
-    // const auto stopTime            = std::chrono::high_resolution_clock::now();
-    // const double renderTimeSeconds = std::chrono::duration_cast<std::chrono::seconds>(stopTime - startTime).count();
-    // const auto renderTimeMillis    = std::chrono::duration_cast<std::chrono::milliseconds>(stopTime - startTime).count();
-    //
-    // const auto numBounces = queue.totalBounces.load();
-    //
-    // const auto mrays    = numBounces / 1000000.0 / renderTimeSeconds;
-    // const auto msPerRay = renderTimeMillis / static_cast<double>(numBounces);
-    // std::cout << "Total render time: " << renderTimeSeconds << "s" << std::endl;
-    // std::cout << "Num rays: " << numBounces << std::endl;
-    // std::cout << " - **Mrays/s**: " << mrays << std::endl;
-    // std::cout << std::fixed << " - **ms/ray**: " << msPerRay << std::endl;
 }
 
 void Camera::init() {

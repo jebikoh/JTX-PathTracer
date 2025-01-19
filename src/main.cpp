@@ -9,19 +9,22 @@
 #include <thread>
 
 // Camera Settings
-constexpr int IMAGE_WIDTH    = 800;
-constexpr int IMAGE_HEIGHT   = 800;
+constexpr int IMAGE_WIDTH    = 600;
+constexpr int IMAGE_HEIGHT   = 600;
 constexpr int SAMPLES_PER_PX = 200;
-constexpr int MAX_DEPTH      = 10;
+constexpr int MAX_DEPTH      = 50;
 
 int main(int argc, char *argv[]) {
-    const auto scene = createF22Scene();
+    // const auto scene = createF22Scene();
+    const auto scene = createCornellBox();
     Camera camera{
         IMAGE_WIDTH,
         IMAGE_HEIGHT,
         scene.cameraProperties,
         SAMPLES_PER_PX,
         MAX_DEPTH};
+    camera.xPixelSamples_ = 8;
+    camera.yPixelSamples_ = 8;
 
     Display display(IMAGE_WIDTH + SIDEBAR_WIDTH, IMAGE_HEIGHT, &camera);
     if (!display.init()) {

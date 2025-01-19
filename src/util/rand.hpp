@@ -71,14 +71,29 @@ private:
 };
 
 // FNV-1a for 3 32-bit integer seeding hash
-inline uint32_t fnv1a_3(const uint32_t x, const uint32_t y, const uint32_t s) {
+inline uint32_t fnv1a_3(const uint32_t x, const uint32_t y, const uint32_t n) {
     uint32_t hash  = FNV_1_OFFST;
 
     hash ^= x;
     hash *= FNV_1_PRIME;
     hash ^= y;
     hash *= FNV_1_PRIME;
-    hash ^= s;
+    hash ^= n;
+    hash *= FNV_1_PRIME;
+
+    return hash;
+}
+
+inline uint32_t fnv1a_4(const uint32_t x, uint32_t y, uint32_t n, uint32_t stratum) {
+    uint32_t hash  = FNV_1_OFFST;
+
+    hash ^= x;
+    hash *= FNV_1_PRIME;
+    hash ^= y;
+    hash *= FNV_1_PRIME;
+    hash ^= n;
+    hash *= FNV_1_PRIME;
+    hash ^= stratum;
     hash *= FNV_1_PRIME;
 
     return hash;
@@ -91,8 +106,8 @@ public:
 
     explicit RNG(const uint32_t seed) : state_(seed) {}
 
-    RNG(const uint32_t x, const uint32_t y, const uint32_t s) {
-        state_ = fnv1a_3(x, y, s);
+    RNG(const uint32_t x, const uint32_t y, const uint32_t n) {
+        state_ = fnv1a_3(x, y, n);
     }
 
     void setSeed(const uint32_t seed) {

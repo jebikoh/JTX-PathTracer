@@ -213,7 +213,7 @@ void Display::render() {
     if (isRendering_) {
         inputDisabled = true;
 
-        const float progress = static_cast<float>(camera_->currentSample_.load()) / static_cast<float>(camera_->samplesPerPx_);
+        const float progress = static_cast<float>(camera_->currentSample_.load()) / static_cast<float>(camera_->getSpp());
         constexpr auto barSize = ImVec2(0.0f, 20.0f);
         char overlayText[64];
         snprintf(overlayText, sizeof(overlayText), "%.1f%%", progress * 100.0f);
@@ -246,8 +246,11 @@ void Display::render() {
 
         ImGui::SeparatorText("Ray Tracing");
 
-        ImGui::Text("SPP");
-        ImGui::InputInt("##SPP", &camera_->samplesPerPx_);
+        ImGui::Text("X Samples");
+        ImGui::InputInt("##XSamples", &camera_->xPixelSamples_);
+
+        ImGui::Text("Y Samples");
+        ImGui::InputInt("##YSamples", &camera_->yPixelSamples_);
 
         ImGui::Text("Max Depth");
         ImGui::InputInt("##MaxDepth", &camera_->maxDepth_);

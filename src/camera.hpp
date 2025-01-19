@@ -13,6 +13,8 @@ public:
     int width_, height_;
     Float aspectRatio_;
     int samplesPerPx_;
+    int xPixelSamples_;
+    int yPixelSamples_;
     int maxDepth_;
 
     RGBImage img_;
@@ -98,6 +100,10 @@ public:
         properties_ = properties;
     }
 
+    int getSpp() const {
+        return xPixelSamples_ * yPixelSamples_;
+    }
+
 private:
     Float pxSampleScale_;
     Vec3 vp00_;
@@ -115,9 +121,16 @@ private:
 
     void init();
 
-    [[nodiscard]] Ray getRay(const int i, const int j, RNG &rng) const {
-        const auto offset = sampleSquare(rng);
-        const auto sample = vp00_ + ((i + offset.x) * du_) + ((j + offset.y) * dv_);
+    [[nodiscard]] Ray getRay(const int i, const int j, const int stratum, RNG &rng) const {
+        // Find stratum of pixel (j, i)
+        const int x = stratum % xPixelSamples_;
+        const int y = stratum / xPixelSamples_;
+
+        const float dx = rng.sampleFP();
+        const float dy = rng.sampleFP();
+
+        const auto offset = Vec2f((x + dx) / xPixelSamples_, (y + dy) / yPixelSamples_);
+        const auto sample = vp00_ + (i + offset.x) * du_ + (j + offset.y) * dv_;
 
         auto origin = (properties_.defocusAngle <= 0) ? properties_.center : sampleDefocusDisc(rng);
         return {origin, sample - origin, rng.sampleFP()};

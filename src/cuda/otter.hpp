@@ -19,9 +19,15 @@ using Vec3  = jtx::Vec3f;
 using Vec2f = jtx::Vec2f;
 using Ray   = jtx::Rayf;
 
+#ifdef __CUDA_ARCH__
+constexpr float INF = cuda::std::numeric_limits<float>::max();
+constexpr float PI  = 3.14159265358979323846f;
+constexpr float INV_PI = 1 / PI;
+#else
 constexpr float INF = jtx::INFINITY_F;
 constexpr float PI  = jtx::PI_F;
 constexpr float INV_PI = 1 / jtx::PI_F;
+#endif
 
 using Vec2i = jtx::Vec2i;
 using Vec3i = jtx::Vec3i;

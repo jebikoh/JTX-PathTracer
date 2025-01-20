@@ -17,12 +17,10 @@ if (ENABLE_CUDA_BACKEND)
     set(CMAKE_CUDA_STANDARD 20)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
-    set(CMAKE_CUDA_FLAGS "-std=c++20")
-
     if(CMAKE_CUDA_COMPILER)
         set(USE_CUDA ON CACHE BOOL "Use CUDA backend" FORCE)
 
-        add_compile_definitions(-DENABLE_CUDA_BACKEND)
+        add_compile_definitions(ENABLE_CUDA_BACKEND)
 
         message(STATUS "CUDA compiler: ${CMAKE_CUDA_COMPILER}")
         message(STATUS "CUDA compiler version: ${CMAKE_CUDA_COMPILER_VERSION}")
@@ -36,11 +34,11 @@ else()
 endif()
 
 if (ENABLE_PROFILING)
-    add_compile_definitions(-DENABLE_PROFILING)
+    add_compile_definitions(ENABLE_PROFILING)
 endif()
 
 if (USE_DOUBLE_PRECISION)
-    add_compile_definitions(-DUSE_DOUBLE_PRECISION)
+    add_compile_definitions(USE_DOUBLE_PRECISION)
 endif()
 
 add_subdirectory(ext/jtxlib)
@@ -110,4 +108,5 @@ if (ENABLE_CUDA_BACKEND)
             CUDA_SEPARABLE_COMPILATION ON
             CUDA_ARCHITECTURES 75
     )
+    target_compile_options(RayTracer PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
 endif()

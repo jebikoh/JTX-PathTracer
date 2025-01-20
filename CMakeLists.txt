@@ -11,10 +11,13 @@ else()
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
-
 if (ENABLE_CUDA_BACKEND)
     include(CheckLanguage)
     check_language(CUDA)
+    set(CMAKE_CUDA_STANDARD 20)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+
+    set(CMAKE_CUDA_FLAGS "-std=c++20")
 
     if(CMAKE_CUDA_COMPILER)
         set(USE_CUDA ON CACHE BOOL "Use CUDA backend" FORCE)
@@ -57,7 +60,10 @@ target_include_directories(imgui PUBLIC ${IMGUI_PATH})
 target_link_libraries(imgui PRIVATE glad SDL2::SDL2)
 
 if (ENABLE_CUDA_BACKEND)
-    add_executable(RayTracer src/cuda/main.cu)
+    add_executable(RayTracer
+    src/cuda/main.cu
+            src/cuda/otter.hpp
+    )
 else()
     add_executable(RayTracer src/main.cpp
     src/rt.hpp
@@ -98,3 +104,10 @@ target_include_directories(RayTracer
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/tinyobjloader
         ${OPENGL_LIBRARIES}
 )
+
+if (ENABLE_CUDA_BACKEND)
+    set_target_properties(RayTracer PROPERTIES
+            CUDA_SEPARABLE_COMPILATION ON
+            CUDA_ARCHITECTURES 75
+    )
+endif()

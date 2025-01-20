@@ -2,6 +2,7 @@
 
 #include "image.hpp"
 #include "util/rand.hpp"
+#include <atomic>
 
 // ReSharper disable once CppUnusedIncludeDirective
 #include <chrono>

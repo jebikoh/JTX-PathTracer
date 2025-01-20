@@ -1,5 +1,7 @@
 #pragma once
 
+#include "jtxlib/math/math.hpp"
+#include "jtxlib/math/numerical.hpp"
 #include "rt.hpp"
 #include "util/color.hpp"
 

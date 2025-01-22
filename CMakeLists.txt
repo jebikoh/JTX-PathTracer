@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
-option(ENABLE_CUDA_BACKEND "Enable CUDA backend" ON)
+option(ENABLE_CUDA_BACKEND "Enable CUDA backend" OFF)
 option(ENABLE_PROFILING "Enable profiling" ON)
 option(USE_DOUBLE_PRECISION "Use double precision" OFF)
 
@@ -40,6 +40,8 @@ if (USE_DOUBLE_PRECISION)
     add_compile_definitions(-DUSE_DOUBLE_PRECISION)
 endif()
 
+add_compile_options(-O3 -ffast-math)
+
 add_subdirectory(ext/jtxlib)
 
 add_subdirectory(ext/sdl EXCLUDE_FROM_ALL)
@@ -56,38 +58,33 @@ add_library(imgui STATIC ${IMGUI_SOURCES})
 target_include_directories(imgui PUBLIC ${IMGUI_PATH})
 target_link_libraries(imgui PRIVATE glad SDL2::SDL2)
 
-if (ENABLE_CUDA_BACKEND)
-    add_executable(RayTracer src/cuda/main.cu)
-else()
-    add_executable(RayTracer src/main.cpp
-    src/rt.hpp
-    src/util/color.hpp
-    src/camera.hpp
-    src/image.hpp
-    src/bvh.hpp
-    src/material.hpp
-    src/display.hpp
-    src/display.cpp
-    src/image.cpp
-    src/scene.hpp
-    src/scene.cpp
-    src/camera.cpp
-    src/primitives.hpp
-    src/primitives.hpp
-    src/util/rand.hpp
-    src/util/interval.hpp
-    src/util/interval.cpp
-    src/util/aabb.hpp
-    src/util/aabb.cpp
-    src/bvh.cpp
-    src/sampler.hpp
-    src/util/hash.hpp
-    src/filter.hpp
-    src/mesh.hpp
-    )
-
-    add_compile_options(-O3 -ffast-math)
-endif()
+add_executable(RayTracer src/main.cpp
+        src/rt.hpp
+        src/util/color.hpp
+        src/camera.hpp
+        src/image.hpp
+        src/bvh.hpp
+        src/material.hpp
+        src/display.hpp
+        src/display.cpp
+        src/image.cpp
+        src/scene.hpp
+        src/scene.cpp
+        src/camera.cpp
+        src/primitives.hpp
+        src/primitives.hpp
+        src/util/rand.hpp
+        src/util/interval.hpp
+        src/util/interval.cpp
+        src/util/aabb.hpp
+        src/util/aabb.cpp
+        src/bvh.cpp
+        src/sampling.hpp
+        src/util/hash.hpp
+        src/filter.hpp
+        src/mesh.hpp
+        src/bxdf.hpp
+)
 
 target_link_libraries(RayTracer PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui)
 

@@ -24,11 +24,18 @@ using Mat4 = jtx::Mat4;
 #define DEV __device__
 #define HOST __host__
 #define INLINE __forceinline__
+
+template<typename T>
+using span = ::span<T>;
+
 #else
 #define HOSTDEV
 #define DEV
 #define HOST
 #define INLINE inline
+
+template<typename T>
+using span = std::span<T>;
 #endif
 
 inline Float radians(const Float degrees) {

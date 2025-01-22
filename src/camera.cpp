@@ -5,7 +5,9 @@
 
 struct RayTraceJob {
     uint32_t startRow;
+    uint32_t startCol;
     uint32_t endRow;
+    uint32_t endCol;
 
     const BVHTree *world;
     RGBImage *img;
@@ -25,16 +27,21 @@ void Camera::render(const BVHTree &world) {
     acc_.clear();
 
     // Setup work queue and work orders
+    // We will create 32x32 tiles for each thread to work on
     WorkQueue queue{};
     queue.totalBounces = 0;
     queue.nextJobIndex = 0;
-    for (int r = 0; r < height_; ++r) {
-        RayTraceJob job{};
-        job.world    = &world;
-        job.img      = &img_;
-        job.startRow = r;
-        job.endRow   = r + 1;
-        queue.jobs.push_back(job);
+    for (int r = 0; r < height_; r += 32) {
+        for (int c = 0; c < width_; c += 32) {
+            RayTraceJob job{};
+            job.world  = &world;
+            job.img    = &img_;
+            job.startRow = r;
+            job.startCol = c;
+            job.endRow = std::min(r + 32, height_);
+            job.endCol = std::min(c + 32, width_);
+            queue.jobs.push_back(job);
+        }
     }
 
     // Set up threads
@@ -68,7 +75,7 @@ void Camera::render(const BVHTree &world) {
                    const auto &job = queue.jobs[jobIndex];
 
                    for (int row = job.startRow; row < job.endRow; ++row) {
-                       for (int col = 0; col < width_; ++col) {
+                       for (int col = job.startCol; col < job.endCol; ++col) {
                            if (stopRender_) break;
                            // Seeds with FNV1-a
                            // PCG via RXS-M-XS

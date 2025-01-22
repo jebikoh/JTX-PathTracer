@@ -60,7 +60,8 @@ target_link_libraries(imgui PRIVATE glad SDL2::SDL2)
 if (ENABLE_CUDA_BACKEND)
     add_executable(RayTracer
     src/cuda/main.cu
-            src/cuda/otter.hpp
+    src/cuda/otter.hpp
+            src/cuda/image.hpp
     )
 else()
     add_executable(RayTracer src/main.cpp

@@ -1,9 +1,10 @@
 #pragma once
 
-#include "jtxlib/math/math.hpp"
-#include "jtxlib/math/numerical.hpp"
 #include "rt.hpp"
 #include "util/color.hpp"
+
+#include <jtxlib/math/math.hpp>
+#include <jtxlib/math/numerical.hpp>
 
 constexpr Float MIN_INTENSITY = 0;
 constexpr Float MAX_INTENSITY = 0.999;

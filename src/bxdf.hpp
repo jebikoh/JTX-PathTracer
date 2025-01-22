@@ -16,20 +16,11 @@ class BxDF : public jtx::TaggedPtr<DiffuseBRDF> {
 public:
     using TaggedPtr::TaggedPtr;
 
-    Vec3 evaluate(Vec3 w_o, Vec3 w_i) const {
-        auto fn = [&](auto ptr) { return ptr->evaluate(w_o, w_i); };
-        return dispatch(fn);
-    }
+    Vec3 evaluate(Vec3 w_o, Vec3 w_i) const;
 
-    BSDFSample sample(Vec3 w_o, float uc, Vec2f u) const {
-        auto fn = [&](auto ptr) { return ptr->evaluate(w_o, uc, u); };
-        return dispatch(fn);
-    }
+    BSDFSample sample(Vec3 w_o, float uc, Vec2f u) const;
 
-    float pdf(Vec3 w_o, Vec3 w_i) const {
-        auto fn = [&](auto ptr) { return ptr->evaluate(w_o, w_i); };
-        return dispatch(fn);
-    }
+    float pdf(Vec3 w_o, Vec3 w_i) const;
 
     Vec3 rhoHD(const Vec3 &w_o, const span<const float> uc, const span<const Vec2f> u2) const {
         Vec3 r;
@@ -54,7 +45,27 @@ public:
 };
 
 class DiffuseBRDF {
-    
+public:
+    DiffuseBRDF(const Vec3 &R) : R_(R) {}
+
+    Vec3 evaluate(Vec3 w_o, Vec3 w_i) const {
+        if (!jtx::sameHemisphere(w_o, w_i)) return {};
+        return R_ * INV_PI;
+    }
+
+    BSDFSample sample(Vec3 w_o, float uc, Vec2f u) const {
+        Vec3 w_i = sampleCosineHemisphere(u);
+        if (w_o.z < 0) w_i.z *= -1;
+        const float pdf = cosineHemispherePDF(jtx::absCosTheta(w_i));
+        return {R_ * INV_PI, w_i, pdf};
+    }
+
+    float pdf(Vec3 w_o, Vec3 w_i) const {
+        if (!jtx::sameHemisphere(w_o, w_i)) return 0;
+        return cosineHemispherePDF(jtx::absCosTheta(w_i));
+    }
+private:
+    Vec3 R_;
 };
 
 class BSDF {
@@ -91,3 +102,18 @@ private:
     BxDF bxdf;
     jtx::Frame frame;
 };
+
+Vec3 BxDF::evaluate(Vec3 w_o, Vec3 w_i) const {
+    auto fn = [&](auto ptr) { return ptr->evaluate(w_o, w_i); };
+    return dispatch(fn);
+}
+
+BSDFSample BxDF::sample(Vec3 w_o, float uc, Vec2f u) const {
+    auto fn = [&](auto ptr) { return ptr->sample(w_o, uc, u); };
+    return dispatch(fn);
+}
+
+float BxDF::pdf(Vec3 w_o, Vec3 w_i) const {
+    auto fn = [&](auto ptr) { return ptr->pdf(w_o, w_i); };
+    return dispatch(fn);
+}

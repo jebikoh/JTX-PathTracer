@@ -76,7 +76,7 @@ public:
     Vec3 renderToLocal(const Vec3 &v) const { return frame.toLocal(v); }
     Vec3 localToRender(const Vec3 &v) const { return frame.toWorld(v); }
 
-    Vec3 f(const Vec3 &w_o, const Vec3 &w_i) const {
+    Vec3 evaluate(const Vec3 &w_o, const Vec3 &w_i) const {
         const Vec3 o = renderToLocal(w_o);
         const Vec3 i = renderToLocal(w_i);
         if (o.z == 0) return {};

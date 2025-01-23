@@ -122,6 +122,10 @@ public:
         return min + (max - min) * sampleFP();
     }
 
+    Vec2f sampleVec2() {
+        return {sampleFP(), sampleFP()};
+    }
+
     Vec3 sampleVec3() {
         return {sampleFP(), sampleFP(), sampleFP()};
     }

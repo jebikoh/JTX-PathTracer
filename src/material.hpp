@@ -1,5 +1,6 @@
 #pragma once
 
+#include "bxdf.hpp"
 #include "util/color.hpp"
 #include "util/rand.hpp"
 
@@ -16,6 +17,7 @@ struct Material {
     Float fuzz;
     Float refractionIndex;
     Vec3 emission = Color(0, 0, 0);
+    BxDF bxdf;
 };
 
 struct HitRecord {
@@ -24,6 +26,8 @@ struct HitRecord {
     const Material *material;
     Float t;
     bool frontFace;
+
+    BSDF getBSDF() const;
 
     void setFaceNormal(const Ray &r, const Vec3 &n) {
         frontFace = jtx::dot(r.dir, n) < 0;

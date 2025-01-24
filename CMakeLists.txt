@@ -86,6 +86,7 @@ add_executable(RayTracer src/main.cpp
         src/bxdf.hpp
         src/integrator.hpp
         src/integrator.cpp
+        src/util/complex.hpp
 )
 
 target_link_libraries(RayTracer PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui)

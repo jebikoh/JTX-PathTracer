@@ -1,7 +1,9 @@
 #include "camera.hpp"
 #include "bvh.hpp"
-#include <thread>
+#include "integrator.hpp"
+
 #include <barrier>
+#include <thread>
 
 struct RayTraceJob {
     uint32_t startRow;
@@ -82,7 +84,10 @@ void Camera::render(const BVHTree &world) {
                            RNG sampler(row, col, sample + 1);
 
                            Ray r             = getRay(col, row, sample, sampler);
-                           Color sampleColor = rayColor(r, *job.world, maxDepth_, numRays, sampler);
+
+                           Color sampleColor = integrate(r, *job.world, maxDepth_, properties_.background, sampler);
+
+                           // Color sampleColor = rayColor(r, *job.world, maxDepth_, numRays, sampler);
 
                            auto currAcc = acc_.updatePixel(sampleColor, row, col);
                            img_.setPixel(currAcc / static_cast<float>(sample + 1), row, col);

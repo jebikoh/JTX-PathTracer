@@ -6,7 +6,7 @@
 
 static constexpr int SCENE_MATERIAL_LIMIT = 64;
 
-static Material DEFAULT_MAT = {.type = Material::LAMBERTIAN, .albedo = Color(1, 0.3, 0.5)};
+static Material DEFAULT_MAT = {.type = Material::DIFFUSE, .albedo = Color(1, 0.3, 0.5)};
 
 void Scene::loadMesh(const std::string &path) {
     if (materials.capacity() < SCENE_MATERIAL_LIMIT) {
@@ -87,7 +87,7 @@ void Scene::loadMesh(const std::string &path) {
 
         // Create the Mesh and store it
         // Use the default material we pushed earlier: materials.back()
-        meshes.emplace_back(finalIndices, shapeTriIndices.size(), finalVerts, shapeVerts.size(), finalNormals, &materials.back());
+        meshes.emplace_back(finalIndices, shapeTriIndices.size(), finalVerts, shapeVerts.size(), finalNormals, &materials.back(), nullptr);
 
         // Now register all triangles from this mesh in the scene
         int meshIndex     = static_cast<int>(meshes.size()) - 1;
@@ -119,10 +119,10 @@ Scene createDefaultScene() {
     scene.spheres.reserve(10);
 
     // Objects & Materials
-    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.8, 0.8, 0.0)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.8, 0.8, 0.0)});
     scene.spheres.emplace_back(Vec3(0, -100.5, -1), 100, &scene.materials.back());
 
-    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.1, 0.2, 0.5)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.1, 0.2, 0.5)});
     scene.spheres.emplace_back(Vec3(0, 0, -1.2), 0.5, &scene.materials.back());
 
     scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 1.0});
@@ -157,14 +157,14 @@ Scene createTestScene() {
     scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.0f / 1.5f});
 
     // Ground
-    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.8, 0.8, 0.0)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.8, 0.8, 0.0)});
     scene.spheres.push_back({Vec3(0, -100.5, -1), 100, &scene.materials.back()});
 
     // Row one
     scene.spheres.push_back({Vec3(-1, 1, -1), 0.4, &scene.materials[0]});
     scene.spheres.push_back({Vec3(-1, 1, -1), 0.3, &scene.materials[1]});
 
-    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.1, 0.2, 0.5)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.1, 0.2, 0.5)});
     scene.spheres.push_back({Vec3(0, 1, -1), 0.4, &scene.materials.back()});
 
     scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 1.0});
@@ -174,7 +174,7 @@ Scene createTestScene() {
     scene.spheres.push_back({Vec3(1, 2, -1), 0.4, &scene.materials[0]});
     scene.spheres.push_back({Vec3(1, 2, -1), 0.3, &scene.materials[1]});
 
-    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(1, 0.3, 0.5)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(1, 0.3, 0.5)});
     scene.spheres.push_back({Vec3(-1, 2, -1), 0.4, &scene.materials.back()});
 
     scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.8, 0.8), .fuzz = 0.5});
@@ -184,7 +184,7 @@ Scene createTestScene() {
     scene.spheres.push_back({Vec3(0, 3, -1), 0.4, &scene.materials[0]});
     scene.spheres.push_back({Vec3(0, 3, -1), 0.3, &scene.materials[1]});
 
-    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.5, 0.3, 0.5)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.5, 0.3, 0.5)});
     scene.spheres.push_back({Vec3(1, 3, -1), 0.4, &scene.materials.back()});
 
     scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 0});
@@ -210,7 +210,7 @@ Scene createCoverScene() {
     scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.5});
 
     // Ground
-    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.5, 0.5, 0.5)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.5, 0.5, 0.5)});
     scene.spheres.emplace_back(Vec3(0, -1000, 0), 1000, &scene.materials.back());
 
     RNG rng(42);
@@ -223,7 +223,7 @@ Scene createCoverScene() {
             if ((center - Vec3(4, 0.2, 0)).len() > 0.9) {
                 if (matIdx < DIFFUSE_PROBABILITY) {
                     const auto albedo = rng.sampleVec3() * rng.sampleVec3();
-                    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = albedo});
+                    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = albedo});
                     scene.spheres.emplace_back(center, 0.2, &scene.materials.back());
                 } else if (matIdx < METAL_CUTOFF) {
                     const auto albedo = rng.sampleVec3(0.5, 1);
@@ -240,7 +240,7 @@ Scene createCoverScene() {
 
     scene.spheres.emplace_back(Vec3(0, 1, 0), 1.0, &scene.materials.front());
 
-    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(0.4, 0.2, 0.1)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.4, 0.2, 0.1)});
     scene.spheres.emplace_back(Vec3(-4, 1, 0), 1.0, &scene.materials.back());
 
     scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.7, 0.6, 0.5), .fuzz = 0.0});
@@ -269,7 +269,7 @@ Scene createMeshScene() {
     scene.cameraProperties.focusDistance = 3.4;
     scene.cameraProperties.background    = Color(0.7, 0.8, 1.0);
 
-    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(1, 0.3, 0.5)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(1, 0.3, 0.5)});
 
     const auto vertices = new Vec3[4];
     vertices[0]         = Vec3(-1, -1, -1);
@@ -335,17 +335,17 @@ Scene createCornellBox() {
     scene.materials.push_back({.type = Material::DIFFUSE_LIGHT, .emission = 15 * WHITE});
     scene.meshes.back().material = &scene.materials.back();
 
-    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(.73, .73, .73)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.73, .73, .73)});
     scene.meshes[0].material = &scene.materials.back();
     scene.meshes[1].material = &scene.materials.back();
     scene.meshes[2].material = &scene.materials.back();
     scene.meshes[5].material = &scene.materials.back();
     scene.meshes[6].material = &scene.materials.back();
 
-    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(.12, .45, .15)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.12, .45, .15)});
     scene.meshes[3].material = &scene.materials.back();
 
-    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(.65, .05, .05)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.65, .05, .05)});
     scene.meshes[4].material = &scene.materials.back();
 
     scene.cameraProperties.center       = Vec3(278, 273, -800);
@@ -366,15 +366,15 @@ Scene createF22Scene(bool isDielectric) {
     scene.materials.push_back({.type = Material::DIFFUSE_LIGHT, .emission = 15 * WHITE});
     scene.meshes.back().material = &scene.materials.back();
 
-    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(.73, .73, .73)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.73, .73, .73)});
     scene.meshes[1].material = &scene.materials.back();
     scene.meshes[2].material = &scene.materials.back();
     scene.meshes[3].material = &scene.materials.back();
 
-    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(.12, .45, .15)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.12, .45, .15)});
     scene.meshes[4].material = &scene.materials.back();
 
-    scene.materials.push_back({.type = Material::LAMBERTIAN, .albedo = Color(.65, .05, .05)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.65, .05, .05)});
     scene.meshes[5].material = &scene.materials.back();
 
     if (!isDielectric) {

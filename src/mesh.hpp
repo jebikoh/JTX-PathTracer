@@ -15,14 +15,16 @@ struct Mesh {
     Vec3 *normals;
 
     Material *material;
+    BxDF bxdf;
 
-    Mesh(Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Material *material)
+    Mesh(Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Material *material, BxDF *bxdf)
         : numVertices(numVertices),
           numIndices(numIndices),
           indices(indices),
           vertices(vertices),
           normals(normals),
-          material(material) {}
+          material(material),
+          bxdf(bxdf) {}
 
     void getVertices(const int index, Vec3 &v0, Vec3 &v1, Vec3 &v2) const {
         const Vec3i i = indices[index];
@@ -76,13 +78,37 @@ struct Mesh {
         record.t        = root;
         record.point    = r.at(root);
         record.material = material;
+        record.bxdf = bxdf;
 
         Vec3 n0, n1, n2;
         getNormals(index, n0, n1, n2);
 
-        // Interpolate with barycentric
+        // Shading normal
         const Vec3 n = (1 - u - v) * n0 + u * n1 + v * n2;
         record.setFaceNormal(r, n);
+
+
+        // Tangent & bitangent
+        // Taken from:
+        //  - https://github.com/knightcrawler25/GLSL-PathTracer/blob/master/src/shaders/common/closest_hit.glsl
+        // We don't support textures yet, so we will use UVs as specified here:
+        //  - https://pbr-book.org/4ed/Shapes/Triangle_Meshes#fragment-Computedeltasandmatrixdeterminantfortrianglepartialderivatives-0
+        // This should be changed to using mesh UV values if available
+
+        const Vec2f uv0 = {0, 0};
+        const Vec2f uv1 = {1, 0};
+        const Vec2f uv2 = {0, 1};
+
+        const Vec3 dp1 = v1 - v0;
+        const Vec3 dp2 = v2 - v0;
+
+        const Vec2f duv1 = uv1 - uv0;
+        const Vec2f duv2 = uv2 - uv0;
+
+        float duvInvDet = 1.0f / (duv1.x * duv2.y - duv1.y * duv2.x);
+
+        record.tangent   = jtx::normalize((duv2.y * dp1 - duv1.y * dp2) * duvInvDet);
+        record.bitangent = jtx::normalize((duv1.x * dp2 - duv2.x * dp1) * duvInvDet);
 
         return true;
     }

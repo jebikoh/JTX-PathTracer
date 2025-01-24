@@ -3,12 +3,10 @@
 #include "util/interval.hpp"
 #include "bvh.hpp"
 
-Vec3 integrate(Ray &r, const BVHTree &world, const int maxDepth, const Color &background, RNG &rng) {
-    Vec3 radiance;
-    Vec3 beta;
+Vec3 integrate(Ray ray, const BVHTree &world, const int maxDepth, const Color &background, RNG &rng) {
+    Vec3 radiance = {};
+    Vec3 beta = {1, 1, 1};
     int depth = 0;
-
-    Ray ray = r;
 
     HitRecord record;
     while (beta) {
@@ -37,11 +35,11 @@ Vec3 integrate(Ray &r, const BVHTree &world, const int maxDepth, const Color &ba
         Vec2f u2 = rng.sampleVec2();
 
         // Sample BSDF
-        BSDFSample sample = bsdf.sample(w_o, u, u2);
+        auto [sample, w_i, pdf] = bsdf.sample(w_o, u, u2);
 
         // Update beta and set next ray
-        beta *= sample.sample * jtx::absdot(sample.w_i, record.normal) / sample.pdf;
-        ray = Ray(record.point, sample.w_i, record.t);
+        beta *= sample * jtx::absdot(w_i, record.normal) / pdf;
+        ray = Ray(record.point, w_i, record.t);
     }
 
     return radiance;

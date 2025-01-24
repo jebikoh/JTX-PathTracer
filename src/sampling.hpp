@@ -1,5 +1,4 @@
 #pragma once
-#include "util/rand.hpp"
 
 constexpr float PI_OVER_4 = PI / 4;
 constexpr float PI_OVER_2 = PI / 2;
@@ -15,7 +14,7 @@ inline Vec2f sampleUniformDiskPolar(const Vec2f &u) {
 inline Vec2f sampleUniformDiskConcentric(const Vec2f &u) {
     const auto uOffset = 2.0f * u - Vec2f(1.0f, 1.0f);
     if (uOffset.x == 0 && uOffset.y == 0) {
-        return Vec2f(0.0f, 0.0f);
+        return {0.0f, 0.0f};
     }
 
     float r, theta;

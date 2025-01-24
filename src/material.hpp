@@ -6,7 +6,7 @@
 
 struct Material {
     enum Type {
-        LAMBERTIAN,
+        DIFFUSE,
         METAL,
         DIELECTRIC,
         DIFFUSE_LIGHT
@@ -17,22 +17,31 @@ struct Material {
     Float fuzz;
     Float refractionIndex;
     Vec3 emission = Color(0, 0, 0);
-    BxDF bxdf;
 };
 
 struct HitRecord {
     Vec3 point;
     Vec3 normal;
+    Vec3 tangent;
+    Vec3 bitangent;
+
     const Material *material;
+    BxDF bxdf;
     Float t;
     bool frontFace;
 
-    BSDF getBSDF() const;
+    [[nodiscard]]
+    BSDF getBSDF() const {
+        const jtx::Frame shadingFrame{normal, tangent, bitangent};
+        return {shadingFrame, bxdf};
+    }
 
     void setFaceNormal(const Ray &r, const Vec3 &n) {
         frontFace = jtx::dot(r.dir, n) < 0;
         normal    = frontFace ? n : -n;
     }
+
+
 };
 
 static Float reflectance(const Float cosine, const Float ri) {
@@ -42,7 +51,7 @@ static Float reflectance(const Float cosine, const Float ri) {
 }
 
 inline bool scatter(const Material *mat, const Ray &r, const HitRecord &record, Color &attenuation, Ray &scattered, RNG &rng) {
-    if (mat->type == Material::LAMBERTIAN) {
+    if (mat->type == Material::DIFFUSE) {
         auto scatterDir = record.normal + rng.sampleUnitVector();
         if (nearZero(scatterDir)) {
             scatterDir = record.normal;
@@ -54,7 +63,7 @@ inline bool scatter(const Material *mat, const Ray &r, const HitRecord &record, 
     }
 
     if (mat->type == Material::METAL) {
-        Vec3 reflected = jtx::reflect(r.dir, record.normal).normalize() + mat->fuzz * rng.sampleUnitVector();
+        const Vec3 reflected = jtx::reflect(r.dir, record.normal).normalize() + mat->fuzz * rng.sampleUnitVector();
         scattered      = Ray(record.point, reflected, r.time);
         attenuation    = mat->albedo;
         return (jtx::dot(scattered.dir, record.normal) > 0);

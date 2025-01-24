@@ -47,11 +47,11 @@ void Camera::render(const BVHTree &world) {
     }
 
     // Set up threads
-    unsigned int threadCount = std::thread::hardware_concurrency();
-    if (threadCount == 0) threadCount = 4;
+    // unsigned int threadCount = std::thread::hardware_concurrency();
+    // if (threadCount == 0) threadCount = 4;
 
     // REMINDER: revert when done debugging
-//    unsigned int threadCount = 1;
+    unsigned int threadCount = 1;
 
     // reset the current sample to 0
     currentSample_.store(0);

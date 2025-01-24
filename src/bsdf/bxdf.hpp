@@ -91,6 +91,22 @@ inline float fresnelComplex(float cosTheta_i, const Complex &eta) {
     return (norm(r_parallel) + norm(r_perpendicular)) / 2;
 }
 
+/**
+ * Computes the fresnel reflectance of conductive surfaces for RGB colors
+ * Requires IOR and k values for each color channel
+ * @param cosTheta_i cos of incident angle
+ * @param eta per-channel index of refraction: eta_t / eta_i
+ * @param k per-channel extinction coefficient
+ * @return fresnel reflectance
+ */
+inline Vec3 fresnelComplexRGB(const float cosTheta_i, const Vec3 &eta, const Vec3 &k) {
+    Vec3 result;
+    result.r = fresnelComplex(cosTheta_i, Complex(eta.r, k.r));
+    result.g = fresnelComplex(cosTheta_i, Complex(eta.g, k.g));
+    result.b = fresnelComplex(cosTheta_i, Complex(eta.b, k.b));
+    return result;
+}
+
 struct BSDFSample {
     Vec3 fSample;
     Vec3 w_i;

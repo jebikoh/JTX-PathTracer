@@ -28,7 +28,7 @@ struct Complex {
     }
     HOSTDEV Complex operator*(const float f) const { return *this * Complex(f); }
     HOSTDEV Complex operator/(const Complex &c) const {
-        const float scale = 1 / c.r * c.r + c.i * c.i;
+        const float scale = 1 / (c.r * c.r + c.i * c.i);
         return {(r * c.r + i * c.i) * scale, (i * c.r - r * c.i) * scale};
     }
 

@@ -89,6 +89,7 @@ add_executable(RayTracer src/main.cpp
         src/bsdf/diffuse.hpp
         src/bsdf/bxdf.hpp
         src/bsdf/bxdf.cpp
+        src/bsdf/conductor.hpp
 )
 
 target_link_libraries(RayTracer PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui)

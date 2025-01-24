@@ -7,13 +7,16 @@ struct Material {
         DIFFUSE,
         METAL,
         DIELECTRIC,
-        DIFFUSE_LIGHT
+        DIFFUSE_LIGHT,
+        CONDUCTOR
     };
 
     Type type;
     Vec3 albedo;
     Float fuzz;
     Float refractionIndex;
+    Vec3 IOR;
+    Vec3 k;
     Vec3 emission = Color(0, 0, 0);
 };
 

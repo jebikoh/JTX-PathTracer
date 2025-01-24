@@ -2,6 +2,7 @@
 
 #include "image.hpp"
 #include "util/rand.hpp"
+#include <atomic>
 
 // ReSharper disable once CppUnusedIncludeDirective
 #include <chrono>
@@ -145,5 +146,5 @@ private:
         return properties_.center + (p.x * defocus_u_) + (p.y * defocus_v_);
     }
 
-    Color rayColor(const Ray &r, const BVHTree &world, const int depth, int &numRays, RNG &rng) const;
+//    Color rayColor(const Ray &r, const BVHTree &world, const int depth, int &numRays, RNG &rng) const;
 };

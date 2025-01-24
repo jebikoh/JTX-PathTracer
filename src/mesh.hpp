@@ -15,16 +15,15 @@ struct Mesh {
     Vec3 *normals;
 
     Material *material;
-    BxDF bxdf;
 
-    Mesh(Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Material *material, BxDF *bxdf)
+    Mesh(Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Material *material)
         : numVertices(numVertices),
           numIndices(numIndices),
           indices(indices),
           vertices(vertices),
           normals(normals),
-          material(material),
-          bxdf(bxdf) {}
+          material(material)
+    {}
 
     void getVertices(const int index, Vec3 &v0, Vec3 &v1, Vec3 &v2) const {
         const Vec3i i = indices[index];
@@ -78,7 +77,6 @@ struct Mesh {
         record.t        = root;
         record.point    = r.at(root);
         record.material = material;
-        record.bxdf = bxdf;
 
         Vec3 n0, n1, n2;
         getNormals(index, n0, n1, n2);
@@ -86,7 +84,6 @@ struct Mesh {
         // Shading normal
         const Vec3 n = (1 - u - v) * n0 + u * n1 + v * n2;
         record.setFaceNormal(r, n);
-
 
         // Tangent & bitangent
         // Taken from:

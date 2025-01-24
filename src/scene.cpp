@@ -87,7 +87,7 @@ void Scene::loadMesh(const std::string &path) {
 
         // Create the Mesh and store it
         // Use the default material we pushed earlier: materials.back()
-        meshes.emplace_back(finalIndices, shapeTriIndices.size(), finalVerts, shapeVerts.size(), finalNormals, &materials.back(), nullptr);
+        meshes.emplace_back(finalIndices, shapeTriIndices.size(), finalVerts, shapeVerts.size(), finalNormals, &materials.back());
 
         // Now register all triangles from this mesh in the scene
         int meshIndex     = static_cast<int>(meshes.size()) - 1;
@@ -124,15 +124,15 @@ Scene createDefaultScene() {
 
     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.1, 0.2, 0.5)});
     scene.spheres.emplace_back(Vec3(0, 0, -1.2), 0.5, &scene.materials.back());
-
-    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 1.0});
-    scene.spheres.emplace_back(Vec3(1, 0, -1), 0.5, &scene.materials.back());
-
-    scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.5});
-    scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.5, &scene.materials.back());
-
-    scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.00 / 1.50});
-    scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.4, &scene.materials.back());
+//
+//    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 1.0});
+//    scene.spheres.emplace_back(Vec3(1, 0, -1), 0.5, &scene.materials.back());
+//
+//    scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.5});
+//    scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.5, &scene.materials.back());
+//
+//    scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.00 / 1.50});
+//    scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.4, &scene.materials.back());
 
     return scene;
 }

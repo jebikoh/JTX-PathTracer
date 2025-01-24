@@ -46,7 +46,7 @@ inline bool refract(const Vec3 &w_i, Vec3 n, float eta, float *eta_p, Vec3 &w_t)
  * @param eta relative index of refraction: eta_t / eta_i
  * @return fresnel reflectance
  */
-float fresnelDielectric(float cosTheta_i, float eta) {
+inline float fresnelDielectric(float cosTheta_i, float eta) {
     // Clamp in case of floating point issues
     cosTheta_i = jtx::clamp(cosTheta_i, -1, 1);
 
@@ -69,49 +69,10 @@ float fresnelDielectric(float cosTheta_i, float eta) {
     return (r_parallel * r_parallel + r_perpendicular * r_perpendicular) / 2;
 }
 
-class DiffuseBRDF;
-
 struct BSDFSample {
-    Vec3 sample;
+    Vec3 fSample;
     Vec3 w_i;
     float pdf;
-};
-
-class BxDF : public jtx::TaggedPtr<DiffuseBRDF> {
-public:
-    using TaggedPtr::TaggedPtr;
-
-    [[nodiscard]]
-    Vec3 evaluate(Vec3 w_o, Vec3 w_i) const;
-
-    [[nodiscard]]
-    BSDFSample sample(Vec3 w_o, float uc, Vec2f u) const;
-
-    [[nodiscard]]
-    float pdf(Vec3 w_o, Vec3 w_i) const;
-
-    [[nodiscard]]
-    Vec3 rhoHD(const Vec3 &w_o, const span<const float> uc, const span<const Vec2f> u2) const {
-        Vec3 r;
-        for (size_t i = 0; i < uc.size(); ++i) {
-            auto bs = sample(w_o, uc[i], u2[i]);
-            r += bs.sample * jtx::absCosTheta(bs.w_i) / bs.pdf;
-        }
-        return r / uc.size();
-    }
-
-    [[nodiscard]]
-    Vec3 rhoHH(const span<const Vec2f> u1, const span<const float> uc, const span<const Vec2f> u2) const {
-        Vec3 r;
-        for (size_t i = 0; i < uc.size(); ++i) {
-            const Vec3 w_o = sampleUniformHemisphere(u1[i]);
-            if (w_o.z == 0) continue;
-            const float pdf_o = uniformHemispherePDF();
-            auto bs           = sample(w_o, uc[i], u2[i]);
-            r += bs.sample * jtx::absCosTheta(bs.w_i) * jtx::absCosTheta(w_o) / (pdf_o * bs.pdf);
-        }
-        return r / (PI * uc.size());
-    }
 };
 
 class DiffuseBRDF {
@@ -143,57 +104,122 @@ private:
     Vec3 R_;
 };
 
-class BSDF {
-public:
-    BSDF() = default;
-    BSDF(const Vec3 &n_s, const Vec3 &dp_du, const BxDF &bxdf)
-        : bxdf(bxdf),
-          frame(jtx::Frame::fromXZ(jtx::normalize(dp_du), n_s)) {};
-    BSDF(const jtx::Frame &frame, const BxDF &bxdf)
-        : bxdf(bxdf),
-          frame(frame) {}
+BSDFSample sampleBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o, float uc, const Vec2f &u) {
+    if (mat->type == Material::DIFFUSE) {
+//        std::cout << "Evaluating Diffuse BRDF" << std::endl;
+//        std::cout << "w_o: " << toString(w_o) << std::endl;
+//        std::cout << "uc: " << uc << std::endl;
+//        std::cout << "u: " << toString(u) << std::endl;
+//        std::cout << "-----" << std::endl;
+//        std::cout << "n: " << toString(rec.normal) << std::endl;
+//        std::cout << "t: " << toString(rec.tangent) << std::endl;
+//        std::cout << "bt: " << toString(rec.bitangent) << std::endl;
+//        std::cout << "-----------------------" << std::endl;
 
-    Vec3 renderToLocal(const Vec3 &v) const { return frame.toLocal(v); }
-    Vec3 localToRender(const Vec3 &v) const { return frame.toWorld(v); }
+        jtx::Frame sFrame = jtx::Frame::fromY(rec.normal);
+        auto bxdf = DiffuseBRDF{mat->albedo};
 
-    Vec3 evaluate(const Vec3 &w_o, const Vec3 &w_i) const {
-        const Vec3 o = renderToLocal(w_o);
-        const Vec3 i = renderToLocal(w_i);
-        if (o.z == 0) return {};
-        return bxdf.evaluate(o, i);
-    }
+        auto w_o_local = sFrame.toLocal(w_o);
+        if (w_o_local.z == 0) return {};
+        auto bs = bxdf.sample(w_o_local, uc, u);
+        bs.w_i = sFrame.toWorld(bs.w_i);
 
-    BSDFSample sample(const Vec3 &w_o, const float u, const Vec2f &u2) const {
-        const Vec3 o = renderToLocal(w_o);
-        if (o.z == 0) return {};
-        auto bs = bxdf.sample(o, u, u2);
-        bs.w_i  = localToRender(bs.w_i);
         return bs;
     }
 
-    float pdf(const Vec3 &w_o, const Vec3 &w_i) const {
-        const Vec3 o = renderToLocal(w_o);
-        const Vec3 i = renderToLocal(w_i);
-        if (o.z == 0) return {};
-        return bxdf.pdf(o, i);
-    }
-
-private:
-    BxDF bxdf;
-    jtx::Frame frame;
-};
-
-inline Vec3 BxDF::evaluate(Vec3 w_o, Vec3 w_i) const {
-    auto fn = [&](auto ptr) { return ptr->evaluate(w_o, w_i); };
-    return dispatch(fn);
+    return {};
 }
 
-inline BSDFSample BxDF::sample(Vec3 w_o, float uc, Vec2f u) const {
-    auto fn = [&](auto ptr) { return ptr->sample(w_o, uc, u); };
-    return dispatch(fn);
-}
+//
+//class BxDF : public jtx::TaggedPtr<DiffuseBRDF> {
+//public:
+//    using TaggedPtr::TaggedPtr;
+//
+//    [[nodiscard]]
+//    Vec3 evaluate(Vec3 w_o, Vec3 w_i) const;
+//
+//    [[nodiscard]]
+//    BSDFSample sample(Vec3 w_o, float uc, Vec2f u) const;
+//
+//    [[nodiscard]]
+//    float pdf(Vec3 w_o, Vec3 w_i) const;
+//
+//    [[nodiscard]]
+//    Vec3 rhoHD(const Vec3 &w_o, const span<const float> uc, const span<const Vec2f> u2) const {
+//        Vec3 r;
+//        for (size_t i = 0; i < uc.size(); ++i) {
+//            auto bs = sample(w_o, uc[i], u2[i]);
+//            r += bs.sample * jtx::absCosTheta(bs.w_i) / bs.pdf;
+//        }
+//        return r / uc.size();
+//    }
+//
+//    [[nodiscard]]
+//    Vec3 rhoHH(const span<const Vec2f> u1, const span<const float> uc, const span<const Vec2f> u2) const {
+//        Vec3 r;
+//        for (size_t i = 0; i < uc.size(); ++i) {
+//            const Vec3 w_o = sampleUniformHemisphere(u1[i]);
+//            if (w_o.z == 0) continue;
+//            const float pdf_o = uniformHemispherePDF();
+//            auto bs           = sample(w_o, uc[i], u2[i]);
+//            r += bs.sample * jtx::absCosTheta(bs.w_i) * jtx::absCosTheta(w_o) / (pdf_o * bs.pdf);
+//        }
+//        return r / (PI * uc.size());
+//    }
+//};
 
-inline float BxDF::pdf(Vec3 w_o, Vec3 w_i) const {
-    auto fn = [&](auto ptr) { return ptr->pdf(w_o, w_i); };
-    return dispatch(fn);
-}
+//
+//class BSDF {
+//public:
+//    BSDF() = default;
+//    BSDF(const Vec3 &n_s, const Vec3 &dp_du, const BxDF &bxdf)
+//        : bxdf(bxdf),
+//          frame(jtx::Frame::fromXZ(jtx::normalize(dp_du), n_s)) {};
+//    BSDF(const jtx::Frame &frame, const BxDF &bxdf)
+//        : bxdf(bxdf),
+//          frame(frame) {}
+//
+//    Vec3 renderToLocal(const Vec3 &v) const { return frame.toLocal(v); }
+//    Vec3 localToRender(const Vec3 &v) const { return frame.toWorld(v); }
+//
+//    Vec3 evaluate(const Vec3 &w_o, const Vec3 &w_i) const {
+//        const Vec3 o = renderToLocal(w_o);
+//        const Vec3 i = renderToLocal(w_i);
+//        if (o.z == 0) return {};
+//        return bxdf.evaluate(o, i);
+//    }
+//
+//    BSDFSample sample(const Vec3 &w_o, const float u, const Vec2f &u2) const {
+//        const Vec3 o = renderToLocal(w_o);
+//        if (o.z == 0) return {};
+//        auto bs = bxdf.sample(o, u, u2);
+//        bs.w_i  = localToRender(bs.w_i);
+//        return bs;
+//    }
+//
+//    float pdf(const Vec3 &w_o, const Vec3 &w_i) const {
+//        const Vec3 o = renderToLocal(w_o);
+//        const Vec3 i = renderToLocal(w_i);
+//        if (o.z == 0) return {};
+//        return bxdf.pdf(o, i);
+//    }
+//
+//private:
+//    BxDF bxdf;
+//    jtx::Frame frame;
+//};
+//
+//inline Vec3 BxDF::evaluate(Vec3 w_o, Vec3 w_i) const {
+//    auto fn = [&](auto ptr) { return ptr->evaluate(w_o, w_i); };
+//    return dispatch(fn);
+//}
+//
+//inline BSDFSample BxDF::sample(Vec3 w_o, float uc, Vec2f u) const {
+//    auto fn = [&](auto ptr) { return ptr->sample(w_o, uc, u); };
+//    return dispatch(fn);
+//}
+//
+//inline float BxDF::pdf(Vec3 w_o, Vec3 w_i) const {
+//    auto fn = [&](auto ptr) { return ptr->pdf(w_o, w_i); };
+//    return dispatch(fn);
+//}

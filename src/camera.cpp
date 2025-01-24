@@ -50,6 +50,9 @@ void Camera::render(const BVHTree &world) {
     unsigned int threadCount = std::thread::hardware_concurrency();
     if (threadCount == 0) threadCount = 4;
 
+    // REMINDER: revert when done debugging
+//    unsigned int threadCount = 1;
+
     // reset the current sample to 0
     currentSample_.store(0);
 
@@ -87,7 +90,7 @@ void Camera::render(const BVHTree &world) {
 
                            Color sampleColor = integrate(r, *job.world, maxDepth_, properties_.background, sampler);
 
-                           // Color sampleColor = rayColor(r, *job.world, maxDepth_, numRays, sampler);
+//                            Color sampleColor = rayColor(r, *job.world, maxDepth_, numRays, sampler);
 
                            auto currAcc = acc_.updatePixel(sampleColor, row, col);
                            img_.setPixel(currAcc / static_cast<float>(sample + 1), row, col);
@@ -133,44 +136,44 @@ void Camera::init() {
     defocus_v_                = defocusRadius * v_;
 }
 
-Color Camera::rayColor(const Ray &r, const BVHTree &world, const int depth, int &numRays, RNG &rng) const {
-    Color aColor = {0.0f, 0.0f, 0.0f};
-    Color attenuation = {1.0, 1.0, 1.0};
-    Ray currRay = r;
-
-    for (int i = 0; i < depth; ++i) {
-        HitRecord record;
-
-        // Check for any hit
-        if (world.hit(currRay, Interval(0.001, INF), record)) {
-            // Get emissive component
-            Color emitted = record.material->emission;
-
-            // Accumulate emitted light by current attenuation
-            // Unroll the recursive function if this is confusing
-            aColor += attenuation * emitted;
-
-            Ray sRay;
-            Color sAttenuation;
-
-            // Check if we scatter
-            if (scatter(record.material, currRay, record, sAttenuation, sRay, rng)) {
-                // Ray is scattered: update rolling attenuation and current ray
-                attenuation *= sAttenuation;
-                currRay = sRay;
-            } else {
-                // No scatter: return accumulated color
-                return aColor;
-            }
-
-        } else {
-            // No hit:
-            // Add background contribution and return
-            aColor += attenuation * properties_.background;
-            return aColor;
-        }
-     }
-
-    // Depth exceeded
-    return {0, 0, 0};
-}
+//Color Camera::rayColor(const Ray &r, const BVHTree &world, const int depth, int &numRays, RNG &rng) const {
+//    Color aColor = {0.0f, 0.0f, 0.0f};
+//    Color attenuation = {1.0, 1.0, 1.0};
+//    Ray currRay = r;
+//
+//    for (int i = 0; i < depth; ++i) {
+//        HitRecord record;
+//
+//        // Check for any hit
+//        if (world.hit(currRay, Interval(0.001, INF), record)) {
+//            // Get emissive component
+//            Color emitted = record.material->emission;
+//
+//            // Accumulate emitted light by current attenuation
+//            // Unroll the recursive function if this is confusing
+//            aColor += attenuation * emitted;
+//
+//            Ray sRay;
+//            Color sAttenuation;
+//
+//            // Check if we scatter
+//            if (evaluateMaterial(record.material, currRay, record, sAttenuation, sRay, rng)) {
+//                // Ray is scattered: update rolling attenuation and current ray
+//                attenuation *= sAttenuation;
+//                currRay = sRay;
+//            } else {
+//                // No scatter: return accumulated color
+//                return aColor;
+//            }
+//
+//        } else {
+//            // No hit:
+//            // Add background contribution and return
+//            aColor += attenuation * properties_.background;
+//            return aColor;
+//        }
+//     }
+//
+//    // Depth exceeded
+//    return {0, 0, 0};
+//}

@@ -2,6 +2,7 @@
 #include "material.hpp"
 #include "util/interval.hpp"
 #include "bvh.hpp"
+#include "bxdf.hpp"
 
 Vec3 integrate(Ray ray, const BVHTree &world, const int maxDepth, const Color &background, RNG &rng) {
     Vec3 radiance = {};
@@ -16,7 +17,6 @@ Vec3 integrate(Ray ray, const BVHTree &world, const int maxDepth, const Color &b
             radiance += beta * background;
             break;
         }
-
         // Emission (L_e)
         // PBRT checks for specular bounce
         radiance += beta * record.material->emission;
@@ -24,22 +24,26 @@ Vec3 integrate(Ray ray, const BVHTree &world, const int maxDepth, const Color &b
         // Depth exceeded
         if (depth++ == maxDepth) break;
 
-        // Sample BSDF
-        BSDF bsdf = record.getBSDF();
-
         // Both w_o and w_i face outwards
         Vec3 w_o = -ray.dir;
+
+        // TODO: light sampling (once we add lights)
 
         // Generate samples
         float u = rng.sampleFP();
         Vec2f u2 = rng.sampleVec2();
 
         // Sample BSDF
-        auto [sample, w_i, pdf] = bsdf.sample(w_o, u, u2);
+        auto [fSample, w_i, pdf] = sampleBxdf(record.material,record, w_o, u, u2);
+//        std::cout << "fSample: " << toString(fSample) << std::endl;
+//        std::cout << "w_i: " << toString(w_i) << std::endl;
+//        std::cout << "pdf: " << pdf << std::endl;
 
         // Update beta and set next ray
-        beta *= sample * jtx::absdot(w_i, record.normal) / pdf;
+        beta *= fSample * jtx::absdot(w_i, record.normal) / pdf;
         ray = Ray(record.point, w_i, record.t);
+
+//        std::cout << toString(beta) << std::endl;
     }
 
     return radiance;

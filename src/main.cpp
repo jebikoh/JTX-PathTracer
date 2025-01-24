@@ -9,14 +9,19 @@
 #include <thread>
 
 // Camera Settings
-constexpr int IMAGE_WIDTH    = 600;
-constexpr int IMAGE_HEIGHT   = 600;
+//constexpr int IMAGE_WIDTH    = 600;
+//constexpr int IMAGE_HEIGHT   = 600;
+constexpr int IMAGE_WIDTH    = 800;
+constexpr int IMAGE_HEIGHT   = 400;
 constexpr int SAMPLES_PER_PX = 200;
 constexpr int MAX_DEPTH      = 50;
 
 int main(int argc, char *argv[]) {
     // const auto scene = createF22Scene();
-    const auto scene = createCornellBox();
+//    const auto scene = createCornellBox();
+
+    const auto scene = createDefaultScene();
+
     Camera camera{
         IMAGE_WIDTH,
         IMAGE_HEIGHT,

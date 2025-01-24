@@ -2,9 +2,9 @@
 
 #include "bxdf.hpp"
 
-class ConductorBRDF {
+class ConductorBxDF {
 public:
-    explicit ConductorBRDF(const Vec3 &eta, const Vec3 &k) : eta(eta), k(k) {}
+    explicit ConductorBxDF(const Vec3 &eta, const Vec3 &k) : eta(eta), k(k) {}
 
     [[nodiscard]] Vec3 evaluate(const Vec3 &w_o, const Vec3 &w_i) const {
         return {};

@@ -2,9 +2,9 @@
 
 #include "../sampling.hpp"
 
-class DiffuseBRDF {
+class DiffuseBxDF {
 public:
-    explicit DiffuseBRDF(const Vec3 &R)
+    explicit DiffuseBxDF(const Vec3 &R)
         : R_(R) {}
 
     [[nodiscard]] Vec3 evaluate(const Vec3 &w_o, const Vec3 &w_i) const {

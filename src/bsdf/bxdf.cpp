@@ -10,7 +10,7 @@ BSDFSample sampleBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o
     if (w_o_local.z == 0) return {};
 
     if (mat->type == Material::DIFFUSE) {
-        const auto bxdf         = DiffuseBRDF{mat->albedo};
+        const auto bxdf         = DiffuseBxDF{mat->albedo};
         auto bs = bxdf.sample(w_o_local, uc, u);
         bs.w_i  = sFrame.toWorld(bs.w_i);
 
@@ -18,7 +18,7 @@ BSDFSample sampleBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o
     }
 
     if (mat->type == Material::CONDUCTOR) {
-        const auto bxdf = ConductorBRDF{mat->IOR, mat->k};
+        const auto bxdf = ConductorBxDF{mat->IOR, mat->k};
         auto bs = bxdf.sample(w_o_local, uc, u);
         bs.w_i  = sFrame.toWorld(bs.w_i);
 
@@ -26,7 +26,7 @@ BSDFSample sampleBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o
     }
 
     if (mat->type == Material::DIELECTRIC) {
-        const auto bxdf = DielectricBRDF(mat->IOR.x);
+        const auto bxdf = DielectricBxDF(mat->IOR.x);
         auto bs = bxdf.sample(w_o_local, uc, u);
         bs.w_i = sFrame.toWorld(bs.w_i);
 

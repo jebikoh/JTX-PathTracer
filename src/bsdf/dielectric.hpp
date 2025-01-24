@@ -2,9 +2,9 @@
 
 #include "bxdf.hpp"
 
-class DielectricBRDF {
+class DielectricBxDF {
 public:
-    explicit DielectricBRDF(const float eta) : eta(eta) {}
+    explicit DielectricBxDF(const float eta) : eta(eta) {}
 
     [[nodiscard]] Vec3 evaluate(const Vec3 &w_o, const Vec3 &w_i) const {
         return {};
@@ -45,4 +45,4 @@ public:
     }
 private:
     float eta;
-}
+};

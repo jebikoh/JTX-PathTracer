@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../sampling.hpp"
 #include "bxdf.hpp"
 
 class ConductorBRDF {

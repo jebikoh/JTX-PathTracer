@@ -1,7 +1,8 @@
 #include "bxdf.hpp"
 #include "../material.hpp"
-#include "diffuse.hpp"
 #include "conductor.hpp"
+#include "dielectric.hpp"
+#include "diffuse.hpp"
 
 BSDFSample sampleBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o, float uc, const Vec2f &u)  {
     const jtx::Frame sFrame = jtx::Frame::fromZ(rec.normal);
@@ -20,6 +21,14 @@ BSDFSample sampleBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o
         const auto bxdf = ConductorBRDF{mat->IOR, mat->k};
         auto bs = bxdf.sample(w_o_local, uc, u);
         bs.w_i  = sFrame.toWorld(bs.w_i);
+
+        return bs;
+    }
+
+    if (mat->type == Material::DIELECTRIC) {
+        const auto bxdf = DielectricBRDF(mat->IOR.x);
+        auto bs = bxdf.sample(w_o_local, uc, u);
+        bs.w_i = sFrame.toWorld(bs.w_i);
 
         return bs;
     }

@@ -1,8 +1,7 @@
 #pragma once
 
-#include "material.hpp"
-#include "rt.hpp"
-#include "sampling.hpp"
+#include "../rt.hpp"
+#include "../util/complex.hpp"
 
 inline Vec3 reflect(const Vec3 &w_o, const Vec3 &n) {
     return -w_o + 2 * jtx::dot(w_o, n) * n;
@@ -62,11 +61,34 @@ inline float fresnelDielectric(float cosTheta_i, float eta) {
     const float cosTheta_t = jtx::safeSqrt(1 - radicand);
 
     // Compute amplitudes
-    float r_parallel      = (eta * cosTheta_i - cosTheta_t) / (eta * cosTheta_i + cosTheta_t);
-    float r_perpendicular = (cosTheta_i - eta * cosTheta_t) / (cosTheta_i + eta * cosTheta_t);
+    const float r_parallel      = (eta * cosTheta_i - cosTheta_t) / (eta * cosTheta_i + cosTheta_t);
+    const float r_perpendicular = (cosTheta_i - eta * cosTheta_t) / (cosTheta_i + eta * cosTheta_t);
 
     // Compute fresnel reflectance
     return (r_parallel * r_parallel + r_perpendicular * r_perpendicular) / 2;
+}
+
+/**
+ * Computes the fresnel reflectance of conductive surfaces
+ * @param cosTheta_i cos of incident angle
+ * @param eta index of refraction: eta_t / eta_i
+ * @return fresnel reflectance
+ */
+inline float fresnelComplex(float cosTheta_i, const Complex &eta) {
+    // Clamp in case of floating point issues
+    cosTheta_i = jtx::clamp(cosTheta_i, -1, 1);
+
+    // Compute Snell's Law (with complex numbers)
+    const float numerator = 1 - cosTheta_i * cosTheta_i;
+    const auto radicand   = numerator / (eta * eta);
+    const auto cosTheta_t = sqrt(1 - radicand);
+
+    // Compute complex amplitudes
+    const auto r_parallel      = (eta * cosTheta_i - cosTheta_t) / (eta * cosTheta_i + cosTheta_t);
+    const auto r_perpendicular = (cosTheta_i - eta * cosTheta_t) / (cosTheta_i + eta * cosTheta_t);
+
+    // Compute fresnel reflectance via norm
+    return (norm(r_parallel) + norm(r_perpendicular)) / 2;
 }
 
 struct BSDFSample {
@@ -75,44 +97,6 @@ struct BSDFSample {
     float pdf;
 };
 
-class DiffuseBRDF {
-public:
-    explicit DiffuseBRDF(const Vec3 &R)
-        : R_(R) {}
-
-    [[nodiscard]] Vec3 evaluate(const Vec3 &w_o, const Vec3 &w_i) const {
-        if (!jtx::sameHemisphere(w_o, w_i)) return {};
-        return R_ * INV_PI;
-    }
-
-    [[nodiscard]] BSDFSample sample(const Vec3 &w_o, float uc, const Vec2f &u) const {
-        Vec3 w_i = sampleCosineHemisphere(u);
-        if (w_o.z < 0) { w_i.z *= -1; }
-        const float pdf = cosineHemispherePDF(jtx::absCosTheta(w_i));
-        return {R_ * INV_PI, w_i, pdf};
-    }
-
-    [[nodiscard]] float pdf(const Vec3 &w_o, const Vec3 &w_i) const {
-        if (!jtx::sameHemisphere(w_o, w_i)) return 0;
-        return cosineHemispherePDF(jtx::absCosTheta(w_i));
-    }
-
-private:
-    Vec3 R_;
-};
-
-inline BSDFSample sampleBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o, float uc, const Vec2f &u) {
-    if (mat->type == Material::DIFFUSE) {
-        const jtx::Frame sFrame = jtx::Frame::fromZ(rec.normal);
-        const auto bxdf         = DiffuseBRDF{mat->albedo};
-
-        const auto w_o_local = sFrame.toLocal(w_o);
-        if (w_o_local.z == 0) return {};
-        auto bs = bxdf.sample(w_o_local, uc, u);
-        bs.w_i = sFrame.toWorld(bs.w_i);
-
-        return bs;
-    }
-
-    return {};
-}
+struct HitRecord;
+struct Material;
+BSDFSample sampleBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o, float uc, const Vec2f &u);

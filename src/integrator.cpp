@@ -2,7 +2,7 @@
 #include "material.hpp"
 #include "util/interval.hpp"
 #include "bvh.hpp"
-#include "bxdf.hpp"
+#include "bsdf/bxdf.hpp"
 
 Vec3 integrate(Ray ray, const BVHTree &world, const int maxDepth, const Color &background, RNG &rng) {
     Vec3 radiance = {};

@@ -35,7 +35,7 @@ public:
             const bool valid = refract(w_o, {0, 0, 1}, eta, &etap, w_i);
             if (!valid) return {};
 
-            const Vec3 f = Vec3(T / jtx::absCosTheta(w_i)) / (etap * etap);
+            const auto f = Vec3(T / jtx::absCosTheta(w_i));
             return {f, w_i, 1 - p};
         }
     }

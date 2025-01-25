@@ -92,6 +92,7 @@ add_executable(RayTracer src/main.cpp
         src/bsdf/conductor.hpp
         src/bsdf/dielectric.hpp
         src/bsdf/microfacet.hpp
+        src/lights/lights.hpp
 )
 
 target_link_libraries(RayTracer PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui)

@@ -14,6 +14,11 @@ public:
         : alphaX_(alphaX),
           alphaY_(alphaY) {}
 
+    /**
+     * Checks if the alpha values are low enough to be considered "effectively smooth"
+     * If true, the surface can be treated as perfectly specular
+     * @return true if effectively smooth, false otherwise
+     */
     bool smooth() const {
         return jtx::max(alphaX_, alphaY_) < TR_SMOOTH_THRESHOLD;
     }

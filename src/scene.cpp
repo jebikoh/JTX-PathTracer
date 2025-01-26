@@ -128,7 +128,7 @@ Scene createDefaultScene() {
     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.1, 0.2, 0.5)});
     scene.spheres.emplace_back(Vec3(0, 0, -1.2), 0.5, &scene.materials.back());
 
-    scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K});
+    scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.1, .alphaY = 0.1});
     scene.spheres.emplace_back(Vec3(1, 0, -1), 0.5, &scene.materials.back());
 
     scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5 / 1.0)});
@@ -170,7 +170,7 @@ Scene createTestScene() {
     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.1, 0.2, 0.5)});
     scene.spheres.push_back({Vec3(0, 1, -1), 0.4, &scene.materials.back()});
 
-    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 1.0});
+    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2)});
     scene.spheres.emplace_back(Vec3(1, 1, -1), 0.4, &scene.materials.back());
 
     // Row two
@@ -180,7 +180,7 @@ Scene createTestScene() {
     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(1, 0.3, 0.5)});
     scene.spheres.push_back({Vec3(-1, 2, -1), 0.4, &scene.materials.back()});
 
-    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.8, 0.8), .fuzz = 0.5});
+    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.8, 0.8)});
     scene.spheres.emplace_back(Vec3(0, 2, -1), 0.4, &scene.materials.back());
 
     // Row 3
@@ -190,7 +190,7 @@ Scene createTestScene() {
     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.5, 0.3, 0.5)});
     scene.spheres.push_back({Vec3(1, 3, -1), 0.4, &scene.materials.back()});
 
-    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 0});
+    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2)});
     scene.spheres.emplace_back(Vec3(-1, 3, -1), 0.4, &scene.materials.back());
 
     return scene;
@@ -231,7 +231,7 @@ Scene createCoverScene() {
                 } else if (matIdx < METAL_CUTOFF) {
                     const auto albedo = rng.sampleVec3(0.5, 1);
                     const auto fuzz   = rng.sampleFP(0, 0.5);
-                    scene.materials.push_back({.type = Material::METAL, .albedo = albedo, .fuzz = fuzz});
+                    scene.materials.push_back({.type = Material::METAL, .albedo = albedo});
                     scene.spheres.emplace_back(center, 0.2, &scene.materials.back());
                 } else {
                     // Dielectric glass always at the front
@@ -246,7 +246,7 @@ Scene createCoverScene() {
     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.4, 0.2, 0.1)});
     scene.spheres.emplace_back(Vec3(-4, 1, 0), 1.0, &scene.materials.back());
 
-    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.7, 0.6, 0.5), .fuzz = 0.0});
+    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.7, 0.6, 0.5)});
     scene.spheres.emplace_back(Vec3(4, 1, 0), 1.0, &scene.materials.back());
 
     scene.cameraProperties.yfov          = 20;
@@ -381,7 +381,7 @@ Scene createF22Scene(bool isDielectric) {
     scene.meshes[5].material = &scene.materials.back();
 
     if (!isDielectric) {
-        *scene.meshes[0].material = {.type = Material::METAL, .albedo = Color(0.8, 0.8, 0.8), .fuzz = 0.0f};
+        *scene.meshes[0].material = {.type = Material::METAL, .albedo = Color(0.8, 0.8, 0.8)};
     } else {
         *scene.meshes[0].material = {.type = Material::DIELECTRIC, .refractionIndex = 1.5f};
     }

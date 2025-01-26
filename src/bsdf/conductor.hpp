@@ -5,7 +5,7 @@
 
 class ConductorBxDF {
 public:
-    explicit ConductorBxDF(const TrowbridgeReitz &mf, Vec3 &eta, const Vec3 &k) : mf_(mf), eta_(eta), k_(k) {}
+    explicit ConductorBxDF(const TrowbridgeReitz &mf, const Vec3 &eta, const Vec3 &k) : mf_(mf), eta_(eta), k_(k) {}
 
     [[nodiscard]] Vec3 evaluate(const Vec3 &w_o, const Vec3 &w_i) const {
         if (mf_.smooth()) return {};

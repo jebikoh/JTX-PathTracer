@@ -13,10 +13,10 @@ struct Material {
 
     Type type;
     Vec3 albedo;
-    Float fuzz;
     Float refractionIndex;
     Vec3 IOR;
     Vec3 k;
+    float alphaX, alphaY;
     Vec3 emission = Color(0, 0, 0);
 };
 

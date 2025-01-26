@@ -34,11 +34,12 @@ Vec3 integrate(Ray ray, const BVHTree &world, const int maxDepth, const Color &b
         Vec2f u2 = rng.sampleVec2();
 
         // Sample BSDF
-        auto [fSample, w_i, pdf] = sampleBxdf(record.material, record, w_o, u, u2);
+        BSDFSample s;
+        if (!sampleBxdf(record.material, record, w_o, u, u2, s)) continue;
 
         // Update beta and set next ray
-        beta *= fSample * jtx::absdot(w_i, record.normal) / pdf;
-        ray = Ray(record.point, w_i, record.t);
+        beta *= s.fSample * jtx::absdot(s.w_i, record.normal) / s.pdf;
+        ray = Ray(record.point, s.w_i, record.t);
     }
 
     return radiance;

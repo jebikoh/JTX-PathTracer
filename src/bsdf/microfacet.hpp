@@ -3,7 +3,7 @@
 #include "../rt.hpp"
 #include "../sampling.hpp"
 
-bool isInf(float x) {
+inline bool isInf(const float x) {
     return x == INF || x == -INF;
 }
 
@@ -11,7 +11,7 @@ constexpr float TR_SMOOTH_THRESHOLD = 1e-3f;
 
 class TrowbridgeReitz {
 public:
-    TrowbridgeReitz(float alphaX, float alphaY)
+    TrowbridgeReitz(const float alphaX, const float alphaY)
         : alphaX_(alphaX),
           alphaY_(alphaY) {}
 
@@ -82,7 +82,7 @@ public:
         return 1 / (1 + lambda(w_o) + lambda(w_i));
     }
 
-    Vec3 sampleW_m(Vec3 w, Vec2f u) const {
+    Vec3 sampleW_m(const Vec3 &w, const Vec2f &u) const {
         // Transform to hemispherical configuration
         Vec3 wh = Vec3(alphaX_ * w.x, alphaY_ * w.y, w.z).normalize();
         if (wh.z < 0) wh = -wh;
@@ -96,7 +96,7 @@ public:
 
         // Warp projection
         const float h = jtx::sqrt(1 - jtx::sqr(p.x));
-        p.y = jtx::lerp(p.y, h, (1 + wh.z) / 2);
+        p.y = jtx::lerp(h, p.y, (1 + wh.z) / 2);
 
         // Re-project and transform normal
         const float pz = jtx::sqrt(jtx::max(0.0f, 1.0f - p.lenSqr()));

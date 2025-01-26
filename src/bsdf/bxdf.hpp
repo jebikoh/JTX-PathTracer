@@ -115,4 +115,4 @@ struct BSDFSample {
 
 struct HitRecord;
 struct Material;
-BSDFSample sampleBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o, float uc, const Vec2f &u);
+bool sampleBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o, float uc, const Vec2f &u, BSDFSample &s);

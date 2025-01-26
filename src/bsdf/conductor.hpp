@@ -25,15 +25,16 @@ public:
         return mf_.D(w_m) * F * mf_.G(w_o, w_i) / (4 * cosTheta_i * cosTheta_o);
     }
 
-    [[nodiscard]] BSDFSample sample(const Vec3 &w_o, float uc, const Vec2f &u) const {
+    bool sample(const Vec3 &w_o, float uc, const Vec2f &u, BSDFSample &s) const {
         if (mf_.smooth()) {
             // For perfectly specular surfaces, we can just negate the x and y components
             const Vec3 w_i(-w_o.x, -w_o.y, w_o.z);
             const auto cosTheta_i = jtx::absCosTheta(w_i);
             const auto f = fresnelComplexRGB(cosTheta_i, eta_, k_) / cosTheta_i;
-            return {f, w_i, 1};
+            s = {f, w_i, 1};
+            return true;
         }
-        if (w_o.z == 0) return {};
+        if (w_o.z == 0) return false;
 
         const Vec3 w_m = mf_.sampleW_m(w_o, u);
         const Vec3 w_i = reflect(w_o, w_m);
@@ -44,12 +45,13 @@ public:
 
         const float cosTheta_o = jtx::absCosTheta(w_o);
         const float cosTheta_i = jtx::absCosTheta(w_i);
-        if (cosTheta_o == 0 || cosTheta_i == 0) return {};
+        if (cosTheta_o == 0 || cosTheta_i == 0) return false;
 
         const Vec3 F = fresnelComplexRGB(jtx::absdot(w_o, w_m), eta_, k_);
         const Vec3 f = mf_.D(w_m) * F * mf_.G(w_o, w_i) / (4 * cosTheta_i * cosTheta_o);
 
-        return {f, w_i, _pdf};
+        s = {f, w_i, _pdf};
+        return true;
     }
 
     [[nodiscard]] float pdf(const Vec3 &w_o, const Vec3 &w_i) const {

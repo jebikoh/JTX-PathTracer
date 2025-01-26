@@ -125,19 +125,17 @@ Scene createDefaultScene() {
     const Vec3 GOLD_IOR = {0.15557,0.42415,1.3831};
     const Vec3 GOLD_K   = {-3.6024,-2.4721,-1.9155};
 
-    // scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K});
-    // scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.1, 0.2, 0.5)});
-    scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5 / 1.0)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.1, 0.2, 0.5)});
     scene.spheres.emplace_back(Vec3(0, 0, -1.2), 0.5, &scene.materials.back());
-//
-//    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2), .fuzz = 1.0});
-//    scene.spheres.emplace_back(Vec3(1, 0, -1), 0.5, &scene.materials.back());
-//
-//    scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.5});
-//    scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.5, &scene.materials.back());
-//
-//    scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.00 / 1.50});
-//    scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.4, &scene.materials.back());
+
+    scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K});
+    scene.spheres.emplace_back(Vec3(1, 0, -1), 0.5, &scene.materials.back());
+
+    scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5 / 1.0)});
+    scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.5, &scene.materials.back());
+
+    // scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.00 / 1.50});
+    // scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.4, &scene.materials.back());
 
     return scene;
 }

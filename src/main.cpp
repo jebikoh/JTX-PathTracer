@@ -1,8 +1,8 @@
 #include <SDL.h>
 
 #include "bvh.hpp"
-#include "display.hpp"
 #include "camera.hpp"
+#include "display.hpp"
 #include "rt.hpp"
 #include "scene.hpp"
 
@@ -18,35 +18,41 @@ constexpr int MAX_DEPTH      = 50;
 
 int main(int argc, char *argv[]) {
     // const auto scene = createF22Scene();
-//    const auto scene = createCornellBox();
+    //    const auto scene = createCornellBox();
 
-//    auto scene = createDefaultScene();
-//    scene.cameraProperties.background = {0.2, 0.2, 0.2};
+    //    auto scene = createDefaultScene();
+    //    scene.cameraProperties.background = {0.2, 0.2, 0.2};
 
-     const Mat4 t = Mat4::identity();
-     std::string path = "../src/assets/f22.obj";
-     auto scene = createObjScene(path, t);
+    auto t           = Mat4::identity();
+    std::string path = "../src/assets/knob.obj";
+    auto scene       = createObjScene(path, t);
 
-     const Vec3 GOLD_IOR = {0.15557,0.42415,1.3831};
-     const Vec3 GOLD_K   = {-3.6024,-2.4721,-1.9155};
+    scene.cameraProperties.center     = Vec3(0, 2, 4);
+    scene.cameraProperties.background = Color(0.7, 0.8, 1.0);
 
-     scene.cameraProperties.background = {0.2, 0.2, 0.2};
+    const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
+    const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};
 
-     // scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.1, 0.2, 0.5)});
-     scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.1, .alphaY = 0.1});
-     scene.meshes.back().material = &scene.materials.back();
+    scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0, .alphaY = 0});
+    scene.meshes[3].material = &scene.materials.back();
 
-     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.659, 0.659, 0.749)});
-     scene.spheres.emplace_back(Vec3(0, -100.5, -1), 100, &scene.materials.back());
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.8, 0.8, 0.8)});
+    scene.meshes[2].material = &scene.materials.back();
+    scene.meshes[1].material = &scene.materials.back();
+
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.2, 0.2, 0.2)});
+    scene.meshes[0].material = &scene.materials.back();
+
+    // scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.659, 0.659, 0.749)});
+    // scene.spheres.emplace_back(Vec3(0, -100.5, -1), 100, &scene.materials.back());
 
     Camera camera{
-        IMAGE_WIDTH,
-        IMAGE_HEIGHT,
-        scene.cameraProperties,
-        SAMPLES_PER_PX,
-        MAX_DEPTH};
-    camera.xPixelSamples_ = 8;
-    camera.yPixelSamples_ = 8;
+            IMAGE_WIDTH,
+            IMAGE_HEIGHT,
+            scene.cameraProperties,
+            8,
+            8,
+            MAX_DEPTH};
 
     Display display(IMAGE_WIDTH + SIDEBAR_WIDTH, IMAGE_HEIGHT, &camera);
     if (!display.init()) {

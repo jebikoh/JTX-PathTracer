@@ -47,11 +47,11 @@ void Camera::render(const BVHTree &world) {
     }
 
     // Set up threads
-    // unsigned int threadCount = std::thread::hardware_concurrency();
-    // if (threadCount == 0) threadCount = 4;
+     unsigned int threadCount = std::thread::hardware_concurrency();
+     if (threadCount == 0) threadCount = 4;
 
     // REMINDER: revert when done debugging
-    unsigned int threadCount = 1;
+//    unsigned int threadCount = 1;
 
     // reset the current sample to 0
     currentSample_.store(0);
@@ -112,8 +112,6 @@ void Camera::render(const BVHTree &world) {
 }
 
 void Camera::init() {
-    pxSampleScale_ = static_cast<Float>(1.0) / static_cast<Float>(samplesPerPx_);
-
     // Viewport dimensions
     const Float h              = jtx::tan(radians(properties_.yfov) / 2);
     const Float viewportHeight = 2 * h * properties_.focusDistance;

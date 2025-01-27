@@ -3,6 +3,9 @@
 #include "image.hpp"
 #include "util/rand.hpp"
 #include <atomic>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 // ReSharper disable once CppUnusedIncludeDirective
 #include <chrono>
@@ -13,7 +16,6 @@ public:
     // Image properties
     int width_, height_;
     Float aspectRatio_;
-    int samplesPerPx_;
     int xPixelSamples_;
     int yPixelSamples_;
     int maxDepth_;
@@ -35,44 +37,16 @@ public:
 
     std::atomic<int> currentSample_;
 
-    explicit Camera(const int width, const int height, const Properties &cameraProperties, const int samplesPerPx, const int maxDepth)
+    explicit Camera(const int width, const int height, const Properties &cameraProperties, const int xPixelSamples, const int yPixelSamples, const int maxDepth)
         : width_(width),
           height_(height),
           aspectRatio_(static_cast<Float>(width) / static_cast<Float>(height)),
-          samplesPerPx_(samplesPerPx),
           maxDepth_(maxDepth),
+          xPixelSamples_(xPixelSamples),
+          yPixelSamples_(yPixelSamples),
           img_(width, height),
           properties_(cameraProperties),
           acc_(width, height) {}
-
-    explicit Camera(
-            const int width,
-            const int height,
-            const Float yfov,
-            const Vec3 &position,
-            const Vec3 &target,
-            const Vec3 &up,
-            const Float defocusAngle,
-            const Float focusDistance,
-            const int samplesPerPx,
-            const int maxDepth) {
-        // No initializer list cuz its long and ugly to read here
-        this->width_           = width;
-        this->height_          = height;
-        this->aspectRatio_     = static_cast<Float>(width) / static_cast<Float>(height);
-        this->properties_.yfov = yfov;
-        this->samplesPerPx_    = samplesPerPx;
-        this->maxDepth_        = maxDepth;
-
-        this->properties_.center        = position;
-        this->properties_.target        = target;
-        this->properties_.up            = up;
-        this->properties_.defocusAngle  = defocusAngle;
-        this->properties_.focusDistance = focusDistance;
-
-        img_ = RGBImage(width, height);
-        acc_ = AccumulationBuffer(width, height);
-    }
 
     void render(const BVHTree &world);
 
@@ -106,7 +80,6 @@ public:
     }
 
 private:
-    Float pxSampleScale_;
     Vec3 vp00_;
     Vec3 du_;
     Vec3 dv_;
@@ -120,6 +93,9 @@ private:
     // Accumulate here, then divide by sample # for img_
     AccumulationBuffer acc_;
 
+    /**
+     * Recalculates viewport and other settings
+     */
     void init();
 
     [[nodiscard]] Ray getRay(const int i, const int j, const int stratum, RNG &rng) const {
@@ -137,14 +113,8 @@ private:
         return {origin, sample - origin, rng.sampleFP()};
     }
 
-    static Vec3 sampleSquare(RNG &rng) {
-        return {rng.sampleFP() - static_cast<Float>(0.5), rng.sampleFP() - static_cast<Float>(0.5), 0};
-    }
-
     [[nodiscard]] Vec3 sampleDefocusDisc(RNG &rng) const {
         Vec3 p = rng.sampleUnitDisc();
         return properties_.center + (p.x * defocus_u_) + (p.y * defocus_v_);
     }
-
-//    Color rayColor(const Ray &r, const BVHTree &world, const int depth, int &numRays, RNG &rng) const;
 };

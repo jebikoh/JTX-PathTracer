@@ -10,6 +10,19 @@
 constexpr int SIDEBAR_WIDTH = 300;
 constexpr int FONT_SIZE     = 14;
 
+struct MouseState {
+    bool leftButtonDown = false;
+    bool middleButtonDown = false;
+    bool rightButtonDown = false;
+    bool shiftDown = false;
+    int x = 0;
+    int y = 0;
+    int deltaX = 0;
+    int deltaY = 0;
+    int scroll = 0;
+    bool isOverViewport = false;
+};
+
 class Display {
 public:
     Display(int width, int height, Camera *camera);
@@ -46,6 +59,15 @@ private:
     GLuint textureId_;
     GLuint shaderProgram_;
     GLuint vao_, vbo_, ebo_;
+
+    MouseState mState_;
+    bool interactiveMode_ = false;
+    float camSensitivity_ = false;
+    bool resetRender_ = false;
+
+    void panCamera(int deltaX, int deltaY);
+    void zoomCamera(int scroll);
+    void rotateCamera();
 
     bool initWindow();
     bool initShaders();

@@ -9,9 +9,9 @@ inline bool isInf(const float x) {
 
 constexpr float TR_SMOOTH_THRESHOLD = 1e-3f;
 
-class TrowbridgeReitz {
+class GGX {
 public:
-    TrowbridgeReitz(const float alphaX, const float alphaY)
+    GGX(const float alphaX, const float alphaY)
         : alphaX_(alphaX),
           alphaY_(alphaY) {}
 

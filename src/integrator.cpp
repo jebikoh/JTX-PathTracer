@@ -35,7 +35,8 @@ Vec3 integrate(Ray ray, const BVHTree &world, const int maxDepth, const Color &b
 
         // Sample BSDF
         BSDFSample s;
-        if (!sampleBxdf(record.material, record, w_o, u, u2, s)) continue;
+        bool success = sampleBxdf(record.material, record, w_o, u, u2, s);
+        if (!success) break;
 
         // Update beta and set next ray
         beta *= s.fSample * jtx::absdot(s.w_i, record.normal) / s.pdf;

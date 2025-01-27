@@ -14,7 +14,7 @@ void Scene::loadMesh(const std::string &path) {
     }
     materials.push_back(DEFAULT_MAT);
 
-    tinyobj::ObjReaderConfig reader_config;
+    const tinyobj::ObjReaderConfig reader_config;
     tinyobj::ObjReader reader;
 
     if (!reader.ParseFromFile(path, reader_config)) {
@@ -90,8 +90,8 @@ void Scene::loadMesh(const std::string &path) {
         meshes.emplace_back(finalIndices, shapeTriIndices.size(), finalVerts, shapeVerts.size(), finalNormals, &materials.back());
 
         // Now register all triangles from this mesh in the scene
-        int meshIndex     = static_cast<int>(meshes.size()) - 1;
-        int triangleCount = static_cast<int>(numIndices / 3);
+        const int meshIndex     = static_cast<int>(meshes.size()) - 1;
+        const int triangleCount = static_cast<int>(numIndices / 3);
 
         for (int t = 0; t < triangleCount; t++) {
             Triangle tri;
@@ -128,14 +128,11 @@ Scene createDefaultScene() {
     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.1, 0.2, 0.5)});
     scene.spheres.emplace_back(Vec3(0, 0, -1.2), 0.5, &scene.materials.back());
 
-    scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.1, .alphaY = 0.2});
+    scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.01, .alphaY = 0.01});
     scene.spheres.emplace_back(Vec3(1, 0, -1), 0.5, &scene.materials.back());
 
     scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5 / 1.0)});
     scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.5, &scene.materials.back());
-
-    // scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.00 / 1.50});
-    // scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.4, &scene.materials.back());
 
     return scene;
 }

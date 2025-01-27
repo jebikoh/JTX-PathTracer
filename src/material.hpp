@@ -7,6 +7,7 @@ struct Material {
         DIFFUSE,
         METAL,
         DIELECTRIC,
+        THIN_DIELECTRIC,
         DIFFUSE_LIGHT,
         CONDUCTOR
     };

@@ -76,7 +76,7 @@ inline float fresnelDielectric(float cosTheta_i, float eta) {
  */
 inline float fresnelComplex(float cosTheta_i, const Complex &eta) {
     // Clamp in case of floating point issues
-    cosTheta_i = jtx::clamp(cosTheta_i, -1, 1);
+    cosTheta_i = jtx::clamp(cosTheta_i, 0, 1);
 
     // Compute Snell's Law (with complex numbers)
     const float numerator = 1 - cosTheta_i * cosTheta_i;

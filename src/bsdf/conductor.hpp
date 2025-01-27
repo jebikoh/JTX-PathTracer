@@ -5,7 +5,7 @@
 
 class ConductorBxDF {
 public:
-    explicit ConductorBxDF(const TrowbridgeReitz &mf, const Vec3 &eta, const Vec3 &k) : mf_(mf), eta_(eta), k_(k) {}
+    explicit ConductorBxDF(const GGX &mf, const Vec3 &eta, const Vec3 &k) : mf_(mf), eta_(eta), k_(k) {}
 
     [[nodiscard]] Vec3 evaluate(const Vec3 &w_o, const Vec3 &w_i) const {
         if (mf_.smooth()) return {};
@@ -20,7 +20,7 @@ public:
         if (w_m.lenSqr() == 0) return {};
         w_m = w_m.normalize();
 
-        Vec3 F = fresnelComplexRGB(jtx::absdot(w_o, w_m), eta_, k_);
+        const Vec3 F = fresnelComplexRGB(jtx::absdot(w_o, w_m), eta_, k_);
 
         return mf_.D(w_m) * F * mf_.G(w_o, w_i) / (4 * cosTheta_i * cosTheta_o);
     }
@@ -63,7 +63,7 @@ public:
     }
 
 private:
-    TrowbridgeReitz mf_;
+    GGX mf_;
     Vec3 eta_;
     Vec3 k_;
 };

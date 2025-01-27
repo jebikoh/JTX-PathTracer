@@ -57,7 +57,7 @@ public:
         return {};
     }
 
-    BSDFSample sample(const Vec3 &w_o, float uc, const Vec2f &u) const {
+    bool sample(const Vec3 &w_o, float uc, const Vec2f &u, BSDFSample &s) const {
         // Only handling perfectly specular case for now
 
         // Calculate Fresnel reflectance and complementary transmission
@@ -76,12 +76,14 @@ public:
             const Vec3 w_i = {-w_o.x, -w_o.y, w_o.z};
             const Vec3 f{R / jtx::absCosTheta(w_i)};
 
-            return {f, w_i, p};
+            s = {f, w_i, p};
+            return true;
         } else {
             // Transmission: sample BTDF
             Vec3 w_i = -w_o;
             Vec3 f{T / jtx::absCosTheta(w_i)};
-            return {f, w_i, 1 - p};
+            s = {f, w_i, 1 - p};
+            return true;
         }
     }
 

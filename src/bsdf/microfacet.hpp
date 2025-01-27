@@ -33,7 +33,7 @@ public:
         float tan2Theta = jtx::tan2Theta(w_m);
         if (isInf(tan2Theta)) return 0;
 
-        float e = tan2Theta * (jtx::sqr(jtx::cosPhi(w_m) / alphaX_) + jtx::sqr(jtx::sinPhi(w_m) / alphaY_));
+        float e         = tan2Theta * (jtx::sqr(jtx::cosPhi(w_m) / alphaX_) + jtx::sqr(jtx::sinPhi(w_m) / alphaY_));
         float cos4Theta = jtx::sqr(jtx::cos2Theta(w_m));
 
         return 1 / (PI * alphaX_ * alphaY_ * cos4Theta * jtx::sqr(1 + e));
@@ -74,21 +74,21 @@ public:
 
     /**
      * Masking-shadowing function
-     * @param w_o out direction
-     * @param w_i incident direction
-     * @return fraction of microfacets visible from both w_o and w_i
+     * @param wo out direction
+     * @param wi incident direction
+     * @return fraction of microfacets visible from both wo and wi
      */
-    float G(const Vec3 &w_o, const Vec3 &w_i) const {
-        return 1 / (1 + lambda(w_o) + lambda(w_i));
+    float G(const Vec3 &wo, const Vec3 &wi) const {
+        return 1 / (1 + lambda(wo) + lambda(wi));
     }
 
-    Vec3 sampleW_m(const Vec3 &w, const Vec2f &u) const {
+    Vec3 sampleWm(const Vec3 &w, const Vec2f &u) const {
         // Transform to hemispherical configuration
         Vec3 wh = Vec3(alphaX_ * w.x, alphaY_ * w.y, w.z).normalize();
         if (wh.z < 0) wh = -wh;
 
         // Orthonormal basis
-        const Vec3 t1 = (wh.z < 0.99999f) ? jtx::cross({0, 0, 1}, wh).normalize() : Vec3(1, 0,0);
+        const Vec3 t1 = (wh.z < 0.99999f) ? jtx::cross({0, 0, 1}, wh).normalize() : Vec3(1, 0, 0);
         const Vec3 t2 = jtx::cross(wh, t1);
 
         // Sample uniform disk
@@ -96,14 +96,92 @@ public:
 
         // Warp projection
         const float h = jtx::sqrt(1 - jtx::sqr(p.x));
-        p.y = jtx::lerp(h, p.y, (1 + wh.z) / 2);
+        p.y           = jtx::lerp(h, p.y, (1 + wh.z) / 2);
 
         // Re-project and transform normal
         const float pz = jtx::sqrt(jtx::max(0.0f, 1.0f - p.lenSqr()));
         const Vec3 n_h = p.x * t1 + p.y * t2 + pz * wh;
         return Vec3(alphaX_ * n_h.x, alphaY_ * n_h.y, jtx::max(1e-6f, n_h.z)).normalize();
     }
+
 private:
     float alphaX_;
     float alphaY_;
 };
+
+/**
+ * Disney uses slightly different notation from PBR 4th ed.
+ *  - l -> wi
+ *  - v -> wo
+ *  - h -> w_m
+ *
+ *  - cosThetaD -> n * wi = n * l
+ *  - cosThetaH -> n * w_m = n * h
+ *  - cosThetaO -> n * wo = n * v
+ */
+
+// Generalized Trowbridge-Reitz (GTR)
+// Distribution Functions
+
+/**
+ * Computes the GTR1 distribution function
+ * @param cosThetaH cosine of the angle between the microfacet normal and the half vector. Equivalent to n * h
+ * @param alpha roughness parameter
+ * @return
+ */
+inline float GTR1(const float cosThetaH, const float alpha) {
+    const float a2          = alpha * alpha;
+    const float denominator = PI * jtx::log(a2) * (1.0f + (a2 - 1.0f) * cosThetaH * cosThetaH);
+    return (a2 - 1) / denominator;
+}
+
+inline float GTR2(const float cosThetaH, const float alpha) {
+    const float a2          = alpha * alpha;
+    const float denominator = PI * (1.0f + (a2 - 1.0f) * cosThetaH * cosThetaH);
+    return a2 / denominator;
+}
+
+// Departing form the Disney notation for this one
+// Is there a more intuitive parameter to pass here?
+inline float GTR2a(const float hDotX, const float hDotY, const float cosThetaH, const float alphaX, const float alphaY) {
+    const float tmp = jtx::sqr(hDotX / alphaX) + jtx::sqr(hDotY / alphaY) + cosThetaH * cosThetaH;
+    return 1 / (PI * alphaX * alphaY * jtx::sqr(tmp));
+}
+
+// Sampling functions for GTR
+inline Vec3 sampleGTR1(const Vec2f &uc, float alpha) {
+    alpha          = jtx::max(alpha, 1e-3f);
+    const float a2 = alpha * alpha;
+
+    const float phi    = 2 * PI * uc[0];
+    const float sinPhi = jtx::sin(phi);
+    const float cosPhi = jtx::cos(phi);
+
+    const float cosTheta = jtx::sqrt(1.0f - jtx::pow(a2, 1 - uc[1]) / (1 - a2));
+    const float sinTheta = jtx::sqrt(jtx::max(0.0f, 1.0f - cosTheta * cosTheta));
+
+    return {sinTheta * cosPhi, sinTheta * sinPhi, cosTheta};
+}
+
+inline Vec3 sampleGTR2(const Vec2f &uc, float alpha) {
+    alpha = jtx::max(alpha, 1e-3f);
+
+    const float phi    = 2 * PI * uc[0];
+    const float sinPhi = jtx::sin(phi);
+    const float cosPhi = jtx::cos(phi);
+
+    const float cosTheta = jtx::sqrt((1 - uc[1]) / (1 + (alpha * alpha - 1) * uc[1]));
+    const float sinTheta = jtx::sqrt(jtx::max(0.0f, 1.0f - cosTheta * cosTheta));
+
+    return {sinTheta * cosPhi, sinTheta * sinPhi, cosTheta};
+}
+
+inline Vec3 sampleGTR2a(const Vec2f &uc, const float alphaX, const float alphaY) {
+    const float phi = 2 * PI * uc[0];
+
+    const float sinPhi   = alphaY * jtx::sin(phi);
+    const float cosPhi   = alphaX * jtx::cos(phi);
+    const float tanTheta = jtx::sqrt(uc[1] / (1 - uc[1]));
+
+    return {cosPhi * tanTheta, sinPhi * tanTheta, 1.0f};
+}

@@ -36,7 +36,7 @@ public:
         }
         if (w_o.z == 0) return false;
 
-        const Vec3 w_m = mf_.sampleW_m(w_o, u);
+        const Vec3 w_m = mf_.sampleWm(w_o, u);
         const Vec3 w_i = reflect(w_o, w_m);
 
         if (!jtx::sameHemisphere(w_o, w_i)) return {};

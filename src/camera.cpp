@@ -47,11 +47,11 @@ void Camera::render(const BVHTree &world) {
     }
 
     // Set up threads
-     unsigned int threadCount = std::thread::hardware_concurrency();
-     if (threadCount == 0) threadCount = 4;
+    unsigned int threadCount = std::thread::hardware_concurrency();
+    if (threadCount == 0) threadCount = 4;
 
     // REMINDER: revert when done debugging
-//    unsigned int threadCount = 1;
+    // unsigned int threadCount = 1;
 
     // reset the current sample to 0
     currentSample_.store(0);
@@ -86,7 +86,7 @@ void Camera::render(const BVHTree &world) {
                             // PCG via RXS-M-XS
                             RNG sampler(row, col, sample + 1);
 
-                            Ray r = getRay(col, row, sample, sampler);
+                            const Ray r = getRay(col, row, sample, sampler);
 
                             Color sampleColor = integrate(r, *job.world, maxDepth_, properties_.background, sampler);
 
@@ -96,6 +96,7 @@ void Camera::render(const BVHTree &world) {
                             if (sampleColor[2] > 1.0f) sampleColor[2] = 1.0f;
 
                             auto currAcc = acc_.updatePixel(sampleColor, row, col);
+                            auto px      = currAcc / static_cast<float>(sample + 1);
                             img_.setPixel(currAcc / static_cast<float>(sample + 1), row, col);
                         }
                     }

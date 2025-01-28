@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../material.hpp"
 #include "../rt.hpp"
 #include "../util/complex.hpp"
 
@@ -111,6 +112,7 @@ struct BSDFSample {
     Vec3 fSample;
     Vec3 w_i;
     float pdf;
+    Material::Type type;
 };
 
 struct HitRecord;

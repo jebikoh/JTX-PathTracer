@@ -30,12 +30,13 @@ public:
      * @return relative differential area of microfacets with surface normal w_m
      */
     float D(const Vec3 &w_m) const {
-        float tan2Theta = jtx::tan2Theta(w_m);
-        if (isInf(tan2Theta)) return 0;
+        const float tan2Theta = jtx::tan2Theta(w_m);
+        if (std::isinf(tan2Theta)) return 0;
 
-        float e         = tan2Theta * (jtx::sqr(jtx::cosPhi(w_m) / alphaX_) + jtx::sqr(jtx::sinPhi(w_m) / alphaY_));
-        float cos4Theta = jtx::sqr(jtx::cos2Theta(w_m));
+        const float cos4Theta = jtx::sqr(jtx::cos2Theta(w_m));
+        if (cos4Theta < 1e-6f) return 0;
 
+        const float e = tan2Theta * (jtx::sqr(jtx::cosPhi(w_m) / alphaX_) + jtx::sqr(jtx::sinPhi(w_m) / alphaY_));
         return 1 / (PI * alphaX_ * alphaY_ * cos4Theta * jtx::sqr(1 + e));
     }
 
@@ -46,7 +47,7 @@ public:
      * @return relative differential area of microfacets with surface normal w_m visible from w
      */
     float D_omega(const Vec3 &w, const Vec3 &wm) const {
-        return G1(w) / jtx::absCosTheta(wm) * D(wm) * jtx::absdot(w, wm);
+        return G1(w) / jtx::absCosTheta(w) * D(wm) * jtx::absdot(w, wm);
     }
 
     float pdf(const Vec3 &w, const Vec3 &wm) const {
@@ -60,7 +61,7 @@ public:
      */
     float lambda(const Vec3 &w) const {
         const float tan2Theta = jtx::tan2Theta(w);
-        if (isInf(tan2Theta)) return 0;
+        if (std::isinf(tan2Theta)) return 0;
         const float alpha2 = jtx::sqr(alphaX_ * jtx::cosPhi(w)) + jtx::sqr(alphaY_ * jtx::sinPhi(w));
         return 0.5 * (jtx::sqrt(1 + alpha2 * tan2Theta) - 1);
     }

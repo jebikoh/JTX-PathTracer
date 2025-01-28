@@ -29,15 +29,15 @@ bool sampleBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o, floa
         return false;
     }
 
-    if (mat->type == Material::DIELECTRIC) {
-        const auto bxdf = DielectricBxDF(mat->IOR.x);
-        if (bxdf.sample(w_o_local, uc, u, s)) {
-            if (!s.fSample || s.pdf == 0 || s.w_i.z == 0) return false;
-            s.w_i = sFrame.toWorld(s.w_i);
-            return true;
-        }
-        return false;
-    }
+    // if (mat->type == Material::DIELECTRIC) {
+    //     const auto bxdf = DielectricBxDF(mat->IOR.x);
+    //     if (bxdf.sample(w_o_local, uc, u, s)) {
+    //         if (!s.fSample || s.pdf == 0 || s.w_i.z == 0) return false;
+    //         s.w_i = sFrame.toWorld(s.w_i);
+    //         return true;
+    //     }
+    //     return false;
+    // }
 
     return false;
 }

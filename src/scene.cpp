@@ -8,6 +8,51 @@ static constexpr int SCENE_MATERIAL_LIMIT = 64;
 
 static Material DEFAULT_MAT = {.type = Material::DIFFUSE, .albedo = Color(1, 0.3, 0.5)};
 
+bool Scene::hit(const Ray &r, Interval t, HitRecord &record) const {
+    const auto invDir     = 1 / r.dir;
+    const int dirIsNeg[3] = {static_cast<int>(invDir.x < 0), static_cast<int>(invDir.y < 0), static_cast<int>(invDir.z < 0)};
+
+    int toVisitOffset    = 0;
+    int currentNodeIndex = 0;
+    int stack[64];
+    bool hitAnything = false;
+
+    while (true) {
+        const LinearBVHNode *node = &nodes_[currentNodeIndex];
+        // 1. Check the ray intersects the current node
+        //    If it doesn't, pop the stack and continue
+        if (node->bbox.hit(r.origin, r.dir, t)) {
+            // 2. If we are at a leaf node, loop through all primitives
+            //    Otherwise, push the children onto the stack
+            if (node->numPrimitives > 0) {
+                // Leaf node
+                for (int i = 0; i < node->numPrimitives; ++i) {
+                    if (hitPrimitive(primitives_[node->primitivesOffset + i], r, t, record)) {
+                        hitAnything = true;
+                        t.max       = record.t;
+                    }
+                }
+                if (toVisitOffset == 0) break;
+                currentNodeIndex = stack[--toVisitOffset];
+            } else {
+                // Interior node
+                if (dirIsNeg[node->axis]) {
+                    stack[toVisitOffset++] = currentNodeIndex + 1;
+                    currentNodeIndex       = node->secondChildOffset;
+                } else {
+                    stack[toVisitOffset++] = node->secondChildOffset;
+                    currentNodeIndex       = currentNodeIndex + 1;
+                }
+            }
+        } else {
+            if (toVisitOffset == 0) break;
+            currentNodeIndex = stack[--toVisitOffset];
+        }
+    }
+
+    return hitAnything;
+}
+
 void Scene::loadMesh(const std::string &path) {
     if (materials.capacity() < SCENE_MATERIAL_LIMIT) {
         materials.reserve(SCENE_MATERIAL_LIMIT);
@@ -104,6 +149,46 @@ void Scene::loadMesh(const std::string &path) {
     }
 }
 
+void Scene::buildBVH(const int maxPrimsInNode) {
+    maxPrimsInNode_ = maxPrimsInNode;
+    primitives_.resize(numPrimitives());
+    // std::vector<Primitive> primitives(scene.numPrimitives());
+
+    // BVH Primitives is our working span of primitives
+    // This will start out as all of them
+    std::vector<Primitive> bvhPrimitives(primitives_.size());
+    for (size_t i = 0; i < spheres.size(); ++i) {
+        primitives_[i]   = Primitive{Primitive::SPHERE, i, spheres[i].bounds()};
+        bvhPrimitives[i] = Primitive{Primitive::SPHERE, i, spheres[i].bounds()};
+    }
+
+    const size_t tOffset = spheres.size();
+    for (size_t i = 0; i < triangles.size(); ++i) {
+        primitives_[tOffset + i]   = Primitive{Primitive::TRIANGLE, i, meshes[triangles[i].meshIndex].tBounds(triangles[i].index)};
+        bvhPrimitives[tOffset + i] = Primitive{Primitive::TRIANGLE, i, meshes[triangles[i].meshIndex].tBounds(triangles[i].index)};
+    }
+    // Add rest of types when we get them
+    // We will order as we build
+    std::vector<Primitive> orderedPrimitives(primitives_.size());
+
+    int totalNodes             = 1;
+    int orderedPrimitiveOffset = 0;
+
+    const BVHNode *root = buildTree(bvhPrimitives, &totalNodes, &orderedPrimitiveOffset, orderedPrimitives, maxPrimsInNode_);
+    primitives_.swap(orderedPrimitives);
+
+    bvhPrimitives.resize(0);
+    bvhPrimitives.shrink_to_fit();
+
+    nodes_     = new LinearBVHNode[totalNodes];
+    int offset = 0;
+    flattenBVH(root, nodes_, &offset);
+
+    // Clean-up the tree
+    root->destroy();
+    delete root;
+}
+
 Scene createDefaultScene() {
     Scene scene;
     scene.name = "Default Scene";
@@ -177,7 +262,7 @@ Scene createMeshScene() {
     return scene;
 }
 
-Scene createObjScene(std::string &path, const Mat4 &t, const Color &background) {
+Scene createObjScene(const std::string &path, const Mat4 &t, const Color &background) {
     Scene scene;
     scene.name = "OBJ Scene";
     scene.loadMesh(path);
@@ -210,8 +295,8 @@ Scene createObjScene(std::string &path, const Mat4 &t, const Color &background) 
     return scene;
 }
 Scene createShaderBallScene() {
-    auto t           = Mat4::identity();
-    std::string path = "../src/assets/shaderball.obj";
+    const auto t                 = Mat4::identity();
+    const std::string path = "../src/assets/shaderball.obj";
     auto scene       = createObjScene(path, t);
 
     scene.cameraProperties.center     = Vec3(2.5, 16, 12);

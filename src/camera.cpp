@@ -11,7 +11,7 @@ struct RayTraceJob {
     uint32_t endRow;
     uint32_t endCol;
 
-    const BVHTree *world;
+    const Scene *scene;
     RGBImage *img;
 };
 // i really like mich <3
@@ -22,7 +22,7 @@ struct WorkQueue {
     std::atomic<uint64_t> nextJobIndex;
 };
 
-void Camera::render(const BVHTree &world) {
+void Camera::render(const Scene &scene) {
     // Need to re-initialize everytime to reflect changes via UI
     init();
     stopRender_ = false;
@@ -36,7 +36,7 @@ void Camera::render(const BVHTree &world) {
     for (int r = 0; r < height_; r += 32) {
         for (int c = 0; c < width_; c += 32) {
             RayTraceJob job{};
-            job.world    = &world;
+            job.scene    = &scene;
             job.img      = &img_;
             job.startRow = r;
             job.startCol = c;
@@ -88,7 +88,7 @@ void Camera::render(const BVHTree &world) {
 
                             const Ray r = getRay(col, row, sample, sampler);
 
-                            Color sampleColor = integrate(r, *job.world, maxDepth_, properties_.background, sampler);
+                            Color sampleColor = integrate(r, *job.scene, maxDepth_, properties_.background, sampler);
 
                             // Clamp the color
                             if (sampleColor[0] > 1.0f) sampleColor[0] = 1.0f;

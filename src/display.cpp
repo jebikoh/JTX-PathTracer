@@ -254,7 +254,7 @@ void Display::render() {
     }
 
     if (ImGui::Button("Render")) {
-        renderWorld();
+        renderScene();
     }
 
     ImGui::SameLine();
@@ -327,8 +327,8 @@ void Display::render() {
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f)); // Darker background
         ImGui::BeginChild("Scene View", ImVec2(0, 150), true, ImGuiWindowFlags_None);
         {
-            for (size_t i = 0; i < world_->scene_.meshes.size(); ++i) {
-                const auto& mesh = world_->scene_.meshes[i];
+            for (size_t i = 0; i < scene_->meshes.size(); ++i) {
+                const auto& mesh = scene_->meshes[i];
                 if (ImGui::Selectable(mesh.name.c_str(), selectedMeshIndex == i)) {
                     selectedMeshIndex = i;
                 }
@@ -342,7 +342,7 @@ void Display::render() {
             ImGui::BeginChild("Material Editor", ImVec2(0, 0), true, ImGuiWindowFlags_None);
             {
                 ImGui::Text("Material Editor");
-                const auto& mesh = world_->scene_.meshes[selectedMeshIndex];
+                const auto& mesh = scene_->meshes[selectedMeshIndex];
                 Material* material = mesh.material;
 
                 // Material Type Combo Box
@@ -502,12 +502,12 @@ void Display::initUI() const {
     ImGui_ImplOpenGL3_Init("#version 330");
 }
 
-void Display::renderWorld() {
+void Display::renderScene() {
     if (isRendering_) return;
 
     isRendering_ = true;
     std::thread([this]() {
-        camera_->render(*world_);
+        camera_->render(*scene_);
         isRendering_ = false;
     }).detach();
 }

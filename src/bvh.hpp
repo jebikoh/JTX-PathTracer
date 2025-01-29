@@ -2,9 +2,6 @@
 
 #include "primitives.hpp"
 #include "rt.hpp"
-#include "scene.hpp"
-
-class Display;
 
 struct alignas(32) LinearBVHNode {
     AABB bbox;
@@ -57,33 +54,6 @@ struct BVHNode {
     }
 };
 
-class BVHTree {
-public:
-    BVHTree(Scene &scene, int maxPrimsInNode);
-    ~BVHTree() {
-        if (nodes_) destroy();
-    }
+BVHNode *buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes, int *orderedPrimitiveOffset, std::vector<Primitive> &orderedPrimitives, int maxPrimsInNode);
 
-    void destroy() {
-        delete[] nodes_;
-        nodes_ = nullptr;
-    }
-
-    AABB bounds() const {
-        return nodes_[0].bbox;
-    }
-
-    bool hit(const Ray &r, Interval t, HitRecord &record) const;
-
-private:
-    BVHNode *buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes, int *orderedPrimitiveOffset, std::vector<Primitive> &orderedPrimitives);
-
-    int flattenBVH(const BVHNode *node, int *offset);
-
-    int maxPrimsInNode_;
-    std::vector<Primitive> primitives_;
-    LinearBVHNode *nodes_ = nullptr;
-friend class Display;
-protected:
-    Scene &scene_;
-};
+int flattenBVH(const BVHNode *node, LinearBVHNode *nodes, int *offset);

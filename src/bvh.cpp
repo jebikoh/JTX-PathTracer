@@ -1,98 +1,12 @@
 #include "bvh.hpp"
 
-BVHTree::BVHTree(Scene &scene, const int maxPrimsInNode)
-    : maxPrimsInNode_(maxPrimsInNode),
-      scene_(scene) {
-    // This is our global list of primitives
-    primitives_.resize(scene.numPrimitives());
-    // std::vector<Primitive> primitives(scene.numPrimitives());
-
-    // BVH Primitives is our working span of primitives
-    // This will start out as all of them
-    std::vector<Primitive> bvhPrimitives(primitives_.size());
-    for (size_t i = 0; i < scene.spheres.size(); ++i) {
-        primitives_[i]   = Primitive{Primitive::SPHERE, i, scene.spheres[i].bounds()};
-        bvhPrimitives[i] = Primitive{Primitive::SPHERE, i, scene.spheres[i].bounds()};
-    }
-
-    const size_t tOffset = scene.spheres.size();
-    for (size_t i = 0; i < scene.triangles.size(); ++i) {
-        primitives_[tOffset + i]   = Primitive{Primitive::TRIANGLE, i, scene.meshes[scene.triangles[i].meshIndex].tBounds(scene.triangles[i].index)};
-        bvhPrimitives[tOffset + i] = Primitive{Primitive::TRIANGLE, i, scene.meshes[scene.triangles[i].meshIndex].tBounds(scene.triangles[i].index)};
-    }
-    // Add rest of types when we get them
-    // We will order as we build
-    std::vector<Primitive> orderedPrimitives(primitives_.size());
-
-    int totalNodes             = 1;
-    int orderedPrimitiveOffset = 0;
-
-    const BVHNode *root = buildTree(bvhPrimitives, &totalNodes, &orderedPrimitiveOffset, orderedPrimitives);
-    primitives_.swap(orderedPrimitives);
-
-    bvhPrimitives.resize(0);
-    bvhPrimitives.shrink_to_fit();
-
-    nodes_     = new LinearBVHNode[totalNodes];
-    int offset = 0;
-    flattenBVH(root, &offset);
-
-    // Clean-up the tree
-    root->destroy();
-    delete root;
-}
-
 struct BVHBucket {
     int count = 0;
     AABB bounds;
 };
 
-bool BVHTree::hit(const Ray &r, Interval t, HitRecord &record) const {
-    const auto invDir     = 1 / r.dir;
-    const int dirIsNeg[3] = {static_cast<int>(invDir.x < 0), static_cast<int>(invDir.y < 0), static_cast<int>(invDir.z < 0)};
 
-    int toVisitOffset    = 0;
-    int currentNodeIndex = 0;
-    int stack[64];
-    bool hitAnything = false;
-
-    while (true) {
-        const LinearBVHNode *node = &nodes_[currentNodeIndex];
-        // 1. Check the ray intersects the current node
-        //    If it doesn't, pop the stack and continue
-        if (node->bbox.hit(r.origin, r.dir, t)) {
-            // 2. If we are at a leaf node, loop through all primitives
-            //    Otherwise, push the children onto the stack
-            if (node->numPrimitives > 0) {
-                // Leaf node
-                for (int i = 0; i < node->numPrimitives; ++i) {
-                    if (scene_.hit(primitives_[node->primitivesOffset + i], r, t, record)) {
-                        hitAnything = true;
-                        t.max       = record.t;
-                    }
-                }
-                if (toVisitOffset == 0) break;
-                currentNodeIndex = stack[--toVisitOffset];
-            } else {
-                // Interior node
-                if (dirIsNeg[node->axis]) {
-                    stack[toVisitOffset++] = currentNodeIndex + 1;
-                    currentNodeIndex       = node->secondChildOffset;
-                } else {
-                    stack[toVisitOffset++] = node->secondChildOffset;
-                    currentNodeIndex       = currentNodeIndex + 1;
-                }
-            }
-        } else {
-            if (toVisitOffset == 0) break;
-            currentNodeIndex = stack[--toVisitOffset];
-        }
-    }
-
-    return hitAnything;
-}
-
-BVHNode *BVHTree::buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes, int *orderedPrimitiveOffset, std::vector<Primitive> &orderedPrimitives) {
+BVHNode *buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes, int *orderedPrimitiveOffset, std::vector<Primitive> &orderedPrimitives, int maxPrimsInNode) {
     const auto node = new BVHNode();
     (*totalNodes)++;
 
@@ -188,7 +102,7 @@ BVHNode *BVHTree::buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes,
             // Calculate split cost
             const float leafCost = bvhPrimitives.size();
             minCost              = 0.5f + minCost / bounds.surfaceArea();
-            if (bvhPrimitives.size() > maxPrimsInNode_ || minCost < leafCost) {
+            if (bvhPrimitives.size() > maxPrimsInNode || minCost < leafCost) {
                 // Build interior node
                 auto midIterator = std::partition(bvhPrimitives.begin(), bvhPrimitives.end(), [=](const Primitive &p) {
                     int b = BVH_NUM_BUCKETS * centroidBounds.offset(p.centroid())[dim];
@@ -210,16 +124,16 @@ BVHNode *BVHTree::buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes,
         }
 
         BVHNode *children[2];
-        children[0] = buildTree(bvhPrimitives.subspan(0, mid), totalNodes, orderedPrimitiveOffset, orderedPrimitives);
-        children[1] = buildTree(bvhPrimitives.subspan(mid), totalNodes, orderedPrimitiveOffset, orderedPrimitives);
+        children[0] = buildTree(bvhPrimitives.subspan(0, mid), totalNodes, orderedPrimitiveOffset, orderedPrimitives, maxPrimsInNode);
+        children[1] = buildTree(bvhPrimitives.subspan(mid), totalNodes, orderedPrimitiveOffset, orderedPrimitives, maxPrimsInNode);
         node->initBranch(dim, children[0], children[1]);
     }
 
     return node;
 }
 
-int BVHTree::flattenBVH(const BVHNode *node, int *offset) {
-    LinearBVHNode *linearNode = &nodes_[*offset];
+int flattenBVH(const BVHNode *node, LinearBVHNode *nodes, int *offset) {
+    LinearBVHNode *linearNode = &nodes[*offset];
     linearNode->bbox          = node->bbox;
     const int nodeOffset      = (*offset)++;
     if (node->numPrimitives > 0) {
@@ -228,8 +142,8 @@ int BVHTree::flattenBVH(const BVHNode *node, int *offset) {
     } else {
         linearNode->axis          = node->splitAxis;
         linearNode->numPrimitives = 0;
-        flattenBVH(node->children[0], offset);
-        linearNode->secondChildOffset = flattenBVH(node->children[1], offset);
+        flattenBVH(node->children[0], nodes, offset);
+        linearNode->secondChildOffset = flattenBVH(node->children[1], nodes, offset);
     }
     return nodeOffset;
 }

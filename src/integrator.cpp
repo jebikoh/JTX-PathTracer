@@ -1,17 +1,16 @@
 #include "integrator.hpp"
 #include "material.hpp"
 #include "util/interval.hpp"
-#include "bvh.hpp"
 #include "bsdf/bxdf.hpp"
 
-Vec3 integrate(Ray ray, const BVHTree &world, const int maxDepth, const Color &background, RNG &rng) {
+Vec3 integrate(Ray ray, const Scene &scene, const int maxDepth, const Color &background, RNG &rng) {
     Vec3 radiance = {};
     Vec3 beta = {1, 1, 1};
     int depth = 0;
 
     HitRecord record;
     while (beta) {
-        const bool hit = world.hit(ray, Interval(0.001, INF), record);
+        const bool hit = scene.hit(ray, Interval(0.001, INF), record);
 
         if (!hit) {
             radiance += beta * background;

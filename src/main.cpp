@@ -16,6 +16,7 @@ constexpr int MAX_DEPTH      = 50;
 int main(int argc, char *argv[]) {
     // Scene scene = createKnobScene();
     Scene scene = createShaderBallScene();
+    scene.buildBVH();
 
     Camera camera{
             IMAGE_WIDTH,
@@ -30,9 +31,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    BVHTree world(scene, 1);
-
-    display.setWorld(&world);
+    display.setScene(&scene);
 
     bool isRunning = true;
     while (isRunning) {
@@ -45,7 +44,6 @@ int main(int argc, char *argv[]) {
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 
-    world.destroy();
     display.destroy();
     scene.destroy();
     return 0;

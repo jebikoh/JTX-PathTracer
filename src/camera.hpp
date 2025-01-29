@@ -4,11 +4,7 @@
 #include "util/rand.hpp"
 #include <atomic>
 #include <thread>
-#include <mutex>
-#include <condition_variable>
-
-// ReSharper disable once CppUnusedIncludeDirective
-#include <chrono>
+#include "scene.hpp"
 
 // Update this to use PBRTv4 Camera
 class Camera {
@@ -22,22 +18,11 @@ public:
 
     RGBImage img_;
 
-    // Camera properties
-    struct Properties {
-        Vec3 center;
-        Vec3 target;
-        Vec3 up;
-        Float yfov;
-        Float defocusAngle;
-        Float focusDistance;
-        Color background;
-    };
-
-    Properties properties_;
+    CameraProperties properties_;
 
     std::atomic<int> currentSample_;
 
-    explicit Camera(const int width, const int height, const Properties &cameraProperties, const int xPixelSamples, const int yPixelSamples, const int maxDepth)
+    explicit Camera(const int width, const int height, const CameraProperties &cameraProperties, const int xPixelSamples, const int yPixelSamples, const int maxDepth)
         : width_(width),
           height_(height),
           aspectRatio_(static_cast<Float>(width) / static_cast<Float>(height)),
@@ -48,7 +33,7 @@ public:
           properties_(cameraProperties),
           acc_(width, height) {}
 
-    void render(const BVHTree &world);
+    void render(const Scene &scene);
 
     void save(const char *path) const {
         img_.save(path);
@@ -71,7 +56,7 @@ public:
         stopRender_ = true;
     }
 
-    void updateCameraProperties(const Properties &properties) {
+    void updateCameraProperties(const CameraProperties &properties) {
         properties_ = properties;
     }
 

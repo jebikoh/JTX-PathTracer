@@ -3,6 +3,7 @@
 #include "camera.hpp"
 #include "glad/glad.h"
 #include "rt.hpp"
+#include "scene.hpp"
 
 #include <SDL_video.h>
 
@@ -35,8 +36,8 @@ public:
 
     void render();
 
-    void setWorld(const BVHTree *world) {
-        world_ = world;
+    void setScene(Scene *scene) {
+        scene_ = scene;
     }
 
     bool isRendering() const {
@@ -51,7 +52,7 @@ private:
     int renderWidth_;
     float scaleX_, scaleY_;
 
-    const BVHTree *world_;
+    Scene *scene_;
 
     SDL_Window *window_;
     SDL_GLContext glContext_;
@@ -74,7 +75,7 @@ private:
     void initQuad();
     void initUI() const;
 
-    void renderWorld();
+    void renderScene();
     bool isRendering_ = false;
 
     void updateScale();

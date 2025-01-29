@@ -16,7 +16,7 @@ public:
         Vec3 w_i = sampleCosineHemisphere(u);
         if (w_o.z < 0) { w_i.z *= -1; }
         const float pdf = cosineHemispherePDF(jtx::absCosTheta(w_i));
-        s = {R_ * INV_PI, w_i, pdf, Material::DIFFUSE};
+        s = {R_ * INV_PI, w_i, pdf};
         return true;
     }
 

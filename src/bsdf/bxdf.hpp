@@ -112,7 +112,6 @@ struct BSDFSample {
     Vec3 fSample;
     Vec3 w_i;
     float pdf;
-    Material::Type type;
 };
 
 struct HitRecord;

@@ -54,7 +54,7 @@ public:
         const Vec3 F = fresnelComplexRGB(jtx::absdot(w_o, w_m), eta_, k_);
         const Vec3 f = mf_.D(w_m) * F * mf_.G(w_o, w_i) / (4 * cosTheta_i * cosTheta_o);
 
-        s = {f, w_i, _pdf, Material::CONDUCTOR};
+        s = {f, w_i, _pdf};
         return true;
     }
 

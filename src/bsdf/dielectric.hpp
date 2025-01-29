@@ -4,10 +4,39 @@
 
 class DielectricBxDF {
 public:
-    explicit DielectricBxDF(const float eta, const GGX &ggx) : eta(eta), mf_(ggx) {}
+    explicit DielectricBxDF(const GGX &ggx, const float eta) : eta(eta), mf_(ggx) {}
 
     [[nodiscard]] Vec3 evaluate(const Vec3 &w_o, const Vec3 &w_i) const {
-        return {};
+        if (eta == 1 || mf_.smooth()) return {};
+        // Evaluate rough BSDF
+        // Half-vector
+        // Look at pdf() for more details
+        const float cosTheta_o = jtx::absCosTheta(w_o);
+        const float cosTheta_i = jtx::absCosTheta(w_i);
+        const bool reflect = cosTheta_o * cosTheta_i > 0;
+
+        float etap = 1;
+        if (!reflect) {
+            etap = cosTheta_o > 0 ? eta : 1 / eta;
+        }
+
+        Vec3 w_m = w_i * etap + w_o;
+        if (cosTheta_i == 0 || cosTheta_o == 0 || w_m.lenSqr() == 0) return {};
+        w_m = jtx::faceForward(w_m.normalize(), {0, 0, 1});
+
+        // Discard back-facing microfacets
+        // Look at pdf() for more details
+        if (jtx::dot(w_m, w_i) * cosTheta_i < 0 || jtx::dot(w_m, w_o) * cosTheta_o < 0) return {};
+
+        const float F = fresnelDielectric(jtx::dot(w_o, w_m), eta);
+
+        if (reflect) {
+            return Vec3(mf_.D(w_m) * F * mf_.G(w_o, w_i) / jtx::abs(4 * cosTheta_i * cosTheta_o));
+        } else {
+            const float a = mf_.D(w_m) * (1 - F) * mf_.G(w_o, w_i) * jtx::abs(w_i.dot(w_m) * w_o.dot(w_m));
+            const float b = jtx::sqr(w_i.dot(w_m) + w_o.dot(w_m) / etap) * jtx::abs(cosTheta_i * cosTheta_o);
+            return Vec3(a / b);
+        }
     }
 
     bool sample(const Vec3 &w_o, const float uc, const Vec2f &u, BSDFSample &s) const {
@@ -41,6 +70,40 @@ public:
             }
         }
 
+        const Vec3 w_m = mf_.sampleWm(w_o, u);
+        const float R = fresnelDielectric(w_o.dot(w_m), eta);
+        const float T = 1 - R;
+
+        // float pdf;
+        const float p = R / (R + T);
+        if (uc < p) {
+            // Reflection
+            const Vec3 w_i = reflect(w_o, w_m);
+            if (!jtx::sameHemisphere(w_o, w_i)) return false;
+
+            const float pdf = mf_.pdf(w_o, w_m) / (4 * jtx::absdot(w_o, w_m)) * p;
+            const auto f = mf_.D(w_m) * mf_.G(w_o, w_i) * R / (4 * jtx::absCosTheta(w_i) * jtx::absCosTheta(w_o));
+
+            s = {Vec3(f), w_i, pdf};
+            return true;
+        } else {
+            // Transmission
+            float etap;
+            Vec3 w_i;
+            const bool totalInternalRefraction = !refract(w_o, w_m, eta, &etap, w_i);
+            if (jtx::sameHemisphere(w_o, w_i) || w_i.z == 0 || totalInternalRefraction) return false;
+
+            // PDF
+            const float d = jtx::absdot(w_i, w_m) / jtx::sqr(w_i.dot(w_m) + w_o.dot(w_m) / etap);
+            const float pdf = mf_.pdf(w_o, w_m) * d * (1 - p);
+
+            // BRDF
+            auto f = mf_.D(w_m) * T * mf_.G(w_o, w_i) * jtx::abs(w_i.dot(w_m) * w_o.dot(w_m));
+            f /= jtx::sqr(w_i.dot(w_m) + w_m.dot(w_o) / etap) * jtx::abs(jtx::cosTheta(w_i) * jtx::cosTheta(w_o));
+
+            s = {Vec3(f), w_i, pdf};
+            return true;
+        }
     }
 
     [[nodiscard]] float pdf(const Vec3 &w_o, const Vec3 &w_i) const {
@@ -84,10 +147,10 @@ public:
         // Evaluate PDF
         float pdf;
         if (reflect) {
-            pdf = R * mf_.pdf(w_o, w_m) / (4 * jtx::absdot(w_o, w_m) * (R / (R + T)));
+            pdf = mf_.pdf(w_o, w_m) / (4 * jtx::absdot(w_o, w_m)) * (R / (R + T));
         } else {
-            float d = jtx::absdot(w_o, w_m) / jtx::sqr(w_i.dot(w_m) + w_o.dot(w_m) / etap);
-            pdf = mf_.pdf(w_o, w_i) * d * (T / (R + T));
+            const float d = jtx::absdot(w_i, w_m) / jtx::sqr(w_i.dot(w_m) + w_o.dot(w_m) / etap);
+            pdf = mf_.pdf(w_o, w_m) * d * (T / (R + T));
         }
         return pdf;
     }

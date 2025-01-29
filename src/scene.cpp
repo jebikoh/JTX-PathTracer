@@ -85,9 +85,11 @@ void Scene::loadMesh(const std::string &path) {
         std::memcpy(finalNormals, shapeNormals.data(), numIndices * sizeof(Vec3));
         std::memcpy(finalIndices, shapeTriIndices.data(), (numIndices / 3) * sizeof(Vec3i));
 
+        std::string mName = shapes[s].name;
+
         // Create the Mesh and store it
         // Use the default material we pushed earlier: materials.back()
-        meshes.emplace_back(finalIndices, shapeTriIndices.size(), finalVerts, shapeVerts.size(), finalNormals, &materials.back());
+        meshes.emplace_back(mName, finalIndices, shapeTriIndices.size(), finalVerts, shapeVerts.size(), finalNormals, &materials.back());
 
         // Now register all triangles from this mesh in the scene
         const int meshIndex     = static_cast<int>(meshes.size()) - 1;
@@ -133,126 +135,6 @@ Scene createDefaultScene() {
 
     scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5 / 1.0)});
     scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.5, &scene.materials.back());
-
-    return scene;
-}
-
-Scene createTestScene() {
-    Scene scene;
-    scene.name = "Test Scene";
-
-    scene.cameraProperties.center        = Vec3(0, 3, 8);
-    scene.cameraProperties.target        = Vec3(0, 2, -1);
-    scene.cameraProperties.up            = Vec3(0, 1, 0);
-    scene.cameraProperties.yfov          = 20;
-    scene.cameraProperties.defocusAngle  = 0;
-    scene.cameraProperties.focusDistance = 3.4;
-    scene.cameraProperties.background    = Color(0.7, 0.8, 1.0);
-
-    scene.materials.reserve(20);
-    scene.spheres.reserve(20);
-
-    // Glass bubbles
-    scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.5f});
-    scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.0f / 1.5f});
-
-    // Ground
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.8, 0.8, 0.0)});
-    scene.spheres.push_back({Vec3(0, -100.5, -1), 100, &scene.materials.back()});
-
-    // Row one
-    scene.spheres.push_back({Vec3(-1, 1, -1), 0.4, &scene.materials[0]});
-    scene.spheres.push_back({Vec3(-1, 1, -1), 0.3, &scene.materials[1]});
-
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.1, 0.2, 0.5)});
-    scene.spheres.push_back({Vec3(0, 1, -1), 0.4, &scene.materials.back()});
-
-    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2)});
-    scene.spheres.emplace_back(Vec3(1, 1, -1), 0.4, &scene.materials.back());
-
-    // Row two
-    scene.spheres.push_back({Vec3(1, 2, -1), 0.4, &scene.materials[0]});
-    scene.spheres.push_back({Vec3(1, 2, -1), 0.3, &scene.materials[1]});
-
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(1, 0.3, 0.5)});
-    scene.spheres.push_back({Vec3(-1, 2, -1), 0.4, &scene.materials.back()});
-
-    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.8, 0.8)});
-    scene.spheres.emplace_back(Vec3(0, 2, -1), 0.4, &scene.materials.back());
-
-    // Row 3
-    scene.spheres.push_back({Vec3(0, 3, -1), 0.4, &scene.materials[0]});
-    scene.spheres.push_back({Vec3(0, 3, -1), 0.3, &scene.materials[1]});
-
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.5, 0.3, 0.5)});
-    scene.spheres.push_back({Vec3(1, 3, -1), 0.4, &scene.materials.back()});
-
-    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.8, 0.6, 0.2)});
-    scene.spheres.emplace_back(Vec3(-1, 3, -1), 0.4, &scene.materials.back());
-
-    return scene;
-}
-
-Scene createCoverScene() {
-    Scene scene;
-    scene.name = "Cover Scene";
-
-    constexpr float DIFFUSE_PROBABILITY = 0.8;
-    constexpr float METAL_PROBABILITY   = 0.15;
-
-    constexpr float METAL_CUTOFF = DIFFUSE_PROBABILITY + METAL_PROBABILITY;
-
-    // There are around 500 spheres in this scene
-    scene.spheres.reserve(500);
-    scene.materials.reserve(500);
-
-    // Glass
-    scene.materials.push_back({.type = Material::DIELECTRIC, .refractionIndex = 1.5});
-
-    // Ground
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.5, 0.5, 0.5)});
-    scene.spheres.emplace_back(Vec3(0, -1000, 0), 1000, &scene.materials.back());
-
-    RNG rng(42);
-
-    for (int a = -11; a < 11; ++a) {
-        for (int b = -11; b < 11; ++b) {
-            const Vec3 center(a + 0.9 * rng.sampleFP(), 0.2, b + 0.9 * rng.sampleFP());
-
-            const auto matIdx = rng.sampleFP();
-            if ((center - Vec3(4, 0.2, 0)).len() > 0.9) {
-                if (matIdx < DIFFUSE_PROBABILITY) {
-                    const auto albedo = rng.sampleVec3() * rng.sampleVec3();
-                    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = albedo});
-                    scene.spheres.emplace_back(center, 0.2, &scene.materials.back());
-                } else if (matIdx < METAL_CUTOFF) {
-                    const auto albedo = rng.sampleVec3(0.5, 1);
-                    const auto fuzz   = rng.sampleFP(0, 0.5);
-                    scene.materials.push_back({.type = Material::METAL, .albedo = albedo});
-                    scene.spheres.emplace_back(center, 0.2, &scene.materials.back());
-                } else {
-                    // Dielectric glass always at the front
-                    scene.spheres.emplace_back(center, 0.2, &scene.materials.front());
-                }
-            }
-        }
-    }
-
-    scene.spheres.emplace_back(Vec3(0, 1, 0), 1.0, &scene.materials.front());
-
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.4, 0.2, 0.1)});
-    scene.spheres.emplace_back(Vec3(-4, 1, 0), 1.0, &scene.materials.back());
-
-    scene.materials.push_back({.type = Material::METAL, .albedo = Color(0.7, 0.6, 0.5)});
-    scene.spheres.emplace_back(Vec3(4, 1, 0), 1.0, &scene.materials.back());
-
-    scene.cameraProperties.yfov          = 20;
-    scene.cameraProperties.center        = {13, 2, 3};
-    scene.cameraProperties.target        = {0, 0, 0};
-    scene.cameraProperties.up            = {0, 1, 0};
-    scene.cameraProperties.defocusAngle  = 0.6;
-    scene.cameraProperties.focusDistance = 10.0;
-    scene.cameraProperties.background    = Color(0.7, 0.8, 1.0);
 
     return scene;
 }
@@ -328,68 +210,68 @@ Scene createObjScene(std::string &path, const Mat4 &t, const Color &background) 
     return scene;
 }
 
-Scene createCornellBox() {
-    std::string path = "../src/assets/cornell_box.obj";
-    Scene scene      = createObjScene(path, Mat4::identity(), Color(0.7, 0.8, 1.0));
+// Scene createCornellBox() {
+//     std::string path = "../src/assets/cornell_box.obj";
+//     Scene scene      = createObjScene(path, Mat4::identity(), Color(0.7, 0.8, 1.0));
+//
+//     scene.materials.push_back({.type = Material::DIFFUSE_LIGHT, .emission = 15 * WHITE});
+//     scene.meshes.back().material = &scene.materials.back();
+//
+//     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.73, .73, .73)});
+//     scene.meshes[0].material = &scene.materials.back();
+//     scene.meshes[1].material = &scene.materials.back();
+//     scene.meshes[2].material = &scene.materials.back();
+//     scene.meshes[5].material = &scene.materials.back();
+//     scene.meshes[6].material = &scene.materials.back();
+//
+//     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.12, .45, .15)});
+//     scene.meshes[3].material = &scene.materials.back();
+//
+//     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.65, .05, .05)});
+//     scene.meshes[4].material = &scene.materials.back();
+//
+//     scene.cameraProperties.center       = Vec3(278, 273, -800);
+//     scene.cameraProperties.target       = Vec3(278, 273, 0);
+//     scene.cameraProperties.up           = Vec3(0, 1, 0);
+//     scene.cameraProperties.defocusAngle = 0;
+//     scene.cameraProperties.yfov         = 40;
+//
+//     scene.cameraProperties.background = BLACK;
+//
+//     return scene;
+// }
 
-    scene.materials.push_back({.type = Material::DIFFUSE_LIGHT, .emission = 15 * WHITE});
-    scene.meshes.back().material = &scene.materials.back();
-
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.73, .73, .73)});
-    scene.meshes[0].material = &scene.materials.back();
-    scene.meshes[1].material = &scene.materials.back();
-    scene.meshes[2].material = &scene.materials.back();
-    scene.meshes[5].material = &scene.materials.back();
-    scene.meshes[6].material = &scene.materials.back();
-
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.12, .45, .15)});
-    scene.meshes[3].material = &scene.materials.back();
-
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.65, .05, .05)});
-    scene.meshes[4].material = &scene.materials.back();
-
-    scene.cameraProperties.center       = Vec3(278, 273, -800);
-    scene.cameraProperties.target       = Vec3(278, 273, 0);
-    scene.cameraProperties.up           = Vec3(0, 1, 0);
-    scene.cameraProperties.defocusAngle = 0;
-    scene.cameraProperties.yfov         = 40;
-
-    scene.cameraProperties.background = BLACK;
-
-    return scene;
-}
-
-Scene createF22Scene(bool isDielectric) {
-    std::string path = "../src/assets/f22_box.obj";
-    Scene scene      = createObjScene(path, Mat4::identity(), Color(0.2, 0.2, 0.2));
-
-    scene.materials.push_back({.type = Material::DIFFUSE_LIGHT, .emission = 15 * WHITE});
-    scene.meshes.back().material = &scene.materials.back();
-
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.73, .73, .73)});
-    scene.meshes[1].material = &scene.materials.back();
-    scene.meshes[2].material = &scene.materials.back();
-    scene.meshes[3].material = &scene.materials.back();
-
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.12, .45, .15)});
-    scene.meshes[4].material = &scene.materials.back();
-
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.65, .05, .05)});
-    scene.meshes[5].material = &scene.materials.back();
-
-    if (!isDielectric) {
-        *scene.meshes[0].material = {.type = Material::METAL, .albedo = Color(0.8, 0.8, 0.8)};
-    } else {
-        *scene.meshes[0].material = {.type = Material::DIELECTRIC, .refractionIndex = 1.5f};
-    }
-
-    scene.cameraProperties.center = Vec3(0, 1, 3.5);
-    scene.cameraProperties.target = Vec3(0, 1, 0);
-    scene.cameraProperties.up           = Vec3(0, 1, 0);
-    scene.cameraProperties.defocusAngle = 0;
-    scene.cameraProperties.yfov         = 40;
-
-    scene.cameraProperties.background = BLACK;
-
-    return scene;
-}
+// Scene createF22Scene(bool isDielectric) {
+//     std::string path = "../src/assets/f22_box.obj";
+//     Scene scene      = createObjScene(path, Mat4::identity(), Color(0.2, 0.2, 0.2));
+//
+//     scene.materials.push_back({.type = Material::DIFFUSE_LIGHT, .emission = 15 * WHITE});
+//     scene.meshes.back().material = &scene.materials.back();
+//
+//     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.73, .73, .73)});
+//     scene.meshes[1].material = &scene.materials.back();
+//     scene.meshes[2].material = &scene.materials.back();
+//     scene.meshes[3].material = &scene.materials.back();
+//
+//     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.12, .45, .15)});
+//     scene.meshes[4].material = &scene.materials.back();
+//
+//     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.65, .05, .05)});
+//     scene.meshes[5].material = &scene.materials.back();
+//
+//     if (!isDielectric) {
+//         *scene.meshes[0].material = {.type = Material::METAL, .albedo = Color(0.8, 0.8, 0.8)};
+//     } else {
+//         *scene.meshes[0].material = {.type = Material::DIELECTRIC, .refractionIndex = 1.5f};
+//     }
+//
+//     scene.cameraProperties.center = Vec3(0, 1, 3.5);
+//     scene.cameraProperties.target = Vec3(0, 1, 0);
+//     scene.cameraProperties.up           = Vec3(0, 1, 0);
+//     scene.cameraProperties.defocusAngle = 0;
+//     scene.cameraProperties.yfov         = 40;
+//
+//     scene.cameraProperties.background = BLACK;
+//
+//     return scene;
+// }

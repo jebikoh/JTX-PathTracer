@@ -1,6 +1,6 @@
 #include "bvh.hpp"
 
-BVHTree::BVHTree(const Scene &scene, const int maxPrimsInNode)
+BVHTree::BVHTree(Scene &scene, const int maxPrimsInNode)
     : maxPrimsInNode_(maxPrimsInNode),
       scene_(scene) {
     // This is our global list of primitives

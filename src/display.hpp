@@ -7,7 +7,7 @@
 #include <SDL_video.h>
 
 // Both in logical pixels
-constexpr int SIDEBAR_WIDTH = 300;
+constexpr int SIDEBAR_WIDTH = 400;
 constexpr int FONT_SIZE     = 14;
 
 struct MouseState {

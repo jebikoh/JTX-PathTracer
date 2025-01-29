@@ -47,6 +47,10 @@ int main(int argc, char *argv[]) {
     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.1, 0.1, 0.1)});
     scene.spheres.emplace_back(Vec3(0, -100.5, -1), 100, &scene.materials.back());
 
+    for (auto &mesh : scene.meshes) {
+        std::cout << mesh.name << std::endl;
+    }
+
     Camera camera{
             IMAGE_WIDTH,
             IMAGE_HEIGHT,

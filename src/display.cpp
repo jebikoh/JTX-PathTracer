@@ -1,5 +1,6 @@
 #include "display.hpp"
 
+#include "bvh.hpp"
 #include "camera.hpp"
 
 #include <SDL.h>
@@ -320,21 +321,59 @@ void Display::render() {
     }
 
     if (ImGui::CollapsingHeader("Scene Editor")) {
-        const char *items[]     = {"Cornell Box", "Spheres"};
-        static int item_current = 0;
-
-        const char *preview_value = items[item_current];
-        if (ImGui::BeginCombo("Scene", preview_value)) {
-            for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
-                const bool is_selected = (item_current == n);
-                if (ImGui::Selectable(items[n], is_selected)) {
-                    item_current = n;
-                }
-                if (is_selected) {
-                    ImGui::SetItemDefaultFocus();
+        static int selectedMeshIndex = -1;
+        // Scene View
+        ImGui::Text("Scene View");;
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f)); // Darker background
+        ImGui::BeginChild("Scene View", ImVec2(0, 150), true, ImGuiWindowFlags_None);
+        {
+            for (size_t i = 0; i < world_->scene_.meshes.size(); ++i) {
+                const auto& mesh = world_->scene_.meshes[i];
+                if (ImGui::Selectable(mesh.name.c_str(), selectedMeshIndex == i)) {
+                    selectedMeshIndex = i;
                 }
             }
-            ImGui::EndCombo();
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+
+        if (selectedMeshIndex != -1) {
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f)); // Darker background
+            ImGui::BeginChild("Material Editor", ImVec2(0, 0), true, ImGuiWindowFlags_None);
+            {
+                ImGui::Text("Material Editor");
+                const auto& mesh = world_->scene_.meshes[selectedMeshIndex];
+                Material* material = mesh.material;
+
+                // Material Type Combo Box
+                const char* materialTypes[] = { "DIFFUSE", "DIELECTRIC", "CONDUCTOR" };
+                int currentType = material->type;
+                if (ImGui::Combo("Type", &currentType, materialTypes, IM_ARRAYSIZE(materialTypes))) {
+                    material->type = static_cast<Material::Type>(currentType);
+                }
+
+
+                switch (material->type) {
+                    case Material::DIFFUSE:
+                        ImGui::ColorEdit3("Albedo", &material->albedo.x);
+                        break;
+                    case Material::CONDUCTOR:
+                        ImGui::InputFloat3("IOR", &material->IOR.x);
+                        ImGui::InputFloat3("k", &material->k.x);
+                        ImGui::InputFloat("Alpha X", &material->alphaX);
+                        ImGui::InputFloat("Alpha Y", &material->alphaY);
+                        break;
+                    case Material::DIELECTRIC:
+                        ImGui::InputFloat("IOR", &material->IOR.x);
+                        ImGui::InputFloat("Alpha X", &material->alphaX);
+                        ImGui::InputFloat("Alpha Y", &material->alphaY);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            ImGui::EndChild();
+            ImGui::PopStyleColor(); // Restore background color
         }
     }
 

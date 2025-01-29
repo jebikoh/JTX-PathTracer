@@ -4,12 +4,9 @@
 
 struct Material {
     enum Type {
-        DIFFUSE,
-        METAL,
-        DIELECTRIC,
-        THIN_DIELECTRIC,
-        DIFFUSE_LIGHT,
-        CONDUCTOR
+        DIFFUSE = 0,
+        DIELECTRIC = 1,
+        CONDUCTOR = 2
     };
 
     Type type;

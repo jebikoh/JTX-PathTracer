@@ -4,6 +4,8 @@
 #include "rt.hpp"
 #include "scene.hpp"
 
+class Display;
+
 struct alignas(32) LinearBVHNode {
     AABB bbox;
     union {
@@ -57,7 +59,7 @@ struct BVHNode {
 
 class BVHTree {
 public:
-    BVHTree(const Scene &scene, int maxPrimsInNode);
+    BVHTree(Scene &scene, int maxPrimsInNode);
     ~BVHTree() {
         if (nodes_) destroy();
     }
@@ -80,6 +82,8 @@ private:
 
     int maxPrimsInNode_;
     std::vector<Primitive> primitives_;
-    const Scene &scene_;
     LinearBVHNode *nodes_ = nullptr;
+friend class Display;
+protected:
+    Scene &scene_;
 };

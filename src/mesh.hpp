@@ -7,6 +7,8 @@
 #include <complex>
 
 struct Mesh {
+    std::string name;
+
     int numVertices;
     int numIndices;
 
@@ -22,8 +24,16 @@ struct Mesh {
           indices(indices),
           vertices(vertices),
           normals(normals),
-          material(material)
-    {}
+          material(material) {}
+
+    Mesh(const std::string &name, Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Material *material)
+        : name(name),
+          numVertices(numVertices),
+          numIndices(numIndices),
+          indices(indices),
+          vertices(vertices),
+          normals(normals),
+          material(material) {}
 
     void getVertices(const int index, Vec3 &v0, Vec3 &v1, Vec3 &v2) const {
         const Vec3i i = indices[index];

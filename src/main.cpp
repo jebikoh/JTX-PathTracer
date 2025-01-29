@@ -9,47 +9,13 @@
 #include <thread>
 
 // Camera Settings
-//constexpr int IMAGE_WIDTH    = 600;
-//constexpr int IMAGE_HEIGHT   = 600;
 constexpr int IMAGE_WIDTH    = 800;
 constexpr int IMAGE_HEIGHT   = 400;
-constexpr int SAMPLES_PER_PX = 200;
 constexpr int MAX_DEPTH      = 50;
 
 int main(int argc, char *argv[]) {
-    // const auto scene = createF22Scene();
-    //    const auto scene = createCornellBox();
-
-    // auto scene = createDefaultScene();
-    // scene.cameraProperties.background = {0.2, 0.2, 0.2};
-
-    auto t           = Mat4::identity();
-    std::string path = "../src/assets/mitsuba.obj";
-    auto scene       = createObjScene(path, t);
-
-    scene.cameraProperties.center     = Vec3(4, 6, 12);
-    scene.cameraProperties.target     = Vec3(0, 0.6, 0);
-    scene.cameraProperties.background = Color(0.7, 0.8, 1.0);
-    scene.cameraProperties.yfov       = 15;
-
-    const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
-    const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};
-
-    // scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05});
-    scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.3, .alphaY = 0.3});
-    scene.meshes[1].material = &scene.materials.back();
-
-    // scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.8, 0.8, 0.8)});
-    // scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(1, 0.431, 0.431)});
-    scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05});
-    scene.meshes[0].material = &scene.materials.back();
-
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.1, 0.1, 0.1)});
-    scene.spheres.emplace_back(Vec3(0, -100.5, -1), 100, &scene.materials.back());
-
-    for (auto &mesh : scene.meshes) {
-        std::cout << mesh.name << std::endl;
-    }
+    // Scene scene = createKnobScene();
+    Scene scene = createShaderBallScene();
 
     Camera camera{
             IMAGE_WIDTH,

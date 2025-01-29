@@ -492,10 +492,10 @@ void Display::initUI() const {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
-    // ImGuiIO &io = ImGui::GetIO();
-    // io.Fonts->AddFontFromFileTTF("../assets/proggyvector.ttf", FONT_SIZE * windowScale_);
-    // io.FontGlobalScale = 1.0f / windowScale_;
-    // (void) io;
+    ImGuiIO &io = ImGui::GetIO();
+    io.Fonts->AddFontFromFileTTF("../assets/proggyvector.ttf", FONT_SIZE * windowScale_);
+    io.FontGlobalScale = 1.0f / windowScale_;
+    (void) io;
 
     setUiTheme();
     ImGui_ImplSDL2_InitForOpenGL(window_, glContext_);

@@ -40,7 +40,7 @@ if (USE_DOUBLE_PRECISION)
     add_compile_definitions(-DUSE_DOUBLE_PRECISION)
 endif()
 
-add_compile_options(-O3)
+add_compile_options(-O3 -ffast-math)
 
 add_subdirectory(ext/jtxlib)
 

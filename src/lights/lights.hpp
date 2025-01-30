@@ -9,6 +9,7 @@
 // - Uniform/Image Infinite Lights
 
 struct LightSample {
+    Vec3 p;
     Vec3 radiance;
     Vec3 wi;
     float pdf;
@@ -24,8 +25,7 @@ struct Light {
     enum Type {
         POINT = 0,
         SPOT = 1,
-        DIRECTIONAL = 2,
-        INFINITE = 3
+        INFINITE = 2
     };
 
     Type type;
@@ -38,6 +38,7 @@ struct Light {
 inline bool sampleLight(const Light &light, const LightSampleContext &ctx, LightSample &sample) {
     switch (light.type) {
         case Light::POINT:
+            sample.p = (light.position);
             sample.wi = (light.position - ctx.p).normalize();
             sample.radiance = light.scale * light.intensity / jtx::distanceSqr(light.position, ctx.p);
             sample.pdf = 1;

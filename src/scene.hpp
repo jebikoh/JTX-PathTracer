@@ -6,6 +6,8 @@
 #include "lights/lights.hpp"
 #include "util/rand.hpp"
 
+constexpr float RAY_EPSILON = 1e-4f;
+
 // Very basic scene struct
 // Will change if this starts running into performance issues
 // 01/29: I've moved the BVH logic here. The BVH tree regularly needs to access
@@ -41,7 +43,8 @@ public:
         if (bvhBuilt_) destroyBVH();
     }
 
-    bool hit(const Ray &r, Interval t, HitRecord &record) const;
+    bool closestHit(const Ray &r, Interval t, HitRecord &record) const;
+    bool anyHit(const Ray &r, Interval t) const;
 
     [[nodiscard]]
     int numPrimitives() const {
@@ -70,15 +73,30 @@ public:
     }
 
 private:
-    bool hitPrimitive(const Primitive &primitive, const Ray &r, const Interval t, HitRecord &record) const {
+    bool closestHitPrimitive(const Primitive &primitive, const Ray &r, const Interval t, HitRecord &record) const {
         switch(primitive.type) {
             case Primitive::SPHERE: {
-                return spheres[primitive.index].hit(r, t, record);
+                return spheres[primitive.index].closestHit(r, t, record);
             }
             case Primitive::TRIANGLE: {
                 const Triangle &triangle = triangles[primitive.index];
                 float u, v;
-                return meshes[triangle.meshIndex].tHit(r, t, record, triangle.index, u, v);
+                return meshes[triangle.meshIndex].tClosestHit(r, t, record, triangle.index, u, v);
+            }
+            default:
+                break;
+        }
+        return false;
+    }
+
+    bool anyHitPrimitive(const Primitive &primitive, const Ray &r, const Interval t) const {
+        switch(primitive.type) {
+            case Primitive::SPHERE: {
+                return spheres[primitive.index].anyHit(r, t);
+            }
+            case Primitive::TRIANGLE: {
+                const Triangle &triangle = triangles[primitive.index];
+                return meshes[triangle.meshIndex].tAnyHit(r, t, triangle.index);
             }
             default:
                 break;

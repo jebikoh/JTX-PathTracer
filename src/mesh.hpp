@@ -61,7 +61,7 @@ struct Mesh {
         n2            = normals[i[2]];
     }
 
-    bool tHit(const Ray &r, const Interval t, HitRecord &record, const int index, float &u, float &v) const {
+    bool tClosestHit(const Ray &r, const Interval t, HitRecord &record, const int index, float &u, float &v) const {
         Vec3 v0, v1, v2;
         getVertices(index, v0, v1, v2);
         const auto v0v1 = v1 - v0;
@@ -116,6 +116,32 @@ struct Mesh {
 
         record.tangent   = jtx::normalize((duv2.y * dp1 - duv1.y * dp2) * duvInvDet);
         record.bitangent = jtx::normalize((duv1.x * dp2 - duv2.x * dp1) * duvInvDet);
+
+        return true;
+    }
+
+    bool tAnyHit(const Ray &r, const Interval t, const int index) const {
+        Vec3 v0, v1, v2;
+        getVertices(index, v0, v1, v2);
+        const auto v0v1 = v1 - v0;
+        const auto v0v2 = v2 - v0;
+        const auto pvec = jtx::cross(r.dir, v0v2);
+        const auto det  = v0v1.dot(pvec);
+
+        if (fabs(det) < 1e-8) return false;
+
+        const float invDet = 1 / det;
+        const auto tvec    = r.origin - v0;
+
+        const auto u = tvec.dot(pvec) * invDet;
+        if (u < 0 || u > 1) return false;
+
+        const auto qvec = tvec.cross(v0v1);
+        const auto v               = r.dir.dot(qvec) * invDet;
+        if (v < 0 || u + v > 1) return false;
+
+        const float root = v0v2.dot(qvec) * invDet;
+        if (!t.surrounds(root)) return false;
 
         return true;
     }

@@ -8,7 +8,7 @@ static constexpr int SCENE_MATERIAL_LIMIT = 64;
 
 static Material DEFAULT_MAT = {.type = Material::DIFFUSE, .albedo = Color(1, 0.3, 0.5)};
 
-bool Scene::hit(const Ray &r, Interval t, HitRecord &record) const {
+bool Scene::closestHit(const Ray &r, Interval t, HitRecord &record) const {
     const auto invDir     = 1 / r.dir;
     const int dirIsNeg[3] = {static_cast<int>(invDir.x < 0), static_cast<int>(invDir.y < 0), static_cast<int>(invDir.z < 0)};
 
@@ -27,7 +27,7 @@ bool Scene::hit(const Ray &r, Interval t, HitRecord &record) const {
             if (node->numPrimitives > 0) {
                 // Leaf node
                 for (int i = 0; i < node->numPrimitives; ++i) {
-                    if (hitPrimitive(primitives_[node->primitivesOffset + i], r, t, record)) {
+                    if (closestHitPrimitive(primitives_[node->primitivesOffset + i], r, t, record)) {
                         hitAnything = true;
                         t.max       = record.t;
                     }
@@ -51,6 +51,44 @@ bool Scene::hit(const Ray &r, Interval t, HitRecord &record) const {
     }
 
     return hitAnything;
+}
+
+bool Scene::anyHit(const Ray &r, Interval t) const {
+    const auto invDir     = 1 / r.dir;
+    const int dirIsNeg[3] = {static_cast<int>(invDir.x < 0), static_cast<int>(invDir.y < 0), static_cast<int>(invDir.z < 0)};
+
+    int toVisitOffset    = 0;
+    int currentNodeIndex = 0;
+    int stack[64];
+
+    while (true) {
+        const LinearBVHNode *node = &nodes_[currentNodeIndex];
+        if (node->bbox.hit(r.origin, r.dir, t)) {
+            if (node->numPrimitives > 0) {
+                for (int i = 0; i < node->numPrimitives; ++i) {
+                    if (anyHitPrimitive(primitives_[node->primitivesOffset + i], r, t)) {
+                        return true;
+                    }
+                }
+                if (toVisitOffset == 0) break;
+                currentNodeIndex = stack[--toVisitOffset];
+            } else {
+                // Interior node
+                if (dirIsNeg[node->axis]) {
+                    stack[toVisitOffset++] = currentNodeIndex + 1;
+                    currentNodeIndex       = node->secondChildOffset;
+                } else {
+                    stack[toVisitOffset++] = node->secondChildOffset;
+                    currentNodeIndex       = currentNodeIndex + 1;
+                }
+            }
+        } else {
+            if (toVisitOffset == 0) break;
+            currentNodeIndex = stack[--toVisitOffset];
+        }
+    }
+
+    return false;
 }
 
 void Scene::loadMesh(const std::string &path) {
@@ -338,9 +376,9 @@ Scene createShaderBallSceneWithLight() {
     // Single point light
     const Light point = {
             .type = Light::POINT,
-            .position = Vec3(0, 10, 0),
-            .intensity = 5 * WHITE,
-            .scale = 10
+            .position = Vec3(2.5, 16, 12),
+            .intensity = WHITE,
+            .scale = 50
     };
     scene.lights.push_back(point);
 

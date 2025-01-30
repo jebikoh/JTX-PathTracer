@@ -36,7 +36,7 @@ public:
         const auto r = Vec3(radius, radius, radius);
     }
 
-    bool hit(const Ray &r, const Interval t, HitRecord &record) const {
+    bool closestHit(const Ray &r, const Interval t, HitRecord &record) const {
         const auto currentCenter = center_.at(r.time);
         const Vec3 oc            = currentCenter - r.origin;
         const Float a            = r.dir.lenSqr();
@@ -63,6 +63,29 @@ public:
         record.setFaceNormal(r, n);
         record.material = material_;
 
+        return true;
+    }
+
+    bool anyHit(const Ray &r, const Interval t) const {
+        const auto currentCenter = center_.at(r.time);
+        const Vec3 oc            = currentCenter - r.origin;
+        const Float a            = r.dir.lenSqr();
+        const Float h            = jtx::dot(r.dir, oc);
+        const Float c            = oc.lenSqr() - radius_ * radius_;
+
+        const Float discriminant = h * h - a * c;
+        if (discriminant < 0) {
+            return false;
+        }
+
+        const auto sqrtd = jtx::sqrt(discriminant);
+        auto root        = (h - sqrtd) / a;
+        if (!t.surrounds(root)) {
+            root = (h + sqrtd) / a;
+            if (!t.surrounds(root)) {
+                return false;
+            }
+        }
         return true;
     }
 

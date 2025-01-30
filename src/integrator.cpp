@@ -29,8 +29,8 @@ Vec3 integrate(Ray ray, const Scene &scene, const int maxDepth, const Color &bac
         // TODO: light sampling (once we add lights)
 
         // Generate samples
-        float u = rng.sampleFP();
-        Vec2f u2 = rng.sampleVec2();
+        float u = rng.sample<float>();
+        Vec2f u2 = rng.sample<Vec2f>();
 
         // Sample BSDF
         BSDFSample s;

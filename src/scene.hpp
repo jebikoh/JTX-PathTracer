@@ -4,6 +4,7 @@
 #include "mesh.hpp"
 #include "primitives.hpp"
 #include "lights/lights.hpp"
+#include "util/rand.hpp"
 
 // Very basic scene struct
 // Will change if this starts running into performance issues
@@ -62,6 +63,12 @@ public:
     AABB bounds() const {
         return nodes_[0].bbox;
     }
+
+    int sampleLightIdx(RNG &rng) const {
+        const int idx = rng.sampleRange(lights.size());
+        return idx;
+    }
+
 private:
     bool hitPrimitive(const Primitive &primitive, const Ray &r, const Interval t, HitRecord &record) const {
         switch(primitive.type) {

@@ -88,14 +88,14 @@ private:
         const int x = stratum % xPixelSamples_;
         const int y = stratum / xPixelSamples_;
 
-        const float dx = rng.sampleFP();
-        const float dy = rng.sampleFP();
+        const float dx = rng.sample<float>();
+        const float dy = rng.sample<float>();
 
         const auto offset = Vec2f((x + dx) / xPixelSamples_, (y + dy) / yPixelSamples_);
         const auto sample = vp00_ + (i + offset.x) * du_ + (j + offset.y) * dv_;
 
         auto origin = (properties_.defocusAngle <= 0) ? properties_.center : sampleDefocusDisc(rng);
-        return {origin, sample - origin, rng.sampleFP()};
+        return {origin, sample - origin, rng.sample<float>()};
     }
 
     [[nodiscard]] Vec3 sampleDefocusDisc(RNG &rng) const {

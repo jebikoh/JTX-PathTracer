@@ -18,6 +18,16 @@ int main(int argc, char *argv[]) {
     Scene scene = createShaderBallScene();
     scene.buildBVH();
 
+    RNG rng(0);
+    std::cout << rng.sampleRange(10) << std::endl;
+    std::cout << rng.sampleRange(10) << std::endl;
+    std::cout << rng.sampleRange(10) << std::endl;
+    std::cout << rng.sampleRange(10) << std::endl;
+    std::cout << rng.sampleRange(10) << std::endl;
+    std::cout << rng.sampleRange(10) << std::endl;
+    std::cout << rng.sampleRange(10) << std::endl;
+    std::cout << rng.sampleRange(10) << std::endl;
+
     Camera camera{
             IMAGE_WIDTH,
             IMAGE_HEIGHT,

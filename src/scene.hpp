@@ -3,6 +3,7 @@
 #include "material.hpp"
 #include "mesh.hpp"
 #include "primitives.hpp"
+#include "lights/lights.hpp"
 
 // Very basic scene struct
 // Will change if this starts running into performance issues
@@ -18,12 +19,13 @@ struct CameraProperties {
     Color background;
 };
 
-
 class Scene {
 public:
     std::string name;
 
     std::vector<Material> materials;
+
+    std::vector<Light> lights;
 
     std::vector<Sphere> spheres;
     std::vector<Triangle> triangles;
@@ -91,4 +93,5 @@ Scene createObjScene(const std::string &path, const Mat4 &t, const Color &backgr
 Scene createCornellBox();
 Scene createF22Scene(bool isDielectric = false);
 Scene createShaderBallScene();
+Scene createShaderBallSceneWithLight();
 Scene createKnobScene();

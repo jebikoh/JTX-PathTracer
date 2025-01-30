@@ -294,6 +294,7 @@ Scene createObjScene(const std::string &path, const Mat4 &t, const Color &backgr
 
     return scene;
 }
+
 Scene createShaderBallScene() {
     const auto t                 = Mat4::identity();
     const std::string path = "../src/assets/shaderball.obj";
@@ -303,6 +304,45 @@ Scene createShaderBallScene() {
     scene.cameraProperties.target     = Vec3(0, 3, 0);
     scene.cameraProperties.background = Color(0.7, 0.8, 1.0);
     scene.cameraProperties.yfov       = 40;
+
+    const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
+    const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};
+
+    // scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05});
+    scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.3, .alphaY = 0.3});
+    scene.meshes[3].material = &scene.materials.back();
+
+    // scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.8, 0.8, 0.8)});
+    // scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(1, 0.431, 0.431)});
+    scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05});
+    scene.meshes[0].material = &scene.materials.back();
+    scene.meshes[1].material = &scene.materials.back();
+    scene.meshes[4].material = &scene.materials.back();
+
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.3, 0.3, 0.3)});
+    scene.meshes[2].material = &scene.materials.back();
+
+    return scene;
+}
+
+Scene createShaderBallSceneWithLight() {
+    const auto t                 = Mat4::identity();
+    const std::string path = "../src/assets/shaderball.obj";
+    auto scene       = createObjScene(path, t);
+
+    scene.cameraProperties.center     = Vec3(2.5, 16, 12);
+    scene.cameraProperties.target     = Vec3(0, 3, 0);
+    scene.cameraProperties.background = Color(0.1, 0.1, 0.1);
+    scene.cameraProperties.yfov       = 40;
+
+    // Single point light
+    const Light point = {
+            .type = Light::POINT,
+            .position = Vec3(0, 10, 0),
+            .intensity = WHITE,
+            .scale = 1
+    };
+    scene.lights.push_back(point);
 
     const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
     const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};

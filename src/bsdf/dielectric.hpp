@@ -40,7 +40,8 @@ public:
     }
 
     bool sample(const Vec3 &w_o, const float uc, const Vec2f &u, BSDFSample &s) const {
-        if (eta == 1 || mf_.smooth()) {
+        bool isSpecular = mf_.smooth();
+        if (eta == 1 || isSpecular) {
             // Calculate Fresnel reflectance and complementary transmission
             const float R = fresnelDielectric(jtx::cosTheta(w_o), eta);
             const float T = 1 - R;
@@ -52,7 +53,7 @@ public:
                 const Vec3 w_i = {-w_o.x, -w_o.y, w_o.z};
                 const Vec3 f{R / jtx::absCosTheta(w_i)};
 
-                s = {f, w_i, p};
+                s = {f, w_i, p, isSpecular};
                 return true;
             } else {
                 // Transmission: sample BTDF
@@ -65,7 +66,7 @@ public:
                 if (!valid) return false;
 
                 const auto f = Vec3(T / jtx::absCosTheta(w_i));
-                s = {f, w_i, 1 - p};
+                s = {f, w_i, 1 - p, isSpecular};
                 return true;
             }
         }
@@ -84,7 +85,7 @@ public:
             const float pdf = mf_.pdf(w_o, w_m) / (4 * jtx::absdot(w_o, w_m)) * p;
             const auto f = mf_.D(w_m) * mf_.G(w_o, w_i) * R / (4 * jtx::absCosTheta(w_i) * jtx::absCosTheta(w_o));
 
-            s = {Vec3(f), w_i, pdf};
+            s = {Vec3(f), w_i, pdf, isSpecular};
             return true;
         } else {
             // Transmission
@@ -101,7 +102,7 @@ public:
             auto f = mf_.D(w_m) * T * mf_.G(w_o, w_i) * jtx::abs(w_i.dot(w_m) * w_o.dot(w_m));
             f /= jtx::sqr(w_i.dot(w_m) + w_m.dot(w_o) / etap) * jtx::abs(jtx::cosTheta(w_i) * jtx::cosTheta(w_o));
 
-            s = {Vec3(f), w_i, pdf};
+            s = {Vec3(f), w_i, pdf, isSpecular};
             return true;
         }
     }

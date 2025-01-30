@@ -339,8 +339,8 @@ Scene createShaderBallSceneWithLight() {
     const Light point = {
             .type = Light::POINT,
             .position = Vec3(0, 10, 0),
-            .intensity = WHITE,
-            .scale = 1
+            .intensity = 5 * WHITE,
+            .scale = 10
     };
     scene.lights.push_back(point);
 

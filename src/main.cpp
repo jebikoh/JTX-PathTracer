@@ -15,18 +15,9 @@ constexpr int MAX_DEPTH      = 50;
 
 int main(int argc, char *argv[]) {
     // Scene scene = createKnobScene();
-    Scene scene = createShaderBallScene();
+    Scene scene = createShaderBallSceneWithLight();
+    scene.cameraProperties.background = BLACK;
     scene.buildBVH();
-
-    RNG rng(0);
-    std::cout << rng.sampleRange(10) << std::endl;
-    std::cout << rng.sampleRange(10) << std::endl;
-    std::cout << rng.sampleRange(10) << std::endl;
-    std::cout << rng.sampleRange(10) << std::endl;
-    std::cout << rng.sampleRange(10) << std::endl;
-    std::cout << rng.sampleRange(10) << std::endl;
-    std::cout << rng.sampleRange(10) << std::endl;
-    std::cout << rng.sampleRange(10) << std::endl;
 
     Camera camera{
             IMAGE_WIDTH,

@@ -34,7 +34,7 @@ public:
             const Vec3 w_i(-w_o.x, -w_o.y, w_o.z);
             const auto cosTheta_i = jtx::absCosTheta(w_i);
             const auto f          = fresnelComplexRGB(cosTheta_i, eta_, k_) / cosTheta_i;
-            s                     = {f, w_i, 1};
+            s                     = {f, w_i, 1, true};
             return true;
         }
 
@@ -54,7 +54,7 @@ public:
         const Vec3 F = fresnelComplexRGB(jtx::absdot(w_o, w_m), eta_, k_);
         const Vec3 f = mf_.D(w_m) * F * mf_.G(w_o, w_i) / (4 * cosTheta_i * cosTheta_o);
 
-        s = {f, w_i, _pdf};
+        s = {f, w_i, _pdf, false};
         return true;
     }
 

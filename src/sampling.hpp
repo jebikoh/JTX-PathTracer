@@ -3,7 +3,21 @@
 constexpr float PI_OVER_4 = PI / 4;
 constexpr float PI_OVER_2 = PI / 2;
 constexpr float INV_TWO_PI = 1.0f / (2.0f * PI);
+constexpr float TWO_PI = 2.0F * PI;
 constexpr float INV_PI = 1.0f / PI;
+constexpr float INV_4_PI = 1.0f / (4.0f * PI);
+
+inline Vec3 sampleUniformSphere(Vec2f u) {
+    // $z = 1 - 2\xi_1$
+    const float z = 1 - 2 * u[1];
+    // $\sqrt{1 - z^2}$
+    const float a = jtx::safeSqrt(1 - z * z);
+    // $2\pi\xi_2$
+    const float phi = TWO_PI * u[1];
+    return {jtx::cos(phi) * a, jtx::sin(phi) * a, z};
+}
+
+inline float uniformSpherePDF() { return INV_4_PI; }
 
 inline Vec2f sampleUniformDiskPolar(const Vec2f &u) {
     const float r = jtx::sqrt(u.x);

@@ -40,7 +40,15 @@ if (USE_DOUBLE_PRECISION)
     add_compile_definitions(-DUSE_DOUBLE_PRECISION)
 endif()
 
-add_compile_options(-O3 -ffast-math)
+if(MSVC)
+    message(STATUS "Using MSVC compiler")
+    add_compile_options(/O2 /fp:fast)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    message(STATUS "Using GNU or Clang compiler")
+    add_compile_options(-O3 -ffast-math)
+else()
+    message(WARNING "Unknown compiler. No optimization flags added.")
+endif()
 
 add_subdirectory(ext/jtxlib)
 

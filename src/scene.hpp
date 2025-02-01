@@ -19,7 +19,6 @@ struct CameraProperties {
     Float yfov;
     Float defocusAngle;
     Float focusDistance;
-    Color background;
 };
 
 class Scene {
@@ -28,6 +27,7 @@ public:
 
     std::vector<Material> materials;
 
+    // First light should be background light
     std::vector<Light> lights;
 
     std::vector<Sphere> spheres;
@@ -72,6 +72,10 @@ public:
         return idx;
     }
 
+    bool valid() const {
+        return !lights.empty() && lights[0].type == Light::INFINITE;
+    }
+
 private:
     bool closestHitPrimitive(const Primitive &primitive, const Ray &r, const Interval t, HitRecord &record) const {
         switch(primitive.type) {
@@ -111,12 +115,8 @@ private:
 };
 
 Scene createDefaultScene();
-Scene createTestScene();
-Scene createCoverScene();
 Scene createMeshScene();
 Scene createObjScene(const std::string &path, const Mat4 &t, const Color &background = Color(0.7, 0.8, 1.0));
-Scene createCornellBox();
-Scene createF22Scene(bool isDielectric = false);
 Scene createShaderBallScene();
 Scene createShaderBallSceneWithLight();
 Scene createKnobScene();

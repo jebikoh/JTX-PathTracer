@@ -238,7 +238,13 @@ Scene createDefaultScene() {
     scene.cameraProperties.yfov          = 20;
     scene.cameraProperties.defocusAngle  = 0;
     scene.cameraProperties.focusDistance = 3.4;
-    scene.cameraProperties.background    = Color(0.7, 0.8, 1.0);
+
+    Light background = {
+            .type = Light::INFINITE,
+            .intensity = Color(0.7, 0.8, 1.0),
+            .scale = 1.0
+    };
+    scene.lights.push_back(background);
 
     scene.materials.reserve(10);
     scene.spheres.reserve(10);
@@ -272,7 +278,13 @@ Scene createMeshScene() {
     scene.cameraProperties.yfov          = 20;
     scene.cameraProperties.defocusAngle  = 0;
     scene.cameraProperties.focusDistance = 3.4;
-    scene.cameraProperties.background    = Color(0.7, 0.8, 1.0);
+
+    Light background = {
+            .type = Light::INFINITE,
+            .intensity = Color(0.7, 0.8, 1.0),
+            .scale = 1.0
+    };
+    scene.lights.push_back(background);
 
     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(1, 0.3, 0.5)});
 
@@ -311,7 +323,13 @@ Scene createObjScene(const std::string &path, const Mat4 &t, const Color &backgr
     scene.cameraProperties.yfov          = 20;
     scene.cameraProperties.defocusAngle  = 0;
     scene.cameraProperties.focusDistance = 1;
-    scene.cameraProperties.background    = background;
+
+    Light background_ = {
+            .type = Light::INFINITE,
+            .intensity = background,
+            .scale = 1.0
+    };
+    scene.lights.push_back(background_);
 
     std::cout << "Scene loaded with:" << std::endl;
     std::cout << " - " << scene.meshes.size() << " meshes" << std::endl;
@@ -340,8 +358,14 @@ Scene createShaderBallScene() {
 
     scene.cameraProperties.center     = Vec3(2.5, 16, 12);
     scene.cameraProperties.target     = Vec3(0, 3, 0);
-    scene.cameraProperties.background = Color(0.7, 0.8, 1.0);
     scene.cameraProperties.yfov       = 40;
+
+    Light background = {
+            .type = Light::INFINITE,
+            .intensity = Color(0.7, 0.8, 1.0),
+            .scale = 1.0
+    };
+    scene.lights.push_back(background);
 
     const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
     const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};
@@ -370,17 +394,23 @@ Scene createShaderBallSceneWithLight() {
 
     scene.cameraProperties.center     = Vec3(2.5, 16, 12);
     scene.cameraProperties.target     = Vec3(0, 3, 0);
-    scene.cameraProperties.background = Color(0.1, 0.1, 0.1);
     scene.cameraProperties.yfov       = 40;
 
-    // Single point light
-    const Light point = {
-            .type = Light::POINT,
-            .position = Vec3(2.5, 16, 12),
-            .intensity = WHITE,
-            .scale = 50
+    Light background = {
+            .type = Light::INFINITE,
+            .intensity = Color(0.7, 0.8, 1.0),
+            .scale = 1.0
     };
-    scene.lights.push_back(point);
+    scene.lights.push_back(background);
+
+    // Single point light
+//    const Light point = {
+//            .type = Light::POINT,
+//            .position = Vec3(2.5, 16, 12),
+//            .intensity = WHITE,
+//            .scale = 10
+//    };
+//    scene.lights.push_back(point);
 
     const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
     const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};
@@ -409,8 +439,14 @@ Scene createKnobScene() {
 
     scene.cameraProperties.center     = Vec3(0, 3, 8);
     scene.cameraProperties.target     = Vec3(0, 0, 0);
-    scene.cameraProperties.background = Color(0.7, 0.8, 1.0);
     scene.cameraProperties.yfov       = 15;
+
+    Light background = {
+            .type = Light::INFINITE,
+            .intensity = Color(0.7, 0.8, 1.0),
+            .scale = 1.0
+    };
+    scene.lights.push_back(background);
 
     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.3, 0.3, 0.)});
     scene.meshes[0].material = &scene.materials.back();
@@ -426,69 +462,3 @@ Scene createKnobScene() {
 
     return scene;
 }
-
-// Scene createCornellBox() {
-//     std::string path = "../src/assets/cornell_box.obj";
-//     Scene scene      = createObjScene(path, Mat4::identity(), Color(0.7, 0.8, 1.0));
-//
-//     scene.materials.push_back({.type = Material::DIFFUSE_LIGHT, .emission = 15 * WHITE});
-//     scene.meshes.back().material = &scene.materials.back();
-//
-//     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.73, .73, .73)});
-//     scene.meshes[0].material = &scene.materials.back();
-//     scene.meshes[1].material = &scene.materials.back();
-//     scene.meshes[2].material = &scene.materials.back();
-//     scene.meshes[5].material = &scene.materials.back();
-//     scene.meshes[6].material = &scene.materials.back();
-//
-//     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.12, .45, .15)});
-//     scene.meshes[3].material = &scene.materials.back();
-//
-//     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.65, .05, .05)});
-//     scene.meshes[4].material = &scene.materials.back();
-//
-//     scene.cameraProperties.center       = Vec3(278, 273, -800);
-//     scene.cameraProperties.target       = Vec3(278, 273, 0);
-//     scene.cameraProperties.up           = Vec3(0, 1, 0);
-//     scene.cameraProperties.defocusAngle = 0;
-//     scene.cameraProperties.yfov         = 40;
-//
-//     scene.cameraProperties.background = BLACK;
-//
-//     return scene;
-// }
-
-// Scene createF22Scene(bool isDielectric) {
-//     std::string path = "../src/assets/f22_box.obj";
-//     Scene scene      = createObjScene(path, Mat4::identity(), Color(0.2, 0.2, 0.2));
-//
-//     scene.materials.push_back({.type = Material::DIFFUSE_LIGHT, .emission = 15 * WHITE});
-//     scene.meshes.back().material = &scene.materials.back();
-//
-//     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.73, .73, .73)});
-//     scene.meshes[1].material = &scene.materials.back();
-//     scene.meshes[2].material = &scene.materials.back();
-//     scene.meshes[3].material = &scene.materials.back();
-//
-//     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.12, .45, .15)});
-//     scene.meshes[4].material = &scene.materials.back();
-//
-//     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(.65, .05, .05)});
-//     scene.meshes[5].material = &scene.materials.back();
-//
-//     if (!isDielectric) {
-//         *scene.meshes[0].material = {.type = Material::METAL, .albedo = Color(0.8, 0.8, 0.8)};
-//     } else {
-//         *scene.meshes[0].material = {.type = Material::DIELECTRIC, .refractionIndex = 1.5f};
-//     }
-//
-//     scene.cameraProperties.center = Vec3(0, 1, 3.5);
-//     scene.cameraProperties.target = Vec3(0, 1, 0);
-//     scene.cameraProperties.up           = Vec3(0, 1, 0);
-//     scene.cameraProperties.defocusAngle = 0;
-//     scene.cameraProperties.yfov         = 40;
-//
-//     scene.cameraProperties.background = BLACK;
-//
-//     return scene;
-// }

@@ -64,6 +64,7 @@ public:
     }
 
     AABB bounds() const {
+        if (!bvhBuilt_) return AABB();
         return nodes_[0].bbox;
     }
 
@@ -72,8 +73,9 @@ public:
         return idx;
     }
 
-    bool valid() const {
-        return !lights.empty() && lights[0].type == Light::INFINITE;
+    float getSceneRadius() const {
+        if (!bvhBuilt_) return 0;
+        return bounds().diagonal().len() / 2;
     }
 
 private:

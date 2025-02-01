@@ -56,7 +56,7 @@ Vec3 integrate(Ray ray, const Scene &scene, const int maxDepth, RNG &rng) {
         const bool hit = scene.closestHit(ray, Interval(0.001, INF), record);
 
         if (!hit) {
-            if (specularBounce) {
+            if (specularBounce && scene.lights[0].type == Light::INFINITE) {
                 radiance += beta * scene.lights[0].evaluate(ray);
             }
             break;
@@ -76,8 +76,8 @@ Vec3 integrate(Ray ray, const Scene &scene, const int maxDepth, RNG &rng) {
         Vec3 w_o = -ray.dir;
 
         {// Light sampling
-            // Add one to account for background
-            auto lightIdx      = rng.sampleRange(scene.lights.size());
+            auto lightIdx      = rng.sampleRange(scene.lights.size() - 1);
+//            std::cout << "Light index: " << lightIdx << std::endl;
             const Light &light = scene.lights[lightIdx];
 
             LightSample ls;
@@ -101,7 +101,7 @@ Vec3 integrate(Ray ray, const Scene &scene, const int maxDepth, RNG &rng) {
                 const auto lDist = jtx::distance(record.point, ls.p);
 
                 if (f && !scene.anyHit(sRay, Interval(0.0f, lDist - RAY_EPSILON))) {
-                    radiance += beta * f * ls.radiance / (ls.pdf * (1 / scene.lights.size()));
+                    radiance += beta * f * ls.radiance / (ls.pdf * (1.0f / static_cast<float>(scene.lights.size())));
                 }
             }
         }

@@ -23,7 +23,6 @@ struct WorkQueue {
 };
 
 void Camera::render(const Scene &scene) {
-    if (!scene.valid()) return;
     // Need to re-initialize everytime to reflect changes via UI
     init();
     stopRender_ = false;

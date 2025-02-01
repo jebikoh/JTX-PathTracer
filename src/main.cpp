@@ -14,9 +14,7 @@ constexpr int IMAGE_HEIGHT   = 400;
 constexpr int MAX_DEPTH      = 50;
 
 int main(int argc, char *argv[]) {
-    // Scene scene = createKnobScene();
     Scene scene = createShaderBallSceneWithLight();
-    // scene.cameraProperties.background = BLACK;
     scene.buildBVH();
 
     Camera camera{

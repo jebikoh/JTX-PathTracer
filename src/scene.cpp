@@ -324,13 +324,6 @@ Scene createObjScene(const std::string &path, const Mat4 &t, const Color &backgr
     scene.cameraProperties.defocusAngle  = 0;
     scene.cameraProperties.focusDistance = 1;
 
-    Light background_ = {
-            .type = Light::INFINITE,
-            .intensity = background,
-            .scale = 1.0
-    };
-    scene.lights.push_back(background_);
-
     std::cout << "Scene loaded with:" << std::endl;
     std::cout << " - " << scene.meshes.size() << " meshes" << std::endl;
     std::cout << " - " << scene.triangles.size() << " triangles" << std::endl;
@@ -396,21 +389,21 @@ Scene createShaderBallSceneWithLight() {
     scene.cameraProperties.target     = Vec3(0, 3, 0);
     scene.cameraProperties.yfov       = 40;
 
-    Light background = {
-            .type = Light::INFINITE,
-            .intensity = Color(0.7, 0.8, 1.0),
-            .scale = 1.0
-    };
-    scene.lights.push_back(background);
+//    Light background = {
+//            .type = Light::INFINITE,
+//            .intensity = Color(0,0,0),
+//            .scale = 1.0
+//    };
+//    scene.lights.push_back(background);
 
     // Single point light
-//    const Light point = {
-//            .type = Light::POINT,
-//            .position = Vec3(2.5, 16, 12),
-//            .intensity = WHITE,
-//            .scale = 10
-//    };
-//    scene.lights.push_back(point);
+    const Light point = {
+            .type = Light::POINT,
+            .position = Vec3(2.5, 16, 12),
+            .intensity = WHITE,
+            .scale = 10
+    };
+    scene.lights.push_back(point);
 
     const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
     const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};

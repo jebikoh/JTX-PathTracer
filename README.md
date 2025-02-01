@@ -1,1 +1,1 @@
-My ray tracer. WIP
+# JTX Path Tracer

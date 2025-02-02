@@ -9,4 +9,4 @@ Vec3 integrateBasic(Ray ray, const Scene &scene, int maxDepth, RNG &rng);
 
 Vec3 integrate(Ray ray, const Scene &scene, int maxDepth, RNG &rng);
 
-Vec3 integrateMIS();
+Vec3 integrateMIS(Ray ray, const Scene &scene, int maxDepth, bool regularize, RNG &rng);

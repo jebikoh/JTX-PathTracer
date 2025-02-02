@@ -112,10 +112,13 @@ struct BSDFSample {
     Vec3 fSample;
     Vec3 w_i;
     float pdf;
+    float eta;
     bool isSpecular = false;
+    bool isTransmission = false;
 };
 
 struct HitRecord;
 struct Material;
 bool sampleBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o, float uc, const Vec2f &u, BSDFSample &s);
 Vec3 evalBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o, const Vec3 &w_i);
+float pdfBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o, const Vec3 &w_i);

@@ -18,6 +18,17 @@ struct Mesh {
 
     Material *material;
 
+    Transform scale;
+    Transform rX, rY, rZ;
+    Transform translate;
+
+    Transform transform;
+
+    void recalculateTransform() {
+        transform = scale * rX * rY * rZ * translate;
+
+    }
+
     Mesh(Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Material *material)
         : numVertices(numVertices),
           numIndices(numIndices),
@@ -37,14 +48,16 @@ struct Mesh {
 
     void getVertices(const int index, Vec3 &v0, Vec3 &v1, Vec3 &v2) const {
         const Vec3i i = indices[index];
-        v0            = vertices[i[0]];
-        v1            = vertices[i[1]];
-        v2            = vertices[i[2]];
+
+        v0 = transform.applyToPoint(vertices[i[0]]);
+        v1 = transform.applyToPoint(vertices[i[1]]);
+        v2 = transform.applyToPoint(vertices[i[2]]);
     }
 
     AABB tBounds(const int index) const {
         Vec3 v0, v1, v2;
         getVertices(index, v0, v1, v2);
+
         return AABB{v0, v1}.expand(v2);
     }
 
@@ -56,9 +69,9 @@ struct Mesh {
 
     void getNormals(const int index, Vec3 &n0, Vec3 &n1, Vec3 &n2) const {
         const Vec3i i = indices[index];
-        n0            = normals[i[0]];
-        n1            = normals[i[1]];
-        n2            = normals[i[2]];
+        n0            = transform.applyToNormal(normals[i[0]]);
+        n1            = transform.applyToNormal(normals[i[1]]);
+        n2            = transform.applyToNormal(normals[i[2]]);
     }
 
     bool tClosestHit(const Ray &r, const Interval t, HitRecord &record, const int index, float &u, float &v) const {
@@ -137,7 +150,7 @@ struct Mesh {
         if (u < 0 || u > 1) return false;
 
         const auto qvec = tvec.cross(v0v1);
-        const auto v               = r.dir.dot(qvec) * invDet;
+        const auto v    = r.dir.dot(qvec) * invDet;
         if (v < 0 || u + v > 1) return false;
 
         const float root = v0v2.dot(qvec) * invDet;

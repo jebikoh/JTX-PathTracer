@@ -14,7 +14,7 @@ constexpr int IMAGE_HEIGHT   = 400;
 constexpr int MAX_DEPTH      = 50;
 
 int main(int argc, char *argv[]) {
-    Scene scene = createShaderBallSceneWithLight();
+    Scene scene = createShaderBallScene();
     scene.buildBVH();
 
     Camera camera{

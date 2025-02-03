@@ -88,8 +88,8 @@ void Camera::render(const Scene &scene) {
 
                             const Ray r = getRay(col, row, sample, sampler);
 
-//                            Color sampleColor = integrateBasic(r, *job.scene, maxDepth_, sampler);
-                             Color sampleColor = integrate(r, *job.scene, maxDepth_, sampler);
+                            Color sampleColor = integrateBasic(r, *job.scene, maxDepth_, sampler);
+                             // Color sampleColor = integrate(r, *job.scene, maxDepth_, sampler);
 
                             // Clamp the color
                             if (sampleColor[0] > 1.0f) sampleColor[0] = 1.0f;

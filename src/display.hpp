@@ -53,6 +53,7 @@ private:
     float scaleX_, scaleY_;
 
     Scene *scene_;
+    bool rebuildBVH_ = false;
 
     SDL_Window *window_;
     SDL_GLContext glContext_;

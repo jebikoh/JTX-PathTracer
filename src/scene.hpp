@@ -60,7 +60,13 @@ public:
             delete[] nodes_;
             nodes_ = nullptr;
             bvhBuilt_ = false;
+            primitives_.clear();
         }
+    }
+
+    void rebuildBVH(const int maxPrimsInNode = 1) {
+        destroyBVH();
+        buildBVH(maxPrimsInNode);
     }
 
     AABB bounds() const {

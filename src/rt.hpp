@@ -18,6 +18,7 @@ using Vec2i = jtx::Vec2i;
 using Vec3i = jtx::Vec3i;
 
 using Mat4 = jtx::Mat4;
+using Transform = jtx::Transform;
 
 #ifdef ENABLE_CUDA_BACKEND
 #define HOSTDEV __host__ __device__

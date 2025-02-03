@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../rt.hpp"
-#include "sampling.hpp"
+#include "../sampling.hpp"
 
 // Plan to implement
 // - Point lights

@@ -338,7 +338,7 @@ void Display::render() {
         ImGui::PopStyleColor();
 
         if (selectedMeshIndex != -1) {
-            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f)); // Darker background
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
             ImGui::BeginChild("Material Editor", ImVec2(0, 0), true, ImGuiWindowFlags_None);
             {
                 ImGui::Text("Material Editor");
@@ -374,6 +374,66 @@ void Display::render() {
             }
             ImGui::EndChild();
             ImGui::PopStyleColor(); // Restore background color
+
+            ImGui::Separator();
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+        ImGui::BeginChild("Transformation Editor", ImVec2(0, 120), true, ImGuiWindowFlags_None);
+        {
+            ImGui::Text("Transform");
+
+            static int lastSelectedMeshIndex = -1;
+            static float translation[3] = { 0.0f, 0.0f, 0.0f };
+            static float rotation[3]    = { 0.0f, 0.0f, 0.0f };
+            static float scale[3]       = { 1.0f, 1.0f, 1.0f };
+
+            if (selectedMeshIndex != lastSelectedMeshIndex) {
+                lastSelectedMeshIndex = selectedMeshIndex;
+                auto& mesh = scene_->meshes[selectedMeshIndex];
+
+                translation[0] = mesh.translate.m[0][3];
+                translation[1] = mesh.translate.m[1][3];
+                translation[2] = mesh.translate.m[2][3];
+
+                scale[0] = mesh.scale.m[0][0];
+                scale[1] = mesh.scale.m[1][1];
+                scale[2] = mesh.scale.m[2][2];
+
+                rotation[0] = 0.0f;
+                rotation[1] = 0.0f;
+                rotation[2] = 0.0f;
+            }
+
+            // Translation control
+            if (ImGui::DragFloat3("Translation", translation, 0.1f)) {
+                auto& mesh = scene_->meshes[selectedMeshIndex];
+                // Update the translation matrix (assumes a helper that builds a translation matrix)
+                mesh.translate = Transform::translate(translation[0], translation[1], translation[2]);
+                mesh.recalculateTransform();
+                rebuildBVH_ = true;
+            }
+
+            // Rotation control (in degrees; adjust the drag speed as needed)
+            if (ImGui::DragFloat3("Rotation", rotation, 0.5f)) {
+                auto& mesh = scene_->meshes[selectedMeshIndex];
+                // Update the rotation matrices (assumes your Mat4::rotate* functions take angles in degrees)
+                mesh.rX = Transform::rotateX(rotation[0]);
+                mesh.rY = Transform::rotateY(rotation[1]);
+                mesh.rZ = Transform::rotateZ(rotation[2]);
+                mesh.recalculateTransform();
+                rebuildBVH_ = true;
+            }
+
+            // Scale control
+            if (ImGui::DragFloat3("Scale", scale, 0.1f)) {
+                auto& mesh = scene_->meshes[selectedMeshIndex];
+                // Update the scale matrix
+                mesh.scale = Transform::scale(scale[0], scale[1], scale[2]);
+                mesh.recalculateTransform();
+                rebuildBVH_ = true;
+            }
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
         }
     }
 
@@ -506,6 +566,10 @@ void Display::renderScene() {
     if (isRendering_) return;
 
     isRendering_ = true;
+    if (rebuildBVH_) {
+        scene_->rebuildBVH();
+        rebuildBVH_ = false;
+    }
     std::thread([this]() {
         camera_->render(*scene_);
         isRendering_ = false;

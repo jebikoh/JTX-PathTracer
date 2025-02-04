@@ -97,6 +97,22 @@ public:
 
     explicit TextureImage(const char *path) { load(path); }
 
+    TextureImage(TextureImage&& other) noexcept
+        : isExr_(other.isExr_),
+          width_(other.width_),
+          height_(other.height_),
+          channels_(other.channels_),
+          data_(other.data_)
+    {
+        other.data_ = nullptr;
+        other.width_ = other.height_ = other.channels_ = 0;
+    }
+
+    TextureImage(const TextureImage&) = delete;
+
+    TextureImage& operator=(const TextureImage&) = delete;
+    TextureImage& operator=(TextureImage&& other) noexcept;
+
     ~TextureImage();
 
     bool load(const char *path);
@@ -108,12 +124,29 @@ public:
     const float *data() const { return data_; }
 
     Vec3 getTexel(const int u, const int v) const {
-        if (u < 0 || u >= width_ || v < 0 || v >= height_) {
-            return Vec3(0, 0, 0);
+        int wrappedU = u % width_;
+        if (wrappedU < 0) {
+            wrappedU += width_;
         }
 
-        const float *pixel = data_ + (v * width_ + u) * channels_;
+        int wrappedV = v % height_;
+        if (wrappedV < 0) {
+            wrappedV += height_;
+        }
+
+        const float *pixel = data_ + (wrappedV * width_ + wrappedU) * channels_;
         return Vec3(pixel[0], pixel[1], pixel[2]);
+    }
+
+    // Interpolated texel
+    Vec3 getTexel(const float u, const float v) const {
+        const  int x0 = static_cast<int>(u * width_);
+        const int y0 = static_cast<int>(v * height_);
+        return getTexel(x0, y0);
+    }
+
+    Vec3 getTexel(const Vec2f &uv) const {
+        return getTexel(uv.x, uv.y);
     }
 
 private:

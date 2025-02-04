@@ -95,7 +95,6 @@ void Scene::loadMesh(const std::string &path) {
     if (materials.capacity() < SCENE_MATERIAL_LIMIT) {
         materials.reserve(SCENE_MATERIAL_LIMIT);
     }
-    materials.push_back(DEFAULT_MAT);
 
     const tinyobj::ObjReaderConfig reader_config;
     tinyobj::ObjReader reader;
@@ -109,6 +108,14 @@ void Scene::loadMesh(const std::string &path) {
 
     if (!reader.Warning().empty()) {
         std::cerr << "TinyObjReader Warning: " << reader.Warning() << std::endl;
+    }
+
+    std::string baseDir;
+    size_t lastSlash = path.find_last_of("/\\");
+    if (lastSlash != std::string::npos) {
+        baseDir = path.substr(0, lastSlash + 1);
+    } else {
+        baseDir = "";
     }
 
     const auto &attrib = reader.GetAttrib();
@@ -126,6 +133,7 @@ void Scene::loadMesh(const std::string &path) {
         // Prepare CPU-side arrays (vectors first for ease)
         std::vector<Vec3> shapeVerts(numIndices);
         std::vector<Vec3> shapeNormals(numIndices);
+        std::vector<Vec2f> shapeUVs(numIndices);
         std::vector<Vec3i> shapeTriIndices(numIndices / 3);
 
         // Fill vertices and normals
@@ -148,6 +156,15 @@ void Scene::loadMesh(const std::string &path) {
             } else {
                 shapeNormals[i] = Vec3(0.0f, 1.0f, 0.0f);// fallback normal
             }
+
+            if (idx.texcoord_index >= 0 && !attrib.texcoords.empty()) {
+                float tu = attrib.texcoords[2 * static_cast<size_t>(idx.texcoord_index) + 0];
+                float tv = attrib.texcoords[2 * static_cast<size_t>(idx.texcoord_index) + 1];
+                shapeUVs[i] = Vec2f(tu, tv);
+            } else {
+                // Default UV (could also be generated procedurally)
+                shapeUVs[i] = Vec2f(0.0f, 0.0f);
+            }
         }
 
         // Build the index array, grouping by 3 for each triangle
@@ -168,11 +185,37 @@ void Scene::loadMesh(const std::string &path) {
         std::memcpy(finalNormals, shapeNormals.data(), numIndices * sizeof(Vec3));
         std::memcpy(finalIndices, shapeTriIndices.data(), (numIndices / 3) * sizeof(Vec3i));
 
+        Vec2f *finalUVs = nullptr;
+        if (shapeUVs.size() > 0) {
+            finalUVs     = new Vec2f[numIndices];
+            std::memcpy(finalUVs,     shapeUVs.data(),     numIndices * sizeof(Vec2f));
+        }
+
         std::string mName = shapes[s].name;
 
+        size_t texId = -1;
+        if (!shapes[s].mesh.material_ids.empty() && shapes[s].mesh.material_ids[0] >= 0) {
+            int matId = shapes[s].mesh.material_ids[0];
+            if (matId < static_cast<int>(reader.GetMaterials().size())) {
+                const auto &mat = reader.GetMaterials()[matId];
+                if (!mat.diffuse_texname.empty()) {
+                    // Resolve the full path for the texture
+                    std::string texPath = baseDir + mat.diffuse_texname;
+                    TextureImage texture;
+                    if (texture.load(texPath.c_str())) {
+                        std::cout << "Loaded texture: " << texPath << std::endl;
+                        textures.push_back(std::move(texture));
+                        texId = textures.size() - 1;
+                    } else {
+                        std::cerr << "Failed to load texture: " << texPath << std::endl;
+                    }
+                }
+            }
+        }
+        materials.push_back({.texId = texId});
         // Create the Mesh and store it
         // Use the default material we pushed earlier: materials.back()
-        meshes.emplace_back(mName, finalIndices, shapeTriIndices.size(), finalVerts, shapeVerts.size(), finalNormals, &materials.back());
+        meshes.emplace_back(mName, finalIndices, shapeTriIndices.size(), finalVerts, shapeVerts.size(), finalNormals, finalUVs, &materials.back());
 
         // Now register all triangles from this mesh in the scene
         const int meshIndex     = static_cast<int>(meshes.size()) - 1;
@@ -184,6 +227,9 @@ void Scene::loadMesh(const std::string &path) {
             tri.meshIndex = meshIndex;
             triangles.push_back(tri);
         }
+
+        std::cout << "Loaded mesh: " << mName << std::endl;
+
     }
 }
 
@@ -329,7 +375,7 @@ Scene createObjScene(const std::string &path, const Mat4 &t, const Color &backgr
     std::cout << " - " << scene.triangles.size() << " triangles" << std::endl;
 
     int numVertices = 0;
-    for (auto &mesh: scene.meshes) {
+    for (const auto &mesh: scene.meshes) {
         numVertices += mesh.numVertices;
     }
 
@@ -346,7 +392,7 @@ Scene createObjScene(const std::string &path, const Mat4 &t, const Color &backgr
 
 Scene createShaderBallScene() {
     const auto t                 = Mat4::identity();
-    const std::string path = "../src/assets/shaderball.obj";
+    const std::string path = "../src/assets/shaderball/shaderball.obj";
     auto scene       = createObjScene(path, t);
 
     scene.cameraProperties.center     = Vec3(2.5, 16, 12);
@@ -363,19 +409,11 @@ Scene createShaderBallScene() {
     const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
     const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};
 
-    // scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05});
-    scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.3, .alphaY = 0.3});
-    scene.meshes[3].material = &scene.materials.back();
-
-    // scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.8, 0.8, 0.8)});
-    // scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(1, 0.431, 0.431)});
-    scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05});
-    scene.meshes[0].material = &scene.materials.back();
-    scene.meshes[1].material = &scene.materials.back();
-    scene.meshes[4].material = &scene.materials.back();
-
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.3, 0.3, 0.3)});
-    scene.meshes[2].material = &scene.materials.back();
+    *scene.meshes[3].material = {.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.3, .alphaY = 0.3};
+    *scene.meshes[0].material = {.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05};
+    *scene.meshes[1].material = {.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05};
+    *scene.meshes[4].material = {.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05};
+    *scene.meshes[2].material = {.type = Material::DIFFUSE, .albedo = Color(0.3, 0.3, 0.3)};
 
     return scene;
 }

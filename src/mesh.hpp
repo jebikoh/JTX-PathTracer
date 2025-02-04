@@ -18,8 +18,6 @@ struct Mesh {
     Vec3 *normals;
 
     Vec2f *uvs;
-    size_t texId;
-
     Material *material;
 
     Transform scale;
@@ -39,7 +37,6 @@ struct Mesh {
       vertices(vertices),
       normals(normals),
       uvs(nullptr),
-      texId(-1),
       material(material) {}
 
     Mesh(const std::string &name, Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Material *material)
@@ -50,20 +47,18 @@ struct Mesh {
           vertices(vertices),
           normals(normals),
           uvs(nullptr),
-          texId(-1),
           material(material) {}
 
-    Mesh(Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Vec2f *uvs, const size_t texId, Material *material)
+    Mesh(Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Vec2f *uvs, Material *material)
         : numVertices(numVertices),
           numIndices(numIndices),
           indices(indices),
           vertices(vertices),
           normals(normals),
           uvs(uvs),
-          texId(texId),
           material(material) {}
 
-    Mesh(const std::string &name, Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Vec2f *uvs, const size_t texId, Material *material)
+    Mesh(const std::string &name, Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Vec2f *uvs, Material *material)
         : name(name),
           numVertices(numVertices),
           numIndices(numIndices),
@@ -71,7 +66,6 @@ struct Mesh {
           vertices(vertices),
           normals(normals),
           uvs(uvs),
-          texId(texId),
           material(material) {}
 
     void getVertices(const int index, Vec3 &v0, Vec3 &v1, Vec3 &v2) const {
@@ -157,16 +151,16 @@ struct Mesh {
         // We don't support textures yet, so we will use UVs as specified here:
         //  - https://pbr-book.org/4ed/Shapes/Triangle_Meshes#fragment-Computedeltasandmatrixdeterminantfortrianglepartialderivatives-0
         // This should be changed to using mesh UV values if available
-        const Vec3 dp1 = v1 - v0;
-        const Vec3 dp2 = v2 - v0;
-
-        const Vec2f duv1 = uv1 - uv0;
-        const Vec2f duv2 = uv2 - uv0;
-
-        float duvInvDet = 1.0f / (duv1.x * duv2.y - duv1.y * duv2.x);
-
-        record.tangent   = jtx::normalize((duv2.y * dp1 - duv1.y * dp2) * duvInvDet);
-        record.bitangent = jtx::normalize((duv1.x * dp2 - duv2.x * dp1) * duvInvDet);
+        // const Vec3 dp1 = v1 - v0;
+        // const Vec3 dp2 = v2 - v0;
+        //
+        // const Vec2f duv1 = uv1 - uv0;
+        // const Vec2f duv2 = uv2 - uv0;
+        //
+        // float duvInvDet = 1.0f / (duv1.x * duv2.y - duv1.y * duv2.x);
+        //
+        // record.tangent   = jtx::normalize((duv2.y * dp1 - duv1.y * dp2) * duvInvDet);
+        // record.bitangent = jtx::normalize((duv1.x * dp2 - duv2.x * dp1) * duvInvDet);
 
         return true;
     }
@@ -201,6 +195,7 @@ struct Mesh {
         if (indices) delete[] indices;
         if (vertices) delete[] vertices;
         if (normals) delete[] normals;
+        if (uvs) delete[] uvs;
     }
 };
 

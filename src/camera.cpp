@@ -46,12 +46,13 @@ void Camera::render(const Scene &scene) {
         }
     }
 
+#ifdef ENABLE_MULTI_THREADING
     // Set up threads
     unsigned int threadCount = std::thread::hardware_concurrency();
     if (threadCount == 0) threadCount = 4;
-
-    // REMINDER: revert when done debugging
-    // unsigned int threadCount = 1;
+#else
+    unsigned int threadCount = 1;
+#endif
 
     // reset the current sample to 0
     currentSample_.store(0);

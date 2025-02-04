@@ -21,13 +21,17 @@ struct RGB {
     unsigned char B;
 };
 
-class RGBImage {
+class RGB8Image {
 public:
-    int w_,h_;
+    int w_, h_;
 
-    RGBImage() : w_(1920), h_(1080){};
-    RGBImage(const int w, const int h) : w_(w), h_(h) {
-        buffer.resize(w*h);
+    RGB8Image()
+        : w_(1920),
+          h_(1080){};
+    RGB8Image(const int w, const int h)
+        : w_(w),
+          h_(h) {
+        buffer.resize(w * h);
     }
 
     void resize(const int w, const int h) {
@@ -49,10 +53,10 @@ public:
 
     void save(const char *path) const;
 
-    [[nodiscard]]
-    const RGB *data() const {
+    [[nodiscard]] const RGB *data() const {
         return buffer.data();
     }
+
 private:
     std::vector<RGB> buffer;
 };
@@ -61,8 +65,12 @@ class AccumulationBuffer {
 public:
     int w_, h_;
 
-    AccumulationBuffer() : w_(1920), h_(1080) {}
-    AccumulationBuffer(const int w, const int h) : w_(w), h_(h) { buffer_.resize(w_ * h_); }
+    AccumulationBuffer()
+        : w_(1920),
+          h_(1080) {}
+    AccumulationBuffer(const int w, const int h)
+        : w_(w),
+          h_(h) { buffer_.resize(w_ * h_); }
 
     void resize(const int w, const int h) { buffer_.resize(w_ * h_); }
     void clear() { std::ranges::fill(buffer_, Vec3{0, 0, 0}); }
@@ -77,4 +85,44 @@ public:
 
 private:
     std::vector<Vec3> buffer_;
+};
+
+class TextureImage {
+public:
+    TextureImage()
+        : width_(0),
+          height_(0),
+          channels_(0),
+          data_(nullptr) {}
+
+    explicit TextureImage(const char *path) { load(path); }
+
+    ~TextureImage();
+
+    bool load(const char *path);
+
+    int width() const { return width_; }
+    int height() const { return height_; }
+    int channels() const { return channels_; }
+
+    const float *data() const { return data_; }
+
+    Vec3 getTexel(const int u, const int v) const {
+        if (u < 0 || u >= width_ || v < 0 || v >= height_) {
+            return Vec3(0, 0, 0);
+        }
+
+        const float *pixel = data_ + (v * width_ + u) * channels_;
+        return Vec3(pixel[0], pixel[1], pixel[2]);
+    }
+
+private:
+    bool isExr_;
+
+    bool loadEXR(const char *path);
+
+    int width_;
+    int height_;
+    int channels_;
+    float *data_;
 };

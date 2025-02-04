@@ -34,6 +34,8 @@ public:
     std::vector<Triangle> triangles;
     std::vector<Mesh> meshes;
 
+    std::vector<TextureImage> textures;
+
     CameraProperties cameraProperties;
 
     void destroy() {
@@ -43,7 +45,7 @@ public:
         if (bvhBuilt_) destroyBVH();
     }
 
-    bool closestHit(const Ray &r, Interval t, HitRecord &record) const;
+    bool closestHit(const Ray &r, Interval t, Intersection &record) const;
     bool anyHit(const Ray &r, Interval t) const;
 
     [[nodiscard]]
@@ -85,7 +87,7 @@ public:
     }
 
 private:
-    bool closestHitPrimitive(const Primitive &primitive, const Ray &r, const Interval t, HitRecord &record) const {
+    bool closestHitPrimitive(const Primitive &primitive, const Ray &r, const Interval t, Intersection &record) const {
         switch(primitive.type) {
             case Primitive::SPHERE: {
                 return spheres[primitive.index].closestHit(r, t, record);

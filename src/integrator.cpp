@@ -41,7 +41,7 @@ Vec3 integrateBasic(Ray ray, const Scene &scene, int maxDepth, RNG &rng) {
 
         // Sample BSDF
         BSDFSample s;
-        bool success = sampleBxdf(record.material, record, w_o, u, u2, s);
+        bool success = sampleBxdf(scene, record, w_o, u, u2, s);
         if (!success) break;
 
         // Update beta and set next ray
@@ -119,7 +119,7 @@ Vec3 integrate(Ray ray, const Scene &scene, const int maxDepth, RNG &rng) {
 
         // Sample BSDF
         BSDFSample s;
-        bool success = sampleBxdf(record.material, record, w_o, u, u2, s);
+        bool success = sampleBxdf(scene, record, w_o, u, u2, s);
         if (!success) break;
 
         // Update beta and set next ray
@@ -225,7 +225,7 @@ Vec3 integrateMIS(Ray ray, const Scene &scene, int maxDepth, bool regularize, RN
         Vec3 wo = -ray.dir;
         float u = rng.sample<float>();
         BSDFSample bs;
-        bool success = sampleBxdf(record.material, record, wo, u, rng.sample<Vec2f>(), bs);
+        bool success = sampleBxdf(scene, record, wo, u, rng.sample<Vec2f>(), bs);
         if (!success) break;
 
         // Update variables

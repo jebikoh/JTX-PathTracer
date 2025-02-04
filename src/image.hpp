@@ -97,21 +97,22 @@ public:
 
     explicit TextureImage(const char *path) { load(path); }
 
-    TextureImage(TextureImage&& other) noexcept
+    TextureImage(TextureImage &&other) noexcept
         : isExr_(other.isExr_),
+          path_(other.path_),
           width_(other.width_),
           height_(other.height_),
           channels_(other.channels_),
-          data_(other.data_)
-    {
-        other.data_ = nullptr;
+          data_(other.data_) {
+        other.data_  = nullptr;
+        other.path_  = "";
         other.width_ = other.height_ = other.channels_ = 0;
     }
 
-    TextureImage(const TextureImage&) = delete;
+    TextureImage(const TextureImage &) = delete;
 
-    TextureImage& operator=(const TextureImage&) = delete;
-    TextureImage& operator=(TextureImage&& other) noexcept;
+    TextureImage &operator=(const TextureImage &) = delete;
+    TextureImage &operator=(TextureImage &&other) noexcept;
 
     ~TextureImage();
 
@@ -140,7 +141,7 @@ public:
 
     // Interpolated texel
     Vec3 getTexel(const float u, const float v) const {
-        const  int x0 = static_cast<int>(u * width_);
+        const int x0 = static_cast<int>(u * width_);
         const int y0 = static_cast<int>(v * height_);
         return getTexel(x0, y0);
     }
@@ -151,6 +152,7 @@ public:
 
 private:
     bool isExr_;
+    std::string path_;
 
     bool loadEXR(const char *path);
 

@@ -19,7 +19,7 @@ Ke 1.000000 1.000000 1.000000
 Ni 1.450000
 d 1.000000
 illum 2
-map_Kd maps/neutral.ACEScg.exr
+# map_Kd maps/neutral.ACEScg.exr
 
 newmtl sss_bars
 Ns 0.000000

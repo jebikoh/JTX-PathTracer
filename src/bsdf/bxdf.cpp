@@ -4,7 +4,7 @@
 #include "dielectric.hpp"
 #include "diffuse.hpp"
 
-bool sampleBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o, float uc, const Vec2f &u, BSDFSample &s)  {
+bool sampleBxdf(const Material *mat, const Intersection &rec, const Vec3 &w_o, float uc, const Vec2f &u, BSDFSample &s)  {
     const jtx::Frame sFrame = jtx::Frame::fromZ(rec.normal);
     const auto w_o_local = sFrame.toLocal(w_o);
     if (w_o_local.z == 0) return false;
@@ -42,7 +42,7 @@ bool sampleBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o, floa
     return false;
 }
 
-Vec3 evalBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o, const Vec3 &w_i) {
+Vec3 evalBxdf(const Material *mat, const Intersection &rec, const Vec3 &w_o, const Vec3 &w_i) {
     const jtx::Frame sFrame = jtx::Frame::fromZ(rec.normal);
     const auto w_o_local = sFrame.toLocal(w_o);
     const auto w_i_local = sFrame.toLocal(w_i);
@@ -67,7 +67,7 @@ Vec3 evalBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o, const 
     return {};
 }
 
-float pdfBxdf(const Material *mat, const HitRecord &rec, const Vec3 &w_o, const Vec3 &w_i) {
+float pdfBxdf(const Material *mat, const Intersection &rec, const Vec3 &w_o, const Vec3 &w_i) {
     const jtx::Frame sFrame = jtx::Frame::fromZ(rec.normal);
     const auto w_o_local = sFrame.toLocal(w_o);
     const auto w_i_local = sFrame.toLocal(w_i);

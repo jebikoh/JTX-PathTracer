@@ -18,9 +18,10 @@ struct Material {
     Vec3 emission = Color(0, 0, 0);
 };
 
-struct HitRecord {
+struct Intersection {
     Vec3 point;
     Vec3 normal;
+    Vec2f uv;
     Vec3 tangent;
     Vec3 bitangent;
 

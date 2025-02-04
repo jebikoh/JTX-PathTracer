@@ -111,5 +111,6 @@ target_include_directories(RayTracer
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/jtxlib/src
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/stb
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/tinyobjloader
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext/tinyexr
         ${OPENGL_LIBRARIES}
 )

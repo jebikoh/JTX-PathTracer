@@ -12,7 +12,7 @@ struct RayTraceJob {
     uint32_t endCol;
 
     const Scene *scene;
-    RGBImage *img;
+    RGB8Image *img;
 };
 // i really like mich <3
 struct WorkQueue {

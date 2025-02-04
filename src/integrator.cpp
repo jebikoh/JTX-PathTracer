@@ -15,7 +15,7 @@ Vec3 integrateBasic(Ray ray, const Scene &scene, int maxDepth, RNG &rng) {
     Vec3 beta     = {1, 1, 1};
     int depth     = 0;
 
-    HitRecord record;
+    Intersection record;
     while (beta) {
         const bool hit = scene.closestHit(ray, Interval(0.001, INF), record);
 
@@ -57,7 +57,7 @@ Vec3 integrate(Ray ray, const Scene &scene, const int maxDepth, RNG &rng) {
     Vec3 beta           = {1, 1, 1};
     int depth           = 0;
     bool specularBounce = true;
-    HitRecord record;
+    Intersection record;
 
     while (beta) {
         const bool hit = scene.closestHit(ray, Interval(0.001, INF), record);
@@ -147,7 +147,7 @@ Vec3 integrateMIS(Ray ray, const Scene &scene, int maxDepth, bool regularize, RN
     float etaScale            = 1.0f;
     bool anyNonSpecularBounce = false;
     bool specularBounce       = true;
-    HitRecord record;
+    Intersection record;
     LightSampleContext prevCtx;
 
     while (true) {

@@ -8,7 +8,7 @@ static constexpr int SCENE_MATERIAL_LIMIT = 64;
 
 static Material DEFAULT_MAT = {.type = Material::DIFFUSE, .albedo = Color(1, 0.3, 0.5)};
 
-bool Scene::closestHit(const Ray &r, Interval t, HitRecord &record) const {
+bool Scene::closestHit(const Ray &r, Interval t, Intersection &record) const {
     const auto invDir     = 1 / r.dir;
     const int dirIsNeg[3] = {static_cast<int>(invDir.x < 0), static_cast<int>(invDir.y < 0), static_cast<int>(invDir.z < 0)};
 
@@ -116,7 +116,7 @@ void Scene::loadMesh(const std::string &path) {
 
     for (size_t s = 0; s < shapes.size(); s++) {
         const auto &meshIndices = shapes[s].mesh.indices;
-        size_t numIndices       = meshIndices.size();
+        const size_t numIndices       = meshIndices.size();
 
         if (numIndices % 3 != 0) {
             std::cerr << "Warning: shape " << s << " has a face that isn't a triangle.\n";

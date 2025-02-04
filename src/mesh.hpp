@@ -1,5 +1,6 @@
 #pragma once
 
+#include "image.hpp"
 #include "material.hpp"
 #include "rt.hpp"
 #include "util/aabb.hpp"
@@ -16,6 +17,9 @@ struct Mesh {
     Vec3 *vertices;
     Vec3 *normals;
 
+    Vec2f *uvs;
+    size_t texId;
+
     Material *material;
 
     Transform scale;
@@ -26,16 +30,17 @@ struct Mesh {
 
     void recalculateTransform() {
         transform = scale * rX * rY * rZ * translate;
-
     }
 
     Mesh(Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Material *material)
-        : numVertices(numVertices),
-          numIndices(numIndices),
-          indices(indices),
-          vertices(vertices),
-          normals(normals),
-          material(material) {}
+    : numVertices(numVertices),
+      numIndices(numIndices),
+      indices(indices),
+      vertices(vertices),
+      normals(normals),
+      uvs(nullptr),
+      texId(-1),
+      material(material) {}
 
     Mesh(const std::string &name, Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Material *material)
         : name(name),
@@ -44,6 +49,29 @@ struct Mesh {
           indices(indices),
           vertices(vertices),
           normals(normals),
+          uvs(nullptr),
+          texId(-1),
+          material(material) {}
+
+    Mesh(Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Vec2f *uvs, const size_t texId, Material *material)
+        : numVertices(numVertices),
+          numIndices(numIndices),
+          indices(indices),
+          vertices(vertices),
+          normals(normals),
+          uvs(uvs),
+          texId(texId),
+          material(material) {}
+
+    Mesh(const std::string &name, Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Vec2f *uvs, const size_t texId, Material *material)
+        : name(name),
+          numVertices(numVertices),
+          numIndices(numIndices),
+          indices(indices),
+          vertices(vertices),
+          normals(normals),
+          uvs(uvs),
+          texId(texId),
           material(material) {}
 
     void getVertices(const int index, Vec3 &v0, Vec3 &v1, Vec3 &v2) const {
@@ -74,7 +102,14 @@ struct Mesh {
         n2            = transform.applyToNormal(normals[i[2]]);
     }
 
-    bool tClosestHit(const Ray &r, const Interval t, HitRecord &record, const int index, float &u, float &v) const {
+    void getUVs(const int index, Vec2f &uv0, Vec2f &uv1, Vec2f &uv2) const {
+        const Vec3i i = indices[index];
+        uv0           = uvs[i[0]];
+        uv1           = uvs[i[1]];
+        uv2           = uvs[i[2]];
+    }
+
+    bool tClosestHit(const Ray &r, const Interval t, Intersection &record, const int index, float &b1, float &b2) const {
         Vec3 v0, v1, v2;
         getVertices(index, v0, v1, v2);
         const auto v0v1 = v1 - v0;
@@ -87,12 +122,12 @@ struct Mesh {
         const float invDet = 1 / det;
         const auto tvec    = r.origin - v0;
 
-        u = tvec.dot(pvec) * invDet;
-        if (u < 0 || u > 1) return false;
+        b1 = tvec.dot(pvec) * invDet;
+        if (b1 < 0 || b1 > 1) return false;
 
         const auto qvec = tvec.cross(v0v1);
-        v               = r.dir.dot(qvec) * invDet;
-        if (v < 0 || u + v > 1) return false;
+        b2               = r.dir.dot(qvec) * invDet;
+        if (b2 < 0 || b1 + b2 > 1) return false;
 
         const float root = v0v2.dot(qvec) * invDet;
         if (!t.surrounds(root)) return false;
@@ -104,21 +139,24 @@ struct Mesh {
         Vec3 n0, n1, n2;
         getNormals(index, n0, n1, n2);
 
+        float b0 = (1 - b1 - b2);
+
         // Shading normal
-        const Vec3 n = (1 - u - v) * n0 + u * n1 + v * n2;
+        const Vec3 n = b0 * n0 + b1 * n1 + b2 * n2;
         record.setFaceNormal(r, n);
 
+        // Interpolate UV
+        Vec2f uv0, uv1, uv2;
+        getUVs(index, uv0, uv1, uv2);
+        record.uv = uv0 * b0 + uv1 * b1 + uv2 * b2;
+
         // Tangent & bitangent
+        // TODO: fix this
         // Taken from:
         //  - https://github.com/knightcrawler25/GLSL-PathTracer/blob/master/src/shaders/common/closest_hit.glsl
         // We don't support textures yet, so we will use UVs as specified here:
         //  - https://pbr-book.org/4ed/Shapes/Triangle_Meshes#fragment-Computedeltasandmatrixdeterminantfortrianglepartialderivatives-0
         // This should be changed to using mesh UV values if available
-
-        const Vec2f uv0 = {0, 0};
-        const Vec2f uv1 = {1, 0};
-        const Vec2f uv2 = {0, 1};
-
         const Vec3 dp1 = v1 - v0;
         const Vec3 dp2 = v2 - v0;
 

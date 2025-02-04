@@ -36,7 +36,7 @@ public:
         const auto r = Vec3(radius, radius, radius);
     }
 
-    bool closestHit(const Ray &r, const Interval t, HitRecord &record) const {
+    bool closestHit(const Ray &r, const Interval t, Intersection &record) const {
         const auto currentCenter = center_.at(r.time);
         const Vec3 oc            = currentCenter - r.origin;
         const Float a            = r.dir.lenSqr();

@@ -16,7 +16,7 @@ public:
     int yPixelSamples_;
     int maxDepth_;
 
-    RGBImage img_;
+    RGB8Image img_;
 
     CameraProperties properties_;
 

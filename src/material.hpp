@@ -17,7 +17,7 @@ struct Material {
     float alphaX, alphaY;
     Vec3 emission = Color(0, 0, 0);
     
-    size_t texId;
+    int texId;
 };
 
 struct Intersection {

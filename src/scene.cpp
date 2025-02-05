@@ -7,8 +7,6 @@
 
 static constexpr int SCENE_MATERIAL_LIMIT = 64;
 
-static Material DEFAULT_MAT = {.type = Material::DIFFUSE, .albedo = Color(1, 0.3, 0.5), .texId = static_cast<size_t>(-1)};
-
 bool Scene::closestHit(const Ray &r, Interval t, Intersection &record) const {
     const auto invDir     = 1 / r.dir;
     const int dirIsNeg[3] = {static_cast<int>(invDir.x < 0), static_cast<int>(invDir.y < 0), static_cast<int>(invDir.z < 0)};
@@ -115,9 +113,6 @@ void Scene::loadMesh(const std::string &path) {
     std::unordered_map<std::string, size_t> textureMap;
     std::unordered_map<std::string, size_t> materialMap;
 
-    static size_t defaultMatIdx = 0;
-    materials.emplace_back(DEFAULT_MAT);
-
     for (unsigned int i = 0; i < scene->mNumMaterials; ++i) {
         aiMaterial* aiMat = scene->mMaterials[i];
 
@@ -128,7 +123,7 @@ void Scene::loadMesh(const std::string &path) {
         if (materialMap.contains(matName))
             continue;
 
-        size_t texId = static_cast<size_t>(-1);
+        int texId = -1;
         if (aiMat->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
             aiString texPath;
             if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS) {
@@ -198,6 +193,11 @@ void Scene::loadMesh(const std::string &path) {
             finalIndices[i] = Vec3i(face.mIndices[0], face.mIndices[1], face.mIndices[2]);
         }
 
+        std::string mName = aiMeshPtr->mName.C_Str();
+        if (mName.empty()) {
+            mName = "mesh_" + std::to_string(m);
+        }
+
         Material* meshMaterial = nullptr;
         if (aiMeshPtr->mMaterialIndex < scene->mNumMaterials) {
             aiMaterial* mat = scene->mMaterials[aiMeshPtr->mMaterialIndex];
@@ -209,12 +209,8 @@ void Scene::loadMesh(const std::string &path) {
             }
         }
         if (!meshMaterial) {
-            meshMaterial = &materials[defaultMatIdx];
-        }
-
-        std::string mName = aiMeshPtr->mName.C_Str();
-        if (mName.empty()) {
-            mName = "mesh_" + std::to_string(m);
+            materials.push_back({.type = Material::DIFFUSE, .albedo = Color(1, 0.3, 0.5), .texId = -1});
+            meshMaterial = &materials.back();
         }
 
         meshes.emplace_back(mName, finalIndices, numTriangles, finalVerts, numVerts, finalNormals, finalUVs, meshMaterial);
@@ -405,15 +401,16 @@ Scene createShaderBallScene() {
     const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};
 
     // Base
-    *scene.meshes[0].material = {.type = Material::DIFFUSE, .texId = scene.meshes[0].material->texId};
+    // *scene.meshes[0].material = {.type = Material::DIFFUSE, .texId = scene.meshes[0].material->texId};
     // Core
-    *scene.meshes[1].material = {.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05, .texId = scene.meshes[1].material->texId};
+    // *scene.meshes[1].material = {.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05, .texId = scene.meshes[1].material->texId};
     // Ground
-    *scene.meshes[2].material = {.type = Material::DIFFUSE, .texId = scene.meshes[2].material->texId};
+    // *scene.meshes[2].material = {.type = Material::DIFFUSE, .texId = scene.meshes[2].material->texId};
     // Surface
-    *scene.meshes[3].material = {.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.3, .alphaY = 0.3, .texId = scene.meshes[3].material->texId};
+    scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.01, .alphaY = 0.01, .texId = scene.meshes[3].material->texId});
+    scene.meshes[3].material = &scene.materials.back();
     // Bars
-    *scene.meshes[4].material = {.type = Material::DIFFUSE, .texId = scene.meshes[4].material->texId};
+    // *scene.meshes[4].material = {.type = Material::DIFFUSE, .texId = scene.meshes[4].material->texId};
 
     return scene;
 }

@@ -46,6 +46,9 @@ public:
 
         this->img_.clear();
         this->img_.resize(w, h);
+
+        this->acc_.clear();
+        this->acc_.resize(w, h);
     }
 
     void clear() {

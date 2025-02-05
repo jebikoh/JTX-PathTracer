@@ -1,12 +1,13 @@
-#define TINYOBJLOADER_IMPLEMENTATION
 #include "scene.hpp"
-
 #include "mesh.hpp"
-#include "tiny_obj_loader.h"
+#include <unordered_map>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 static constexpr int SCENE_MATERIAL_LIMIT = 64;
 
-static Material DEFAULT_MAT = {.type = Material::DIFFUSE, .albedo = Color(1, 0.3, 0.5)};
+static Material DEFAULT_MAT = {.type = Material::DIFFUSE, .albedo = Color(1, 0.3, 0.5), .texId = static_cast<size_t>(-1)};
 
 bool Scene::closestHit(const Ray &r, Interval t, Intersection &record) const {
     const auto invDir     = 1 / r.dir;
@@ -96,18 +97,11 @@ void Scene::loadMesh(const std::string &path) {
         materials.reserve(SCENE_MATERIAL_LIMIT);
     }
 
-    const tinyobj::ObjReaderConfig reader_config;
-    tinyobj::ObjReader reader;
-
-    if (!reader.ParseFromFile(path, reader_config)) {
-        if (!reader.Error().empty()) {
-            std::cerr << "TinyObjReader Error: " << reader.Error() << std::endl;
-        }
+    Assimp::Importer importer;
+    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+    if (!scene || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) || !scene->mRootNode) {
+        std::cerr << "Assimp error: " << importer.GetErrorString() << std::endl;
         return;
-    }
-
-    if (!reader.Warning().empty()) {
-        std::cerr << "TinyObjReader Warning: " << reader.Warning() << std::endl;
     }
 
     std::string baseDir;
@@ -118,109 +112,117 @@ void Scene::loadMesh(const std::string &path) {
         baseDir = "";
     }
 
-    const auto &attrib = reader.GetAttrib();
-    const auto &shapes = reader.GetShapes();
+    std::unordered_map<std::string, size_t> textureMap;
+    std::unordered_map<std::string, size_t> materialMap;
 
-    for (size_t s = 0; s < shapes.size(); s++) {
-        const auto &meshIndices = shapes[s].mesh.indices;
-        const size_t numIndices = meshIndices.size();
+    static size_t defaultMatIdx = 0;
+    materials.emplace_back(DEFAULT_MAT);
 
-        if (numIndices % 3 != 0) {
-            std::cerr << "Warning: shape " << s << " has a face that isn't a triangle.\n";
+    for (unsigned int i = 0; i < scene->mNumMaterials; ++i) {
+        aiMaterial* aiMat = scene->mMaterials[i];
+
+        aiString aiMatName;
+        aiMat->Get(AI_MATKEY_NAME, aiMatName);
+        std::string matName = aiMatName.C_Str();
+
+        if (materialMap.contains(matName))
             continue;
-        }
 
-        // Prepare CPU-side arrays (vectors first for ease)
-        std::vector<Vec3> shapeVerts(numIndices);
-        std::vector<Vec3> shapeNormals(numIndices);
-        std::vector<Vec2f> shapeUVs(numIndices);
-        std::vector<Vec3i> shapeTriIndices(numIndices / 3);
-
-        // Fill vertices and normals
-        // We'll store each index_t as a unique entry in shapeVerts / shapeNormals
-        for (size_t i = 0; i < numIndices; i++) {
-            const tinyobj::index_t &idx = meshIndices[i];
-
-            const float vx = attrib.vertices[3 * static_cast<size_t>(idx.vertex_index) + 0];
-            const float vy = attrib.vertices[3 * static_cast<size_t>(idx.vertex_index) + 1];
-            const float vz = attrib.vertices[3 * static_cast<size_t>(idx.vertex_index) + 2];
-
-            shapeVerts[i] = Vec3(vx, vy, vz);
-
-            // If a normal index is available, read it; otherwise set a default normal
-            if (idx.normal_index >= 0) {
-                float nx        = attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 0];
-                float ny        = attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 1];
-                float nz        = attrib.normals[3 * static_cast<size_t>(idx.normal_index) + 2];
-                shapeNormals[i] = Vec3(nx, ny, nz);
-            } else {
-                shapeNormals[i] = Vec3(0.0f, 1.0f, 0.0f);// fallback normal
-            }
-
-            if (idx.texcoord_index >= 0 && !attrib.texcoords.empty()) {
-                float tu    = attrib.texcoords[2 * static_cast<size_t>(idx.texcoord_index) + 0];
-                float tv    = attrib.texcoords[2 * static_cast<size_t>(idx.texcoord_index) + 1];
-                shapeUVs[i] = Vec2f(tu, tv);
-            } else {
-                // Default UV (could also be generated procedurally)
-                shapeUVs[i] = Vec2f(0.0f, 0.0f);
-            }
-        }
-
-        // Build the index array, grouping by 3 for each triangle
-        for (size_t f = 0; f < numIndices / 3; f++) {
-            shapeTriIndices[f] = Vec3i(
-                    static_cast<int>(3 * f + 0),
-                    static_cast<int>(3 * f + 1),
-                    static_cast<int>(3 * f + 2));
-        }
-
-        // Allocate dynamic arrays for Mesh constructor
-        auto *finalVerts   = new Vec3[numIndices];
-        auto *finalNormals = new Vec3[numIndices];
-        auto *finalIndices = new Vec3i[numIndices / 3];
-
-        // Copy data from std::vector to raw arrays
-        std::memcpy(finalVerts, shapeVerts.data(), numIndices * sizeof(Vec3));
-        std::memcpy(finalNormals, shapeNormals.data(), numIndices * sizeof(Vec3));
-        std::memcpy(finalIndices, shapeTriIndices.data(), (numIndices / 3) * sizeof(Vec3i));
-
-        Vec2f *finalUVs = nullptr;
-        if (shapeUVs.size() > 0) {
-            finalUVs = new Vec2f[numIndices];
-            std::memcpy(finalUVs, shapeUVs.data(), numIndices * sizeof(Vec2f));
-        }
-
-        std::string mName = shapes[s].name;
-
-        size_t texId = -1;
-        if (!shapes[s].mesh.material_ids.empty() && shapes[s].mesh.material_ids[0] >= 0) {
-            int matId = shapes[s].mesh.material_ids[0];
-            if (matId < static_cast<int>(reader.GetMaterials().size())) {
-                const auto &mat = reader.GetMaterials()[matId];
-                if (!mat.diffuse_texname.empty()) {
-                    std::string texPath = baseDir + mat.diffuse_texname;
+        size_t texId = static_cast<size_t>(-1);
+        if (aiMat->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
+            aiString texPath;
+            if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS) {
+                std::string fullTexPath = baseDir + texPath.C_Str();
+                auto texIt = textureMap.find(fullTexPath);
+                if (texIt != textureMap.end()) {
+                    texId = texIt->second;
+                } else {
                     TextureImage texture;
-                    if (texture.load(texPath.c_str())) {
-                        std::cout << "Loaded texture: " << texPath << std::endl;
+                    if (texture.load(fullTexPath.c_str())) {
+                        std::cout << "Loaded texture: " << fullTexPath << std::endl;
                         textures.push_back(std::move(texture));
                         texId = textures.size() - 1;
+                        textureMap[fullTexPath] = texId;
                     } else {
-                        std::cerr << "Failed to load texture: " << texPath << std::endl;
+                        std::cerr << "Failed to load texture: " << fullTexPath << std::endl;
                     }
                 }
             }
         }
+
+        std::cout << "Loaded material: " << matName << std::endl;
         materials.push_back({.texId = texId});
-        meshes.emplace_back(mName, finalIndices, shapeTriIndices.size(), finalVerts, shapeVerts.size(), finalNormals, finalUVs, &materials.back());
+        materialMap[matName] = materials.size() - 1;
+    }
 
-        // Now register all triangles from this mesh in the scene
-        const int meshIndex     = static_cast<int>(meshes.size()) - 1;
-        const int triangleCount = static_cast<int>(numIndices / 3);
+    for (unsigned int m = 0; m < scene->mNumMeshes; m++) {
+        aiMesh* aiMeshPtr = scene->mMeshes[m];
 
-        for (int t = 0; t < triangleCount; t++) {
+        size_t numVerts = aiMeshPtr->mNumVertices;
+        auto finalVerts = new Vec3[numVerts];
+        auto finalNormals = new Vec3[numVerts];
+
+        Vec2f* finalUVs = nullptr;
+        bool hasUV = (aiMeshPtr->mTextureCoords[0] != nullptr);
+        if (hasUV) {
+            finalUVs = new Vec2f[numVerts];
+        }
+
+        for (size_t i = 0; i < numVerts; i++) {
+            aiVector3D v = aiMeshPtr->mVertices[i];
+            finalVerts[i] = Vec3(v.x, v.y, v.z);
+
+            if (aiMeshPtr->HasNormals()) {
+                aiVector3D n = aiMeshPtr->mNormals[i];
+                finalNormals[i] = Vec3(n.x, n.y, n.z);
+            } else {
+                finalNormals[i] = Vec3(0.0f, 1.0f, 0.0f);
+            }
+
+            if (hasUV) {
+                aiVector3D uv = aiMeshPtr->mTextureCoords[0][i];
+                finalUVs[i] = Vec2f(uv.x, uv.y);
+            } else if(finalUVs) {
+                finalUVs[i] = Vec2f(0.0f, 0.0f);
+            }
+        }
+
+        size_t numTriangles = aiMeshPtr->mNumFaces;
+        auto* finalIndices = new Vec3i[numTriangles];
+        for (size_t i = 0; i < numTriangles; i++) {
+            aiFace face = aiMeshPtr->mFaces[i];
+            if (face.mNumIndices != 3) {
+                std::cerr << "Warning: mesh " << m << " has a face that isn't a triangle.\n";
+                continue;
+            }
+            finalIndices[i] = Vec3i(face.mIndices[0], face.mIndices[1], face.mIndices[2]);
+        }
+
+        Material* meshMaterial = nullptr;
+        if (aiMeshPtr->mMaterialIndex < scene->mNumMaterials) {
+            aiMaterial* mat = scene->mMaterials[aiMeshPtr->mMaterialIndex];
+            aiString matName;
+            mat->Get(AI_MATKEY_NAME, matName);
+            auto it = materialMap.find(matName.C_Str());
+            if (it != materialMap.end()) {
+                meshMaterial = &materials[it->second];
+            }
+        }
+        if (!meshMaterial) {
+            meshMaterial = &materials[defaultMatIdx];
+        }
+
+        std::string mName = aiMeshPtr->mName.C_Str();
+        if (mName.empty()) {
+            mName = "mesh_" + std::to_string(m);
+        }
+
+        meshes.emplace_back(mName, finalIndices, numTriangles, finalVerts, numVerts, finalNormals, finalUVs, meshMaterial);
+
+        int meshIndex = static_cast<int>(meshes.size()) - 1;
+        for (size_t t = 0; t < numTriangles; t++) {
             Triangle tri;
-            tri.index     = t;
+            tri.index = static_cast<int>(t);
             tri.meshIndex = meshIndex;
             triangles.push_back(tri);
         }

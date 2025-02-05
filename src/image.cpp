@@ -8,21 +8,6 @@
 #define TINYEXR_IMPLEMENTATION
 #include "tinyexr.h"
 
-#include <algorithm>
-
-// TinyEXR doesn't support flipping images yet
-void flipVertical(float* data, int width, int height, int channels) {
-    const int rowSize = width * channels;
-    for (int y = 0; y < height / 2; ++y) {
-        int oppositeY = height - 1 - y;
-        float* rowTop = data + y * rowSize;
-        float* rowBottom = data + oppositeY * rowSize;
-        for (int x = 0; x < rowSize; ++x) {
-            std::swap(rowTop[x], rowBottom[x]);
-        }
-    }
-}
-
 void RGB8Image::save(const char *path) const {
     std::vector<unsigned char> flipped_buffer(w_ * h_ * 3);
 
@@ -101,6 +86,5 @@ bool TextureImage::loadEXR(const char *path) {
     }
 
     channels_ = 4;
-    flipVertical(data_, width_, height_, channels_);
     return true;
 }

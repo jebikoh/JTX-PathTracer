@@ -6,9 +6,9 @@ option(ENABLE_PERF_FLAGS "Enable performance flags" ON)
 option(ENABLE_MULTI_THREADING "Enable multi-threading" ON)
 
 if(ENABLE_CUDA_BACKEND)
-    project(RayTracer VERSION 1.0.0 LANGUAGES CXX CUDA)
+    project(JTX VERSION 1.0.0 LANGUAGES CXX CUDA)
 else()
-    project(RayTracer VERSION 1.0.0 LANGUAGES CXX)
+    project(JTX VERSION 1.0.0 LANGUAGES CXX)
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
@@ -62,6 +62,11 @@ include_directories(${OPENGL_INCLUDE_DIR})
 
 add_subdirectory(ext/glad)
 
+# assimp
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+add_subdirectory(ext/assimp)
+
 # ImGUI
 set(IMGUI_PATH  "ext/imgui")
 file(GLOB IMGUI_SOURCES ${IMGUI_PATH}/*.cpp)
@@ -69,7 +74,7 @@ add_library(imgui STATIC ${IMGUI_SOURCES})
 target_include_directories(imgui PUBLIC ${IMGUI_PATH})
 target_link_libraries(imgui PRIVATE glad SDL2::SDL2)
 
-add_executable(RayTracer src/main.cpp
+add_executable(JTX src/main.cpp
         src/rt.hpp
         src/util/color.hpp
         src/camera.hpp
@@ -107,13 +112,22 @@ add_executable(RayTracer src/main.cpp
         src/bsdf/disney.hpp
 )
 
-target_link_libraries(RayTracer PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui)
+target_link_libraries(JTX PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui assimp)
 
-target_include_directories(RayTracer
+target_include_directories(JTX
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/jtxlib/src
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/stb
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/tinyobjloader
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/tinyexr
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext/tinygltf
         ${OPENGL_LIBRARIES}
 )
+
+if(WIN32)
+    add_custom_command(TARGET jtxlib POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:assimp>
+            $<TARGET_FILE_DIR:jtxlib>
+    )
+endif()

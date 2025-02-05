@@ -123,7 +123,7 @@ void Scene::loadMesh(const std::string &path) {
 
     for (size_t s = 0; s < shapes.size(); s++) {
         const auto &meshIndices = shapes[s].mesh.indices;
-        const size_t numIndices       = meshIndices.size();
+        const size_t numIndices = meshIndices.size();
 
         if (numIndices % 3 != 0) {
             std::cerr << "Warning: shape " << s << " has a face that isn't a triangle.\n";
@@ -158,8 +158,8 @@ void Scene::loadMesh(const std::string &path) {
             }
 
             if (idx.texcoord_index >= 0 && !attrib.texcoords.empty()) {
-                float tu = attrib.texcoords[2 * static_cast<size_t>(idx.texcoord_index) + 0];
-                float tv = attrib.texcoords[2 * static_cast<size_t>(idx.texcoord_index) + 1];
+                float tu    = attrib.texcoords[2 * static_cast<size_t>(idx.texcoord_index) + 0];
+                float tv    = attrib.texcoords[2 * static_cast<size_t>(idx.texcoord_index) + 1];
                 shapeUVs[i] = Vec2f(tu, tv);
             } else {
                 // Default UV (could also be generated procedurally)
@@ -187,8 +187,8 @@ void Scene::loadMesh(const std::string &path) {
 
         Vec2f *finalUVs = nullptr;
         if (shapeUVs.size() > 0) {
-            finalUVs     = new Vec2f[numIndices];
-            std::memcpy(finalUVs,     shapeUVs.data(),     numIndices * sizeof(Vec2f));
+            finalUVs = new Vec2f[numIndices];
+            std::memcpy(finalUVs, shapeUVs.data(), numIndices * sizeof(Vec2f));
         }
 
         std::string mName = shapes[s].name;
@@ -199,7 +199,6 @@ void Scene::loadMesh(const std::string &path) {
             if (matId < static_cast<int>(reader.GetMaterials().size())) {
                 const auto &mat = reader.GetMaterials()[matId];
                 if (!mat.diffuse_texname.empty()) {
-                    // Resolve the full path for the texture
                     std::string texPath = baseDir + mat.diffuse_texname;
                     TextureImage texture;
                     if (texture.load(texPath.c_str())) {
@@ -213,8 +212,6 @@ void Scene::loadMesh(const std::string &path) {
             }
         }
         materials.push_back({.texId = texId});
-        // Create the Mesh and store it
-        // Use the default material we pushed earlier: materials.back()
         meshes.emplace_back(mName, finalIndices, shapeTriIndices.size(), finalVerts, shapeVerts.size(), finalNormals, finalUVs, &materials.back());
 
         // Now register all triangles from this mesh in the scene
@@ -229,7 +226,6 @@ void Scene::loadMesh(const std::string &path) {
         }
 
         std::cout << "Loaded mesh: " << mName << std::endl;
-
     }
 }
 
@@ -286,10 +282,9 @@ Scene createDefaultScene() {
     scene.cameraProperties.focusDistance = 3.4;
 
     Light background = {
-            .type = Light::INFINITE,
+            .type      = Light::INFINITE,
             .intensity = Color(0.7, 0.8, 1.0),
-            .scale = 1.0
-    };
+            .scale     = 1.0};
     scene.lights.push_back(background);
 
     scene.materials.reserve(10);
@@ -299,8 +294,8 @@ Scene createDefaultScene() {
     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.659, 0.659, 0.749)});
     scene.spheres.emplace_back(Vec3(0, -100.5, -1), 100, &scene.materials.back());
 
-    const Vec3 GOLD_IOR = {0.15557,0.42415,1.3831};
-    const Vec3 GOLD_K   = {-3.6024,-2.4721,-1.9155};
+    const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
+    const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};
 
     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.1, 0.2, 0.5)});
     scene.spheres.emplace_back(Vec3(0, 0, -1.2), 0.5, &scene.materials.back());
@@ -326,10 +321,9 @@ Scene createMeshScene() {
     scene.cameraProperties.focusDistance = 3.4;
 
     Light background = {
-            .type = Light::INFINITE,
+            .type      = Light::INFINITE,
             .intensity = Color(0.7, 0.8, 1.0),
-            .scale = 1.0
-    };
+            .scale     = 1.0};
     scene.lights.push_back(background);
 
     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(1, 0.3, 0.5)});
@@ -391,56 +385,59 @@ Scene createObjScene(const std::string &path, const Mat4 &t, const Color &backgr
 }
 
 Scene createShaderBallScene() {
-    const auto t                 = Mat4::identity();
+    const auto t           = Mat4::identity();
     const std::string path = "../src/assets/shaderball/shaderball.obj";
-    auto scene       = createObjScene(path, t);
+    auto scene             = createObjScene(path, t);
 
-    scene.cameraProperties.center     = Vec3(2.5, 16, 12);
-    scene.cameraProperties.target     = Vec3(0, 3, 0);
-    scene.cameraProperties.yfov       = 40;
+    scene.cameraProperties.center = Vec3(2.5, 16, 12);
+    scene.cameraProperties.target = Vec3(0, 3, 0);
+    scene.cameraProperties.yfov   = 40;
 
     Light background = {
-            .type = Light::INFINITE,
+            .type      = Light::INFINITE,
             .intensity = Color(0.7, 0.8, 1.0),
-            .scale = 1.0
-    };
+            .scale     = 1.0};
     scene.lights.push_back(background);
 
     const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
     const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};
 
-    *scene.meshes[3].material = {.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.3, .alphaY = 0.3};
-    *scene.meshes[0].material = {.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05};
-    *scene.meshes[1].material = {.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05};
-    *scene.meshes[4].material = {.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05};
-    *scene.meshes[2].material = {.type = Material::DIFFUSE, .albedo = Color(0.3, 0.3, 0.3)};
+    // Base
+    *scene.meshes[0].material = {.type = Material::DIFFUSE, .texId = scene.meshes[0].material->texId};
+    // Core
+    *scene.meshes[1].material = {.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05, .texId = scene.meshes[1].material->texId};
+    // Ground
+    *scene.meshes[2].material = {.type = Material::DIFFUSE, .texId = scene.meshes[2].material->texId};
+    // Surface
+    *scene.meshes[3].material = {.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.3, .alphaY = 0.3, .texId = scene.meshes[3].material->texId};
+    // Bars
+    *scene.meshes[4].material = {.type = Material::DIFFUSE, .texId = scene.meshes[4].material->texId};
 
     return scene;
 }
 
 Scene createShaderBallSceneWithLight() {
-    const auto t                 = Mat4::identity();
+    const auto t           = Mat4::identity();
     const std::string path = "../src/assets/shaderball.obj";
-    auto scene       = createObjScene(path, t);
+    auto scene             = createObjScene(path, t);
 
-    scene.cameraProperties.center     = Vec3(2.5, 16, 12);
-    scene.cameraProperties.target     = Vec3(0, 3, 0);
-    scene.cameraProperties.yfov       = 40;
+    scene.cameraProperties.center = Vec3(2.5, 16, 12);
+    scene.cameraProperties.target = Vec3(0, 3, 0);
+    scene.cameraProperties.yfov   = 40;
 
-//    Light background = {
-//            .type = Light::INFINITE,
-//            .intensity = Color(0,0,0),
-//            .scale = 1.0
-//    };
-//    scene.lights.push_back(background);
+    //    Light background = {
+    //            .type = Light::INFINITE,
+    //            .intensity = Color(0,0,0),
+    //            .scale = 1.0
+    //    };
+    //    scene.lights.push_back(background);
 
     // Single point light
     const Light point = {
-            .type = Light::POINT,
-            .position = Vec3(2.5, 16, 12),
+            .type      = Light::POINT,
+            .position  = Vec3(2.5, 16, 12),
             .intensity = WHITE,
-            .scale = 10
-    };
+            .scale     = 10};
     scene.lights.push_back(point);
 
     const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
@@ -468,15 +465,14 @@ Scene createKnobScene() {
     std::string path = "../src/assets/knob.obj";
     auto scene       = createObjScene(path, t);
 
-    scene.cameraProperties.center     = Vec3(0, 3, 8);
-    scene.cameraProperties.target     = Vec3(0, 0, 0);
-    scene.cameraProperties.yfov       = 15;
+    scene.cameraProperties.center = Vec3(0, 3, 8);
+    scene.cameraProperties.target = Vec3(0, 0, 0);
+    scene.cameraProperties.yfov   = 15;
 
     Light background = {
-            .type = Light::INFINITE,
+            .type      = Light::INFINITE,
             .intensity = Color(0.7, 0.8, 1.0),
-            .scale = 1.0
-    };
+            .scale     = 1.0};
     scene.lights.push_back(background);
 
     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.3, 0.3, 0.)});

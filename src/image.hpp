@@ -72,7 +72,11 @@ public:
         : w_(w),
           h_(h) { buffer_.resize(w_ * h_); }
 
-    void resize(const int w, const int h) { buffer_.resize(w_ * h_); }
+    void resize(const int w, const int h) {
+        w_ = w;
+        h_ = h;
+        buffer_.resize(w * h);
+    }
     void clear() { std::ranges::fill(buffer_, Vec3{0, 0, 0}); }
 
     Vec3 &updatePixel(const Vec3 &v, const int row, const int col) {

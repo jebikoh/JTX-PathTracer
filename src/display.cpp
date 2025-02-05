@@ -38,7 +38,7 @@ const auto FRAGMENT_SOURCE = R"(
     )";
 
 static GLuint compileShader(GLenum type, const char *source) {
-    GLuint shader = glCreateShader(type);
+    const GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &source, nullptr);
     glCompileShader(shader);
 
@@ -61,17 +61,17 @@ void setUiTheme() {
     style.Alpha                     = 1.0f;
     style.DisabledAlpha             = 0.6000000238418579f;
     style.WindowPadding             = ImVec2(8.0f, 8.0f);
-    style.WindowRounding            = 1.0f;
+    style.WindowRounding            = 0.0f;
     style.WindowBorderSize          = 1.0f;
     style.WindowMinSize             = ImVec2(32.0f, 32.0f);
     style.WindowTitleAlign          = ImVec2(0.0f, 0.5f);
     style.WindowMenuButtonPosition  = ImGuiDir_Left;
-    style.ChildRounding             = 4.0f;
+    style.ChildRounding             = 0.0f;
     style.ChildBorderSize           = 1.0f;
-    style.PopupRounding             = 2.0f;
+    style.PopupRounding             = 0.0f;
     style.PopupBorderSize           = 1.0f;
     style.FramePadding              = ImVec2(4.0f, 3.0f);
-    style.FrameRounding             = 2.0f;
+    style.FrameRounding             = 0.0f;
     style.FrameBorderSize           = 1.0f;
     style.ItemSpacing               = ImVec2(8.0f, 4.0f);
     style.ItemInnerSpacing          = ImVec2(4.0f, 4.0f);
@@ -268,12 +268,13 @@ void Display::render() {
     }
 
     if (ImGui::CollapsingHeader("Configuration")) {
-        // ImGui::SeparatorText("Image");
-        // int dimensions[2] = {camera_->width, camera_->height};
-        // ImGui::Text("Dimensions");
-        // if (ImGui::InputInt2("##Dimensions", dimensions)) {
-        //     camera_->resize(width_, height_);
-        // }
+        ImGui::SeparatorText("Image");
+        int dimensions[2] = {camera_->width_, camera_->height_};
+        ImGui::Text("Dimensions");
+        if (ImGui::InputInt2("##Dimensions", dimensions)) {
+            camera_->resize(dimensions[0], dimensions[1]);
+            updateScale();
+        }
 
         ImGui::SeparatorText("Ray Tracing");
 
@@ -466,7 +467,7 @@ bool Display::initWindow() {
                                SDL_WINDOWPOS_CENTERED,
                                logicalWidth_,
                                logicalHeight_,
-                               SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+                               SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_MAXIMIZED);
 
     if (!window_) {
         std::cerr << "Failed to create SDL window: " << SDL_GetError() << "\n";

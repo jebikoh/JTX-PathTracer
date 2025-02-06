@@ -207,6 +207,14 @@ void fullWidth() {
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 }
 
+void tableRow(const std::string &label) {
+    ImGui::TableNextRow();
+    ImGui::TableSetColumnIndex(0);
+    rightAlignText(label);
+    ImGui::TableSetColumnIndex(1);
+    fullWidth();
+}
+
 void Display::renderMenuBar() {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
@@ -415,19 +423,21 @@ void Display::renderSceneEditor() {
     static int selectedMeshIndex = -1;
     // Scene View
     ImGui::Text("Objects:");
-    ;
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));// Darker background
-    for (size_t i = 0; i < scene_->meshes.size(); ++i) {
-        const auto &mesh = scene_->meshes[i];
-        if (ImGui::Selectable(mesh.name.c_str(), selectedMeshIndex == i)) {
-            selectedMeshIndex = i;
+    ImGui::BeginChild("Scene View", ImVec2(0, 150), true, ImGuiWindowFlags_None);
+    {
+        for (size_t i = 0; i < scene_->meshes.size(); ++i) {
+            const auto &mesh = scene_->meshes[i];
+            if (ImGui::Selectable(mesh.name.c_str(), selectedMeshIndex == i)) {
+                selectedMeshIndex = i;
+            }
         }
     }
+    ImGui::EndChild();
     ImGui::PopStyleColor();
 
     if (selectedMeshIndex != -1) {
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-        ImGui::Text("Material Editor");
+        ImGui::SeparatorText("Material Editor");
         const auto &mesh   = scene_->meshes[selectedMeshIndex];
         Material *material = mesh.material;
 
@@ -446,45 +456,47 @@ void Display::renderSceneEditor() {
                 material->type = static_cast<Material::Type>(currentType);
             }
 
+            switch (material->type) {
+                case Material::DIFFUSE:
+                    tableRow("Albedo");
+                    ImGui::ColorEdit3("Albedo", &material->albedo.x);
+                break;
+                case Material::CONDUCTOR:
+                    tableRow("IOR");
+                    ImGui::InputFloat3("IOR", &material->IOR.x);
+
+                    tableRow("k");
+                    ImGui::InputFloat3("k", &material->k.x);
+
+                    tableRow("Roughness X");
+                    ImGui::InputFloat("Alpha X", &material->alphaX);
+
+                    tableRow("Y");
+                    ImGui::InputFloat("Alpha Y", &material->alphaY);
+                break;
+                case Material::DIELECTRIC:
+                    tableRow("IOR");
+                    ImGui::InputFloat("IOR", &material->IOR.x);
+
+                    tableRow("Roughness X");
+                    ImGui::InputFloat("Alpha X", &material->alphaX);
+
+                    tableRow("Y");
+                    ImGui::InputFloat("Alpha Y", &material->alphaY);
+                break;
+                default:
+                    break;
+            }
+
             ImGui::EndTable();
         }
 
-
-        // Material Type Combo Box
-        const char *materialTypes[] = {"DIFFUSE", "DIELECTRIC", "CONDUCTOR"};
-        int currentType             = material->type;
-        if (ImGui::Combo("Type", &currentType, materialTypes, IM_ARRAYSIZE(materialTypes))) {
-            material->type = static_cast<Material::Type>(currentType);
-        }
-
-        switch (material->type) {
-            case Material::DIFFUSE:
-                ImGui::ColorEdit3("Albedo", &material->albedo.x);
-                break;
-            case Material::CONDUCTOR:
-                ImGui::InputFloat3("IOR", &material->IOR.x);
-                ImGui::InputFloat3("k", &material->k.x);
-                ImGui::InputFloat("Alpha X", &material->alphaX);
-                ImGui::InputFloat("Alpha Y", &material->alphaY);
-                break;
-            case Material::DIELECTRIC:
-                ImGui::InputFloat("IOR", &material->IOR.x);
-                ImGui::InputFloat("Alpha X", &material->alphaX);
-                ImGui::InputFloat("Alpha Y", &material->alphaY);
-                break;
-            default:
-                break;
-        }
-        ImGui::PopStyleColor();// Restore background color
-
-        ImGui::Separator();
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-        ImGui::Text("Transform");
+        ImGui::SeparatorText("Transform");
 
         static int lastSelectedMeshIndex = -1;
-        static float translation[3]      = {0.0f, 0.0f, 0.0f};
-        static float rotation[3]         = {0.0f, 0.0f, 0.0f};
-        static float scale[3]            = {1.0f, 1.0f, 1.0f};
+        static Vec3 translation      = {0.0f, 0.0f, 0.0f};
+        static Vec3 rotation         = {0.0f, 0.0f, 0.0f};
+        static Vec3 scale            = {1.0f, 1.0f, 1.0f};
 
         if (selectedMeshIndex != lastSelectedMeshIndex) {
             lastSelectedMeshIndex = selectedMeshIndex;
@@ -503,35 +515,77 @@ void Display::renderSceneEditor() {
             rotation[2] = 0.0f;
         }
 
-        // Translation control
-        if (ImGui::DragFloat3("Translation", translation, 0.1f)) {
-            auto &mesh = scene_->meshes[selectedMeshIndex];
-            // Update the translation matrix (assumes a helper that builds a translation matrix)
-            mesh.translate = Transform::translate(translation[0], translation[1], translation[2]);
-            mesh.recalculateTransform();
-            rebuildBVH_ = true;
-        }
 
-        // Rotation control (in degrees; adjust the drag speed as needed)
-        if (ImGui::DragFloat3("Rotation", rotation, 0.5f)) {
-            auto &mesh = scene_->meshes[selectedMeshIndex];
-            // Update the rotation matrices (assumes your Mat4::rotate* functions take angles in degrees)
-            mesh.rX = Transform::rotateX(rotation[0]);
-            mesh.rY = Transform::rotateY(rotation[1]);
-            mesh.rZ = Transform::rotateZ(rotation[2]);
-            mesh.recalculateTransform();
-            rebuildBVH_ = true;
-        }
+        if (ImGui::BeginTable("MaterialEditorTable", 2, ImGuiTableFlags_SizingStretchSame)) {
+            ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f);// 2x weight
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f);   // 1x weight
+            bool translationChanged = false;
+            bool rotationChanged = false;
+            bool scaleChanged = false;
 
-        // Scale control
-        if (ImGui::DragFloat3("Scale", scale, 0.1f)) {
-            auto &mesh = scene_->meshes[selectedMeshIndex];
-            // Update the scale matrix
-            mesh.scale = Transform::scale(scale[0], scale[1], scale[2]);
-            mesh.recalculateTransform();
-            rebuildBVH_ = true;
+            tableRow("Translation X");
+            if (ImGui::DragFloat("##TranslateX", &translation.x, 0.1f)) {
+                translationChanged = true;
+            }
+            tableRow("Y");
+            if (ImGui::DragFloat("##TranslateY", &translation.y, 0.1f)) {
+                translationChanged = true;
+            }
+            tableRow("Z");
+            if (ImGui::DragFloat("##TranslateZ", &translation.z, 0.1f)) {
+                translationChanged = true;
+            }
+
+            if (translationChanged) {
+                auto &mesh = scene_->meshes[selectedMeshIndex];
+                mesh.translate = Transform::translate(translation);
+                mesh.recalculateTransform();
+                rebuildBVH_ = true;
+            }
+
+            tableRow("Rotation X");
+            if (ImGui::DragFloat("##RotationX", &rotation.x, 0.5f)) {
+                rotationChanged = true;
+            }
+            tableRow("Y");
+            if (ImGui::DragFloat("##RotationY", &rotation.y, 0.5f)) {
+                rotationChanged = true;
+            }
+            tableRow("Z");
+            if (ImGui::DragFloat("##RotationZ", &rotation.z, 0.5f)) {
+                rotationChanged = true;
+            }
+
+            if (rotationChanged) {
+                auto &mesh = scene_->meshes[selectedMeshIndex];
+                mesh.rX = Transform::rotateX(rotation[0]);
+                mesh.rY = Transform::rotateY(rotation[1]);
+                mesh.rZ = Transform::rotateZ(rotation[2]);
+                mesh.recalculateTransform();
+            }
+
+            tableRow("Scale X");
+            if (ImGui::DragFloat("##ScaleX", &scale.x, 0.1f)) {
+                scaleChanged = true;
+            }
+            tableRow("Y");
+            if (ImGui::DragFloat("##ScaleY", &scale.y, 0.1f)) {
+                scaleChanged = true;
+            }
+            tableRow("Z");
+            if (ImGui::DragFloat("##ScaleZ", &scale.z, 0.1f)) {
+                scaleChanged = true;
+            }
+
+            if (scaleChanged) {
+                auto &mesh = scene_->meshes[selectedMeshIndex];
+                mesh.scale = Transform::scale(scale);
+                mesh.recalculateTransform();
+                rebuildBVH_ = true;
+            }
+
+            ImGui::EndTable();
         }
-        ImGui::PopStyleColor();
     }
 }
 

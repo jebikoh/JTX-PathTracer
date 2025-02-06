@@ -62,7 +62,7 @@ void setUiTheme() {
     style.DisabledAlpha             = 0.6000000238418579f;
     style.WindowPadding             = ImVec2(8.0f, 8.0f);
     style.WindowRounding            = 0.0f;
-    style.WindowBorderSize          = 1.0f;
+    style.WindowBorderSize          = 0.0f;
     style.WindowMinSize             = ImVec2(32.0f, 32.0f);
     style.WindowTitleAlign          = ImVec2(0.0f, 0.5f);
     style.WindowMenuButtonPosition  = ImGuiDir_Left;
@@ -197,10 +197,9 @@ void Display::destroy() const {
 }
 
 void rightAlignText(const std::string &text) {
-    const auto posX = (ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::CalcTextSize(text.c_str()).x
-                - ImGui::GetScrollX() - 2 * ImGui::GetStyle().ItemSpacing.x);
+    const auto posX = (ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::CalcTextSize(text.c_str()).x - ImGui::GetScrollX() - 2 * ImGui::GetStyle().ItemSpacing.x);
     // if(posX > ImGui::GetCursorPosX())
-        ImGui::SetCursorPosX(posX);
+    ImGui::SetCursorPosX(posX);
     ImGui::Text("%s", text.c_str());
 }
 
@@ -212,6 +211,51 @@ void Display::render() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
+
+    if (ImGui::BeginMainMenuBar()) {
+        if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("Open")) {
+                // TODO: Implement file open functionality
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Render")) {
+            if (ImGui::MenuItem("Start")) {
+                renderScene();
+            }
+            if (ImGui::MenuItem("Clear")) {
+                camera_->clear();
+            }
+            if (ImGui::MenuItem("Save")) {
+                camera_->save("output.png");
+            }
+            ImGui::EndMenu();
+        }
+
+        if (isRendering_) {
+            const float progress          = static_cast<float>(camera_->currentSample_.load()) / static_cast<float>(camera_->getSpp());
+            const float menuBarHeight     = ImGui::GetFrameHeight();
+            const float progressBarHeight = menuBarHeight * 0.6f;
+            // Set progress bar width proportional to the sidebar width minus 10px padding on each side
+            const float progressBarWidth = SIDEBAR_WIDTH - 20.0f;
+            const float rightPadding     = 10.0f;
+            // Position the progress bar on the right with the specified padding
+            const float xPos = ImGui::GetWindowContentRegionMax().x - progressBarWidth - rightPadding;
+            // Center vertically within the menu bar
+            const float verticalPadding = (menuBarHeight - progressBarHeight) * 0.5f;
+
+            ImGui::SameLine(xPos);
+            ImVec2 pos = ImGui::GetCursorPos();
+            pos.y += verticalPadding;
+            ImGui::SetCursorPos(pos);
+
+            char overlayText[64];
+            snprintf(overlayText, sizeof(overlayText), "%.1f%%", progress * 100.0f);
+            ImGui::ProgressBar(progress, ImVec2(progressBarWidth, progressBarHeight), overlayText);
+        }
+
+        ImGui::EndMainMenuBar();
+    }
 
     glBindTexture(GL_TEXTURE_2D, textureId_);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, camera_->width_, camera_->height_, 0, GL_RGB, GL_UNSIGNED_BYTE, camera_->img_.data());
@@ -244,8 +288,10 @@ void Display::render() {
 
     glViewport(0, 0, width_, height_);
 
-    ImGui::SetNextWindowPos(ImVec2(static_cast<float>(logicalWidth_ - SIDEBAR_WIDTH), 0.0f), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(static_cast<float>(SIDEBAR_WIDTH), static_cast<float>(logicalHeight_)), ImGuiCond_Always);
+    const float menuBarHeight = ImGui::GetFrameHeight();
+
+    ImGui::SetNextWindowPos(ImVec2(static_cast<float>(logicalWidth_ - SIDEBAR_WIDTH), menuBarHeight), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(static_cast<float>(SIDEBAR_WIDTH), static_cast<float>(logicalHeight_ - menuBarHeight)), ImGuiCond_Always);
 
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
                                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse;
@@ -255,300 +301,289 @@ void Display::render() {
     bool inputDisabled = false;
     if (isRendering_) {
         inputDisabled = true;
-
-        const float progress   = static_cast<float>(camera_->currentSample_.load()) / static_cast<float>(camera_->getSpp());
-        constexpr auto barSize = ImVec2(0.0f, 20.0f);
-        char overlayText[64];
-        snprintf(overlayText, sizeof(overlayText), "%.1f%%", progress * 100.0f);
-        ImGui::ProgressBar(progress, barSize, overlayText);
-
         ImGui::BeginDisabled();
     }
 
-    if (ImGui::Button("Render")) {
-        renderScene();
-    }
+    if (ImGui::BeginTabBar("MyTabBar", ImGuiTabBarFlags_None)) {
+        if (ImGui::BeginTabItem("Configuration")) {
+            if (ImGui::CollapsingHeader("Render")) {
+                if (ImGui::BeginTable("RenderTable", 2, ImGuiTableFlags_SizingStretchSame)) {
+                    ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f);// 2x weight
+                    ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f);   // 1x weight
 
-    ImGui::SameLine();
-    if (ImGui::Button("Clear")) {
-        camera_->clear();
-    }
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    rightAlignText("Dimensions  X");
+                    ImGui::TableSetColumnIndex(1);
+                    fullWidth();
+                    int dimensions[2] = {camera_->width_, camera_->height_};
+                    if (ImGui::InputInt("##Width", &dimensions[0], 0)) {
+                        camera_->resize(dimensions[0], dimensions[1]);
+                        updateScale();
+                    }
 
-    ImGui::SameLine();
-    if (ImGui::Button("Save")) {
-        camera_->save("output.png");
-    }
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    rightAlignText("Y");
+                    ImGui::TableSetColumnIndex(1);
+                    fullWidth();
+                    if (ImGui::InputInt("##Height", &dimensions[1], 0)) {
+                        camera_->resize(dimensions[0], dimensions[1]);
+                        updateScale();
+                    }
 
-    if (ImGui::CollapsingHeader("Configuration")) {
-        if (ImGui::BeginTable("ConfigurationTable", 2, ImGuiTableFlags_SizingStretchSame)) {
-            ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f); // 2x weight
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f); // 1x weight
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    rightAlignText("Samples  X");
+                    ImGui::TableSetColumnIndex(1);
+                    fullWidth();
+                    ImGui::InputInt("##XSamples", &camera_->xPixelSamples_, 0);
 
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Dimensions X");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            int dimensions[2] = { camera_->width_, camera_->height_ };
-            if (ImGui::InputInt("##Width", &dimensions[0], 0)) {
-                camera_->resize(dimensions[0], dimensions[1]);
-                updateScale();
-            }
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    rightAlignText("Y");
+                    ImGui::TableSetColumnIndex(1);
+                    fullWidth();
+                    ImGui::InputInt("##YSamples", &camera_->yPixelSamples_, 0);
 
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Y");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            if (ImGui::InputInt("##Height", &dimensions[1], 0)) {
-                camera_->resize(dimensions[0], dimensions[1]);
-                updateScale();
-            }
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    rightAlignText("Max Depth");
+                    ImGui::TableSetColumnIndex(1);
+                    fullWidth();
+                    ImGui::InputInt("##MaxDepth", &camera_->maxDepth_, 0);
 
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Samples X");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            ImGui::InputInt("##XSamples", &camera_->xPixelSamples_, 0);
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Y");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            ImGui::InputInt("##YSamples", &camera_->yPixelSamples_, 0);
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Max Depth");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            ImGui::InputInt("##MaxDepth", &camera_->maxDepth_, 0);
-
-            ImGui::EndTable();
-        }
-    }
-
-
-    if (ImGui::CollapsingHeader("Camera")) {
-        ImGui::SeparatorText("Orientation");
-        if (ImGui::BeginTable("CameraOrientation", 2, ImGuiTableFlags_SizingStretchSame)) {
-            ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f); // 2x weight
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f); // 1x weight
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Position X");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            ImGui::InputFloat("##PositionX", &camera_->properties_.center.x);
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Y");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            ImGui::InputFloat("##PositionY", &camera_->properties_.center.y);
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Z");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            ImGui::InputFloat("##PositionZ", &camera_->properties_.center.z);
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Target X");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            ImGui::InputFloat("##TargetX", &camera_->properties_.target.x);
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Y");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            ImGui::InputFloat("##TargetY", &camera_->properties_.target.y);
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Z");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            ImGui::InputFloat("##TargetZ", &camera_->properties_.target.z);
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Up X");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            ImGui::InputFloat("##UpX", &camera_->properties_.up.x);
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Y");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            ImGui::InputFloat("##Upy", &camera_->properties_.up.y);
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Z");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            ImGui::InputFloat("##UpZ", &camera_->properties_.up.z);
-
-            ImGui::EndTable();
-        }
-
-        ImGui::SeparatorText("Lens");
-
-        if (ImGui::BeginTable("CameraLens", 2, ImGuiTableFlags_SizingStretchSame)) {
-            ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f); // 2x weight
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f); // 1x weight
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Y FOV");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            ImGui::InputFloat("##YFOV", &camera_->properties_.yfov);
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Focus Angle");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            ImGui::InputFloat("##FocusAngle", &camera_->properties_.defocusAngle);
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Focus Distance");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            ImGui::InputFloat("##FocusDistance", &camera_->properties_.focusDistance);
-
-            ImGui::EndTable();
-        }
-    }
-
-    if (ImGui::CollapsingHeader("Scene Editor")) {
-        static int selectedMeshIndex = -1;
-        // Scene View
-        ImGui::Text("Scene View");;
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f)); // Darker background
-        ImGui::BeginChild("Scene View", ImVec2(0, 150), true, ImGuiWindowFlags_None);
-        {
-            for (size_t i = 0; i < scene_->meshes.size(); ++i) {
-                const auto& mesh = scene_->meshes[i];
-                if (ImGui::Selectable(mesh.name.c_str(), selectedMeshIndex == i)) {
-                    selectedMeshIndex = i;
+                    ImGui::EndTable();
                 }
             }
-        }
-        ImGui::EndChild();
-        ImGui::PopStyleColor();
 
-        if (selectedMeshIndex != -1) {
-            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-            ImGui::BeginChild("Material Editor", ImVec2(0, 0), true, ImGuiWindowFlags_None);
-            {
-                ImGui::Text("Material Editor");
-                const auto& mesh = scene_->meshes[selectedMeshIndex];
-                Material* material = mesh.material;
 
-                // Material Type Combo Box
-                const char* materialTypes[] = { "DIFFUSE", "DIELECTRIC", "CONDUCTOR" };
-                int currentType = material->type;
-                if (ImGui::Combo("Type", &currentType, materialTypes, IM_ARRAYSIZE(materialTypes))) {
-                    material->type = static_cast<Material::Type>(currentType);
+            if (ImGui::CollapsingHeader("Camera")) {
+                ImGui::SeparatorText("Orientation");
+                if (ImGui::BeginTable("CameraOrientation", 2, ImGuiTableFlags_SizingStretchSame)) {
+                    ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f);// 2x weight
+                    ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f);   // 1x weight
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    rightAlignText("Position  X");
+                    ImGui::TableSetColumnIndex(1);
+                    fullWidth();
+                    ImGui::InputFloat("##PositionX", &camera_->properties_.center.x);
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    rightAlignText("Y");
+                    ImGui::TableSetColumnIndex(1);
+                    fullWidth();
+                    ImGui::InputFloat("##PositionY", &camera_->properties_.center.y);
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    rightAlignText("Z");
+                    ImGui::TableSetColumnIndex(1);
+                    fullWidth();
+                    ImGui::InputFloat("##PositionZ", &camera_->properties_.center.z);
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    rightAlignText("Target  X");
+                    ImGui::TableSetColumnIndex(1);
+                    fullWidth();
+                    ImGui::InputFloat("##TargetX", &camera_->properties_.target.x);
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    rightAlignText("Y");
+                    ImGui::TableSetColumnIndex(1);
+                    fullWidth();
+                    ImGui::InputFloat("##TargetY", &camera_->properties_.target.y);
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    rightAlignText("Z");
+                    ImGui::TableSetColumnIndex(1);
+                    fullWidth();
+                    ImGui::InputFloat("##TargetZ", &camera_->properties_.target.z);
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    rightAlignText("Up  X");
+                    ImGui::TableSetColumnIndex(1);
+                    fullWidth();
+                    ImGui::InputFloat("##UpX", &camera_->properties_.up.x);
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    rightAlignText("Y");
+                    ImGui::TableSetColumnIndex(1);
+                    fullWidth();
+                    ImGui::InputFloat("##Upy", &camera_->properties_.up.y);
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    rightAlignText("Z");
+                    ImGui::TableSetColumnIndex(1);
+                    fullWidth();
+                    ImGui::InputFloat("##UpZ", &camera_->properties_.up.z);
+
+                    ImGui::EndTable();
                 }
 
+                ImGui::SeparatorText("Lens");
 
-                switch (material->type) {
-                    case Material::DIFFUSE:
-                        ImGui::ColorEdit3("Albedo", &material->albedo.x);
-                        break;
-                    case Material::CONDUCTOR:
-                        ImGui::InputFloat3("IOR", &material->IOR.x);
-                        ImGui::InputFloat3("k", &material->k.x);
-                        ImGui::InputFloat("Alpha X", &material->alphaX);
-                        ImGui::InputFloat("Alpha Y", &material->alphaY);
-                        break;
-                    case Material::DIELECTRIC:
-                        ImGui::InputFloat("IOR", &material->IOR.x);
-                        ImGui::InputFloat("Alpha X", &material->alphaX);
-                        ImGui::InputFloat("Alpha Y", &material->alphaY);
-                        break;
-                    default:
-                        break;
+                if (ImGui::BeginTable("CameraLens", 2, ImGuiTableFlags_SizingStretchSame)) {
+                    ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f);// 2x weight
+                    ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f);   // 1x weight
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    rightAlignText("Y FOV");
+                    ImGui::TableSetColumnIndex(1);
+                    fullWidth();
+                    ImGui::InputFloat("##YFOV", &camera_->properties_.yfov);
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    rightAlignText("Focus Angle");
+                    ImGui::TableSetColumnIndex(1);
+                    fullWidth();
+                    ImGui::InputFloat("##FocusAngle", &camera_->properties_.defocusAngle);
+
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    rightAlignText("Focus Distance");
+                    ImGui::TableSetColumnIndex(1);
+                    fullWidth();
+                    ImGui::InputFloat("##FocusDistance", &camera_->properties_.focusDistance);
+
+                    ImGui::EndTable();
                 }
             }
-            ImGui::EndChild();
-            ImGui::PopStyleColor(); // Restore background color
 
-            ImGui::Separator();
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-        ImGui::BeginChild("Transformation Editor", ImVec2(0, 120), true, ImGuiWindowFlags_None);
-        {
-            ImGui::Text("Transform");
-
-            static int lastSelectedMeshIndex = -1;
-            static float translation[3] = { 0.0f, 0.0f, 0.0f };
-            static float rotation[3]    = { 0.0f, 0.0f, 0.0f };
-            static float scale[3]       = { 1.0f, 1.0f, 1.0f };
-
-            if (selectedMeshIndex != lastSelectedMeshIndex) {
-                lastSelectedMeshIndex = selectedMeshIndex;
-                auto& mesh = scene_->meshes[selectedMeshIndex];
-
-                translation[0] = mesh.translate.m[0][3];
-                translation[1] = mesh.translate.m[1][3];
-                translation[2] = mesh.translate.m[2][3];
-
-                scale[0] = mesh.scale.m[0][0];
-                scale[1] = mesh.scale.m[1][1];
-                scale[2] = mesh.scale.m[2][2];
-
-                rotation[0] = 0.0f;
-                rotation[1] = 0.0f;
-                rotation[2] = 0.0f;
-            }
-
-            // Translation control
-            if (ImGui::DragFloat3("Translation", translation, 0.1f)) {
-                auto& mesh = scene_->meshes[selectedMeshIndex];
-                // Update the translation matrix (assumes a helper that builds a translation matrix)
-                mesh.translate = Transform::translate(translation[0], translation[1], translation[2]);
-                mesh.recalculateTransform();
-                rebuildBVH_ = true;
-            }
-
-            // Rotation control (in degrees; adjust the drag speed as needed)
-            if (ImGui::DragFloat3("Rotation", rotation, 0.5f)) {
-                auto& mesh = scene_->meshes[selectedMeshIndex];
-                // Update the rotation matrices (assumes your Mat4::rotate* functions take angles in degrees)
-                mesh.rX = Transform::rotateX(rotation[0]);
-                mesh.rY = Transform::rotateY(rotation[1]);
-                mesh.rZ = Transform::rotateZ(rotation[2]);
-                mesh.recalculateTransform();
-                rebuildBVH_ = true;
-            }
-
-            // Scale control
-            if (ImGui::DragFloat3("Scale", scale, 0.1f)) {
-                auto& mesh = scene_->meshes[selectedMeshIndex];
-                // Update the scale matrix
-                mesh.scale = Transform::scale(scale[0], scale[1], scale[2]);
-                mesh.recalculateTransform();
-                rebuildBVH_ = true;
-            }
+            ImGui::EndTabItem();
         }
-        ImGui::EndChild();
-        ImGui::PopStyleColor();
+        if (ImGui::BeginTabItem("Scene")) {
+            if (ImGui::CollapsingHeader("Scene Editor")) {
+                static int selectedMeshIndex = -1;
+                // Scene View
+                ImGui::Text("Scene View");
+                ;
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));// Darker background
+                ImGui::BeginChild("Scene View", ImVec2(0, 150), true, ImGuiWindowFlags_None);
+                {
+                    for (size_t i = 0; i < scene_->meshes.size(); ++i) {
+                        const auto &mesh = scene_->meshes[i];
+                        if (ImGui::Selectable(mesh.name.c_str(), selectedMeshIndex == i)) {
+                            selectedMeshIndex = i;
+                        }
+                    }
+                }
+                ImGui::EndChild();
+                ImGui::PopStyleColor();
+
+                if (selectedMeshIndex != -1) {
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+                    ImGui::BeginChild("Material Editor", ImVec2(0, 0), true, ImGuiWindowFlags_None);
+                    {
+                        ImGui::Text("Material Editor");
+                        const auto &mesh   = scene_->meshes[selectedMeshIndex];
+                        Material *material = mesh.material;
+
+                        // Material Type Combo Box
+                        const char *materialTypes[] = {"DIFFUSE", "DIELECTRIC", "CONDUCTOR"};
+                        int currentType             = material->type;
+                        if (ImGui::Combo("Type", &currentType, materialTypes, IM_ARRAYSIZE(materialTypes))) {
+                            material->type = static_cast<Material::Type>(currentType);
+                        }
+
+
+                        switch (material->type) {
+                            case Material::DIFFUSE:
+                                ImGui::ColorEdit3("Albedo", &material->albedo.x);
+                                break;
+                            case Material::CONDUCTOR:
+                                ImGui::InputFloat3("IOR", &material->IOR.x);
+                                ImGui::InputFloat3("k", &material->k.x);
+                                ImGui::InputFloat("Alpha X", &material->alphaX);
+                                ImGui::InputFloat("Alpha Y", &material->alphaY);
+                                break;
+                            case Material::DIELECTRIC:
+                                ImGui::InputFloat("IOR", &material->IOR.x);
+                                ImGui::InputFloat("Alpha X", &material->alphaX);
+                                ImGui::InputFloat("Alpha Y", &material->alphaY);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                    ImGui::EndChild();
+                    ImGui::PopStyleColor();// Restore background color
+
+                    ImGui::Separator();
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+                    ImGui::BeginChild("Transformation Editor", ImVec2(0, 120), true, ImGuiWindowFlags_None);
+                    {
+                        ImGui::Text("Transform");
+
+                        static int lastSelectedMeshIndex = -1;
+                        static float translation[3]      = {0.0f, 0.0f, 0.0f};
+                        static float rotation[3]         = {0.0f, 0.0f, 0.0f};
+                        static float scale[3]            = {1.0f, 1.0f, 1.0f};
+
+                        if (selectedMeshIndex != lastSelectedMeshIndex) {
+                            lastSelectedMeshIndex = selectedMeshIndex;
+                            auto &mesh            = scene_->meshes[selectedMeshIndex];
+
+                            translation[0] = mesh.translate.m[0][3];
+                            translation[1] = mesh.translate.m[1][3];
+                            translation[2] = mesh.translate.m[2][3];
+
+                            scale[0] = mesh.scale.m[0][0];
+                            scale[1] = mesh.scale.m[1][1];
+                            scale[2] = mesh.scale.m[2][2];
+
+                            rotation[0] = 0.0f;
+                            rotation[1] = 0.0f;
+                            rotation[2] = 0.0f;
+                        }
+
+                        // Translation control
+                        if (ImGui::DragFloat3("Translation", translation, 0.1f)) {
+                            auto &mesh = scene_->meshes[selectedMeshIndex];
+                            // Update the translation matrix (assumes a helper that builds a translation matrix)
+                            mesh.translate = Transform::translate(translation[0], translation[1], translation[2]);
+                            mesh.recalculateTransform();
+                            rebuildBVH_ = true;
+                        }
+
+                        // Rotation control (in degrees; adjust the drag speed as needed)
+                        if (ImGui::DragFloat3("Rotation", rotation, 0.5f)) {
+                            auto &mesh = scene_->meshes[selectedMeshIndex];
+                            // Update the rotation matrices (assumes your Mat4::rotate* functions take angles in degrees)
+                            mesh.rX = Transform::rotateX(rotation[0]);
+                            mesh.rY = Transform::rotateY(rotation[1]);
+                            mesh.rZ = Transform::rotateZ(rotation[2]);
+                            mesh.recalculateTransform();
+                            rebuildBVH_ = true;
+                        }
+
+                        // Scale control
+                        if (ImGui::DragFloat3("Scale", scale, 0.1f)) {
+                            auto &mesh = scene_->meshes[selectedMeshIndex];
+                            // Update the scale matrix
+                            mesh.scale = Transform::scale(scale[0], scale[1], scale[2]);
+                            mesh.recalculateTransform();
+                            rebuildBVH_ = true;
+                        }
+                    }
+                    ImGui::EndChild();
+                    ImGui::PopStyleColor();
+                }
+            }
+            ImGui::EndTabItem();
         }
+        ImGui::EndTabBar();
     }
 
     if (inputDisabled) {
@@ -765,23 +800,23 @@ void Display::processEvents(bool &isRunning) {
         }
         if (mState_.scroll != 0) {
             // Zoom the camera
-            mState_.scroll = 0; // Reset scroll after handling
+            mState_.scroll = 0;// Reset scroll after handling
         }
     }
 }
 void Display::panCamera(int deltaX, int deltaY) {
     resetRender_ = true;
     Vec3 forward = normalize(camera_->properties_.target - camera_->properties_.center);
-    Vec3 right = normalize(cross(forward, camera_->properties_.up));
-    Vec3 up = normalize(cross(right, forward));
+    Vec3 right   = normalize(cross(forward, camera_->properties_.up));
+    Vec3 up      = normalize(cross(right, forward));
 
     Vec3 delta = (right * static_cast<float>(-deltaX) + up * static_cast<float>(deltaY)) * camSensitivity_;
     camera_->properties_.center += delta;
     camera_->properties_.target += delta;
 }
 void Display::zoomCamera(int scroll) {
-    resetRender_ = true;
-    float zoomFactor = 1.0f + static_cast<float>(scroll) * camSensitivity_;
+    resetRender_                = true;
+    float zoomFactor            = 1.0f + static_cast<float>(scroll) * camSensitivity_;
     camera_->properties_.center = camera_->properties_.target + (camera_->properties_.center - camera_->properties_.target) * zoomFactor;
 }
 void Display::rotateCamera() {

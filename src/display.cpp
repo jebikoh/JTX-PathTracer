@@ -196,6 +196,18 @@ void Display::destroy() const {
     SDL_Quit();
 }
 
+void rightAlignText(const std::string &text) {
+    const auto posX = (ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::CalcTextSize(text.c_str()).x
+                - ImGui::GetScrollX() - 2 * ImGui::GetStyle().ItemSpacing.x);
+    // if(posX > ImGui::GetCursorPosX())
+        ImGui::SetCursorPosX(posX);
+    ImGui::Text("%s", text.c_str());
+}
+
+void fullWidth() {
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+}
+
 void Display::render() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame();
@@ -268,57 +280,158 @@ void Display::render() {
     }
 
     if (ImGui::CollapsingHeader("Configuration")) {
-        ImGui::SeparatorText("Image");
-        int dimensions[2] = {camera_->width_, camera_->height_};
-        ImGui::Text("Dimensions");
-        if (ImGui::InputInt2("##Dimensions", dimensions)) {
-            camera_->resize(dimensions[0], dimensions[1]);
-            updateScale();
+        if (ImGui::BeginTable("ConfigurationTable", 2, ImGuiTableFlags_SizingStretchSame)) {
+            ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f); // 2x weight
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f); // 1x weight
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Dimensions X");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            int dimensions[2] = { camera_->width_, camera_->height_ };
+            if (ImGui::InputInt("##Width", &dimensions[0], 0)) {
+                camera_->resize(dimensions[0], dimensions[1]);
+                updateScale();
+            }
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Y");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            if (ImGui::InputInt("##Height", &dimensions[1], 0)) {
+                camera_->resize(dimensions[0], dimensions[1]);
+                updateScale();
+            }
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Samples X");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            ImGui::InputInt("##XSamples", &camera_->xPixelSamples_, 0);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Y");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            ImGui::InputInt("##YSamples", &camera_->yPixelSamples_, 0);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Max Depth");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            ImGui::InputInt("##MaxDepth", &camera_->maxDepth_, 0);
+
+            ImGui::EndTable();
         }
-
-        ImGui::SeparatorText("Ray Tracing");
-
-        ImGui::Text("X Samples");
-        ImGui::InputInt("##XSamples", &camera_->xPixelSamples_);
-
-        ImGui::Text("Y Samples");
-        ImGui::InputInt("##YSamples", &camera_->yPixelSamples_);
-
-        ImGui::Text("Max Depth");
-        ImGui::InputInt("##MaxDepth", &camera_->maxDepth_);
     }
-    if (ImGui::CollapsingHeader("Camera Settings")) {
+
+
+    if (ImGui::CollapsingHeader("Camera")) {
         ImGui::SeparatorText("Orientation");
+        if (ImGui::BeginTable("CameraOrientation", 2, ImGuiTableFlags_SizingStretchSame)) {
+            ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f); // 2x weight
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f); // 1x weight
 
-        ImGui::Text("Position");
-        // cast the current position to floats (stored as doubles)
-        auto pos = static_cast<jtx::Vec3f>(camera_->properties_.center);
-        if (ImGui::InputFloat3("##Position", &pos.x)) {
-            camera_->properties_.center = static_cast<Vec3>(pos);
-        }
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Position X");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            ImGui::InputFloat("##PositionX", &camera_->properties_.center.x);
 
-        ImGui::Text("Target");
-        auto target = static_cast<jtx::Vec3f>(camera_->properties_.target);
-        if (ImGui::InputFloat3("##Target", &target.x)) {
-            camera_->properties_.target = static_cast<Vec3>(target);
-        }
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Y");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            ImGui::InputFloat("##PositionY", &camera_->properties_.center.y);
 
-        ImGui::Text("Up");
-        auto up = static_cast<jtx::Vec3f>(camera_->properties_.up);
-        if (ImGui::InputFloat3("##Up", &up.x)) {
-            camera_->properties_.up = static_cast<Vec3>(up);
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Z");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            ImGui::InputFloat("##PositionZ", &camera_->properties_.center.z);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Target X");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            ImGui::InputFloat("##TargetX", &camera_->properties_.target.x);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Y");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            ImGui::InputFloat("##TargetY", &camera_->properties_.target.y);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Z");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            ImGui::InputFloat("##TargetZ", &camera_->properties_.target.z);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Up X");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            ImGui::InputFloat("##UpX", &camera_->properties_.up.x);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Y");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            ImGui::InputFloat("##Upy", &camera_->properties_.up.y);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Z");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            ImGui::InputFloat("##UpZ", &camera_->properties_.up.z);
+
+            ImGui::EndTable();
         }
 
         ImGui::SeparatorText("Lens");
 
-        ImGui::Text("Y-FOV");
-        ImGui::InputFloat("##Y-FOV", &camera_->properties_.yfov);
+        if (ImGui::BeginTable("CameraLens", 2, ImGuiTableFlags_SizingStretchSame)) {
+            ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f); // 2x weight
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f); // 1x weight
 
-        ImGui::Text("Focus Angle");
-        ImGui::InputFloat("##FocusAngle", &camera_->properties_.defocusAngle);
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Y FOV");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            ImGui::InputFloat("##YFOV", &camera_->properties_.yfov);
 
-        ImGui::Text("Focus Distance");
-        ImGui::InputFloat("##FocusDistance", &camera_->properties_.focusDistance);
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Focus Angle");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            ImGui::InputFloat("##FocusAngle", &camera_->properties_.defocusAngle);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Focus Distance");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            ImGui::InputFloat("##FocusDistance", &camera_->properties_.focusDistance);
+
+            ImGui::EndTable();
+        }
     }
 
     if (ImGui::CollapsingHeader("Scene Editor")) {

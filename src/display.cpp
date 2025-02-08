@@ -215,7 +215,7 @@ void tableRow(const std::string &label) {
     fullWidth();
 }
 
-void Display::renderMenuBar() {
+void Display::renderMenuBar(bool inputDisabled) {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Open")) {
@@ -224,6 +224,9 @@ void Display::renderMenuBar() {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Render")) {
+            if (inputDisabled) {
+                ImGui::BeginDisabled();
+            }
             if (ImGui::MenuItem("Start")) {
                 renderScene();
             }
@@ -232,6 +235,12 @@ void Display::renderMenuBar() {
             }
             if (ImGui::MenuItem("Save")) {
                 camera_->save("output.png");
+            }
+            if (inputDisabled) {
+                ImGui::EndDisabled();
+            }
+            if (ImGui::MenuItem("Cancel")) {
+                camera_->terminateRender();
             }
             ImGui::EndMenu();
         }
@@ -594,7 +603,12 @@ void Display::render() {
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
-    renderMenuBar();
+    bool inputDisabled = false;
+    if (isRendering_) {
+        inputDisabled = true;
+    }
+
+    renderMenuBar(inputDisabled);
 
     glBindTexture(GL_TEXTURE_2D, textureId_);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, camera_->width_, camera_->height_, 0, GL_RGB, GL_UNSIGNED_BYTE, camera_->img_.data());
@@ -637,9 +651,7 @@ void Display::render() {
 
     ImGui::Begin("Sidebar", nullptr, window_flags);
 
-    bool inputDisabled = false;
-    if (isRendering_) {
-        inputDisabled = true;
+    if (inputDisabled) {
         ImGui::BeginDisabled();
     }
 

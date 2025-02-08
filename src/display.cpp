@@ -230,6 +230,15 @@ void Display::renderMenuBar(bool inputDisabled) {
             if (ImGui::MenuItem("Start")) {
                 renderScene();
             }
+            if (inputDisabled) {
+                ImGui::EndDisabled();
+            }
+            if (ImGui::MenuItem("Cancel")) {
+                camera_->terminateRender();
+            }
+            if (inputDisabled) {
+                ImGui::BeginDisabled();
+            }
             if (ImGui::MenuItem("Clear")) {
                 camera_->clear();
             }
@@ -238,9 +247,6 @@ void Display::renderMenuBar(bool inputDisabled) {
             }
             if (inputDisabled) {
                 ImGui::EndDisabled();
-            }
-            if (ImGui::MenuItem("Cancel")) {
-                camera_->terminateRender();
             }
             ImGui::EndMenu();
         }

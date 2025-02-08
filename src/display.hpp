@@ -77,7 +77,7 @@ private:
     void initUI() const;
 
     void renderScene();
-    void renderMenuBar();
+    void renderMenuBar(bool inputDisabled);
     void renderConfig();
     void renderSceneEditor();
     bool isRendering_ = false;

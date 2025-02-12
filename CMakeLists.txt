@@ -4,6 +4,7 @@ option(ENABLE_CUDA_BACKEND "Enable CUDA backend" OFF)
 option(ENABLE_PROFILING "Enable profiling" ON)
 option(ENABLE_PERF_FLAGS "Enable performance flags" ON)
 option(ENABLE_MULTI_THREADING "Enable multi-threading" ON)
+option(DISABLE_UI "Disable UI" OFF)
 
 if(ENABLE_CUDA_BACKEND)
     project(JTX VERSION 1.0.0 LANGUAGES CXX CUDA)
@@ -39,6 +40,10 @@ endif()
 
 if (ENABLE_MULTI_THREADING)
     add_compile_definitions(-DENABLE_MULTI_THREADING)
+endif()
+
+if (DISABLE_UI)
+    add_compile_definitions(-DDISABLE_UI)
 endif()
 
 if (ENABLE_PERF_FLAGS)

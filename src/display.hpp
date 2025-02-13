@@ -79,6 +79,8 @@ private:
     void renderScene();
     void renderMenuBar(bool inputDisabled);
     void renderConfig();
+    void renderLightEditor();
+    void renderMaterialEditor(const size_t selectedMeshIndex);
     void renderSceneEditor();
     bool isRendering_ = false;
 

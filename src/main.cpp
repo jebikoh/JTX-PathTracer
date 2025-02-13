@@ -14,7 +14,9 @@ constexpr int IMAGE_HEIGHT   = 400;
 constexpr int MAX_DEPTH      = 50;
 
 int main(int argc, char *argv[]) {
-    Scene scene = createShaderBallScene();
+    Scene scene = createShaderBallScene(true);
+    // Scene scene = createShaderBallSceneWithLight(true);
+    scene.skyColor = SKY_BLUE;
     scene.buildBVH();
 
 #ifndef DISABLE_UI
@@ -62,7 +64,7 @@ int main(int argc, char *argv[]) {
 
     Vec3 offset = camera.properties_.center - camera.properties_.target;
 
-    for (int frame = 142; frame < NUM_FRAMES; ++frame) {
+    for (int frame = 0; frame < NUM_FRAMES; ++frame) {
         const float angle = frame * DELTA_ANGLE;
 
         const float cosTheta = jtx::cos(angle);

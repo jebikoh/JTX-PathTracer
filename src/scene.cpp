@@ -1,13 +1,15 @@
 #include "scene.hpp"
 #include "mesh.hpp"
-#include <unordered_map>
 #include <assimp/Importer.hpp>
-#include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/scene.h>
+#include <unordered_map>
 
 static constexpr int SCENE_MATERIAL_LIMIT = 64;
+static const Vec3 GOLD_IOR                = {0.15557, 0.42415, 1.3831};
+static const Vec3 GOLD_K                  = {-3.6024, -2.4721, -1.9155};
 
-bool Scene::closestHit(const Ray &r, Interval t, Intersection &record) const {
+bool Scene::closestHit(const Ray &r, Interval t, SurfaceIntersection &record) const {
     const auto invDir     = 1 / r.dir;
     const int dirIsNeg[3] = {static_cast<int>(invDir.x < 0), static_cast<int>(invDir.y < 0), static_cast<int>(invDir.z < 0)};
 
@@ -96,7 +98,7 @@ void Scene::loadMesh(const std::string &path) {
     }
 
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+    const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
     if (!scene || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) || !scene->mRootNode) {
         std::cerr << "Assimp error: " << importer.GetErrorString() << std::endl;
         return;
@@ -114,7 +116,7 @@ void Scene::loadMesh(const std::string &path) {
     std::unordered_map<std::string, size_t> materialMap;
 
     for (unsigned int i = 0; i < scene->mNumMaterials; ++i) {
-        aiMaterial* aiMat = scene->mMaterials[i];
+        aiMaterial *aiMat = scene->mMaterials[i];
 
         aiString aiMatName;
         aiMat->Get(AI_MATKEY_NAME, aiMatName);
@@ -128,7 +130,7 @@ void Scene::loadMesh(const std::string &path) {
             aiString texPath;
             if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS) {
                 std::string fullTexPath = baseDir + texPath.C_Str();
-                auto texIt = textureMap.find(fullTexPath);
+                auto texIt              = textureMap.find(fullTexPath);
                 if (texIt != textureMap.end()) {
                     texId = texIt->second;
                 } else {
@@ -136,7 +138,7 @@ void Scene::loadMesh(const std::string &path) {
                     if (texture.load(fullTexPath.c_str())) {
                         std::cout << "Loaded texture: " << fullTexPath << std::endl;
                         textures.push_back(std::move(texture));
-                        texId = textures.size() - 1;
+                        texId                   = textures.size() - 1;
                         textureMap[fullTexPath] = texId;
                     } else {
                         std::cerr << "Failed to load texture: " << fullTexPath << std::endl;
@@ -151,24 +153,24 @@ void Scene::loadMesh(const std::string &path) {
     }
 
     for (unsigned int m = 0; m < scene->mNumMeshes; m++) {
-        aiMesh* aiMeshPtr = scene->mMeshes[m];
+        aiMesh *aiMeshPtr = scene->mMeshes[m];
 
-        size_t numVerts = aiMeshPtr->mNumVertices;
-        auto finalVerts = new Vec3[numVerts];
+        size_t numVerts   = aiMeshPtr->mNumVertices;
+        auto finalVerts   = new Vec3[numVerts];
         auto finalNormals = new Vec3[numVerts];
 
-        Vec2f* finalUVs = nullptr;
-        bool hasUV = (aiMeshPtr->mTextureCoords[0] != nullptr);
+        Vec2f *finalUVs = nullptr;
+        bool hasUV      = (aiMeshPtr->mTextureCoords[0] != nullptr);
         if (hasUV) {
             finalUVs = new Vec2f[numVerts];
         }
 
         for (size_t i = 0; i < numVerts; i++) {
-            aiVector3D v = aiMeshPtr->mVertices[i];
+            aiVector3D v  = aiMeshPtr->mVertices[i];
             finalVerts[i] = Vec3(v.x, v.y, v.z);
 
             if (aiMeshPtr->HasNormals()) {
-                aiVector3D n = aiMeshPtr->mNormals[i];
+                aiVector3D n    = aiMeshPtr->mNormals[i];
                 finalNormals[i] = Vec3(n.x, n.y, n.z);
             } else {
                 finalNormals[i] = Vec3(0.0f, 1.0f, 0.0f);
@@ -176,14 +178,14 @@ void Scene::loadMesh(const std::string &path) {
 
             if (hasUV) {
                 aiVector3D uv = aiMeshPtr->mTextureCoords[0][i];
-                finalUVs[i] = Vec2f(uv.x, uv.y);
-            } else if(finalUVs) {
+                finalUVs[i]   = Vec2f(uv.x, uv.y);
+            } else if (finalUVs) {
                 finalUVs[i] = Vec2f(0.0f, 0.0f);
             }
         }
 
         size_t numTriangles = aiMeshPtr->mNumFaces;
-        auto* finalIndices = new Vec3i[numTriangles];
+        auto *finalIndices  = new Vec3i[numTriangles];
         for (size_t i = 0; i < numTriangles; i++) {
             aiFace face = aiMeshPtr->mFaces[i];
             if (face.mNumIndices != 3) {
@@ -198,9 +200,9 @@ void Scene::loadMesh(const std::string &path) {
             mName = "mesh_" + std::to_string(m);
         }
 
-        Material* meshMaterial = nullptr;
+        Material *meshMaterial = nullptr;
         if (aiMeshPtr->mMaterialIndex < scene->mNumMaterials) {
-            aiMaterial* mat = scene->mMaterials[aiMeshPtr->mMaterialIndex];
+            aiMaterial *mat = scene->mMaterials[aiMeshPtr->mMaterialIndex];
             aiString matName;
             mat->Get(AI_MATKEY_NAME, matName);
             auto it = materialMap.find(matName.C_Str());
@@ -218,7 +220,7 @@ void Scene::loadMesh(const std::string &path) {
         int meshIndex = static_cast<int>(meshes.size()) - 1;
         for (size_t t = 0; t < numTriangles; t++) {
             Triangle tri;
-            tri.index = static_cast<int>(t);
+            tri.index     = static_cast<int>(t);
             tri.meshIndex = meshIndex;
             triangles.push_back(tri);
         }
@@ -279,11 +281,7 @@ Scene createDefaultScene() {
     scene.cameraProperties.defocusAngle  = 0;
     scene.cameraProperties.focusDistance = 3.4;
 
-    Light background = {
-            .type      = Light::INFINITE,
-            .intensity = Color(0.7, 0.8, 1.0),
-            .scale     = 1.0};
-    scene.lights.push_back(background);
+    scene.skyColor = Vec3(0.7, 0.8, 1.0);
 
     scene.materials.reserve(10);
     scene.spheres.reserve(10);
@@ -318,11 +316,7 @@ Scene createMeshScene() {
     scene.cameraProperties.defocusAngle  = 0;
     scene.cameraProperties.focusDistance = 3.4;
 
-    Light background = {
-            .type      = Light::INFINITE,
-            .intensity = Color(0.7, 0.8, 1.0),
-            .scale     = 1.0};
-    scene.lights.push_back(background);
+    scene.skyColor = Vec3(0.7, 0.8, 1.0);
 
     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(1, 0.3, 0.5)});
 
@@ -382,97 +376,73 @@ Scene createObjScene(const std::string &path, const Mat4 &t, const Color &backgr
     return scene;
 }
 
-Scene createShaderBallScene() {
-    const auto t           = Mat4::identity();
-    const std::string path = "../src/assets/shaderball/shaderball.obj";
-    auto scene             = createObjScene(path, t);
+Scene createShaderBallScene(bool highSubdivision) {
+    const auto t = Mat4::identity();
+    Scene scene;
+    if (highSubdivision) {
+        const std::string path = "../src/assets/shaderball/shaderball_hsd.obj";
+        scene                  = createObjScene(path, t);
+    } else {
+        const std::string path = "../src/assets/shaderball/shaderball.obj";
+        scene                  = createObjScene(path, t);
+    }
+
 
     scene.cameraProperties.center = Vec3(2.5, 16, 12);
     scene.cameraProperties.target = Vec3(0, 3, 0);
     scene.cameraProperties.yfov   = 40;
 
-    Light background = {
-            .type      = Light::INFINITE,
-            .intensity = Color(0.7, 0.8, 1.0),
-            .scale     = 1.0};
-    scene.lights.push_back(background);
+    scene.skyColor = Vec3(0.7, 0.8, 1.0);
 
-    const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
-    const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};
-
-    // Base
-    // *scene.meshes[0].material = {.type = Material::DIFFUSE, .texId = scene.meshes[0].material->texId};
-    // Core
-    // *scene.meshes[1].material = {.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05, .texId = scene.meshes[1].material->texId};
-    // Ground
-    // *scene.meshes[2].material = {.type = Material::DIFFUSE, .texId = scene.meshes[2].material->texId};
-    // Surface
-    scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.01, .alphaY = 0.01, .texId = scene.meshes[3].material->texId});
+    scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05});
+    // scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.01, .alphaY = 0.01, .texId = scene.meshes[3].material->texId});
     scene.meshes[3].material = &scene.materials.back();
-    // Bars
-    // *scene.meshes[4].material = {.type = Material::DIFFUSE, .texId = scene.meshes[4].material->texId};
 
     return scene;
 }
 
-Scene createShaderBallSceneWithLight() {
-    const auto t           = Mat4::identity();
-    const std::string path = "../src/assets/shaderball.obj";
-    auto scene             = createObjScene(path, t);
+Scene createShaderBallSceneWithLight(bool highSubdivision) {
+
+    const auto t = Mat4::identity();
+    Scene scene;
+    if (highSubdivision) {
+        const std::string path = "../src/assets/shaderball/shaderball_hsd.obj";
+        scene                  = createObjScene(path, t);
+    } else {
+        const std::string path = "../src/assets/shaderball/shaderball.obj";
+        scene                  = createObjScene(path, t);
+    }
 
     scene.cameraProperties.center = Vec3(2.5, 16, 12);
     scene.cameraProperties.target = Vec3(0, 3, 0);
     scene.cameraProperties.yfov   = 40;
 
-    //    Light background = {
-    //            .type = Light::INFINITE,
-    //            .intensity = Color(0,0,0),
-    //            .scale = 1.0
-    //    };
-    //    scene.lights.push_back(background);
-
-    // Single point light
+    // scene.skyColor = Vec3(0.1, 0.1, 0.1);
+    // scene.skyColor    = BLACK;
+    scene.skyColor    = SKY_BLUE;
     const Light point = {
             .type      = Light::POINT,
-            .position  = Vec3(2.5, 16, 12),
+            .position  = Vec3(0, 20, 0),
             .intensity = WHITE,
-            .scale     = 10};
+            .scale     = 1000};
     scene.lights.push_back(point);
 
-    const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
-    const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};
-
-    // scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05});
-    scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.3, .alphaY = 0.3});
-    scene.meshes[3].material = &scene.materials.back();
-
-    // scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.8, 0.8, 0.8)});
-    // scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(1, 0.431, 0.431)});
+    // Base
     scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05});
-    scene.meshes[0].material = &scene.materials.back();
-    scene.meshes[1].material = &scene.materials.back();
-    scene.meshes[4].material = &scene.materials.back();
-
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.3, 0.3, 0.3)});
-    scene.meshes[2].material = &scene.materials.back();
+    // scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.01, .alphaY = 0.01, .texId = scene.meshes[3].material->texId});
+    scene.meshes[3].material = &scene.materials.back();
 
     return scene;
 }
 
 Scene createKnobScene() {
-    auto t           = Mat4::identity();
-    std::string path = "../src/assets/knob.obj";
-    auto scene       = createObjScene(path, t);
+    const auto t           = Mat4::identity();
+    const std::string path = "../src/assets/knob.obj";
+    auto scene             = createObjScene(path, t);
 
     scene.cameraProperties.center = Vec3(0, 3, 8);
     scene.cameraProperties.target = Vec3(0, 0, 0);
     scene.cameraProperties.yfov   = 15;
-
-    Light background = {
-            .type      = Light::INFINITE,
-            .intensity = Color(0.7, 0.8, 1.0),
-            .scale     = 1.0};
-    scene.lights.push_back(background);
 
     scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.3, 0.3, 0.)});
     scene.meshes[0].material = &scene.materials.back();

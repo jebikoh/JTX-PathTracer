@@ -19,13 +19,11 @@ struct LightSample {
 struct LightSampleContext {
     Vec3 p;
     Vec3 n;
-    Vec3 sn;
 };
 
 struct Light {
     enum Type {
         POINT = 0,
-        INFINITE = 2
     };
 
     Type type;
@@ -34,15 +32,6 @@ struct Light {
     float scale;
     float sceneRadius;
 
-    Vec3 evaluate(const Ray &r) const {
-        switch (type) {
-            case INFINITE:
-                return scale * intensity;
-            default:
-                return {};
-        }
-    }
-
     bool sample(const LightSampleContext &ctx, LightSample &sample, const Vec2f &u, bool allowIncompletePDF = false) const {
         switch (type) {
             case POINT:
@@ -50,13 +39,6 @@ struct Light {
                 sample.wi = (position - ctx.p).normalize();
                 sample.radiance = scale * intensity / jtx::distanceSqr(position, ctx.p);
                 sample.pdf = 1;
-                return true;
-            case INFINITE:
-                if (allowIncompletePDF) return false;
-                sample.wi = sampleUniformSphere(u);
-                sample.pdf = uniformSpherePDF();
-                sample.radiance = scale * intensity;
-                sample.p = ctx.p + sample.wi + 2 * sceneRadius;
                 return true;
             default:
                 return false;
@@ -67,9 +49,6 @@ struct Light {
         switch (type) {
             case POINT:
                 return 1;
-            case INFINITE:
-                if (allowIncompletePDF) return 0;
-                return uniformSpherePDF();
             default:
                 return 0;
         }

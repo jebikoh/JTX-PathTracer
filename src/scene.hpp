@@ -27,8 +27,8 @@ public:
 
     std::vector<Material> materials;
 
-    // First light should be background light
     std::vector<Light> lights;
+    Vec3 skyColor;
 
     std::vector<Sphere> spheres;
     std::vector<Triangle> triangles;
@@ -45,7 +45,7 @@ public:
         if (bvhBuilt_) destroyBVH();
     }
 
-    bool closestHit(const Ray &r, Interval t, Intersection &record) const;
+    bool closestHit(const Ray &r, Interval t, SurfaceIntersection &record) const;
     bool anyHit(const Ray &r, Interval t) const;
 
     [[nodiscard]]
@@ -87,7 +87,7 @@ public:
     }
 
 private:
-    bool closestHitPrimitive(const Primitive &primitive, const Ray &r, const Interval t, Intersection &record) const {
+    bool closestHitPrimitive(const Primitive &primitive, const Ray &r, const Interval t, SurfaceIntersection &record) const {
         switch(primitive.type) {
             case Primitive::SPHERE: {
                 return spheres[primitive.index].closestHit(r, t, record);
@@ -127,6 +127,6 @@ private:
 Scene createDefaultScene();
 Scene createMeshScene();
 Scene createObjScene(const std::string &path, const Mat4 &t, const Color &background = Color(0.7, 0.8, 1.0));
-Scene createShaderBallScene();
-Scene createShaderBallSceneWithLight();
+Scene createShaderBallScene(bool highSubdivision = false);
+Scene createShaderBallSceneWithLight(bool highSubdivision = false);
 Scene createKnobScene();

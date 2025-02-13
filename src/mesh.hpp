@@ -103,7 +103,7 @@ struct Mesh {
         uv2           = uvs[i[2]];
     }
 
-    bool tClosestHit(const Ray &r, const Interval t, Intersection &record, const int index, float &b1, float &b2) const {
+    bool tClosestHit(const Ray &r, const Interval t, SurfaceIntersection &record, const int index, float &b1, float &b2) const {
         Vec3 v0, v1, v2;
         getVertices(index, v0, v1, v2);
         const auto v0v1 = v1 - v0;

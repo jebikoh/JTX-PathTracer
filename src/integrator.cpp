@@ -2,11 +2,10 @@
 #include "bsdf/bxdf.hpp"
 #include "material.hpp"
 #include "util/interval.hpp"
-#include "bsdf/microfacet.hpp"
 
-float powerHeuristic(float nf, float fPdf, float ng, float gPdf) {
-    float f = nf * fPdf;
-    float g = ng * gPdf;
+float powerHeuristic(const float nf, const float fPdf, const float ng, const float gPdf) {
+    const float f = nf * fPdf;
+    const float g = ng * gPdf;
     return f * f / (f * f + g * g);
 }
 
@@ -15,12 +14,12 @@ Vec3 integrateBasic(Ray ray, const Scene &scene, int maxDepth, RNG &rng) {
     Vec3 beta     = {1, 1, 1};
     int depth     = 0;
 
-    Intersection record;
+    SurfaceIntersection record;
     while (beta) {
         const bool hit = scene.closestHit(ray, Interval(0.001, INF), record);
 
         if (!hit) {
-            radiance += beta * scene.lights[0].evaluate(ray);
+            radiance += beta * scene.skyColor;
             break;
         }
         // Emission (L_e)
@@ -57,14 +56,14 @@ Vec3 integrate(Ray ray, const Scene &scene, const int maxDepth, RNG &rng) {
     Vec3 beta           = {1, 1, 1};
     int depth           = 0;
     bool specularBounce = true;
-    Intersection record;
+    SurfaceIntersection record;
 
     while (beta) {
         const bool hit = scene.closestHit(ray, Interval(0.001, INF), record);
 
         if (!hit) {
-            if (specularBounce && scene.lights[0].type == Light::INFINITE) {
-                radiance += beta * scene.lights[0].evaluate(ray);
+            if (specularBounce) {
+                radiance += beta * scene.skyColor;
             }
             break;
         }
@@ -89,16 +88,16 @@ Vec3 integrate(Ray ray, const Scene &scene, const int maxDepth, RNG &rng) {
 
             LightSample ls;
             LightSampleContext ctx;
-            ctx.p  = record.point;
-            ctx.n  = record.normal;
-            ctx.sn = record.normal;
+            ctx.p = record.point;
+            ctx.n = record.normal;
+            // ctx.sn = record.normal;
 
             Vec2f u = rng.sample<Vec2f>();
 
             bool lightSampled = light.sample(ctx, ls, u);
             if (lightSampled && ls.pdf > 0) {
                 Vec3 w_i = ls.wi;
-                auto f   = evalBxdf(record.material, record, w_o, w_i) * jtx::absdot(w_i, ctx.sn);
+                auto f   = evalBxdf(scene, record.material, record, w_o, w_i) * jtx::absdot(w_i, ctx.n);
 
                 // Occlusion
                 // Offset ray from origin along normal to avoid self-collisions
@@ -132,114 +131,85 @@ Vec3 integrate(Ray ray, const Scene &scene, const int maxDepth, RNG &rng) {
     return radiance;
 }
 
-bool isNonSpecular(const Material *mat) {
-    if (mat->type == Material::Type::CONDUCTOR || mat->type == Material::Type::DIELECTRIC) {
-        return jtx::max(mat->alphaX, mat->alphaY) > TR_SMOOTH_THRESHOLD;
+Vec3 sampleLights(const Ray &r, const Scene &scene, const SurfaceIntersection &record, RNG &rng, LightSample &ls) {
+    const auto lightIdx = rng.sampleRange(scene.lights.size() - 1);
+    const Light &light  = scene.lights[lightIdx];
+
+    LightSampleContext ctx;
+    ctx.p = record.point;
+    ctx.n = record.normal;
+
+    const auto u = rng.sample<Vec2f>();
+
+    if (light.sample(ctx, ls, u)) {
+        // Shadow ray
+        const Vec3 sOrigin = record.point + record.normal * RAY_EPSILON;
+        const auto sRay    = Ray(sOrigin, ls.wi);
+        const auto lDist   = jtx::distance(record.point, ls.p);
+
+        const bool occluded = scene.anyHit(sRay, Interval(0.0f, lDist - RAY_EPSILON));
+        if (!occluded) {
+            const auto wo = -r.dir;
+            const auto wi = ls.wi;
+
+            const auto f = evalBxdf(scene, record.material, record, wo, wi) * jtx::absdot(wi, ctx.n);
+            float pb     = pdfBxdf(record.material, record, wo, wi);
+            float pl     = 1.0f / static_cast<float>(scene.lights.size()) * ls.pdf;
+
+            float misWeight = 1.0f;
+            if (light.type != Light::POINT) {
+                misWeight = powerHeuristic(1, pl, 1, pb);
+            }
+
+            return misWeight * f * ls.radiance / pl;
+        }
     }
-    return true;
+
+    return {};
 }
 
 Vec3 integrateMIS(Ray ray, const Scene &scene, int maxDepth, bool regularize, RNG &rng) {
-    Vec3 radiance             = {};
-    Vec3 beta                 = {1, 1, 1};
-    int depth                 = 0;
-    float pbPrev              = 1.0f;
-    float etaScale            = 1.0f;
-    bool anyNonSpecularBounce = false;
-    bool specularBounce       = true;
-    Intersection record;
-    LightSampleContext prevCtx;
+    Vec3 radiance = {};
+    Vec3 beta     = {1, 1, 1};
+    int depth     = 0;
+    SurfaceIntersection record;
+    LightSample lightSample;
+
+    bool hasLights = !scene.lights.empty();
 
     while (true) {
-        // Cast ray & find the closest hit
         const bool hit = scene.closestHit(ray, Interval(0.001, INF), record);
 
         if (!hit) {
-            // Incorporate infinite lights and break
-            if (scene.lights[0].type == Light::INFINITE) {
-                const auto light = scene.lights[0];
-
-                auto L = light.evaluate(ray);
-                if (depth == 0 || specularBounce) {
-                    radiance += beta * L;
-                } else {
-                    // Use MIS
-                    float pl = 1.0f / static_cast<float>(scene.lights.size()) * light.pdf(prevCtx, ray.dir, true);
-                    float wb = powerHeuristic(1, pl, 1, pbPrev);
-                    radiance += beta * wb * L;
-                }
-            }
+            // Sky color is not importance sampled (for now)
+            radiance += beta * scene.skyColor;
             break;
         }
 
-        // TODO: check for emission (we don't support emission yet)
-
-        // TODO: Regularize
-
-        // Check depth
+        // Check for emission/if we hit a light
+        // TODO: don't support emission for now
         if (depth++ == maxDepth) break;
 
-        // Sample direct illumination if non-specular
-        if (isNonSpecular(record.material)) {
-            LightSample ls;
-            LightSampleContext ctx;
-            ctx.p  = record.point;
-            ctx.n  = record.normal;
-            ctx.sn = record.normal;
-
-            // Uniformly sample a light
-            float u            = rng.sample<float>();
-            int lightIndex     = jtx::min<int>(u * scene.lights.size(), scene.lights.size() - 1);
-            const Light &light = scene.lights[lightIndex];
-
-            // Sample the light
-            bool lightSampled = light.sample(ctx, ls, rng.sample<Vec2f>());
-            if (lightSampled && ls.pdf > 0 && ls.radiance) {
-                // Evaluate BSDF for light sample
-                Vec3 wo = -ray.dir;
-                Vec3 wi = ls.wi;
-                Vec3 f  = evalBxdf(record.material, record, wo, wi) * jtx::absdot(wi, ctx.sn);
-
-                // Calculate shadow ray
-                const Vec3 sOrigin = record.point + record.normal * RAY_EPSILON;
-                const auto sRay    = Ray(sOrigin, ls.wi);
-                const auto lDist   = jtx::distance(record.point, ls.p);
-
-                // Check for occlusion
-                if (f && !scene.anyHit(sRay, Interval(0.0f, lDist - RAY_EPSILON))) {
-                    float pl = 1.0f / static_cast<float>(scene.lights.size()) * ls.pdf;
-                    if (light.type == Light::POINT) {
-                        // Delta distribution
-                        radiance += beta * ls.radiance * f / pl;
-                    } else {
-                        // MIS
-                        float pb     = pdfBxdf(record.material, record, wo, wi);
-                        float weight = powerHeuristic(1, ls.pdf * pl, 1, pb);
-                        radiance += beta * weight * ls.radiance * f / pl;
-                    }
-                }
-            }
+        // Light sampling
+        if (hasLights) {
+            radiance += beta * sampleLights(ray, scene, record, rng, lightSample);
         }
 
-        // Sample BSDF for next ray
-        Vec3 wo = -ray.dir;
-        float u = rng.sample<float>();
-        BSDFSample bs;
-        bool success = sampleBxdf(scene, record, wo, u, rng.sample<Vec2f>(), bs);
+        // BxDF sampling
+        Vec3 wo       = -ray.dir;
+        const float u = rng.sample<float>();
+        const auto u2 = rng.sample<Vec2f>();
+
+        BSDFSample s;
+        bool success = sampleBxdf(scene, record, wo, u, u2, s);
         if (!success) break;
 
-        // Update variables
-        beta *= bs.fSample * jtx::absdot(bs.w_i, record.normal) / bs.pdf;
-        pbPrev = bs.pdf;
-        specularBounce = bs.isSpecular;
-        anyNonSpecularBounce |= !bs.isSpecular;
-        if (bs.isTransmission) etaScale *= bs.eta * bs.eta;
-        prevCtx = {record.point, record.normal, record.normal};
+        // Update beta and set next ray
+        if (s.pdf > 0.0f) {
+            beta *= s.fSample * jtx::absdot(s.w_i, record.normal) / s.pdf;
+        }
 
-        // Set next ray
-        ray = Ray(record.point + bs.w_i * RAY_EPSILON, bs.w_i, record.t);
-
-        // TODO: Russian Roulette
+        ray = Ray(record.point + s.w_i * RAY_EPSILON, s.w_i, record.t);
     }
 
     return radiance;

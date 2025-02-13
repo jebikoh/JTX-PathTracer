@@ -5,7 +5,7 @@
 #include "dielectric.hpp"
 #include "diffuse.hpp"
 
-bool sampleBxdf(const Scene &scene, const Intersection &rec, const Vec3 &w_o, const float uc, const Vec2f &u, BSDFSample &s) {
+bool sampleBxdf(const Scene &scene, const SurfaceIntersection &rec, const Vec3 &w_o, const float uc, const Vec2f &u, BSDFSample &s) {
     const jtx::Frame sFrame = jtx::Frame::fromZ(rec.normal);
     const auto w_o_local    = sFrame.toLocal(w_o);
     if (w_o_local.z == 0) return false;
@@ -49,7 +49,7 @@ bool sampleBxdf(const Scene &scene, const Intersection &rec, const Vec3 &w_o, co
     return false;
 }
 
-Vec3 evalBxdf(const Material *mat, const Intersection &rec, const Vec3 &w_o, const Vec3 &w_i) {
+Vec3 evalBxdf(const Scene &scene, const Material *mat, const SurfaceIntersection &rec, const Vec3 &w_o, const Vec3 &w_i) {
     const jtx::Frame sFrame = jtx::Frame::fromZ(rec.normal);
     const auto w_o_local    = sFrame.toLocal(w_o);
     const auto w_i_local    = sFrame.toLocal(w_i);
@@ -57,7 +57,12 @@ Vec3 evalBxdf(const Material *mat, const Intersection &rec, const Vec3 &w_o, con
     if (w_o_local.z == 0 || w_i_local.z == 0) return {};
 
     if (rec.material->type == Material::DIFFUSE) {
-        const auto bxdf = DiffuseBxDF{rec.material->albedo};
+        Vec3 albedo = rec.material->albedo;
+        if (rec.material->texId != -1) {
+            albedo = scene.textures[rec.material->texId].getTexel(rec.uv);
+        }
+
+        const auto bxdf = DiffuseBxDF{albedo};
         return bxdf.evaluate(w_o_local, w_i_local);
     }
 
@@ -74,7 +79,7 @@ Vec3 evalBxdf(const Material *mat, const Intersection &rec, const Vec3 &w_o, con
     return {};
 }
 
-float pdfBxdf(const Material *mat, const Intersection &rec, const Vec3 &w_o, const Vec3 &w_i) {
+float pdfBxdf(const Material *mat, const SurfaceIntersection &rec, const Vec3 &w_o, const Vec3 &w_i) {
     const jtx::Frame sFrame = jtx::Frame::fromZ(rec.normal);
     const auto w_o_local    = sFrame.toLocal(w_o);
     const auto w_i_local    = sFrame.toLocal(w_i);

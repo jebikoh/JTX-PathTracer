@@ -20,7 +20,7 @@ struct Material {
     int texId;
 };
 
-struct Intersection {
+struct SurfaceIntersection {
     Vec3 point;
     Vec3 normal;
     Vec2f uv;

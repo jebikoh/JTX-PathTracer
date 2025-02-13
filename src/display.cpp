@@ -434,6 +434,159 @@ void Display::renderConfig() {
     }
 }
 
+void Display::renderMaterialEditor(const size_t selectedMeshIndex) {
+    ImGui::SeparatorText("Material Editor");
+    const auto &mesh   = scene_->meshes[selectedMeshIndex];
+    Material *material = mesh.material;
+
+    if (ImGui::BeginTable("MaterialEditorTable", 2, ImGuiTableFlags_SizingStretchSame)) {
+        ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f);// 2x weight
+        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f);   // 1x weight
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        rightAlignText("Type");
+        ImGui::TableSetColumnIndex(1);
+        fullWidth();
+        const char *materialTypes[] = {"DIFFUSE", "DIELECTRIC", "CONDUCTOR"};
+        int currentType             = material->type;
+        if (ImGui::Combo("Type", &currentType, materialTypes, IM_ARRAYSIZE(materialTypes))) {
+            material->type = static_cast<Material::Type>(currentType);
+        }
+
+        switch (material->type) {
+            case Material::DIFFUSE:
+                tableRow("Albedo");
+                ImGui::ColorEdit3("Albedo", &material->albedo.x);
+                break;
+            case Material::CONDUCTOR:
+                tableRow("IOR");
+                ImGui::InputFloat3("IOR", &material->IOR.x);
+
+                tableRow("k");
+                ImGui::InputFloat3("k", &material->k.x);
+
+                tableRow("Roughness X");
+                ImGui::InputFloat("Alpha X", &material->alphaX);
+
+                tableRow("Y");
+                ImGui::InputFloat("Alpha Y", &material->alphaY);
+                break;
+            case Material::DIELECTRIC:
+                tableRow("IOR");
+                ImGui::InputFloat("IOR", &material->IOR.x);
+
+                tableRow("Roughness X");
+                ImGui::InputFloat("Alpha X", &material->alphaX);
+
+                tableRow("Y");
+                ImGui::InputFloat("Alpha Y", &material->alphaY);
+                break;
+            default:
+                break;
+        }
+
+        ImGui::EndTable();
+    }
+
+    ImGui::SeparatorText("Transform");
+
+    static int lastSelectedMeshIndex = -1;
+    static Vec3 translation          = {0.0f, 0.0f, 0.0f};
+    static Vec3 rotation             = {0.0f, 0.0f, 0.0f};
+    static Vec3 scale                = {1.0f, 1.0f, 1.0f};
+
+    if (selectedMeshIndex != lastSelectedMeshIndex) {
+        lastSelectedMeshIndex = selectedMeshIndex;
+        auto &mesh            = scene_->meshes[selectedMeshIndex];
+
+        translation[0] = mesh.translate.m[0][3];
+        translation[1] = mesh.translate.m[1][3];
+        translation[2] = mesh.translate.m[2][3];
+
+        scale[0] = mesh.scale.m[0][0];
+        scale[1] = mesh.scale.m[1][1];
+        scale[2] = mesh.scale.m[2][2];
+
+        rotation[0] = 0.0f;
+        rotation[1] = 0.0f;
+        rotation[2] = 0.0f;
+    }
+
+
+    if (ImGui::BeginTable("MaterialEditorTable", 2, ImGuiTableFlags_SizingStretchSame)) {
+        ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f);// 2x weight
+        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f);   // 1x weight
+        bool translationChanged = false;
+        bool rotationChanged    = false;
+        bool scaleChanged       = false;
+
+        tableRow("Translation X");
+        if (ImGui::DragFloat("##TranslateX", &translation.x, 0.1f)) {
+            translationChanged = true;
+        }
+        tableRow("Y");
+        if (ImGui::DragFloat("##TranslateY", &translation.y, 0.1f)) {
+            translationChanged = true;
+        }
+        tableRow("Z");
+        if (ImGui::DragFloat("##TranslateZ", &translation.z, 0.1f)) {
+            translationChanged = true;
+        }
+
+        if (translationChanged) {
+            auto &mesh     = scene_->meshes[selectedMeshIndex];
+            mesh.translate = Transform::translate(translation);
+            mesh.recalculateTransform();
+            rebuildBVH_ = true;
+        }
+
+        tableRow("Rotation X");
+        if (ImGui::DragFloat("##RotationX", &rotation.x, 0.5f)) {
+            rotationChanged = true;
+        }
+        tableRow("Y");
+        if (ImGui::DragFloat("##RotationY", &rotation.y, 0.5f)) {
+            rotationChanged = true;
+        }
+        tableRow("Z");
+        if (ImGui::DragFloat("##RotationZ", &rotation.z, 0.5f)) {
+            rotationChanged = true;
+        }
+
+        if (rotationChanged) {
+            auto &mesh = scene_->meshes[selectedMeshIndex];
+            mesh.rX    = Transform::rotateX(rotation[0]);
+            mesh.rY    = Transform::rotateY(rotation[1]);
+            mesh.rZ    = Transform::rotateZ(rotation[2]);
+            mesh.recalculateTransform();
+        }
+
+        tableRow("Scale X");
+        if (ImGui::DragFloat("##ScaleX", &scale.x, 0.1f)) {
+            scaleChanged = true;
+        }
+        tableRow("Y");
+        if (ImGui::DragFloat("##ScaleY", &scale.y, 0.1f)) {
+            scaleChanged = true;
+        }
+        tableRow("Z");
+        if (ImGui::DragFloat("##ScaleZ", &scale.z, 0.1f)) {
+            scaleChanged = true;
+        }
+
+        if (scaleChanged) {
+            auto &mesh = scene_->meshes[selectedMeshIndex];
+            mesh.scale = Transform::scale(scale);
+            mesh.recalculateTransform();
+            rebuildBVH_ = true;
+        }
+
+        ImGui::EndTable();
+    }
+}
+
+
 void Display::renderSceneEditor() {
     static int selectedMeshIndex = -1;
     // Scene View
@@ -452,155 +605,7 @@ void Display::renderSceneEditor() {
     ImGui::PopStyleColor();
 
     if (selectedMeshIndex != -1) {
-        ImGui::SeparatorText("Material Editor");
-        const auto &mesh   = scene_->meshes[selectedMeshIndex];
-        Material *material = mesh.material;
-
-        if (ImGui::BeginTable("MaterialEditorTable", 2, ImGuiTableFlags_SizingStretchSame)) {
-            ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f);// 2x weight
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f);   // 1x weight
-
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            rightAlignText("Type");
-            ImGui::TableSetColumnIndex(1);
-            fullWidth();
-            const char *materialTypes[] = {"DIFFUSE", "DIELECTRIC", "CONDUCTOR"};
-            int currentType             = material->type;
-            if (ImGui::Combo("Type", &currentType, materialTypes, IM_ARRAYSIZE(materialTypes))) {
-                material->type = static_cast<Material::Type>(currentType);
-            }
-
-            switch (material->type) {
-                case Material::DIFFUSE:
-                    tableRow("Albedo");
-                    ImGui::ColorEdit3("Albedo", &material->albedo.x);
-                break;
-                case Material::CONDUCTOR:
-                    tableRow("IOR");
-                    ImGui::InputFloat3("IOR", &material->IOR.x);
-
-                    tableRow("k");
-                    ImGui::InputFloat3("k", &material->k.x);
-
-                    tableRow("Roughness X");
-                    ImGui::InputFloat("Alpha X", &material->alphaX);
-
-                    tableRow("Y");
-                    ImGui::InputFloat("Alpha Y", &material->alphaY);
-                break;
-                case Material::DIELECTRIC:
-                    tableRow("IOR");
-                    ImGui::InputFloat("IOR", &material->IOR.x);
-
-                    tableRow("Roughness X");
-                    ImGui::InputFloat("Alpha X", &material->alphaX);
-
-                    tableRow("Y");
-                    ImGui::InputFloat("Alpha Y", &material->alphaY);
-                break;
-                default:
-                    break;
-            }
-
-            ImGui::EndTable();
-        }
-
-        ImGui::SeparatorText("Transform");
-
-        static int lastSelectedMeshIndex = -1;
-        static Vec3 translation      = {0.0f, 0.0f, 0.0f};
-        static Vec3 rotation         = {0.0f, 0.0f, 0.0f};
-        static Vec3 scale            = {1.0f, 1.0f, 1.0f};
-
-        if (selectedMeshIndex != lastSelectedMeshIndex) {
-            lastSelectedMeshIndex = selectedMeshIndex;
-            auto &mesh            = scene_->meshes[selectedMeshIndex];
-
-            translation[0] = mesh.translate.m[0][3];
-            translation[1] = mesh.translate.m[1][3];
-            translation[2] = mesh.translate.m[2][3];
-
-            scale[0] = mesh.scale.m[0][0];
-            scale[1] = mesh.scale.m[1][1];
-            scale[2] = mesh.scale.m[2][2];
-
-            rotation[0] = 0.0f;
-            rotation[1] = 0.0f;
-            rotation[2] = 0.0f;
-        }
-
-
-        if (ImGui::BeginTable("MaterialEditorTable", 2, ImGuiTableFlags_SizingStretchSame)) {
-            ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f);// 2x weight
-            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f);   // 1x weight
-            bool translationChanged = false;
-            bool rotationChanged = false;
-            bool scaleChanged = false;
-
-            tableRow("Translation X");
-            if (ImGui::DragFloat("##TranslateX", &translation.x, 0.1f)) {
-                translationChanged = true;
-            }
-            tableRow("Y");
-            if (ImGui::DragFloat("##TranslateY", &translation.y, 0.1f)) {
-                translationChanged = true;
-            }
-            tableRow("Z");
-            if (ImGui::DragFloat("##TranslateZ", &translation.z, 0.1f)) {
-                translationChanged = true;
-            }
-
-            if (translationChanged) {
-                auto &mesh = scene_->meshes[selectedMeshIndex];
-                mesh.translate = Transform::translate(translation);
-                mesh.recalculateTransform();
-                rebuildBVH_ = true;
-            }
-
-            tableRow("Rotation X");
-            if (ImGui::DragFloat("##RotationX", &rotation.x, 0.5f)) {
-                rotationChanged = true;
-            }
-            tableRow("Y");
-            if (ImGui::DragFloat("##RotationY", &rotation.y, 0.5f)) {
-                rotationChanged = true;
-            }
-            tableRow("Z");
-            if (ImGui::DragFloat("##RotationZ", &rotation.z, 0.5f)) {
-                rotationChanged = true;
-            }
-
-            if (rotationChanged) {
-                auto &mesh = scene_->meshes[selectedMeshIndex];
-                mesh.rX = Transform::rotateX(rotation[0]);
-                mesh.rY = Transform::rotateY(rotation[1]);
-                mesh.rZ = Transform::rotateZ(rotation[2]);
-                mesh.recalculateTransform();
-            }
-
-            tableRow("Scale X");
-            if (ImGui::DragFloat("##ScaleX", &scale.x, 0.1f)) {
-                scaleChanged = true;
-            }
-            tableRow("Y");
-            if (ImGui::DragFloat("##ScaleY", &scale.y, 0.1f)) {
-                scaleChanged = true;
-            }
-            tableRow("Z");
-            if (ImGui::DragFloat("##ScaleZ", &scale.z, 0.1f)) {
-                scaleChanged = true;
-            }
-
-            if (scaleChanged) {
-                auto &mesh = scene_->meshes[selectedMeshIndex];
-                mesh.scale = Transform::scale(scale);
-                mesh.recalculateTransform();
-                rebuildBVH_ = true;
-            }
-
-            ImGui::EndTable();
-        }
+        Display::renderMaterialEditor(selectedMeshIndex);
     }
 }
 

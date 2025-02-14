@@ -6,6 +6,8 @@
 #include "scene.hpp"
 
 #include <SDL_video.h>
+#include "imgui.h"
+#include <imfilebrowser.h>
 
 // Both in logical pixels
 constexpr int SIDEBAR_WIDTH = 400;
@@ -85,4 +87,7 @@ private:
     bool isRendering_ = false;
 
     void updateScale();
+
+    // Display related members
+    ImGui::FileBrowser fileDialog_;
 };

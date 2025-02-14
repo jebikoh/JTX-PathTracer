@@ -9,7 +9,6 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl2.h>
 #include <iostream>
-#include <L2DFileDialog.h>
 
 #include <IconsLucide.h>
 
@@ -185,7 +184,6 @@ bool Display::init() {
 
     initQuad();
 
-
     return true;
 }
 
@@ -281,6 +279,17 @@ void Display::renderMenuBar(bool inputDisabled) {
 }
 
 void Display::renderConfig() {
+    if (ImGui::Button("Open browser")) {
+        fileDialog_.Open();
+    }
+
+    fileDialog_.Display();
+
+    if (fileDialog_.HasSelected()) {
+        std::cout << "Selected filename: " << fileDialog_.GetSelected().string() << std::endl;
+        fileDialog_.ClearSelected();
+    }
+
     if (ImGui::CollapsingHeader("Render")) {
         if (ImGui::BeginTable("RenderTable", 2, ImGuiTableFlags_SizingStretchSame)) {
             ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f);// 2x weight
@@ -738,20 +747,6 @@ void Display::render() {
 
     ImGui::Begin("Sidebar", nullptr, window_flags);
 
-    static char* file_dialog_buffer = nullptr;
-    static char path[500] = "";
-    ImGui::TextUnformatted("Path: ");
-    ImGui::InputText("##path", path, sizeof(path));
-    ImGui::SameLine();
-    if (ImGui::Button("Browse##path")) {
-        file_dialog_buffer = path;
-        FileDialog::file_dialog_open = true;
-        FileDialog::file_dialog_open_type = FileDialog::FileDialogType::SelectFolder;
-    }
-
-    if (FileDialog::file_dialog_open) {
-        FileDialog::ShowFileDialog(&FileDialog::file_dialog_open, file_dialog_buffer, sizeof(file_dialog_buffer), FileDialog::file_dialog_open_type);
-    }
 
     if (inputDisabled) {
         ImGui::BeginDisabled();

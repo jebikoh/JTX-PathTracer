@@ -211,7 +211,7 @@ void Scene::loadMesh(const std::string &path) {
             }
         }
         if (!meshMaterial) {
-            materials.push_back({.type = Material::DIFFUSE, .albedo = Color(1, 0.3, 0.5), .texId = -1});
+            materials.push_back({.type = Material::DIFFUSE, .albedo = Vec3(1, 0.3, 0.5), .texId = -1});
             meshMaterial = &materials.back();
         }
 
@@ -267,6 +267,16 @@ void Scene::buildBVH(const int maxPrimsInNode) {
     // Clean-up the tree
     root->destroy();
     delete root;
+
+    bvhBuilt_ = true;
+
+    // Pre-process lights that need the scene radius
+    const float sceneRadius = getSceneRadius();
+    for (auto &light : lights) {
+        if (light.type == Light::DISTANT) {
+            light.sceneRadius = sceneRadius;
+        }
+    }
 }
 
 Scene createDefaultScene() {
@@ -287,13 +297,13 @@ Scene createDefaultScene() {
     scene.spheres.reserve(10);
 
     // Objects & Materials
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.659, 0.659, 0.749)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Vec3(0.659, 0.659, 0.749)});
     scene.spheres.emplace_back(Vec3(0, -100.5, -1), 100, &scene.materials.back());
 
     const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
     const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};
 
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.1, 0.2, 0.5)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Vec3(0.1, 0.2, 0.5)});
     scene.spheres.emplace_back(Vec3(0, 0, -1.2), 0.5, &scene.materials.back());
 
     scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.3, .alphaY = 0.3});
@@ -318,7 +328,7 @@ Scene createMeshScene() {
 
     scene.skyColor = Vec3(0.7, 0.8, 1.0);
 
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(1, 0.3, 0.5)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Vec3(1, 0.3, 0.5)});
 
     const auto vertices = new Vec3[4];
     vertices[0]         = Vec3(-1, -1, -1);
@@ -344,7 +354,7 @@ Scene createMeshScene() {
     return scene;
 }
 
-Scene createObjScene(const std::string &path, const Mat4 &t, const Color &background) {
+Scene createObjScene(const std::string &path, const Mat4 &t, const Vec3 &background) {
     Scene scene;
     scene.name = "OBJ Scene";
     scene.loadMesh(path);
@@ -380,10 +390,10 @@ Scene createShaderBallScene(bool highSubdivision) {
     const auto t = Mat4::identity();
     Scene scene;
     if (highSubdivision) {
-        const std::string path = "../src/assets/shaderball/shaderball_hsd.obj";
+        const std::string path = "assets/scenes/shaderball/shaderball_hsd.obj";
         scene                  = createObjScene(path, t);
     } else {
-        const std::string path = "../src/assets/shaderball/shaderball.obj";
+        const std::string path = "assets/scenes/shaderball/shaderball.obj";
         scene                  = createObjScene(path, t);
     }
 
@@ -406,10 +416,10 @@ Scene createShaderBallSceneWithLight(bool highSubdivision) {
     const auto t = Mat4::identity();
     Scene scene;
     if (highSubdivision) {
-        const std::string path = "../src/assets/shaderball/shaderball_hsd.obj";
+        const std::string path = "assets/scenes/shaderball/shaderball_hsd.obj";
         scene                  = createObjScene(path, t);
     } else {
-        const std::string path = "../src/assets/shaderball/shaderball.obj";
+        const std::string path = "assets/scenes/shaderball/shaderball.obj";
         scene                  = createObjScene(path, t);
     }
 
@@ -419,13 +429,20 @@ Scene createShaderBallSceneWithLight(bool highSubdivision) {
 
     // scene.skyColor = Vec3(0.1, 0.1, 0.1);
     // scene.skyColor    = BLACK;
-    scene.skyColor    = SKY_BLUE;
+    scene.skyColor    = Color::SKY_BLUE;
     const Light point = {
             .type      = Light::POINT,
             .position  = Vec3(0, 20, 0),
-            .intensity = WHITE,
+            .intensity = Color::WHITE,
             .scale     = 1000};
-    scene.lights.push_back(point);
+    const Light distant = {
+        .type = Light::DISTANT,
+        .position = {0, -1, 0},
+        .intensity = Color::WHITE,
+        .scale = 10,
+    };
+    // scene.lights.push_back(point);
+    scene.lights.push_back(distant);
 
     // Base
     scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05});
@@ -437,14 +454,14 @@ Scene createShaderBallSceneWithLight(bool highSubdivision) {
 
 Scene createKnobScene() {
     const auto t           = Mat4::identity();
-    const std::string path = "../src/assets/knob.obj";
+    const std::string path = "assets/scenes/knob.obj";
     auto scene             = createObjScene(path, t);
 
     scene.cameraProperties.center = Vec3(0, 3, 8);
     scene.cameraProperties.target = Vec3(0, 0, 0);
     scene.cameraProperties.yfov   = 15;
 
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Color(0.3, 0.3, 0.)});
+    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Vec3(0.3, 0.3, 0.)});
     scene.meshes[0].material = &scene.materials.back();
 
     const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};

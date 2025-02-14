@@ -126,7 +126,7 @@ private:
 
 Scene createDefaultScene();
 Scene createMeshScene();
-Scene createObjScene(const std::string &path, const Mat4 &t, const Color &background = Color(0.7, 0.8, 1.0));
+Scene createObjScene(const std::string &path, const Mat4 &t, const Vec3 &background = Vec3(0.7, 0.8, 1.0));
 Scene createShaderBallScene(bool highSubdivision = false);
 Scene createShaderBallSceneWithLight(bool highSubdivision = false);
 Scene createKnobScene();

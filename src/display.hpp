@@ -9,7 +9,7 @@
 
 // Both in logical pixels
 constexpr int SIDEBAR_WIDTH = 400;
-constexpr int FONT_SIZE     = 14;
+constexpr int FONT_SIZE     = 13;
 
 struct MouseState {
     bool leftButtonDown = false;
@@ -79,8 +79,8 @@ private:
     void renderScene();
     void renderMenuBar(bool inputDisabled);
     void renderConfig();
-    void renderLightEditor();
     void renderMaterialEditor(const size_t selectedMeshIndex);
+    void renderLightEditor(const size_t selectedLightIndex) const;
     void renderSceneEditor();
     bool isRendering_ = false;
 

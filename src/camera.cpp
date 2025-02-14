@@ -91,7 +91,7 @@ void Camera::render(const Scene &scene) {
 
                             // Color sampleColor = integrateBasic(r, *job.scene, maxDepth_, sampler);
                             // Color sampleColor = integrate(r, *job.scene, maxDepth_, sampler);
-                            Color sampleColor = integrateMIS(r, *job.scene, maxDepth_, false, sampler);
+                            Vec3 sampleColor = integrateMIS(r, *job.scene, maxDepth_, false, sampler);
 
                             // Clamp the color
                             if (sampleColor[0] > 1.0f) sampleColor[0] = 1.0f;

@@ -1,6 +1,6 @@
 # Overview
 
-![](../../../../../../Downloads/StandardShaderBall/media/cover.jpg)
+![](../../../../../../../Downloads/StandardShaderBall/media/cover.jpg)
 
 This scene is designed to be a comprehensive test of a broad array of
 material properties in a single render. It is a scene built completely
@@ -38,7 +38,7 @@ Upon initially opening the scene it may appear over-exposed. After
 disabling ***View \> Enable Scene Lights***, usdview should look
 something like this:
 
-![](../../../../../../Downloads/StandardShaderBall/media/figure01.png)
+![](../../../../../../../Downloads/StandardShaderBall/media/figure01.png)
 
 In usdview, if you have a render delegate that supports UsdMaterialX,
 the following should result in an image similar to the screenshot below:
@@ -49,7 +49,7 @@ the following should result in an image similar to the screenshot below:
 
   - Select your renderer under ***View \> Hydra Renderer***.
 
-![](../../../../../../Downloads/StandardShaderBall/media/figure02.png)
+![](../../../../../../../Downloads/StandardShaderBall/media/figure02.png)
 
 Note: The renders in this doc were produced from Houdini using Karma.
 
@@ -89,7 +89,7 @@ transmit light.
 
 ### Reflective Materials
 
-![](../../../../../../Downloads/StandardShaderBall/media/figure03.png)
+![](../../../../../../../Downloads/StandardShaderBall/media/figure03.png)
 
 Reflective features:
 
@@ -114,7 +114,7 @@ Reflective features:
 
 ### Transmissive Materials
 
-![](../../../../../../Downloads/StandardShaderBall/media/figure04.png)
+![](../../../../../../../Downloads/StandardShaderBall/media/figure04.png)
 
 Transmissive features:
 
@@ -146,7 +146,7 @@ useful for observing the paths of refracted light, as well as the
 behaviour of volumetric interaction, e.g. subsurface scattering and
 absorption.
 
-![](../../../../../../Downloads/StandardShaderBall/media/figure05.png)
+![](../../../../../../../Downloads/StandardShaderBall/media/figure05.png)
 
 Subsurface features:
 
@@ -189,17 +189,17 @@ variants are intended to provide equivalent geometry and dimensions.
       - Includes authored per-vertex *normals* attribute to address
         polygonal facetting.
 
-![](../../../../../../Downloads/StandardShaderBall/media/figure06.png)
+![](../../../../../../../Downloads/StandardShaderBall/media/figure06.png)
 
 Comparison of the Catmull Clark surfaces and their triangular
 tessellations.
 
-![](../../../../../../Downloads/StandardShaderBall/media/figure07.png)
+![](../../../../../../../Downloads/StandardShaderBall/media/figure07.png)
 
 A UV layout has been crafted that both aligns with the sphere’s
 coordinate axes and attempts to minimise surface distortion.
 
-![](../../../../../../Downloads/StandardShaderBall/media/figure08.jpg)
+![](../../../../../../../Downloads/StandardShaderBall/media/figure08.jpg)
 
 Surface texture and anisotropic roughness applied to exercise the UV
 layout.
@@ -238,8 +238,8 @@ is disabled.
 This is particularly useful when exercising transmissive materials that
 contain visible interior volumetric scattering.
 
-![](../../../../../../Downloads/StandardShaderBall/media/figure09.jpg)
-![](../../../../../../Downloads/StandardShaderBall/media/figure10.jpg)
+![](../../../../../../../Downloads/StandardShaderBall/media/figure09.jpg)
+![](../../../../../../../Downloads/StandardShaderBall/media/figure10.jpg)
 
 Internal emission features, from left to right:
 

@@ -128,7 +128,7 @@ target_include_directories(JTX
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/tinyexr
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/tinygltf
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/IconsLucide
-        ${CMAKE_CURRENT_SOURCE_DIR}/ext/L2DFileDialog
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext/imfilebrowser
         ${OPENGL_LIBRARIES}
 )
 

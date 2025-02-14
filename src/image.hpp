@@ -44,7 +44,7 @@ public:
         std::ranges::fill(buffer, RGB{0, 0, 0});
     }
 
-    void setPixel(const Color &color, const int r, const int c) {
+    void setPixel(const Vec3 &color, const int r, const int c) {
         const int i = r * w_ + c;
         buffer[i].R = static_cast<int>(RGB_SCALE * clampIntensity(linearToGamma(color.r)));
         buffer[i].G = static_cast<int>(RGB_SCALE * clampIntensity(linearToGamma(color.g)));

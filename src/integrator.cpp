@@ -157,7 +157,7 @@ Vec3 sampleLights(const Ray &r, const Scene &scene, const SurfaceIntersection &r
             float pl     = 1.0f / static_cast<float>(scene.lights.size()) * ls.pdf;
 
             float misWeight = 1.0f;
-            if (light.type != Light::POINT) {
+            if (light.type != Light::POINT || light.type != Light::DISTANT) {
                 misWeight = powerHeuristic(1, pl, 1, pb);
             }
 

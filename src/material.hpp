@@ -15,7 +15,7 @@ struct Material {
     Vec3 IOR;
     Vec3 k;
     float alphaX, alphaY;
-    Vec3 emission = Color(0, 0, 0);
+    Vec3 emission = Vec3(0, 0, 0);
     
     int texId;
 };

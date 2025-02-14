@@ -24,6 +24,7 @@ struct LightSampleContext {
 struct Light {
     enum Type {
         POINT = 0,
+        DISTANT = 1,
     };
 
     Type type;
@@ -40,6 +41,13 @@ struct Light {
                 sample.radiance = scale * intensity / jtx::distanceSqr(position, ctx.p);
                 sample.pdf = 1;
                 return true;
+            case DISTANT:
+                // For now, we will reuse position as the direction of the light
+                sample.p = ctx.p - position * 2 * sceneRadius;
+                sample.wi = -position;
+                sample.radiance = scale * intensity;
+                sample.pdf = 1;
+                return true;
             default:
                 return false;
         }
@@ -48,6 +56,8 @@ struct Light {
     float pdf(const LightSampleContext &ctx, const Vec3 &wi, bool allowIncompletePDF = false) const {
         switch (type) {
             case POINT:
+                return 1;
+            case DISTANT:
                 return 1;
             default:
                 return 0;

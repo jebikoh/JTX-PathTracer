@@ -1,6 +1,6 @@
 #include "display.hpp"
 
-#include "bvh.hpp"
+
 #include "camera.hpp"
 
 #include <SDL.h>
@@ -9,6 +9,9 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl2.h>
 #include <iostream>
+#include <L2DFileDialog.h>
+
+#include <IconsLucide.h>
 
 const auto VERTEX_SOURCE = R"(
         #version 330 core
@@ -586,26 +589,99 @@ void Display::renderMaterialEditor(const size_t selectedMeshIndex) {
     }
 }
 
+void Display::renderLightEditor(const size_t selectedLightIndex) const {
+    ImGui::SeparatorText("Light Editor");
+
+    auto &light   = scene_->lights[selectedLightIndex];
+
+    if (ImGui::BeginTable("LightEditorTable", 2, ImGuiTableFlags_SizingStretchSame)) {
+        ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f);// 2x weight
+        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f);   // 1x weight
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        rightAlignText("Type");
+        ImGui::TableSetColumnIndex(1);
+        fullWidth();
+        const char *lightTypes[] = {"POINT", "DISTANT"};
+        int currentType             = light.type;
+        if (ImGui::Combo("Type", &currentType, lightTypes, IM_ARRAYSIZE(lightTypes))) {
+            light.type = static_cast<Light::Type>(currentType);
+        }
+
+        switch (light.type) {
+            case Light::POINT:
+                tableRow("Position");
+                ImGui::DragFloat3("##Position", &light.position.x);
+                tableRow("Intensity");
+                ImGui::ColorEdit3("##Intensity", &light.intensity.x);
+                tableRow("Scale");
+                ImGui::DragFloat("##Scale", &light.scale, 1.0f);
+                break;
+            case Light::DISTANT:
+                tableRow("Direction");
+                ImGui::DragFloat3("##Position", &light.position.x);
+                tableRow("Intensity");
+                ImGui::ColorEdit3("##Intensity", &light.intensity.x);
+                tableRow("Scale");
+                ImGui::DragFloat("##Scale", &light.scale, 1.0f);
+                break;
+            default:
+                break;
+        }
+
+        ImGui::EndTable();
+    }
+}
 
 void Display::renderSceneEditor() {
-    static int selectedMeshIndex = -1;
+    ImGui::Text("Scene: %s", scene_->name.c_str());
+    if (ImGui::BeginTable("ScenePropertyTable", 2, ImGuiTableFlags_SizingStretchSame)) {
+        ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f);// 2x weight
+        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 2.0f);   // 1x weight
+
+        tableRow("Sky Color");
+        ImGui::ColorEdit3("##SkyColor", &scene_->skyColor.x);
+
+        ImGui::EndTable();
+    }
+
+    static int selectedType = -1;
+    static int selectedIndex = -1;
+    static char label[256];
     // Scene View
     ImGui::Text("Objects:");
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));// Darker background
     ImGui::BeginChild("Scene View", ImVec2(0, 150), true, ImGuiWindowFlags_None);
     {
+        for (size_t i = 0; i < scene_->lights.size(); ++i) {
+            const auto &light = scene_->lights[i];
+            if (light.type == Light::POINT) {
+                snprintf(label, sizeof(label), "%s %s", ICON_LC_LIGHTBULB, "Point Light");
+            } else if (light.type == Light::DISTANT) {
+                snprintf(label, sizeof(label), "%s %s", ICON_LC_SUN, "Directional Light");
+            }
+            if (ImGui::Selectable(label, selectedIndex == i && selectedType == 0)) {
+                selectedIndex = i;
+                selectedType = 0;
+            }
+        }
         for (size_t i = 0; i < scene_->meshes.size(); ++i) {
             const auto &mesh = scene_->meshes[i];
-            if (ImGui::Selectable(mesh.name.c_str(), selectedMeshIndex == i)) {
-                selectedMeshIndex = i;
+            snprintf(label, sizeof(label), "%s %s", ICON_LC_BOX, mesh.name.c_str());
+            if (ImGui::Selectable(label, selectedIndex == i && selectedType == 1)) {
+                selectedIndex = i;
+                selectedType = 1;
             }
         }
     }
     ImGui::EndChild();
     ImGui::PopStyleColor();
 
-    if (selectedMeshIndex != -1) {
-        Display::renderMaterialEditor(selectedMeshIndex);
+    if (selectedType == 1) {
+        renderMaterialEditor(selectedIndex);
+    } else if (selectedType == 0) {
+        renderLightEditor(selectedIndex);
     }
 }
 
@@ -661,6 +737,21 @@ void Display::render() {
                                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse;
 
     ImGui::Begin("Sidebar", nullptr, window_flags);
+
+    static char* file_dialog_buffer = nullptr;
+    static char path[500] = "";
+    ImGui::TextUnformatted("Path: ");
+    ImGui::InputText("##path", path, sizeof(path));
+    ImGui::SameLine();
+    if (ImGui::Button("Browse##path")) {
+        file_dialog_buffer = path;
+        FileDialog::file_dialog_open = true;
+        FileDialog::file_dialog_open_type = FileDialog::FileDialogType::SelectFolder;
+    }
+
+    if (FileDialog::file_dialog_open) {
+        FileDialog::ShowFileDialog(&FileDialog::file_dialog_open, file_dialog_buffer, sizeof(file_dialog_buffer), FileDialog::file_dialog_open_type);
+    }
 
     if (inputDisabled) {
         ImGui::BeginDisabled();
@@ -794,8 +885,18 @@ void Display::initUI() const {
     ImGui::CreateContext();
 
     ImGuiIO &io = ImGui::GetIO();
-    io.Fonts->AddFontFromFileTTF("../assets/proggyvector.ttf", FONT_SIZE * windowScale_);
+    const float baseFontSize = FONT_SIZE * windowScale_;
+    const float iconFontSize = baseFontSize * 2.0f / 3.0f;
+    io.Fonts->AddFontFromFileTTF("assets/fonts/inter.ttf", FONT_SIZE * windowScale_);
     io.FontGlobalScale = 1.0f / windowScale_;
+
+    static constexpr ImWchar icons_ranges[] = { ICON_MIN_LC, ICON_MAX_16_LC, 0 };
+    ImFontConfig icons_config;
+    icons_config.MergeMode = true;
+    icons_config.PixelSnapH = true;
+    icons_config.GlyphMinAdvanceX = iconFontSize;
+    io.Fonts->AddFontFromFileTTF( "assets/fonts/lucide.ttf", iconFontSize, &icons_config, icons_ranges );
+
     (void) io;
 
     setUiTheme();

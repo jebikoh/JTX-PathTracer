@@ -14,9 +14,9 @@ constexpr int IMAGE_HEIGHT   = 400;
 constexpr int MAX_DEPTH      = 50;
 
 int main(int argc, char *argv[]) {
-    Scene scene = createShaderBallScene(true);
-    // Scene scene = createShaderBallSceneWithLight(true);
-    scene.skyColor = SKY_BLUE;
+    // Scene scene = createShaderBallScene(true);
+    Scene scene = createShaderBallSceneWithLight(true);
+    scene.skyColor = Color::SKY_BLUE;
     scene.buildBVH();
 
 #ifndef DISABLE_UI

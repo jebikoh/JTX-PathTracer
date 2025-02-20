@@ -133,7 +133,7 @@ target_include_directories(JTX
 )
 
 if (WIN32)
-    add_custom_command(TARGET jtxlib POST_BUILD
+    add_custom_command(TARGET JTX POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
             $<TARGET_FILE:assimp>
             $<TARGET_FILE_DIR:jtxlib>

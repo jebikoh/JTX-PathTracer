@@ -184,6 +184,10 @@ bool Display::init() {
 
     initQuad();
 
+    saveRenderDialog_ = ImGui::FileBrowser(ImGuiFileBrowserFlags_CreateNewDir | ImGuiFileBrowserFlags_EditPathString | ImGuiFileBrowserFlags_EnterNewFilename);
+    saveRenderDialog_.SetTitle("Save render");
+    saveRenderDialog_.SetTypeFilters({".png"});
+
     return true;
 }
 
@@ -244,7 +248,7 @@ void Display::renderMenuBar(bool inputDisabled) {
                 camera_->clear();
             }
             if (ImGui::MenuItem("Save")) {
-                camera_->save("output.png");
+                saveRenderDialog_.Open();
             }
             if (inputDisabled) {
                 ImGui::EndDisabled();
@@ -276,20 +280,14 @@ void Display::renderMenuBar(bool inputDisabled) {
 
         ImGui::EndMainMenuBar();
     }
+    saveRenderDialog_.Display();
+    if (saveRenderDialog_.HasSelected()) {
+        camera_->save(saveRenderDialog_.GetSelected().c_str());
+        saveRenderDialog_.ClearSelected();
+    }
 }
 
 void Display::renderConfig() {
-    if (ImGui::Button("Open browser")) {
-        fileDialog_.Open();
-    }
-
-    fileDialog_.Display();
-
-    if (fileDialog_.HasSelected()) {
-        std::cout << "Selected filename: " << fileDialog_.GetSelected().string() << std::endl;
-        fileDialog_.ClearSelected();
-    }
-
     if (ImGui::CollapsingHeader("Render")) {
         if (ImGui::BeginTable("RenderTable", 2, ImGuiTableFlags_SizingStretchSame)) {
             ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 1.0f);// 2x weight

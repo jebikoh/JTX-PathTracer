@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <IconsLucide.h>
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -1031,7 +1032,7 @@ inline void ImGui::FileBrowser::UpdateFileRecords()
             }
 
             rcd.extension = p.path().filename().extension();
-            rcd.showName = (rcd.isDir ? "[D] " : "[F] ") + u8StrToStr(p.path().filename().u8string());
+            rcd.showName = (rcd.isDir ? ICON_LC_FOLDER" " : "") + u8StrToStr(p.path().filename().u8string());
         }
         catch(...)
         {

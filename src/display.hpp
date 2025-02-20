@@ -11,7 +11,7 @@
 
 // Both in logical pixels
 constexpr int SIDEBAR_WIDTH = 400;
-constexpr int FONT_SIZE     = 13;
+constexpr int FONT_SIZE     = 14;
 
 struct MouseState {
     bool leftButtonDown = false;
@@ -89,5 +89,5 @@ private:
     void updateScale();
 
     // Display related members
-    ImGui::FileBrowser fileDialog_;
+    ImGui::FileBrowser saveRenderDialog_;
 };

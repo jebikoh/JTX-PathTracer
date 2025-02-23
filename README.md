@@ -9,6 +9,7 @@ TODO:
  - glTF shading model
  - Disney shading model
  - Debug views
+ - Interactive display
 
 ![preview](assets/media/preview.png "Preview")
 

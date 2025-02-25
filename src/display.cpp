@@ -145,7 +145,7 @@ void setUiTheme() {
     style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.800000011920929f, 0.800000011920929f, 0.800000011920929f, 0.3499999940395355f);
 }
 
-Display::Display(const int width, const int height, Camera *camera)
+Display::Display(const int width, const int height, StaticCamera *camera)
     : width_(0),
       height_(0),
       logicalWidth_(width),
@@ -445,7 +445,7 @@ void Display::renderConfig() {
 
 void Display::renderMaterialEditor(const size_t selectedMeshIndex) {
     ImGui::SeparatorText("Material Editor");
-    const auto &mesh   = scene_->meshes[selectedMeshIndex];
+    auto &mesh   = scene_->meshes[selectedMeshIndex];
     Material *material = mesh.material;
 
     if (ImGui::BeginTable("MaterialEditorTable", 2, ImGuiTableFlags_SizingStretchSame)) {
@@ -507,7 +507,6 @@ void Display::renderMaterialEditor(const size_t selectedMeshIndex) {
 
     if (selectedMeshIndex != lastSelectedMeshIndex) {
         lastSelectedMeshIndex = selectedMeshIndex;
-        auto &mesh            = scene_->meshes[selectedMeshIndex];
 
         translation[0] = mesh.translate.m[0][3];
         translation[1] = mesh.translate.m[1][3];
@@ -544,7 +543,6 @@ void Display::renderMaterialEditor(const size_t selectedMeshIndex) {
         }
 
         if (translationChanged) {
-            auto &mesh     = scene_->meshes[selectedMeshIndex];
             mesh.translate = Transform::translate(translation);
             mesh.recalculateTransform();
             rebuildBVH_ = true;
@@ -564,7 +562,6 @@ void Display::renderMaterialEditor(const size_t selectedMeshIndex) {
         }
 
         if (rotationChanged) {
-            auto &mesh = scene_->meshes[selectedMeshIndex];
             mesh.rX    = Transform::rotateX(rotation[0]);
             mesh.rY    = Transform::rotateY(rotation[1]);
             mesh.rZ    = Transform::rotateZ(rotation[2]);
@@ -585,7 +582,6 @@ void Display::renderMaterialEditor(const size_t selectedMeshIndex) {
         }
 
         if (scaleChanged) {
-            auto &mesh = scene_->meshes[selectedMeshIndex];
             mesh.scale = Transform::scale(scale);
             mesh.recalculateTransform();
             rebuildBVH_ = true;
@@ -707,7 +703,6 @@ void Display::render() {
     glBindTexture(GL_TEXTURE_2D, textureId_);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, camera_->width_, camera_->height_, 0, GL_RGB, GL_UNSIGNED_BYTE, camera_->img_.data());
 
-    // renderwidth
     glViewport(0, 0, renderWidth_, height_);
 
     glClearColor(0.f, 0.f, 0.f, 1.f);
@@ -992,6 +987,7 @@ void Display::processEvents(bool &isRunning) {
         }
     }
 }
+
 void Display::panCamera(int deltaX, int deltaY) {
     resetRender_ = true;
     Vec3 forward = normalize(camera_->properties_.target - camera_->properties_.center);
@@ -1002,11 +998,13 @@ void Display::panCamera(int deltaX, int deltaY) {
     camera_->properties_.center += delta;
     camera_->properties_.target += delta;
 }
+
 void Display::zoomCamera(int scroll) {
     resetRender_                = true;
     float zoomFactor            = 1.0f + static_cast<float>(scroll) * camSensitivity_;
     camera_->properties_.center = camera_->properties_.target + (camera_->properties_.center - camera_->properties_.target) * zoomFactor;
 }
+
 void Display::rotateCamera() {
     resetRender_ = true;
 }

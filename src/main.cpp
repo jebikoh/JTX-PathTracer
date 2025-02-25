@@ -3,7 +3,6 @@
 #include "bvh.hpp"
 #include "camera.hpp"
 #include "display.hpp"
-#include "rt.hpp"
 #include "scene.hpp"
 
 #include <thread>
@@ -20,7 +19,7 @@ int main(int argc, char *argv[]) {
     scene.buildBVH();
 
 #ifndef DISABLE_UI
-    Camera camera{
+    StaticCamera camera{
         IMAGE_WIDTH,
         IMAGE_HEIGHT,
         scene.cameraProperties,

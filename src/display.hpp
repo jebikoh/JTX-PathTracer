@@ -28,7 +28,7 @@ struct MouseState {
 
 class Display {
 public:
-    Display(int width, int height, Camera *camera);
+    Display(int width, int height, StaticCamera *camera);
 
     bool init();
 
@@ -49,7 +49,7 @@ private:
     int width_, height_;
     int logicalWidth_, logicalHeight_;
     float windowScale_;
-    Camera *camera_;
+    StaticCamera *camera_;
 
     int renderWidth_;
     float scaleX_, scaleY_;

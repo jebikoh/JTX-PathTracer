@@ -75,7 +75,7 @@ void StaticCamera::render(const Scene &scene) {
     // Set up synchronization
     currentSample_.store(0);
     std::barrier endBarrier(threadCount, [&]() noexcept {
-        currentSample_.fetch_add(1);
+        currentSample_.fetch_add(samplesPerPass_);
         queue.nextJobIndex = 0;
     });
 
@@ -87,8 +87,8 @@ void StaticCamera::render(const Scene &scene) {
     for (unsigned int t = 0; t < threadCount; ++t) {
         threads.emplace_back([this, &queue, &scene, &endBarrier, &spp] {
             while (true) {
+                if (stopRender_) { break; }
                 const int sample = currentSample_.load();
-                if (sample >= spp || stopRender_) { break; }
 
                 while (true) {
                     const auto jobIndex = queue.nextJobIndex.fetch_add(1, std::memory_order_relaxed);
@@ -96,26 +96,30 @@ void StaticCamera::render(const Scene &scene) {
 
                     const auto &job = queue.jobs[jobIndex];
 
-                    for (auto row = job.startRow; row < job.endRow; ++row) {
-                        for (auto col = job.startCol; col < job.endCol; ++col) {
+                    for (auto currSample = sample; currSample < jtx::min(sample + samplesPerPass_, spp); currSample++) {
+                        if (stopRender_) break;
+                        for (auto row = job.startRow; row < job.endRow; ++row) {
                             if (stopRender_) break;
+                            for (auto col = job.startCol; col < job.endCol; ++col) {
+                                if (stopRender_) break;
 
-                            // Seed the PCG with row, column, and sample #
-                            RNG sampler(row, col, sample + 1);
+                                // Seed the PCG with row, column, and sample #
+                                RNG sampler(row, col, sample + 1);
 
-                            const Ray r = getRay(col, row, sample, sampler);
+                                const Ray r = getRay(col, row, currSample, sampler);
 
-                            // Color sampleColor = integrateBasic(r, *job.scene, maxDepth_, sampler);
-                            // Color sampleColor = integrate(r, *job.scene, maxDepth_, sampler);
-                            Vec3 sampleColor = integrateMIS(r, scene, maxDepth_, false, sampler);
+                                // Color sampleColor = integrateBasic(r, *job.scene, maxDepth_, sampler);
+                                // Color sampleColor = integrate(r, *job.scene, maxDepth_, sampler);
+                                Vec3 sampleColor = integrateMIS(r, scene, maxDepth_, false, sampler);
 
-                            // Clamp the color
-                            if (sampleColor[0] > 1.0f) sampleColor[0] = 1.0f;
-                            if (sampleColor[1] > 1.0f) sampleColor[1] = 1.0f;
-                            if (sampleColor[2] > 1.0f) sampleColor[2] = 1.0f;
+                                // Clamp the color
+                                if (sampleColor[0] > 1.0f) sampleColor[0] = 1.0f;
+                                if (sampleColor[1] > 1.0f) sampleColor[1] = 1.0f;
+                                if (sampleColor[2] > 1.0f) sampleColor[2] = 1.0f;
 
-                            auto currAcc = acc_.updatePixel(sampleColor, row, col);
-                            img_.setPixel(currAcc / static_cast<float>(sample + 1), row, col);
+                                auto currAcc = acc_.updatePixel(sampleColor, row, col);
+                                img_.setPixel(currAcc / static_cast<float>(currSample + 1), row, col);
+                            }
                         }
                     }
                 }
@@ -127,4 +131,112 @@ void StaticCamera::render(const Scene &scene) {
     for (auto &thread: threads) {
         thread.join();
     }
+}
+
+void DynamicCamera::initWorkQueue() {
+    queue_.nextJobIndex = 0;
+    for (int r = 0; r < height_; r += 32) {
+        for (int c = 0; c < width_; c += 32) {
+            RayTraceJob job{};
+            job.startRow = r;
+            job.startCol = c;
+            job.endRow   = std::min(r + 32, height_);
+            job.endCol   = std::min(c + 32, width_);
+            queue_.jobs.push_back(job);
+        }
+    }
+}
+
+void DynamicCamera::startThreads() {
+#ifdef ENABLE_MULTI_THREADING
+    unsigned int threadCount = std::thread::hardware_concurrency();
+    if (threadCount == 0) threadCount = 4;
+#else
+    unsigned int threadCount = 1;
+#endif
+    for (auto i = 0; i < threadCount; ++i) {
+        threads_.emplace_back(&DynamicCamera::workerThread, this);
+    }
+}
+
+void DynamicCamera::stopThreads() {
+    {
+        std::unique_lock<std::mutex> lock(queueMutex_);
+        stopThreads_ = true;
+    }
+
+    queueCondition_.notify_all();
+    for (auto &thread: threads_) {
+        if (thread.joinable()) thread.join();
+    }
+}
+
+void DynamicCamera::resize(int w, int h) {
+    Camera::resize(w, h);
+    initWorkQueue();
+}
+
+void DynamicCamera::render(const Scene &scene) {
+    {
+        std::unique_lock<std::mutex> lock(queueMutex_);
+        stopThreads_ = false;
+        resetRender_ = true;
+    }
+
+    scene_       = &scene;
+    init();
+    acc_.clear();
+    img_.clear();
+    queue_.reset();
+    resetRender_ = false;
+
+    queueCondition_.notify_all();
+}
+
+void DynamicCamera::workerThread() {
+    while (true) {
+        // Wait for work
+        std::unique_lock<std::mutex> lock(queueMutex_);
+        queueCondition_.wait(lock, [this] { return stopThreads_ || !queue_.jobs.empty(); });
+
+        if (stopThreads_) break;
+
+        while (true) {
+            if (resetRender_) break;
+
+            const auto jobIndex = queue_.nextJobIndex.fetch_add(1, std::memory_order_relaxed);
+            if (jobIndex >= queue_.jobs.size()) { break; }
+
+            const auto &job = queue_.jobs[jobIndex];
+
+            lock.unlock();
+
+            for (auto row = job.startRow; row < job.endRow; ++row) {
+                for (auto col = job.startCol; col < job.endCol; ++col) {
+                    const int sample = currentSample_.load();
+                    if (sample >= getSpp() || resetRender_) { break; }
+
+                    // Seed the PCG with row, column, and sample #
+                    RNG sampler(row, col, sample + 1);
+
+                    const Ray r = getRay(col, row, sample, sampler);
+
+                    // Color sampleColor = integrateBasic(r, *job.scene, maxDepth_, sampler);
+                    // Color sampleColor = integrate(r, *job.scene, maxDepth_, sampler);
+                    Vec3 sampleColor = integrateMIS(r, *scene_, maxDepth_, false, sampler);
+
+                    // Clamp the color
+                    if (sampleColor[0] > 1.0f) sampleColor[0] = 1.0f;
+                    if (sampleColor[1] > 1.0f) sampleColor[1] = 1.0f;
+                    if (sampleColor[2] > 1.0f) sampleColor[2] = 1.0f;
+
+                    auto currAcc = acc_.updatePixel(sampleColor, row, col);
+                    img_.setPixel(currAcc / static_cast<float>(sample + 1), row, col);
+                }
+                if (resetRender_) break;
+            }
+
+            lock.lock();
+        } // Render loop
+    } // Thread loop
 }

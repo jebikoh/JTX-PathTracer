@@ -4,6 +4,7 @@
 #include "scene.hpp"
 #include "util/rand.hpp"
 #include <atomic>
+#include <mutex>
 #include <thread>
 #include <utility>
 
@@ -159,7 +160,76 @@ struct WorkQueue {
  */
 class StaticCamera : public Camera {
 public:
+    int samplesPerPass_ = 1;
+
     using Camera::Camera;
 
     void render(const Scene &scene);
+};
+
+/**
+ * Dynamic Camera
+ *
+ * This camera has a persistent thread pool and work queue, with more synchronization overhead.
+ *
+ * Calling render() will start the render process and return immediately. Upon changing camera properties,
+ * the render will be terminated and restarted automatically.
+ */
+class DynamicCamera : public Camera {
+public:
+    DynamicCamera(const int width, const int height, CameraProperties cameraProperties, const int xPixelSamples, const int yPixelSamples, const int maxDepth)
+        : Camera(width, height, std::move(cameraProperties), xPixelSamples, yPixelSamples, maxDepth) {
+        initWorkQueue();
+        startThreads();
+    }
+    ~DynamicCamera() { stopThreads(); }
+
+    /**
+     * Resizes the camera viewport
+     * @param w Width
+     * @param h Height
+     */
+    void resize(int w, int h);
+
+    /**
+     * Renders a frame
+     */
+    void render(const Scene &scene);
+
+    /**
+     * Terminates the rendering process
+     */
+    void stopRender() { stopThreads(); }
+private:
+    const Scene *scene_;
+
+    // WORK QUEUE
+    WorkQueue queue_;
+    std::mutex queueMutex_;
+    std::condition_variable queueCondition_;
+
+    /**
+     * Initializes the work queue
+     */
+    void initWorkQueue();
+
+    // THREADS
+    std::vector<std::thread> threads_;
+    std::atomic<bool> resetRender_ = false;
+    std::atomic<bool> stopThreads_ = false;
+
+    /**
+     * Initializes and starts the worker threads
+     */
+    void startThreads();
+
+    /**
+     * Gracefully stops the worker threads
+     */
+    void stopThreads();
+
+    /**
+     * Worker thread function
+     */
+    void workerThread();
 };

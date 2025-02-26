@@ -4,6 +4,7 @@
 #include "scene.hpp"
 #include "util/rand.hpp"
 #include <atomic>
+#include <barrier>
 #include <mutex>
 #include <thread>
 #include <utility>
@@ -40,16 +41,17 @@ public:
      * @param yPixelSamples Number of sub-pixel samples in the y direction
      * @param maxDepth Maximum ray depth
      */
-    explicit Camera(const int width, const int height, CameraProperties cameraProperties, const int xPixelSamples, const int yPixelSamples, const int maxDepth)
+    explicit Camera(const int width, const int height, CameraProperties cameraProperties, const int xPixelSamples, const int yPixelSamples, const int maxDepth, const int threadCount = 4)
         : width_(width),
           height_(height),
           aspectRatio_(static_cast<Float>(width) / static_cast<Float>(height)),
-          maxDepth_(maxDepth),
           xPixelSamples_(xPixelSamples),
           yPixelSamples_(yPixelSamples),
-          img_(width, height),
+          maxDepth_(maxDepth),
           properties_(std::move(cameraProperties)),
-          acc_(width, height) {}
+          img_(width, height),
+          acc_(width, height),
+          threadCount_(threadCount) {}
 
     /**
      * Saves the image buffer to a file (.png)
@@ -80,12 +82,22 @@ public:
      */
     int getSpp() const { return xPixelSamples_ * yPixelSamples_; }
 
+    /**
+     * Get the number of threads used for rendering
+     * @return Number of threads
+     */
+    int getThreadCount() const {
+        return threadCount_;
+    }
+
 protected:
     Vec3 vp00_;
     Vec3 du_, dv_;
     Vec3 u_, v_, w_;
     Vec3 defocus_u_, defocus_v_;
     AccumulationBuffer acc_;
+
+    int threadCount_;
 
     /**
      * Samples a point on the Camera's defocus disc
@@ -148,6 +160,12 @@ struct WorkQueue {
      * Resets the work queue
      */
     void reset() { nextJobIndex = 0; }
+
+    /**
+     * Checks if there are more jobs to process
+     * @return True if there are more jobs to process, false o/w
+     */
+    bool workAvailable() const { return nextJobIndex < jobs.size(); }
 };
 
 /**
@@ -165,6 +183,8 @@ public:
     using Camera::Camera;
 
     void render(const Scene &scene);
+private:
+    int spp_;
 };
 
 /**
@@ -177,11 +197,16 @@ public:
  */
 class DynamicCamera : public Camera {
 public:
-    DynamicCamera(const int width, const int height, CameraProperties cameraProperties, const int xPixelSamples, const int yPixelSamples, const int maxDepth)
-        : Camera(width, height, std::move(cameraProperties), xPixelSamples, yPixelSamples, maxDepth) {
-        initWorkQueue();
-        startThreads();
-    }
+    DynamicCamera(
+        int width,
+        int height,
+        CameraProperties cameraProperties,
+        int xPixelSamples,
+        int yPixelSamples,
+        int maxDepth,
+        int samplesPerPass = 1,
+        int threadCount = 4);
+
     ~DynamicCamera() { stopThreads(); }
 
     /**
@@ -200,6 +225,9 @@ public:
      * Terminates the rendering process
      */
     void stopRender() { stopThreads(); }
+
+    int samplesPerPass_ = 1;
+
 private:
     const Scene *scene_;
 
@@ -217,6 +245,8 @@ private:
     std::vector<std::thread> threads_;
     std::atomic<bool> resetRender_ = false;
     std::atomic<bool> stopThreads_ = false;
+
+    std::barrier<std::function<void()>> endBarrier_;
 
     /**
      * Initializes and starts the worker threads

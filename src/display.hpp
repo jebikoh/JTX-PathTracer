@@ -50,6 +50,7 @@ private:
     int logicalWidth_, logicalHeight_;
     float windowScale_;
     StaticCamera *camera_;
+    DynamicCamera *dynamicCamera_;
 
     int renderWidth_;
     float scaleX_, scaleY_;
@@ -68,6 +69,8 @@ private:
     bool interactiveMode_ = false;
     float camSensitivity_ = false;
     bool resetRender_ = false;
+
+    uint32_t frame_;
 
     void panCamera(int deltaX, int deltaY);
     void zoomCamera(int scroll);

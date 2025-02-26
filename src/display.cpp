@@ -260,8 +260,8 @@ void Display::renderMenuBar(bool inputDisabled) {
             const float menuBarHeight     = ImGui::GetFrameHeight();
             const float progressBarHeight = menuBarHeight * 0.6f;
             // Set progress bar width proportional to the sidebar width minus 10px padding on each side
-            const float progressBarWidth = SIDEBAR_WIDTH - 20.0f;
-            const float rightPadding     = 10.0f;
+            constexpr float progressBarWidth = SIDEBAR_WIDTH - 20.0f;
+            constexpr float rightPadding     = 10.0f;
             // Position the progress bar on the right with the specified padding
             const float xPos = ImGui::GetWindowContentRegionMax().x - progressBarWidth - rightPadding;
             // Center vertically within the menu bar
@@ -769,6 +769,8 @@ void Display::render() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     SDL_GL_SwapWindow(window_);
+
+    frame_++;
 }
 
 bool Display::initWindow() {
@@ -966,7 +968,7 @@ void Display::processEvents(bool &isRunning) {
         }
 
         if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) {
-            bool isDown = (e.type == SDL_KEYDOWN);
+            const bool isDown = (e.type == SDL_KEYDOWN);
             if (e.key.keysym.sym == SDLK_LSHIFT || e.key.keysym.sym == SDLK_RSHIFT) {
                 mState_.shiftDown = isDown;
             }
@@ -977,24 +979,26 @@ void Display::processEvents(bool &isRunning) {
         if (mState_.middleButtonDown) {
             if (mState_.shiftDown) {
                 // Pan the camera
+                panCamera(mState_.deltaX, mState_.deltaY);
             } else {
                 // Rotate the camera
             }
         }
         if (mState_.scroll != 0) {
             // Zoom the camera
+            zoomCamera(mState_.scroll);
             mState_.scroll = 0;// Reset scroll after handling
         }
     }
 }
 
-void Display::panCamera(int deltaX, int deltaY) {
-    resetRender_ = true;
-    Vec3 forward = normalize(camera_->properties_.target - camera_->properties_.center);
-    Vec3 right   = normalize(cross(forward, camera_->properties_.up));
-    Vec3 up      = normalize(cross(right, forward));
+void Display::panCamera(const int deltaX, const int deltaY) {
+    resetRender_       = true;
+    const Vec3 forward = normalize(camera_->properties_.target - camera_->properties_.center);
+    const Vec3 right   = normalize(cross(forward, camera_->properties_.up));
+    const Vec3 up      = normalize(cross(right, forward));
 
-    Vec3 delta = (right * static_cast<float>(-deltaX) + up * static_cast<float>(deltaY)) * camSensitivity_;
+    const Vec3 delta = (right * static_cast<float>(-deltaX) + up * static_cast<float>(deltaY)) * camSensitivity_;
     camera_->properties_.center += delta;
     camera_->properties_.target += delta;
 }

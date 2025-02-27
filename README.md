@@ -2,8 +2,13 @@
 
 This my WIP toy path tracer written in C++.
 
-## TODO:
+![image](https://github.com/user-attachments/assets/f6499dc1-893a-4249-bdaa-b36749b3c80f)
 
+Old animation sample (incorrect lighting):
+https://github.com/user-attachments/assets/4b746f1b-bf9e-4343-ab8d-3f99a952089c
+
+
+## TODO:
 ### BxDF
  - [ ] glTF BRDF
  - [ ] Disney BxDF
@@ -26,9 +31,4 @@ This my WIP toy path tracer written in C++.
 ### 
  - [ ] Interactive display
  - [ ] Debug views
-
-![image](https://github.com/user-attachments/assets/f6499dc1-893a-4249-bdaa-b36749b3c80f)
-
-Old animation sample (incorrect lighting):
-https://github.com/user-attachments/assets/4b746f1b-bf9e-4343-ab8d-3f99a952089c
 

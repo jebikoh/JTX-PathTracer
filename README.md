@@ -2,13 +2,29 @@
 
 This my WIP toy path tracer written in C++.
 
-TODO:
+## TODO:
+
+### BxDF
+ - [ ] glTF BRDF
+ - [ ] Disney BxDF
+ - [ ] Layered BxDF
+ - [ ] Mediums
+
+### Integration
+ - [ ] Path regularization
+ - [ ] Russian Roulette
+
+### Vectorization
  - [ ] QBVH (WIP): https://github.com/jebikoh/simd-bvh
- - [ ] Interactive display
- - [ ] Deferred Sorted Shading (with vectorization)
+ - [ ] Embree Integration
+ - [ ] [Vectorized path tracing](https://www.tabellion.org/et/paper17/MoonRay.pdf)
+
+### GPU
  - [ ] CUDA/OptiX Implementation (WIP)
- - [ ] glTF shading model
- - [ ] Disney shading model
+ - [ ] Vulkan backend
+
+### 
+ - [ ] Interactive display
  - [ ] Debug views
 
 ![image](https://github.com/user-attachments/assets/f6499dc1-893a-4249-bdaa-b36749b3c80f)

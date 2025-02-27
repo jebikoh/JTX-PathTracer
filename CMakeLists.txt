@@ -116,6 +116,7 @@ add_executable(JTX
         src/bsdf/microfacet.hpp
         src/lights/lights.hpp
         src/bsdf/disney.hpp
+        src/bsdf/gltf.hpp
 )
 
 target_link_libraries(JTX PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui assimp)

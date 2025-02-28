@@ -13,8 +13,8 @@ bool sampleBxdf(const Scene &scene, const SurfaceIntersection &rec, const Vec3 &
     if (rec.material->type == Material::DIFFUSE) {
         // If material has a diffuse texture, we should use that
         Vec3 albedo = rec.material->albedo;
-        if (rec.material->texId != -1) {
-            albedo = scene.textures[rec.material->texId].getTexel(rec.uv);
+        if (rec.material->albedoTexId != -1) {
+            albedo = scene.textures[rec.material->albedoTexId].getTexel(rec.uv);
         }
 
         const auto bxdf = DiffuseBxDF{albedo};
@@ -58,8 +58,8 @@ Vec3 evalBxdf(const Scene &scene, const Material *mat, const SurfaceIntersection
 
     if (rec.material->type == Material::DIFFUSE) {
         Vec3 albedo = rec.material->albedo;
-        if (rec.material->texId != -1) {
-            albedo = scene.textures[rec.material->texId].getTexel(rec.uv);
+        if (rec.material->albedoTexId != -1) {
+            albedo = scene.textures[rec.material->albedoTexId].getTexel(rec.uv);
         }
 
         const auto bxdf = DiffuseBxDF{albedo};

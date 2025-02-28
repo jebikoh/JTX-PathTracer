@@ -6,7 +6,8 @@ struct Material {
     enum Type {
         DIFFUSE = 0,
         DIELECTRIC = 1,
-        CONDUCTOR = 2
+        CONDUCTOR = 2,
+        METALLIC_ROUGHNESS = 3
     };
 
     Type type;
@@ -17,7 +18,8 @@ struct Material {
     float alphaX, alphaY;
     Vec3 emission = Vec3(0, 0, 0);
     
-    int texId;
+    int albedoTexId;
+    int metallicRoughnessTexId;
 };
 
 struct SurfaceIntersection {

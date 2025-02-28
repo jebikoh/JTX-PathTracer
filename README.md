@@ -10,7 +10,7 @@ https://github.com/user-attachments/assets/4b746f1b-bf9e-4343-ab8d-3f99a952089c
 
 ## TODO:
 ### BxDF
- - [ ] glTF BRDF
+ - [ ] glTF BRDF (WIP)
  - [ ] Disney BxDF
  - [ ] Layered BxDF
  - [ ] Mediums
@@ -18,6 +18,7 @@ https://github.com/user-attachments/assets/4b746f1b-bf9e-4343-ab8d-3f99a952089c
 ### Integration
  - [ ] Path regularization
  - [ ] Russian Roulette
+ - [ ] IBL
 
 ### Vectorization
  - [ ] QBVH (WIP): https://github.com/jebikoh/simd-bvh
@@ -28,7 +29,7 @@ https://github.com/user-attachments/assets/4b746f1b-bf9e-4343-ab8d-3f99a952089c
  - [ ] CUDA/OptiX Implementation (WIP)
  - [ ] Vulkan backend
 
-### 
+### UI
  - [ ] Interactive display
  - [ ] Debug views
 

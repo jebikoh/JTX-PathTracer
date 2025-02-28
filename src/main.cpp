@@ -16,8 +16,13 @@ int main(int argc, char *argv[]) {
     const int threadCapacity = std::thread::hardware_concurrency();
 
     // Scene scene = createShaderBallScene(true);
-    Scene scene    = createShaderBallSceneWithLight(true);
-    scene.skyColor = Color::SKY_BLUE;
+    // Scene scene    = createShaderBallSceneWithLight(true);
+    Scene scene = createScene("assets/scenes/helmet/helmet.glb", Mat4::identity(), Color::SKY_BLUE);
+    scene.cameraProperties.center = Vec3(4, 0, 3);
+    scene.cameraProperties.target = Vec3(0, 0, 0);
+    scene.cameraProperties.yfov   = 40;
+
+    scene.meshes[0].material->albedo = Vec3(0.5, 0.5, 0.5);
 
     const auto start = std::chrono::high_resolution_clock::now();
     scene.buildBVH();

@@ -27,7 +27,7 @@ public:
 
     RGB8Image()
         : w_(1920),
-          h_(1080){};
+          h_(1080) {};
     RGB8Image(const int w, const int h)
         : w_(w),
           h_(h) {
@@ -91,6 +91,11 @@ private:
     std::vector<Vec3> buffer_;
 };
 
+enum class ImageFormat {
+    AUTO,
+    EXR
+};
+
 class TextureImage {
 public:
     TextureImage()
@@ -100,6 +105,9 @@ public:
           data_(nullptr) {}
 
     explicit TextureImage(const char *path) { load(path); }
+    explicit TextureImage(const unsigned char *buffer, size_t bufferSize, ImageFormat format) {
+        load(buffer, bufferSize, format);
+    }
 
     TextureImage(TextureImage &&other) noexcept
         : isExr_(other.isExr_),
@@ -121,6 +129,7 @@ public:
     ~TextureImage();
 
     bool load(const char *path);
+    bool load(const unsigned char *buffer, size_t bufferSize, ImageFormat format);
 
     int width() const { return width_; }
     int height() const { return height_; }
@@ -149,6 +158,49 @@ public:
         const int y0 = static_cast<int>(v * height_);
         return getTexel(x0, y0);
     }
+
+    float getTexel(const int u, const int v, const int c0) const {
+        int wrappedU = u % width_;
+        if (wrappedU < 0) {
+            wrappedU += width_;
+        }
+
+        int wrappedV = v % height_;
+        if (wrappedV < 0) {
+            wrappedV += height_;
+        }
+
+        const float *pixel = data_ + (wrappedV * width_ + wrappedU) * channels_;
+        return pixel[c0];
+    }
+
+    float getTexel(const float u, const float v, const int c0) const {
+        const int x0 = static_cast<int>(u * width_);
+        const int y0 = static_cast<int>(v * height_);
+        return getTexel(x0, y0, c0);
+    }
+
+    Vec2f getTexel(const int u, const int v, const int c0, const int c1) const {
+        int wrappedU = u % width_;
+        if (wrappedU < 0) {
+            wrappedU += width_;
+        }
+
+        int wrappedV = v % height_;
+        if (wrappedV < 0) {
+            wrappedV += height_;
+        }
+
+        const float *pixel = data_ + (wrappedV * width_ + wrappedU) * channels_;
+        return Vec2f(pixel[c0], pixel[c1]);
+    }
+
+    Vec2f getTexel(const float u, const float v, const int c0, const int c1) const {
+        const int x0 = static_cast<int>(u * width_);
+        const int y0 = static_cast<int>(v * height_);
+        return getTexel(x0, y0, c0, c1);
+    }
+
 
     Vec3 getTexel(const Vec2f &uv) const {
         return getTexel(uv.x, uv.y);

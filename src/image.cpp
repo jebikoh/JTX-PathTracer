@@ -24,7 +24,6 @@ void RGB8Image::save(const char *path) const {
     stbi_write_png(path, w_, h_, 3, flipped_buffer.data(), w_ * 3);
 }
 
-
 TextureImage &TextureImage::operator=(TextureImage &&other) noexcept {
     if (this != &other) {
         if (data_) {
@@ -58,7 +57,7 @@ TextureImage::~TextureImage() {
 }
 
 bool TextureImage::load(const char *path) {
-    path_ = std::string(path);
+    path_                 = std::string(path);
     const std::string ext = path_.substr(path_.find_last_of(".") + 1);
 
     if (ext == "exr" || ext == "EXR") {
@@ -68,8 +67,41 @@ bool TextureImage::load(const char *path) {
     } else {
         // Use stb_image for other formats
         isExr_ = false;
-        data_ = stbi_loadf(path, &width_, &height_, &channels_, 0);
+        data_  = stbi_loadf(path, &width_, &height_, &channels_, 0);
         return data_ != nullptr;
+    }
+}
+
+bool TextureImage::load(const unsigned char *buffer, const size_t bufferSize, const ImageFormat format) {
+    if (!buffer || bufferSize == 0) {
+        std::cerr << "Invalid buffer" << std::endl;
+        return false;
+    }
+
+    if (format == ImageFormat::EXR) {
+        isExr_ = true;
+        const char *err;
+        const int ret = LoadEXRFromMemory(&data_, &width_, &height_, buffer, bufferSize, &err);
+        if (ret != TINYEXR_SUCCESS) {
+            if (err) {
+                std::cerr << "Failed to load EXR from memory: " << err << std::endl;
+                FreeEXRErrorMessage(err);
+            return false;
+            }
+        }
+        channels_ = 4;
+        path_ = "mem_exr";
+        return true;
+    } else {
+        isExr_ = false;
+        data_ = stbi_loadf_from_memory(buffer, static_cast<int>(bufferSize), &width_, &height_, &channels_, 0);
+        if (!data_) {
+            std::cerr << "Failed to load image from memory" << std::endl;
+            return false;
+        }
+
+        path_ = "mem_stbi";
+        return true;
     }
 }
 

@@ -1,5 +1,7 @@
 #include "scene.hpp"
+#include "assimp/GltfMaterial.h"
 #include "mesh.hpp"
+
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
@@ -54,7 +56,7 @@ bool Scene::closestHit(const Ray &r, Interval t, SurfaceIntersection &record) co
     return hitAnything;
 }
 
-bool Scene::anyHit(const Ray &r, Interval t) const {
+bool Scene::anyHit(const Ray &r, const Interval t) const {
     const auto invDir     = 1 / r.dir;
     const int dirIsNeg[3] = {static_cast<int>(invDir.x < 0), static_cast<int>(invDir.y < 0), static_cast<int>(invDir.z < 0)};
 
@@ -98,7 +100,7 @@ void Scene::loadMesh(const std::string &path) {
     }
 
     Assimp::Importer importer;
-    const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+    const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_PreTransformVertices);
     if (!scene || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) || !scene->mRootNode) {
         std::cerr << "Assimp error: " << importer.GetErrorString() << std::endl;
         return;
@@ -115,6 +117,32 @@ void Scene::loadMesh(const std::string &path) {
     std::unordered_map<std::string, size_t> textureMap;
     std::unordered_map<std::string, size_t> materialMap;
 
+    // Process textures
+    for (unsigned int i = 0; i < scene->mNumTextures; ++i) {
+        aiTexture *aiTex    = scene->mTextures[i];
+        std::string texName = aiTex->mFilename.C_Str();
+        if (texName.empty()) {
+            texName = "embedded_" + std::to_string(i);
+        }
+
+        TextureImage texture;
+        bool loaded = false;
+
+        if (aiTex->mHeight == 0) {
+            loaded = texture.load(reinterpret_cast<const unsigned char *>(aiTex->pcData), aiTex->mWidth, ImageFormat::AUTO);
+        } else {
+            loaded = texture.load(reinterpret_cast<const unsigned char *>(aiTex->pcData), aiTex->mWidth * aiTex->mHeight * 4, ImageFormat::AUTO);
+        }
+
+        if (loaded) {
+            textures.push_back(std::move(texture));
+            textureMap[texName] = textures.size() - 1;
+            std::cout << "Loaded embedded texture: " << texName << std::endl;
+        } else {
+            std::cerr << "Failed to load embedded texture: " << texName << std::endl;
+        }
+    }
+
     for (unsigned int i = 0; i < scene->mNumMaterials; ++i) {
         aiMaterial *aiMat = scene->mMaterials[i];
 
@@ -125,30 +153,81 @@ void Scene::loadMesh(const std::string &path) {
         if (materialMap.contains(matName))
             continue;
 
-        int texId = -1;
-        if (aiMat->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
-            aiString texPath;
-            if (aiMat->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS) {
-                std::string fullTexPath = baseDir + texPath.C_Str();
-                auto texIt              = textureMap.find(fullTexPath);
-                if (texIt != textureMap.end()) {
-                    texId = texIt->second;
-                } else {
+        int albedoTexId = -1;
+        int metallicRoughnessTexId = -1;
+        float metallic = 0.0f;
+        float roughness = 1.0f;
+
+        auto loadTexture = [&](const aiTextureType type) -> int {
+            if (aiMat->GetTextureCount(type) > 0) {
+                aiString texPath;
+                if (aiMat->GetTexture(type, 0, &texPath) == AI_SUCCESS) {
+                    const std::string texName = texPath.C_Str();
+
+                    if (texName.length() > 0 && texName[0] == '*') {
+                        const size_t embeddedIndex = std::stoul(texName.substr(1));
+                        const std::string embeddedName = "embedded_" + std::to_string(embeddedIndex);
+                        const auto texIt = textureMap.find(embeddedName);
+                        if (texIt != textureMap.end()) {
+                            return texIt->second;
+                        }
+
+                        std::cerr << "Failed to find embedded texture: " << embeddedName << std::endl;
+                        return -1;
+                    }
+
+                    const std::string fullTexPath = baseDir + texName;
+                    const auto texIt              = textureMap.find(fullTexPath);
+                    if (texIt != textureMap.end()) {
+                        return texIt->second;
+                    }
                     TextureImage texture;
                     if (texture.load(fullTexPath.c_str())) {
                         std::cout << "Loaded texture: " << fullTexPath << std::endl;
                         textures.push_back(std::move(texture));
-                        texId                   = textures.size() - 1;
+                        int texId                   = textures.size() - 1;
                         textureMap[fullTexPath] = texId;
-                    } else {
-                        std::cerr << "Failed to load texture: " << fullTexPath << std::endl;
+                        return texId;
                     }
+
+                    std::cerr << "Failed to load texture: " << fullTexPath << std::endl;
+                    return -1;
                 }
             }
+            return -1;
+        };
+        albedoTexId = loadTexture(aiTextureType_DIFFUSE);
+
+        bool isMetallicRoughness = false;
+        // Look for a metallic roughness texture
+        if (aiMat->GetTextureCount(aiTextureType_GLTF_METALLIC_ROUGHNESS) > 0 ||
+            aiMat->Get(AI_MATKEY_METALLIC_FACTOR, metallic) == AI_SUCCESS ||
+            aiMat->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) == AI_SUCCESS) {
+            isMetallicRoughness = true;
+            metallicRoughnessTexId = loadTexture(aiTextureType_GLTF_METALLIC_ROUGHNESS);
+        }
+
+        Material mat;
+        if (isMetallicRoughness) {
+            mat.type = Material::METALLIC_ROUGHNESS;
+            mat.albedoTexId = albedoTexId;
+            mat.metallicRoughnessTexId = metallicRoughnessTexId;
+
+            if (albedoTexId == -1) {
+                // FILL WITH ALBEDO
+            }
+            if (metallicRoughnessTexId == -1) {
+                mat.alphaX = metallic;
+                mat.alphaY = roughness;
+            }
+        } else {
+            mat.type = Material::DIFFUSE;
+            mat.albedoTexId = albedoTexId;
+            mat.albedo = Color::WHITE;
         }
 
         std::cout << "Loaded material: " << matName << std::endl;
-        materials.push_back({.texId = texId});
+        materials.push_back({.albedoTexId = albedoTexId});
         materialMap[matName] = materials.size() - 1;
     }
 
@@ -173,6 +252,7 @@ void Scene::loadMesh(const std::string &path) {
                 aiVector3D n    = aiMeshPtr->mNormals[i];
                 finalNormals[i] = Vec3(n.x, n.y, n.z);
             } else {
+                std::cout << "Missing normals" << std::endl;
                 finalNormals[i] = Vec3(0.0f, 1.0f, 0.0f);
             }
 
@@ -211,7 +291,7 @@ void Scene::loadMesh(const std::string &path) {
             }
         }
         if (!meshMaterial) {
-            materials.push_back({.type = Material::DIFFUSE, .albedo = Vec3(1, 0.3, 0.5), .texId = -1});
+            materials.push_back({.type = Material::DIFFUSE, .albedo = Vec3(1, 0.3, 0.5), .albedoTexId = -1});
             meshMaterial = &materials.back();
         }
 
@@ -272,7 +352,7 @@ void Scene::buildBVH(const int maxPrimsInNode) {
 
     // Pre-process lights that need the scene radius
     const float sceneRadius = getSceneRadius();
-    for (auto &light : lights) {
+    for (auto &light: lights) {
         if (light.type == Light::DISTANT) {
             light.sceneRadius = sceneRadius;
         }
@@ -354,9 +434,9 @@ Scene createMeshScene() {
     return scene;
 }
 
-Scene createObjScene(const std::string &path, const Mat4 &t, const Vec3 &background) {
+Scene createScene(const std::string &path, const Mat4 &t, const Vec3 &background) {
     Scene scene;
-    scene.name = "OBJ Scene";
+    scene.name = "File scene";
     scene.loadMesh(path);
 
     scene.cameraProperties.center        = Vec3(0, 0, 8);
@@ -365,6 +445,8 @@ Scene createObjScene(const std::string &path, const Mat4 &t, const Vec3 &backgro
     scene.cameraProperties.yfov          = 20;
     scene.cameraProperties.defocusAngle  = 0;
     scene.cameraProperties.focusDistance = 1;
+
+    scene.skyColor = background;
 
     std::cout << "Scene loaded with:" << std::endl;
     std::cout << " - " << scene.meshes.size() << " meshes" << std::endl;
@@ -391,10 +473,10 @@ Scene createShaderBallScene(bool highSubdivision) {
     Scene scene;
     if (highSubdivision) {
         const std::string path = "assets/scenes/shaderball/shaderball_hsd.obj";
-        scene                  = createObjScene(path, t);
+        scene                  = createScene(path, t);
     } else {
         const std::string path = "assets/scenes/shaderball/shaderball.obj";
-        scene                  = createObjScene(path, t);
+        scene                  = createScene(path, t);
     }
 
 
@@ -411,16 +493,16 @@ Scene createShaderBallScene(bool highSubdivision) {
     return scene;
 }
 
-Scene createShaderBallSceneWithLight(bool highSubdivision) {
+Scene createShaderBallSceneWithLight(const bool highSubdivision) {
 
     const auto t = Mat4::identity();
     Scene scene;
     if (highSubdivision) {
         const std::string path = "assets/scenes/shaderball/shaderball_hsd.obj";
-        scene                  = createObjScene(path, t);
+        scene                  = createScene(path, t);
     } else {
         const std::string path = "assets/scenes/shaderball/shaderball.obj";
-        scene                  = createObjScene(path, t);
+        scene                  = createScene(path, t);
     }
 
     scene.cameraProperties.center = Vec3(2.5, 16, 12);
@@ -436,10 +518,10 @@ Scene createShaderBallSceneWithLight(bool highSubdivision) {
             .intensity = Color::WHITE,
             .scale     = 1000};
     const Light distant = {
-        .type = Light::DISTANT,
-        .position = {0, -1, 0},
-        .intensity = Color::WHITE,
-        .scale = 10,
+            .type      = Light::DISTANT,
+            .position  = {0, -1, 0},
+            .intensity = Color::WHITE,
+            .scale     = 10,
     };
     // scene.lights.push_back(point);
     scene.lights.push_back(distant);
@@ -455,7 +537,7 @@ Scene createShaderBallSceneWithLight(bool highSubdivision) {
 Scene createKnobScene() {
     const auto t           = Mat4::identity();
     const std::string path = "assets/scenes/knob.obj";
-    auto scene             = createObjScene(path, t);
+    auto scene             = createScene(path, t);
 
     scene.cameraProperties.center = Vec3(0, 3, 8);
     scene.cameraProperties.target = Vec3(0, 0, 0);

@@ -237,7 +237,7 @@ void DynamicCamera::workerThread() {
 
                         const Ray r = getRay(col, row, currSample, sampler);
 
-                        // Color sampleColor = integrateBasic(r, *job.scene, maxDepth_, sampler);
+                        // Vec3 sampleColor = integrateBasic(r, *scene_, maxDepth_, sampler);
                         // Color sampleColor = integrate(r, *job.scene, maxDepth_, sampler);
                         Vec3 sampleColor = integrateMIS(r, *scene_, maxDepth_, false, sampler);
 

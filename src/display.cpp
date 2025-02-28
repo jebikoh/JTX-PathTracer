@@ -678,7 +678,6 @@ void Display::renderSceneEditor() {
         }
     }
     ImGui::EndChild();
-    ImGui::PopStyleVar();
     ImGui::PopStyleColor();
 
     if (selectedType == 1) {

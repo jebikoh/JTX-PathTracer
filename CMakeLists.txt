@@ -117,6 +117,8 @@ add_executable(JTX
         src/lights/lights.hpp
         src/bsdf/disney.hpp
         src/bsdf/gltf.hpp
+        src/loader.hpp
+        src/loader.cpp
 )
 
 target_link_libraries(JTX PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui assimp)

@@ -53,8 +53,6 @@ public:
         return spheres.size() + triangles.size();
     }
 
-    void loadMesh(const std::string &path);
-
     void buildBVH(int maxPrimsInNode = 1);
 
     void destroyBVH() {

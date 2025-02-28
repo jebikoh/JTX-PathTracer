@@ -6,6 +6,7 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 #include <unordered_map>
+#include "loader.hpp"
 
 static constexpr int SCENE_MATERIAL_LIMIT = 64;
 static const Vec3 GOLD_IOR                = {0.15557, 0.42415, 1.3831};
@@ -92,221 +93,6 @@ bool Scene::anyHit(const Ray &r, const Interval t) const {
     }
 
     return false;
-}
-
-void Scene::loadMesh(const std::string &path) {
-    if (materials.capacity() < SCENE_MATERIAL_LIMIT) {
-        materials.reserve(SCENE_MATERIAL_LIMIT);
-    }
-
-    Assimp::Importer importer;
-    const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_PreTransformVertices);
-    if (!scene || (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) || !scene->mRootNode) {
-        std::cerr << "Assimp error: " << importer.GetErrorString() << std::endl;
-        return;
-    }
-
-    std::string baseDir;
-    size_t lastSlash = path.find_last_of("/\\");
-    if (lastSlash != std::string::npos) {
-        baseDir = path.substr(0, lastSlash + 1);
-    } else {
-        baseDir = "";
-    }
-
-    std::unordered_map<std::string, size_t> textureMap;
-    std::unordered_map<std::string, size_t> materialMap;
-
-    // Process textures
-    for (unsigned int i = 0; i < scene->mNumTextures; ++i) {
-        aiTexture *aiTex    = scene->mTextures[i];
-        std::string texName = aiTex->mFilename.C_Str();
-        if (texName.empty()) {
-            texName = "embedded_" + std::to_string(i);
-        }
-
-        TextureImage texture;
-        bool loaded = false;
-
-        if (aiTex->mHeight == 0) {
-            loaded = texture.load(reinterpret_cast<const unsigned char *>(aiTex->pcData), aiTex->mWidth, ImageFormat::AUTO);
-        } else {
-            loaded = texture.load(reinterpret_cast<const unsigned char *>(aiTex->pcData), aiTex->mWidth * aiTex->mHeight * 4, ImageFormat::AUTO);
-        }
-
-        if (loaded) {
-            textures.push_back(std::move(texture));
-            textureMap[texName] = textures.size() - 1;
-            std::cout << "Loaded embedded texture: " << texName << std::endl;
-        } else {
-            std::cerr << "Failed to load embedded texture: " << texName << std::endl;
-        }
-    }
-
-    for (unsigned int i = 0; i < scene->mNumMaterials; ++i) {
-        aiMaterial *aiMat = scene->mMaterials[i];
-
-        aiString aiMatName;
-        aiMat->Get(AI_MATKEY_NAME, aiMatName);
-        std::string matName = aiMatName.C_Str();
-
-        if (materialMap.contains(matName))
-            continue;
-
-        int albedoTexId = -1;
-        int metallicRoughnessTexId = -1;
-        float metallic = 0.0f;
-        float roughness = 1.0f;
-
-        auto loadTexture = [&](const aiTextureType type) -> int {
-            if (aiMat->GetTextureCount(type) > 0) {
-                aiString texPath;
-                if (aiMat->GetTexture(type, 0, &texPath) == AI_SUCCESS) {
-                    const std::string texName = texPath.C_Str();
-
-                    if (texName.length() > 0 && texName[0] == '*') {
-                        const size_t embeddedIndex = std::stoul(texName.substr(1));
-                        const std::string embeddedName = "embedded_" + std::to_string(embeddedIndex);
-                        const auto texIt = textureMap.find(embeddedName);
-                        if (texIt != textureMap.end()) {
-                            return texIt->second;
-                        }
-
-                        std::cerr << "Failed to find embedded texture: " << embeddedName << std::endl;
-                        return -1;
-                    }
-
-                    const std::string fullTexPath = baseDir + texName;
-                    const auto texIt              = textureMap.find(fullTexPath);
-                    if (texIt != textureMap.end()) {
-                        return texIt->second;
-                    }
-                    TextureImage texture;
-                    if (texture.load(fullTexPath.c_str())) {
-                        std::cout << "Loaded texture: " << fullTexPath << std::endl;
-                        textures.push_back(std::move(texture));
-                        int texId                   = textures.size() - 1;
-                        textureMap[fullTexPath] = texId;
-                        return texId;
-                    }
-
-                    std::cerr << "Failed to load texture: " << fullTexPath << std::endl;
-                    return -1;
-                }
-            }
-            return -1;
-        };
-        albedoTexId = loadTexture(aiTextureType_DIFFUSE);
-
-        bool isMetallicRoughness = false;
-        // Look for a metallic roughness texture
-        if (aiMat->GetTextureCount(aiTextureType_GLTF_METALLIC_ROUGHNESS) > 0 ||
-            aiMat->Get(AI_MATKEY_METALLIC_FACTOR, metallic) == AI_SUCCESS ||
-            aiMat->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) == AI_SUCCESS) {
-            isMetallicRoughness = true;
-            metallicRoughnessTexId = loadTexture(aiTextureType_GLTF_METALLIC_ROUGHNESS);
-        }
-
-        Material mat;
-        if (isMetallicRoughness) {
-            mat.type = Material::METALLIC_ROUGHNESS;
-            mat.albedoTexId = albedoTexId;
-            mat.metallicRoughnessTexId = metallicRoughnessTexId;
-
-            if (albedoTexId == -1) {
-                // FILL WITH ALBEDO
-            }
-            if (metallicRoughnessTexId == -1) {
-                mat.alphaX = metallic;
-                mat.alphaY = roughness;
-            }
-        } else {
-            mat.type = Material::DIFFUSE;
-            mat.albedoTexId = albedoTexId;
-            mat.albedo = Color::WHITE;
-        }
-
-        std::cout << "Loaded material: " << matName << std::endl;
-        materials.push_back({.albedoTexId = albedoTexId});
-        materialMap[matName] = materials.size() - 1;
-    }
-
-    for (unsigned int m = 0; m < scene->mNumMeshes; m++) {
-        aiMesh *aiMeshPtr = scene->mMeshes[m];
-
-        size_t numVerts   = aiMeshPtr->mNumVertices;
-        auto finalVerts   = new Vec3[numVerts];
-        auto finalNormals = new Vec3[numVerts];
-
-        Vec2f *finalUVs = nullptr;
-        bool hasUV      = (aiMeshPtr->mTextureCoords[0] != nullptr);
-        if (hasUV) {
-            finalUVs = new Vec2f[numVerts];
-        }
-
-        for (size_t i = 0; i < numVerts; i++) {
-            aiVector3D v  = aiMeshPtr->mVertices[i];
-            finalVerts[i] = Vec3(v.x, v.y, v.z);
-
-            if (aiMeshPtr->HasNormals()) {
-                aiVector3D n    = aiMeshPtr->mNormals[i];
-                finalNormals[i] = Vec3(n.x, n.y, n.z);
-            } else {
-                std::cout << "Missing normals" << std::endl;
-                finalNormals[i] = Vec3(0.0f, 1.0f, 0.0f);
-            }
-
-            if (hasUV) {
-                aiVector3D uv = aiMeshPtr->mTextureCoords[0][i];
-                finalUVs[i]   = Vec2f(uv.x, uv.y);
-            } else if (finalUVs) {
-                finalUVs[i] = Vec2f(0.0f, 0.0f);
-            }
-        }
-
-        size_t numTriangles = aiMeshPtr->mNumFaces;
-        auto *finalIndices  = new Vec3i[numTriangles];
-        for (size_t i = 0; i < numTriangles; i++) {
-            aiFace face = aiMeshPtr->mFaces[i];
-            if (face.mNumIndices != 3) {
-                std::cerr << "Warning: mesh " << m << " has a face that isn't a triangle.\n";
-                continue;
-            }
-            finalIndices[i] = Vec3i(face.mIndices[0], face.mIndices[1], face.mIndices[2]);
-        }
-
-        std::string mName = aiMeshPtr->mName.C_Str();
-        if (mName.empty()) {
-            mName = "mesh_" + std::to_string(m);
-        }
-
-        Material *meshMaterial = nullptr;
-        if (aiMeshPtr->mMaterialIndex < scene->mNumMaterials) {
-            aiMaterial *mat = scene->mMaterials[aiMeshPtr->mMaterialIndex];
-            aiString matName;
-            mat->Get(AI_MATKEY_NAME, matName);
-            auto it = materialMap.find(matName.C_Str());
-            if (it != materialMap.end()) {
-                meshMaterial = &materials[it->second];
-            }
-        }
-        if (!meshMaterial) {
-            materials.push_back({.type = Material::DIFFUSE, .albedo = Vec3(1, 0.3, 0.5), .albedoTexId = -1});
-            meshMaterial = &materials.back();
-        }
-
-        meshes.emplace_back(mName, finalIndices, numTriangles, finalVerts, numVerts, finalNormals, finalUVs, meshMaterial);
-
-        int meshIndex = static_cast<int>(meshes.size()) - 1;
-        for (size_t t = 0; t < numTriangles; t++) {
-            Triangle tri;
-            tri.index     = static_cast<int>(t);
-            tri.meshIndex = meshIndex;
-            triangles.push_back(tri);
-        }
-
-        std::cout << "Loaded mesh: " << mName << std::endl;
-    }
 }
 
 void Scene::buildBVH(const int maxPrimsInNode) {
@@ -437,7 +223,7 @@ Scene createMeshScene() {
 Scene createScene(const std::string &path, const Mat4 &t, const Vec3 &background) {
     Scene scene;
     scene.name = "File scene";
-    scene.loadMesh(path);
+    loadScene(path, scene);
 
     scene.cameraProperties.center        = Vec3(0, 0, 8);
     scene.cameraProperties.target        = Vec3(0, 0, 0);
@@ -468,7 +254,7 @@ Scene createScene(const std::string &path, const Mat4 &t, const Vec3 &background
     return scene;
 }
 
-Scene createShaderBallScene(bool highSubdivision) {
+Scene createShaderBallScene(const bool highSubdivision) {
     const auto t = Mat4::identity();
     Scene scene;
     if (highSubdivision) {

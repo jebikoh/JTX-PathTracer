@@ -43,7 +43,8 @@ inline bool refract(const Vec3 &w_i, Vec3 n, float eta, float *eta_p, Vec3 &w_t)
 inline Vec3 schlick(const Vec3 &wo, const Vec3 &wm, const Vec3 &R) {
     const auto cosTheta = jtx::absdot(wo, wm);
     const auto m = 1 - cosTheta;
-    return R + (1.0f - R) * m * m * m * m * m;
+    const auto m2 = m * m;
+    return R + (1.0f - R) * m2 * m2 * m;
 }
 
 /**
@@ -129,4 +130,4 @@ class Scene;
 
 bool sampleBxdf(const Scene &scene, const SurfaceIntersection &rec, const Vec3 &w_o, const float uc, const Vec2f &u, BSDFSample &s);
 Vec3 evalBxdf(const Scene &scene, const Material *mat, const SurfaceIntersection &rec, const Vec3 &w_o, const Vec3 &w_i);
-float pdfBxdf(const Material *mat, const SurfaceIntersection &rec, const Vec3 &w_o, const Vec3 &w_i);
+float pdfBxdf(const Scene &scene, const Material *mat, const SurfaceIntersection &rec, const Vec3 &w_o, const Vec3 &w_i);

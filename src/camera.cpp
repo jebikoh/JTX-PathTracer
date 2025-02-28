@@ -76,8 +76,6 @@ void StaticCamera::render(const Scene &scene) {
     std::vector<std::thread> threads;
     threads.reserve(threadCount_);
 
-
-
     spp_ = getSpp();
 
     for (unsigned int t = 0; t < threadCount_; ++t) {
@@ -104,8 +102,8 @@ void StaticCamera::render(const Scene &scene) {
 
                                 const Ray r = getRay(col, row, currSample, sampler);
 
-                                // Color sampleColor = integrateBasic(r, *job.scene, maxDepth_, sampler);
-                                // Color sampleColor = integrate(r, *job.scene, maxDepth_, sampler);
+                                // Vec3 sampleColor = integrateBasic(r, scene, maxDepth_, sampler);
+                                // Vec3 sampleColor = integrate(r, scene, maxDepth_, sampler);
                                 Vec3 sampleColor = integrateMIS(r, scene, maxDepth_, false, sampler);
 
                                 // Clamp the color

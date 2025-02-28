@@ -15,20 +15,22 @@ constexpr int MAX_DEPTH    = 50;
 int main(int argc, char *argv[]) {
     const int threadCapacity = std::thread::hardware_concurrency();
 
-    // Scene scene = createShaderBallScene(true);
-    // Scene scene    = createShaderBallSceneWithLight(true);
-    Scene scene = createScene("assets/scenes/helmet/helmet.glb", Mat4::identity(), Color::SKY_BLUE);
-    scene.cameraProperties.center = Vec3(4, 0, 3);
+    Scene scene = createScene("assets/scenes/helmet.glb", Mat4::identity(), Color::BLACK);
+
+    scene.cameraProperties.center = Vec3(4, 2, 3);
     scene.cameraProperties.target = Vec3(0, 0, 0);
     scene.cameraProperties.yfov   = 40;
 
-    scene.meshes[0].material->albedo = Vec3(0.5, 0.5, 0.5);
+    scene.meshes[0].material->type = Material::METALLIC_ROUGHNESS;
 
-    const auto start = std::chrono::high_resolution_clock::now();
+    const Light point = {
+        .type      = Light::POINT,
+        .position  = Vec3(4, 20, 4),
+        .intensity = Color::WHITE,
+        .scale     = 1000};
+    scene.lights.push_back(point);
+
     scene.buildBVH();
-    const auto end      = std::chrono::high_resolution_clock::now();
-    const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    std::cout << "BVH build time: " << duration.count() << "ms\n";
 
 #ifndef DISABLE_UI
     StaticCamera camera{

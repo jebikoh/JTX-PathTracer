@@ -153,7 +153,7 @@ Vec3 sampleLights(const Ray &r, const Scene &scene, const SurfaceIntersection &r
             const auto wi = ls.wi;
 
             const auto f = evalBxdf(scene, record.material, record, wo, wi) * jtx::absdot(wi, ctx.n);
-            float pb     = pdfBxdf(record.material, record, wo, wi);
+            float pb     = pdfBxdf(scene, record.material, record, wo, wi);
             float pl     = 1.0f / static_cast<float>(scene.lights.size()) * ls.pdf;
 
             float misWeight = 1.0f;

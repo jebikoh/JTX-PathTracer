@@ -3,6 +3,9 @@
 #include "bxdf.hpp"
 #include "microfacet.hpp"
 
+constexpr uint GLTF_METALLIC_ROUGHNESS_ROUGHNESS_CHANNEL = 1;
+constexpr uint GLTF_METALLIC_ROUGHNESS_METALLIC_CHANNEL  = 2;
+
 class MetallicRoughnessBxDF {
 public:
     explicit MetallicRoughnessBxDF(const float roughness2, const Vec3 &albedo, const float metallic)
@@ -67,9 +70,9 @@ public:
             wi = sampleCosineHemisphere(u);
             if (wo.z < 0) { wi.z *= -1; }
 
-            Vec3 w_m = wi + wo;
-            if (w_m.lenSqr() == 0) return {};
-            w_m = w_m.normalize();
+            wm = wi + wo;
+            if (wm.lenSqr() == 0) return {};
+            wm = wm.normalize();
 
             pdf = cosineHemispherePDF(jtx::absCosTheta(wi));
         }

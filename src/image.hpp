@@ -159,7 +159,7 @@ public:
         return getTexel(x0, y0);
     }
 
-    float getTexel(const int u, const int v, const int c0) const {
+    float getTexel(const int u, const int v, const uint c0) const {
         int wrappedU = u % width_;
         if (wrappedU < 0) {
             wrappedU += width_;
@@ -174,13 +174,13 @@ public:
         return pixel[c0];
     }
 
-    float getTexel(const float u, const float v, const int c0) const {
+    float getTexel(const float u, const float v, const uint c0) const {
         const int x0 = static_cast<int>(u * width_);
         const int y0 = static_cast<int>(v * height_);
         return getTexel(x0, y0, c0);
     }
 
-    Vec2f getTexel(const int u, const int v, const int c0, const int c1) const {
+    Vec2f getTexel(const int u, const int v, const uint c0, const uint c1) const {
         int wrappedU = u % width_;
         if (wrappedU < 0) {
             wrappedU += width_;
@@ -195,7 +195,7 @@ public:
         return Vec2f(pixel[c0], pixel[c1]);
     }
 
-    Vec2f getTexel(const float u, const float v, const int c0, const int c1) const {
+    Vec2f getTexel(const float u, const float v, const uint c0, const uint c1) const {
         const int x0 = static_cast<int>(u * width_);
         const int y0 = static_cast<int>(v * height_);
         return getTexel(x0, y0, c0, c1);
@@ -204,6 +204,14 @@ public:
 
     Vec3 getTexel(const Vec2f &uv) const {
         return getTexel(uv.x, uv.y);
+    }
+
+    float getTexel(const Vec2f &uv, const uint c0) const {
+        return getTexel(uv.x, uv.y, c0);
+    }
+
+    Vec2f getTexel(const Vec2f &uv, const uint c0, const uint c1) const {
+        return getTexel(uv.x, uv.y, c0, c1);
     }
 
 private:

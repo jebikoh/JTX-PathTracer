@@ -2,6 +2,7 @@
 
 #include "primitives.hpp"
 #include "rt.hpp"
+#include "mesh.hpp"
 
 struct alignas(32) LinearBVHNode {
     AABB bbox;
@@ -54,6 +55,6 @@ struct BVHNode {
     }
 };
 
-BVHNode *buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes, int *orderedPrimitiveOffset, std::vector<Primitive> &orderedPrimitives, int maxPrimsInNode);
+BVHNode *buildTree(std::span<Triangle> bvhPrimitives, int *totalNodes, int *orderedPrimitiveOffset, std::vector<Triangle> &orderedPrimitives, int maxPrimsInNode);
 
 int flattenBVH(const BVHNode *node, LinearBVHNode *nodes, int *offset);

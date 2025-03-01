@@ -1,11 +1,6 @@
 #include "scene.hpp"
-#include "assimp/GltfMaterial.h"
 #include "mesh.hpp"
-
-#include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
 #include <assimp/scene.h>
-#include <unordered_map>
 #include "loader.hpp"
 
 static constexpr int SCENE_MATERIAL_LIMIT = 64;
@@ -31,7 +26,9 @@ bool Scene::closestHit(const Ray &r, Interval t, SurfaceIntersection &record) co
             if (node->numPrimitives > 0) {
                 // Leaf node
                 for (int i = 0; i < node->numPrimitives; ++i) {
-                    if (closestHitPrimitive(primitives_[node->primitivesOffset + i], r, t, record)) {
+                    const Triangle& tri = triangles_[node->primitivesOffset + i];
+                    float u, v;
+                    if (meshes[tri.meshIndex].tClosestHit(r, t, record, tri.index, u, v)) {
                         hitAnything = true;
                         t.max       = record.t;
                     }
@@ -70,7 +67,8 @@ bool Scene::anyHit(const Ray &r, const Interval t) const {
         if (node->bbox.hit(r.origin, r.dir, t)) {
             if (node->numPrimitives > 0) {
                 for (int i = 0; i < node->numPrimitives; ++i) {
-                    if (anyHitPrimitive(primitives_[node->primitivesOffset + i], r, t)) {
+                    const Triangle& tri = triangles_[node->primitivesOffset + i];
+                    if (meshes[tri.meshIndex].tAnyHit(r, t, tri.index)) {
                         return true;
                     }
                 }
@@ -97,34 +95,25 @@ bool Scene::anyHit(const Ray &r, const Interval t) const {
 
 void Scene::buildBVH(const int maxPrimsInNode) {
     maxPrimsInNode_ = maxPrimsInNode;
-    primitives_.resize(numPrimitives());
+    triangles_.resize(numPrimitives());
     // std::vector<Primitive> primitives(scene.numPrimitives());
 
     // BVH Primitives is our working span of primitives
     // This will start out as all of them
-    std::vector<Primitive> bvhPrimitives(primitives_.size());
-    for (size_t i = 0; i < spheres.size(); ++i) {
-        primitives_[i]   = Primitive{Primitive::SPHERE, i, spheres[i].bounds()};
-        bvhPrimitives[i] = Primitive{Primitive::SPHERE, i, spheres[i].bounds()};
+    std::vector<Triangle> bvhPrimitives(triangles.size());
+    for (size_t i = 0; i < triangles.size(); ++i) {
+        triangles_[i] = Triangle{triangles[i].index, triangles[i].meshIndex, meshes[triangles[i].meshIndex].tBounds(triangles[i].index)};
     }
 
-    const size_t tOffset = spheres.size();
-    for (size_t i = 0; i < triangles.size(); ++i) {
-        primitives_[tOffset + i]   = Primitive{Primitive::TRIANGLE, i, meshes[triangles[i].meshIndex].tBounds(triangles[i].index)};
-        bvhPrimitives[tOffset + i] = Primitive{Primitive::TRIANGLE, i, meshes[triangles[i].meshIndex].tBounds(triangles[i].index)};
-    }
     // Add rest of types when we get them
     // We will order as we build
-    std::vector<Primitive> orderedPrimitives(primitives_.size());
+    std::vector<Triangle> orderedPrimitives(triangles_.size());
 
     int totalNodes             = 1;
     int orderedPrimitiveOffset = 0;
 
-    const BVHNode *root = buildTree(bvhPrimitives, &totalNodes, &orderedPrimitiveOffset, orderedPrimitives, maxPrimsInNode_);
-    primitives_.swap(orderedPrimitives);
-
-    bvhPrimitives.resize(0);
-    bvhPrimitives.shrink_to_fit();
+    const BVHNode *root = buildTree(triangles_, &totalNodes, &orderedPrimitiveOffset, orderedPrimitives, maxPrimsInNode);
+    triangles_.swap(orderedPrimitives);
 
     nodes_     = new LinearBVHNode[totalNodes];
     int offset = 0;
@@ -143,42 +132,6 @@ void Scene::buildBVH(const int maxPrimsInNode) {
             light.sceneRadius = sceneRadius;
         }
     }
-}
-
-Scene createDefaultScene() {
-    Scene scene;
-    scene.name = "Default Scene";
-
-    // Camera
-    scene.cameraProperties.center        = Vec3(0, 1, 8);
-    scene.cameraProperties.target        = Vec3(0, 0, -1);
-    scene.cameraProperties.up            = Vec3(0, 1, 0);
-    scene.cameraProperties.yfov          = 20;
-    scene.cameraProperties.defocusAngle  = 0;
-    scene.cameraProperties.focusDistance = 3.4;
-
-    scene.skyColor = Vec3(0.7, 0.8, 1.0);
-
-    scene.materials.reserve(10);
-    scene.spheres.reserve(10);
-
-    // Objects & Materials
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Vec3(0.659, 0.659, 0.749)});
-    scene.spheres.emplace_back(Vec3(0, -100.5, -1), 100, &scene.materials.back());
-
-    const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
-    const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};
-
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Vec3(0.1, 0.2, 0.5)});
-    scene.spheres.emplace_back(Vec3(0, 0, -1.2), 0.5, &scene.materials.back());
-
-    scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.3, .alphaY = 0.3});
-    scene.spheres.emplace_back(Vec3(1, 0, -1), 0.5, &scene.materials.back());
-
-    scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5 / 1.0)});
-    scene.spheres.emplace_back(Vec3(-1, 0, -1), 0.5, &scene.materials.back());
-
-    return scene;
 }
 
 Scene createMeshScene() {

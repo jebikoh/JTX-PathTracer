@@ -6,7 +6,7 @@ struct BVHBucket {
 };
 
 
-BVHNode *buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes, int *orderedPrimitiveOffset, std::vector<Primitive> &orderedPrimitives, int maxPrimsInNode) {
+BVHNode *buildTree(std::span<Triangle> bvhPrimitives, int *totalNodes, int *orderedPrimitiveOffset, std::vector<Triangle> &orderedPrimitives, int maxPrimsInNode) {
     const auto node = new BVHNode();
     (*totalNodes)++;
 
@@ -52,7 +52,7 @@ BVHNode *buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes, int *ord
                     bvhPrimitives.begin(),
                     bvhPrimitives.begin() + mid,
                     bvhPrimitives.end(),
-                    [dim](const Primitive &a, const Primitive &b) {
+                    [dim](const Triangle &a, const Triangle &b) {
                         return a.centroid()[dim] < b.centroid()[dim];
                     });
         } else {
@@ -104,7 +104,7 @@ BVHNode *buildTree(std::span<Primitive> bvhPrimitives, int *totalNodes, int *ord
             minCost              = 0.5f + minCost / bounds.surfaceArea();
             if (bvhPrimitives.size() > maxPrimsInNode || minCost < leafCost) {
                 // Build interior node
-                auto midIterator = std::partition(bvhPrimitives.begin(), bvhPrimitives.end(), [=](const Primitive &p) {
+                auto midIterator = std::partition(bvhPrimitives.begin(), bvhPrimitives.end(), [=](const Triangle &p) {
                     int b = BVH_NUM_BUCKETS * centroidBounds.offset(p.centroid())[dim];
                     if (b == BVH_NUM_BUCKETS) b = BVH_NUM_BUCKETS - 1;
                     return b <= minBucket;

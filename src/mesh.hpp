@@ -202,4 +202,9 @@ struct Mesh {
 struct Triangle {
     int index;
     int meshIndex;
+    AABB bounds;
+
+    Vec3 centroid() const {
+        return 0.5f * bounds.pmin + 0.5f * bounds.pmax;
+    }
 };

@@ -15,20 +15,22 @@ constexpr int MAX_DEPTH    = 50;
 int main(int argc, char *argv[]) {
     const int threadCapacity = std::thread::hardware_concurrency();
 
-    Scene scene = createScene("assets/scenes/helmet.glb", Mat4::identity(), Color::BLACK);
+    Scene scene = createShaderBallSceneWithLight(true);
 
-    scene.cameraProperties.center = Vec3(4, 2, 3);
-    scene.cameraProperties.target = Vec3(0, 0, 0);
-    scene.cameraProperties.yfov   = 40;
-
-    scene.meshes[0].material->type = Material::METALLIC_ROUGHNESS;
-
-    const Light point = {
-        .type      = Light::POINT,
-        .position  = Vec3(4, 20, 4),
-        .intensity = Color::WHITE,
-        .scale     = 1000};
-    scene.lights.push_back(point);
+    // Scene scene = createScene("assets/scenes/helmet.glb", Mat4::identity(), Color::BLACK);
+    //
+    // scene.cameraProperties.center = Vec3(4, 2, 3);
+    // scene.cameraProperties.target = Vec3(0, 0, 0);
+    // scene.cameraProperties.yfov   = 40;
+    //
+    // scene.meshes[0].material->type = Material::METALLIC_ROUGHNESS;
+    //
+    // const Light point = {
+    //     .type      = Light::POINT,
+    //     .position  = Vec3(4, 20, 4),
+    //     .intensity = Color::WHITE,
+    //     .scale     = 1000};
+    // scene.lights.push_back(point);
 
     scene.buildBVH();
 

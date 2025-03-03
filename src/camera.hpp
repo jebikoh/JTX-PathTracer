@@ -9,6 +9,13 @@
 #include <thread>
 #include <utility>
 
+enum DebugMode {
+    NONE,
+    NORMAL,
+    UV,
+    DEPTH
+};
+
 /**
  * Camera base class
  *
@@ -32,6 +39,11 @@ public:
     RGB8Image img_;
     std::atomic<int> currentSample_;
 
+#ifdef ENABLE_DEBUG_TRACES
+    DebugMode debugMode_ = DebugMode::NONE;
+    RGB8Image debugImg_;
+#endif
+
     /**
      * Constructor
      * @param width Image/Viewport width
@@ -50,6 +62,7 @@ public:
           maxDepth_(maxDepth),
           properties_(std::move(cameraProperties)),
           img_(width, height),
+          debugImg_(width, height),
           acc_(width, height),
           threadCount_(threadCount) {}
 
@@ -137,6 +150,19 @@ protected:
         auto origin = (properties_.defocusAngle <= 0) ? properties_.center : sampleDefocusDisc(rng);
         return {origin, sample - origin, rng.sample<float>()};
     }
+
+#ifdef ENABLE_DEBUG_TRACES
+    /**
+     * Creates a ray in the middle of the pixel with no defocus
+     * @param i Row
+     * @param j Column
+     * @return Ray through middle of pixel
+     */
+    Ray getDebugRay(const uint32_t i, const uint32_t j) const {
+        const auto sample = vp00_ + (static_cast<float>(i) + 0.5f) * du_ + (static_cast<float>(j) + 0.5f) * dv_;
+        return {properties_.center, sample - properties_.center, 0.0f};
+    }
+#endif
 };
 
 /**
@@ -183,6 +209,7 @@ public:
     using Camera::Camera;
 
     void render(const Scene &scene);
+
 private:
     int spp_;
 };
@@ -198,14 +225,14 @@ private:
 class DynamicCamera : public Camera {
 public:
     DynamicCamera(
-        int width,
-        int height,
-        CameraProperties cameraProperties,
-        int xPixelSamples,
-        int yPixelSamples,
-        int maxDepth,
-        int samplesPerPass = 1,
-        int threadCount = 4);
+            int width,
+            int height,
+            CameraProperties cameraProperties,
+            int xPixelSamples,
+            int yPixelSamples,
+            int maxDepth,
+            int samplesPerPass = 1,
+            int threadCount    = 4);
 
     ~DynamicCamera() { stopThreads(); }
 

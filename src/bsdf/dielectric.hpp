@@ -121,7 +121,7 @@ public:
 
         // We need to update eta depending on the type of ray interactions
         float etap = 1;
-        // In the case of refraction, we need to update eta depending on the oritentation
+        // In the case of refraction, we need to update eta depending on the orientation
         // of the rays
         if (!reflect) {
             // If $\cos\theta_o$ is > 0, the outgoing ray is on the same side as the normal

@@ -10,7 +10,6 @@ https://github.com/user-attachments/assets/4b746f1b-bf9e-4343-ab8d-3f99a952089c
 
 ## TODO:
 ### BxDF
- - [ ] glTF BRDF (WIP)
  - [ ] Disney BxDF
  - [ ] Layered BxDF
  - [ ] Mediums
@@ -31,5 +30,5 @@ https://github.com/user-attachments/assets/4b746f1b-bf9e-4343-ab8d-3f99a952089c
 
 ### UI
  - [ ] Interactive display
- - [ ] Debug views
+ - [x] Debug views
 

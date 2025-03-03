@@ -40,6 +40,11 @@ void Camera::resize(const int w, const int h) {
 
     this->acc_.clear();
     this->acc_.resize(w, h);
+
+#ifdef ENABLE_DEBUG_TRACES
+    this->debugImg_.clear();
+    this->debugImg_.resize(w, h);
+#endif
 }
 
 void StaticCamera::render(const Scene &scene) {
@@ -47,6 +52,10 @@ void StaticCamera::render(const Scene &scene) {
     init();
     stopRender_ = false;
     acc_.clear();
+
+#ifdef ENABLE_DEBUG_TRACES
+    debugImg_.clear();
+#endif
 
     // Setup work queue and work orders
     // We will create 32x32 tiles for each thread to work on
@@ -63,6 +72,56 @@ void StaticCamera::render(const Scene &scene) {
         }
     }
 
+    std::vector<std::thread> threads;
+    threads.reserve(threadCount_);
+
+#ifdef ENABLE_DEBUG_TRACES
+    // If a debug mode is selected, perform the debug trace instead
+    if (debugMode_ != DebugMode::NONE) {
+        for (unsigned int t = 0; t < threadCount_; ++t) {
+            threads.emplace_back([this, &queue, &scene] {
+                while (true) {
+                    if (stopRender_) break;
+                    const auto jobIndex = queue.nextJobIndex.fetch_add(1, std::memory_order_relaxed);
+                    if (jobIndex >= queue.jobs.size()) { break; }
+                    const auto &job = queue.jobs[jobIndex];
+
+                    for (auto row = job.startRow; row < job.endRow; ++row) {
+                        if (stopRender_) break;
+
+                        for (auto col = job.startCol; col < job.endCol; ++col) {
+                            if (stopRender_) break;
+
+                            const Ray r = getDebugRay(col, row);
+                            SurfaceIntersection record;
+                            scene.closestHit(r, Interval(0.001, INF), record);
+
+                            if (debugMode_ == DebugMode::NORMAL) {
+                                debugImg_.setPixel(record.normal, row, col);
+                            } else if (debugMode_ == DebugMode::UV) {
+                                debugImg_.setPixel({record.uv, 0.0f}, row, col);
+                            } else if (debugMode_ == DebugMode::DEPTH) {
+                                const Interval depthBounds = scene.bounds().axis(2);
+                                const float z              = (record.point.z - depthBounds.min) / (depthBounds.max - depthBounds.min);
+                                debugImg_.setPixel({z, 0.0f, 0.0f}, row, col);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        for (auto &thread: threads) {
+            thread.join();
+        }
+
+        stopRender_ = true;
+
+        return;
+    }
+#endif
+
+
     // Set up synchronization
     currentSample_.store(0);
     std::barrier endBarrier(threadCount_, [&]() noexcept {
@@ -72,9 +131,6 @@ void StaticCamera::render(const Scene &scene) {
         }
         queue.nextJobIndex = 0;
     });
-
-    std::vector<std::thread> threads;
-    threads.reserve(threadCount_);
 
     spp_ = getSpp();
 
@@ -142,7 +198,7 @@ DynamicCamera::DynamicCamera(
           currentSample_.fetch_add(samplesPerPass_);
           // Reset the queue if we haven't reached the spp
           if (currentSample_.load() < getSpp()) {
-            queue_.reset();
+              queue_.reset();
           }
       }) {
     initWorkQueue();

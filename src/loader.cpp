@@ -113,34 +113,10 @@ void loadScene(const std::string &path, Scene &scene) {
         if (materialMap.contains(matName)) continue;
 
         int albedoTexId = loadTexture(aiMat, aiTextureType_DIFFUSE);
-
-        int metallicRoughnessTexId;
-        float metallic             = 0.0f;
-        float roughness            = 1.0f;
-        bool isMetallicRoughness   = false;
-
-        if (aiMat->GetTextureCount(aiTextureType_GLTF_METALLIC_ROUGHNESS) > 0 ||
-            aiMat->Get(AI_MATKEY_METALLIC_FACTOR, metallic) == AI_SUCCESS ||
-            aiMat->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) == AI_SUCCESS) {
-            isMetallicRoughness    = true;
-            metallicRoughnessTexId = loadTexture(aiMat, aiTextureType_GLTF_METALLIC_ROUGHNESS);
-        }
-
         Material mat;
-        if (isMetallicRoughness) {
-            mat.type = Material::METALLIC_ROUGHNESS;
-            mat.albedoTexId = albedoTexId;
-            mat.metallicRoughnessTexId = metallicRoughnessTexId;
-
-            mat.albedo = Color::WHITE;
-            mat.alphaX = metallic;
-            mat.alphaY = roughness;
-        } else {
-            mat.type = Material::DIFFUSE;
-            mat.albedoTexId = albedoTexId;
-            mat.albedo = Color::WHITE;
-            mat.metallicRoughnessTexId = -1;
-        }
+        mat.type = Material::DIFFUSE;
+        mat.albedoTexId = albedoTexId;
+        mat.albedo = Color::WHITE;
 
         scene.materials.push_back(mat);
         materialMap[matName] = scene.materials.size() - 1;

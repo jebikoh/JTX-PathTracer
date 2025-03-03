@@ -16,22 +16,6 @@ int main(int argc, char *argv[]) {
     const int threadCapacity = std::thread::hardware_concurrency();
 
     Scene scene = createShaderBallSceneWithLight(true);
-
-    // Scene scene = createScene("assets/scenes/helmet.glb", Mat4::identity(), Color::BLACK);
-    //
-    // scene.cameraProperties.center = Vec3(4, 2, 3);
-    // scene.cameraProperties.target = Vec3(0, 0, 0);
-    // scene.cameraProperties.yfov   = 40;
-    //
-    // scene.meshes[0].material->type = Material::METALLIC_ROUGHNESS;
-    //
-    // const Light point = {
-    //     .type      = Light::POINT,
-    //     .position  = Vec3(4, 20, 4),
-    //     .intensity = Color::WHITE,
-    //     .scale     = 1000};
-    // scene.lights.push_back(point);
-
     scene.buildBVH();
 
 #ifndef DISABLE_UI
@@ -43,6 +27,7 @@ int main(int argc, char *argv[]) {
             8,
             MAX_DEPTH,
             threadCapacity - 2};
+    camera.debugMode_ = DebugMode::NONE;
 
     Display display(IMAGE_WIDTH + SIDEBAR_WIDTH, IMAGE_HEIGHT, &camera);
     if (!display.init()) {

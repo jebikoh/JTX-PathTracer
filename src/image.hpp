@@ -6,7 +6,7 @@
 constexpr Float MIN_INTENSITY = 0;
 constexpr Float MAX_INTENSITY = 0.999;
 
-inline Float linearToGamma(Float x) {
+inline Float linearToGamma(const Float x) {
     if (x > 0) return jtx::sqrt(x);
     return 0;
 }

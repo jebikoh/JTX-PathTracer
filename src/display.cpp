@@ -334,6 +334,19 @@ void Display::renderConfig() {
             fullWidth();
             ImGui::InputInt("##MaxDepth", &camera_->maxDepth_, 0);
 
+#ifdef ENABLE_DEBUG_TRACES
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            rightAlignText("Debug Mode");
+            ImGui::TableSetColumnIndex(1);
+            fullWidth();
+            const char *debugModes[] = {"NONE", "NORMALS", "DEPTH", "UV"};
+            int currentMode          = camera_->debugMode_;
+            if (ImGui::Combo("##DebugMode", &currentMode, debugModes, IM_ARRAYSIZE(debugModes))) {
+                camera_->debugMode_ = static_cast<DebugMode>(currentMode);
+            }
+#endif
+
             ImGui::EndTable();
         }
     }
@@ -700,7 +713,16 @@ void Display::render() {
     renderMenuBar(inputDisabled);
 
     glBindTexture(GL_TEXTURE_2D, textureId_);
+
+#ifdef ENABLE_DEBUG_TRACES
+    if (camera_->debugMode_ != DebugMode::NONE) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, camera_->width_, camera_->height_, 0, GL_RGB, GL_UNSIGNED_BYTE, camera_->debugImg_.data());
+    } else {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, camera_->width_, camera_->height_, 0, GL_RGB, GL_UNSIGNED_BYTE, camera_->img_.data());
+    }
+#else
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, camera_->width_, camera_->height_, 0, GL_RGB, GL_UNSIGNED_BYTE, camera_->img_.data());
+#endif
 
     glViewport(0, 0, renderWidth_, height_);
 

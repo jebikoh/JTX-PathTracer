@@ -7,7 +7,6 @@ struct Material {
         DIFFUSE = 0,
         DIELECTRIC = 1,
         CONDUCTOR = 2,
-        METALLIC_ROUGHNESS = 3
     };
 
     Type type;
@@ -19,7 +18,6 @@ struct Material {
     Vec3 emission = Vec3(0, 0, 0);
     
     int albedoTexId;
-    int metallicRoughnessTexId;
 };
 
 struct SurfaceIntersection {

@@ -8,3 +8,6 @@
 [submodule "ext/assimp"]
 	path = ext/assimp
 	url = https://github.com/assimp/assimp.git
+[submodule "ext/fastgltf"]
+	path = ext/fastgltf
+	url = https://github.com/spnda/fastgltf.git

@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
 
-struct Scene;
+class Scene;
 
-void loadScene(const std::string &path, Scene &scene);
+bool loadScene(const std::string &path, Scene &scene);
+bool loadObj(const std::string &path, Scene &scene);
+bool loadGltf(const std::string &path, Scene &scene);

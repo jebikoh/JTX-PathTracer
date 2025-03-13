@@ -1,10 +1,12 @@
 #pragma once
 #include "bvh.hpp"
+#include "lights/lights.hpp"
 #include "material.hpp"
 #include "mesh.hpp"
 #include "primitives.hpp"
-#include "lights/lights.hpp"
 #include "util/rand.hpp"
+#include "image.hpp"
+
 
 constexpr float RAY_EPSILON = 1e-4f;
 
@@ -59,7 +61,7 @@ public:
             delete[] nodes_;
             nodes_ = nullptr;
             bvhBuilt_ = false;
-            triangles_.clear();
+            primitives_.clear();
         }
     }
 
@@ -86,7 +88,7 @@ public:
 private:
     bool bvhBuilt_ = false;
     int maxPrimsInNode_ = 0;
-    std::vector<Triangle> triangles_;
+    std::vector<Triangle> primitives_;
     LinearBVHNode *nodes_ = nullptr;
 };
 

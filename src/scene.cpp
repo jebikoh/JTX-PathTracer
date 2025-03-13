@@ -1,6 +1,5 @@
 #include "scene.hpp"
 #include "mesh.hpp"
-#include <assimp/scene.h>
 #include "loader.hpp"
 
 static constexpr int SCENE_MATERIAL_LIMIT = 64;
@@ -26,7 +25,7 @@ bool Scene::closestHit(const Ray &r, Interval t, SurfaceIntersection &record) co
             if (node->numPrimitives > 0) {
                 // Leaf node
                 for (int i = 0; i < node->numPrimitives; ++i) {
-                    const Triangle& tri = triangles_[node->primitivesOffset + i];
+                    const Triangle& tri = primitives_[node->primitivesOffset + i];
                     float u, v;
                     if (meshes[tri.meshIndex].tClosestHit(r, t, record, tri.index, u, v)) {
                         hitAnything = true;
@@ -67,7 +66,7 @@ bool Scene::anyHit(const Ray &r, const Interval t) const {
         if (node->bbox.hit(r.origin, r.dir, t)) {
             if (node->numPrimitives > 0) {
                 for (int i = 0; i < node->numPrimitives; ++i) {
-                    const Triangle& tri = triangles_[node->primitivesOffset + i];
+                    const Triangle& tri = primitives_[node->primitivesOffset + i];
                     if (meshes[tri.meshIndex].tAnyHit(r, t, tri.index)) {
                         return true;
                     }
@@ -95,25 +94,19 @@ bool Scene::anyHit(const Ray &r, const Interval t) const {
 
 void Scene::buildBVH(const int maxPrimsInNode) {
     maxPrimsInNode_ = maxPrimsInNode;
-    triangles_.resize(numPrimitives());
-    // std::vector<Primitive> primitives(scene.numPrimitives());
+    primitives_.resize(triangles.size());
 
-    // BVH Primitives is our working span of primitives
-    // This will start out as all of them
     std::vector<Triangle> bvhPrimitives(triangles.size());
     for (size_t i = 0; i < triangles.size(); ++i) {
-        triangles_[i] = Triangle{triangles[i].index, triangles[i].meshIndex, meshes[triangles[i].meshIndex].tBounds(triangles[i].index)};
+        primitives_[i] = Triangle{triangles[i].index, triangles[i].meshIndex, meshes[triangles[i].meshIndex].tBounds(triangles[i].index)};
     }
-
-    // Add rest of types when we get them
-    // We will order as we build
-    std::vector<Triangle> orderedPrimitives(triangles_.size());
+    std::vector<Triangle> orderedPrimitives(primitives_.size());
 
     int totalNodes             = 1;
     int orderedPrimitiveOffset = 0;
 
-    const BVHNode *root = buildTree(triangles_, &totalNodes, &orderedPrimitiveOffset, orderedPrimitives, maxPrimsInNode);
-    triangles_.swap(orderedPrimitives);
+    const BVHNode *root = buildTree(primitives_, &totalNodes, &orderedPrimitiveOffset, orderedPrimitives, maxPrimsInNode);
+    primitives_.swap(orderedPrimitives);
 
     nodes_     = new LinearBVHNode[totalNodes];
     int offset = 0;
@@ -256,19 +249,19 @@ Scene createShaderBallSceneWithLight(const bool highSubdivision) {
             .position  = Vec3(0, 20, 0),
             .intensity = Color::WHITE,
             .scale     = 1000};
-    const Light distant = {
-            .type      = Light::DISTANT,
-            .position  = {0, -1, 0},
-            .intensity = Color::WHITE,
-            .scale     = 10,
-    };
-    // scene.lights.push_back(point);
-    scene.lights.push_back(distant);
+    // const Light distant = {
+    //         .type      = Light::DISTANT,
+    //         .position  = {0, -1, 0},
+    //         .intensity = Color::WHITE,
+    //         .scale     = 10,
+    // };
+    scene.lights.push_back(point);
+    // scene.lights.push_back(distant);
 
     // Base
-    scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05});
+    // scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05});
     // scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.01, .alphaY = 0.01, .texId = scene.meshes[3].material->texId});
-    scene.meshes[3].material = &scene.materials.back();
+    // scene.meshes[3].material = &scene.materials.back();
 
     return scene;
 }

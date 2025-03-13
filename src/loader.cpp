@@ -1,202 +1,192 @@
 #include "loader.hpp"
 
-#include "assimp/Importer.hpp"
-#include "mesh.hpp"
+#include "image.hpp"
+#include "material.hpp"
 #include "scene.hpp"
 
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
-#include <unordered_map>
+#include <fmt/core.h>
+#include <rapidobj.hpp>
 
-static constexpr int SCENE_MATERIAL_LIMIT = 128;
+const Material DEFAULT_MATERIAL = {.type = Material::DIFFUSE, .albedo = Vec3(1, 0.451, 0.969), .albedoTexId = -1};
 
-void loadScene(const std::string &path, Scene &scene) {
-    // Reserve space for materials
-    if (scene.materials.capacity() < SCENE_MATERIAL_LIMIT) {
-        scene.materials.reserve(SCENE_MATERIAL_LIMIT);
+bool loadScene(const std::string &path, Scene &scene) {
+    const size_t lastDot = path.find_last_of(".");
+    if (lastDot == std::string::npos) {
+        fmt::println("File is missing extension.\n");
+        return false;
     }
+    const auto ext = path.substr(lastDot);
 
-    // Load scene & pre-process
-    Assimp::Importer importer;
-    const aiScene *assimpScene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_PreTransformVertices);
-    if (!assimpScene || (assimpScene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) || !assimpScene->mRootNode) {
-        std::cerr << "Assimp error: " << importer.GetErrorString() << std::endl;
-        return;
+    if (ext == ".obj") { return loadObj(path, scene); }
+    if (ext == ".gltf") { return loadGltf(path, scene); }
+
+    fmt::print("Extension not supported: {}\n", ext);
+    return false;
+}
+
+bool loadObj(const std::string &path, Scene &scene) {
+    // LOAD
+    rapidobj::Result result = rapidobj::ParseFile(path);
+    if (result.error) {
+        fmt::print("{}\n", result.error.code.message());
+        return false;
     }
 
     const size_t lastSlash = path.find_last_of("/\\");
     std::string baseDir    = (lastSlash != std::string::npos) ? path.substr(0, lastSlash + 1) : "";
 
-    // We process textures & materials first. These maps are used later to assign
-    // textures to materials and materials to meshes
-    std::unordered_map<std::string, size_t> textureMap;
-    std::unordered_map<std::string, size_t> materialMap;
-
-    // Load all embedded textures
-    for (unsigned int i = 0; i < assimpScene->mNumTextures; ++i) {
-        const aiTexture *aiTex = assimpScene->mTextures[i];
-        std::string texKey     = aiTex->mFilename.C_Str();
-        if (texKey.empty()) {
-            texKey = "embedded_" + std::to_string(i);
-        }
-
-        TextureImage texture;
-        bool loaded = false;
-
-        // This indicates a compressed texture
-        if (aiTex->mHeight == 0) {
-            loaded = texture.load(reinterpret_cast<const unsigned char *>(aiTex->pcData),
-                                  aiTex->mWidth, ImageFormat::AUTO);
-        } else {
-            loaded = texture.load(reinterpret_cast<const unsigned char *>(aiTex->pcData),
-                                  aiTex->mWidth * aiTex->mHeight * 4, ImageFormat::AUTO);
-        }
-
-        if (loaded) {
-            scene.textures.push_back(std::move(texture));
-            textureMap[texKey] = scene.textures.size() - 1;
-            std::cout << "Loaded embedded texture: " << texKey << std::endl;
-        } else {
-            std::cerr << "Failed to load embedded texture: " << texKey << std::endl;
-        }
+    // TRIANGULATE
+    const bool success = rapidobj::Triangulate(result);
+    if (!success) {
+        fmt::print("{}\n", result.error.code.message());
+        return false;
     }
 
-    // Lambda to load textures from materials
-    auto loadTexture = [&](const aiMaterial *aiMat, const aiTextureType type) -> int {
-        if (aiMat->GetTextureCount(type) > 0) {
-            aiString texPath;
-            if (aiMat->GetTexture(type, 0, &texPath) == AI_SUCCESS) {
-                std::string texName = texPath.C_Str();
+    // PROCESS MATERIALS
+    std::unordered_map<std::string, int> texMap;
 
-                // Embedded textures start with '*'
-                if (!texName.empty() && texName[0] == '*') {
-                    const size_t embeddedIndex           = std::stoul(texName.substr(1));
-                    const std::string embeddedName = "embedded_" + std::to_string(embeddedIndex);
-
-                    if (textureMap.contains(embeddedName)) {
-                        return textureMap[embeddedName];
-                    }
-
-                    std::cerr << "Embedded texture not found: " << embeddedName << std::endl;
-                    return -1;
-                }
-
-                // Load texture from file
-                const std::string fullTexPath = baseDir + texName;
-                if (textureMap.contains(fullTexPath)) {
-                    return textureMap[fullTexPath];
-                }
-
-                TextureImage texture;
-                if (texture.load(fullTexPath.c_str())) {
-                    scene.textures.push_back(std::move(texture));
-                    int texId               = scene.textures.size() - 1;
-                    textureMap[fullTexPath] = texId;
-                    std::cout << "Loaded texture: " << fullTexPath << std::endl;
-                    return texId;
-                }
-
-                std::cerr << "Failed to load texture: " << fullTexPath << std::endl;
-            }
-        }
-        return -1;
-    };
-
-    // Load materials
-    for (unsigned int i = 0; i < assimpScene->mNumMaterials; ++i) {
-        aiMaterial *aiMat = assimpScene->mMaterials[i];
-
-        aiString aiMatName;
-        aiMat->Get(AI_MATKEY_NAME, aiMatName);
-        std::string matName = aiMatName.C_Str();
-
-        if (materialMap.contains(matName)) continue;
-
-        int albedoTexId = loadTexture(aiMat, aiTextureType_DIFFUSE);
+    for (int i = 0; i < result.materials.size(); i++) {
+        const auto &material = result.materials[i];
         Material mat;
-        mat.type = Material::DIFFUSE;
-        mat.albedoTexId = albedoTexId;
-        mat.albedo = Color::WHITE;
+
+        // Load diffuse
+        if (material.diffuse_texname.length() > 0) {
+            auto texPath = material.diffuse_texname;
+            if (texMap.contains(texPath)) {
+                mat.albedoTexId = texMap[texPath];
+            } else {
+                scene.textures.emplace_back((baseDir + texPath).c_str());
+                texMap[texPath] = scene.textures.size() - 1;
+                mat.albedoTexId = texMap[texPath];
+            }
+        } else {
+            auto data  = material.diffuse.data();
+            mat.albedo = Vec3(data[0], data[1], data[2]);
+            mat.albedoTexId = -1;
+        }
 
         scene.materials.push_back(mat);
-        materialMap[matName] = scene.materials.size() - 1;
-        std::cout << "Loaded material: " << matName << std::endl;
     }
+    scene.materials.push_back(DEFAULT_MATERIAL);
+    const size_t defaultMaterialIdx = scene.materials.size() - 1;
 
-    for (unsigned int m = 0; m < assimpScene->mNumMeshes; m++) {
-        aiMesh *aiMeshPtr = assimpScene->mMeshes[m];
+    const auto &positions = result.attributes.positions;
+    const auto &normals   = result.attributes.normals;
+    const auto &texcoords = result.attributes.texcoords;
 
-        size_t numVerts   = aiMeshPtr->mNumVertices;
-        auto finalVerts   = new Vec3[numVerts];
-        auto finalNormals = new Vec3[numVerts];
+    // PROCESS MESHES
+    for (const auto &shape: result.shapes) {
+        Vec3 *p;
+        Vec3 *n;
+        Vec2f *uv;
+        Vec3i *idx;
 
-        Vec2f *finalUVs = nullptr;
-        bool hasUV      = (aiMeshPtr->mTextureCoords[0] != nullptr);
-        if (hasUV) {
-            finalUVs = new Vec2f[numVerts];
-        }
+        const auto &mesh = shape.mesh;
+        fmt::print("Loading Mesh: {}\n", shape.name);
 
-        for (size_t i = 0; i < numVerts; i++) {
-            aiVector3D v  = aiMeshPtr->mVertices[i];
-            finalVerts[i] = Vec3(v.x, v.y, v.z);
+        const int numIdx      = mesh.indices.size() / 3;
+        const int numVertices = mesh.indices.size();
 
-            if (aiMeshPtr->HasNormals()) {
-                aiVector3D n    = aiMeshPtr->mNormals[i];
-                finalNormals[i] = Vec3(n.x, n.y, n.z);
+        p   = new Vec3[numVertices];
+        n   = new Vec3[numVertices];
+        uv  = new Vec2f[numVertices];
+        idx = new Vec3i[numIdx];
+
+        int vertexCount = 0;
+        for (int i = 0; i < mesh.indices.size(); i += 3) {
+            // INDICES
+            const auto i0 = mesh.indices[i + 0];
+            const auto i1 = mesh.indices[i + 1];
+            const auto i2 = mesh.indices[i + 2];
+
+            int faceIdx  = i / 3;
+            idx[faceIdx] = Vec3i(vertexCount, vertexCount + 1, vertexCount + 2);
+
+            // POSITIONS
+            {
+                p[vertexCount] = Vec3(
+                        positions[i0.position_index * 3 + 0],
+                        positions[i0.position_index * 3 + 1],
+                        positions[i0.position_index * 3 + 2]);
+                p[vertexCount + 1] = Vec3(
+                        positions[i1.position_index * 3 + 0],
+                        positions[i1.position_index * 3 + 1],
+                        positions[i1.position_index * 3 + 2]);
+                p[vertexCount + 2] = Vec3(
+                        positions[i2.position_index * 3 + 0],
+                        positions[i2.position_index * 3 + 1],
+                        positions[i2.position_index * 3 + 2]);
+            }
+
+            if (i0.normal_index == -1 || i1.normal_index == -1 || i2.normal_index == -1) {
+                fmt::println("Mesh is missing normals.");
+                delete[] p;
+                delete[] n;
+                delete[] uv;
+                delete[] idx;
+                return false;
+            }
+
+            // NORMAL
+            {
+                n[vertexCount] = Vec3(
+                        normals[i0.normal_index * 3 + 0],
+                        normals[i0.normal_index * 3 + 1],
+                        normals[i0.normal_index * 3 + 2]);
+                n[vertexCount + 1] = Vec3(
+                        normals[i1.normal_index * 3 + 0],
+                        normals[i1.normal_index * 3 + 1],
+                        normals[i1.normal_index * 3 + 2]);
+                n[vertexCount + 2] = Vec3(
+                        normals[i2.normal_index * 3 + 0],
+                        normals[i2.normal_index * 3 + 1],
+                        normals[i2.normal_index * 3 + 2]);
+            }
+
+            // UVs
+            if (i0.texcoord_index != -1 && i1.texcoord_index != -1 && i2.texcoord_index != -1) {
+                uv[vertexCount] = Vec2f(
+                        texcoords[i0.texcoord_index * 2 + 0],
+                        texcoords[i0.texcoord_index * 2 + 1]);
+                uv[vertexCount + 1] = Vec2f(
+                        texcoords[i1.texcoord_index * 2 + 0],
+                        texcoords[i1.texcoord_index * 2 + 1]);
+                uv[vertexCount + 2] = Vec2f(
+                        texcoords[i2.texcoord_index * 2 + 0],
+                        texcoords[i2.texcoord_index * 2 + 1]);
             } else {
-                std::cout << "Missing normals" << std::endl;
-                finalNormals[i] = Vec3(0.0f, 1.0f, 0.0f);
+                uv[vertexCount]     = Vec2f(0, 0);
+                uv[vertexCount + 1] = Vec2f(0, 0);
+                uv[vertexCount + 2] = Vec2f(0, 0);
             }
 
-            if (hasUV) {
-                aiVector3D uv = aiMeshPtr->mTextureCoords[0][i];
-                finalUVs[i]   = Vec2f(uv.x, uv.y);
-            } else if (finalUVs) {
-                finalUVs[i] = Vec2f(0.0f, 0.0f);
-            }
+            vertexCount += 3;
         }
 
-        size_t numTriangles = aiMeshPtr->mNumFaces;
-        auto *finalIndices  = new Vec3i[numTriangles];
-        for (size_t i = 0; i < numTriangles; i++) {
-            aiFace face = aiMeshPtr->mFaces[i];
-            if (face.mNumIndices != 3) {
-                std::cerr << "Warning: mesh " << m << " has a face that isn't a triangle.\n";
-                continue;
-            }
-            finalIndices[i] = Vec3i(face.mIndices[0], face.mIndices[1], face.mIndices[2]);
-        }
+        Material *meshMaterial = &(mesh.material_ids.size() > 0 ? scene.materials[mesh.material_ids[0]] : scene.materials[defaultMaterialIdx]);
+        auto meshName          = shape.name.empty() ? std::string("mesh_" + scene.meshes.size()) : shape.name;
+        scene.meshes.emplace_back(meshName,
+                                  idx,
+                                  numIdx,
+                                  p,
+                                  numVertices,
+                                  n,
+                                  uv,
+                                  meshMaterial);
 
-        std::string mName = aiMeshPtr->mName.C_Str();
-        if (mName.empty()) {
-            mName = "mesh_" + std::to_string(m);
-        }
-
-        Material *meshMaterial = nullptr;
-        if (aiMeshPtr->mMaterialIndex < assimpScene->mNumMaterials) {
-            aiMaterial *mat = assimpScene->mMaterials[aiMeshPtr->mMaterialIndex];
-            aiString matName;
-            mat->Get(AI_MATKEY_NAME, matName);
-            auto it = materialMap.find(matName.C_Str());
-            if (it != materialMap.end()) {
-                meshMaterial = &scene.materials[it->second];
-            }
-        }
-        if (!meshMaterial) {
-            scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Vec3(1, 0.3, 0.5), .albedoTexId = -1});
-            meshMaterial = &scene.materials.back();
-        }
-
-        scene.meshes.emplace_back(mName, finalIndices, numTriangles, finalVerts, numVerts, finalNormals, finalUVs, meshMaterial);
-
-        int meshIndex = static_cast<int>(scene.meshes.size()) - 1;
-        for (size_t t = 0; t < numTriangles; t++) {
+        // Build triangles
+        int meshIndex = scene.meshes.size() - 1;
+        for (int i = 0; i < numIdx; i++) {
             Triangle tri;
-            tri.index     = static_cast<int>(t);
+            tri.index     = i;
             tri.meshIndex = meshIndex;
-            scene.triangles.push_back(tri);
+            scene.triangles.emplace_back(tri);
         }
-
-        std::cout << "Loaded mesh: " << mName << std::endl;
     }
+
+    return true;
+}
+
+bool loadGltf(const std::string &path, Scene &scene) {
+    return false;
 }

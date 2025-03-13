@@ -4,7 +4,6 @@
 #include "camera.hpp"
 #include "display.hpp"
 #include "scene.hpp"
-
 #include <thread>
 
 // Camera Settings

@@ -6,6 +6,7 @@
 #define TINYEXR_USE_MINIZ 0
 #define TINYEXR_USE_STB_ZLIB 1
 #define TINYEXR_IMPLEMENTATION
+#include "fmt/ostream.h"
 #include "tinyexr.h"
 
 void RGB8Image::save(const char *path) const {
@@ -74,7 +75,7 @@ bool TextureImage::load(const char *path) {
 
 bool TextureImage::load(const unsigned char *buffer, const size_t bufferSize, const ImageFormat format) {
     if (!buffer || bufferSize == 0) {
-        std::cerr << "Invalid buffer" << std::endl;
+        fmt::print("Invalid buffer provided\n");
         return false;
     }
 
@@ -84,7 +85,7 @@ bool TextureImage::load(const unsigned char *buffer, const size_t bufferSize, co
         const int ret = LoadEXRFromMemory(&data_, &width_, &height_, buffer, bufferSize, &err);
         if (ret != TINYEXR_SUCCESS) {
             if (err) {
-                std::cerr << "Failed to load EXR from memory: " << err << std::endl;
+                fmt::print(stderr, "Failed to load EXR from memory: %s\n", err);
                 FreeEXRErrorMessage(err);
             return false;
             }
@@ -96,7 +97,7 @@ bool TextureImage::load(const unsigned char *buffer, const size_t bufferSize, co
         isExr_ = false;
         data_ = stbi_loadf_from_memory(buffer, static_cast<int>(bufferSize), &width_, &height_, &channels_, 0);
         if (!data_) {
-            std::cerr << "Failed to load image from memory" << std::endl;
+            fmt::print(stderr, "Failed to load image from memory\n");
             return false;
         }
 
@@ -111,7 +112,7 @@ bool TextureImage::loadEXR(const char *path) {
 
     if (ret != TINYEXR_SUCCESS) {
         if (err) {
-            std::cerr << "Failed to load EXR file: " << err << std::endl;
+            fmt::print("Failed to load EXR from {}: {}\n", path, err);
             FreeEXRErrorMessage(err);
         }
         return false;

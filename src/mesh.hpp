@@ -1,6 +1,5 @@
 #pragma once
 
-#include "image.hpp"
 #include "material.hpp"
 #include "rt.hpp"
 #include "util/aabb.hpp"
@@ -16,8 +15,9 @@ struct Mesh {
     Vec3i *indices;
     Vec3 *vertices;
     Vec3 *normals;
-
     Vec2f *uvs;
+    Vec3 *colors;
+
     Material *material;
 
     Transform scale;
@@ -31,13 +31,13 @@ struct Mesh {
     }
 
     Mesh(Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Material *material)
-    : numVertices(numVertices),
-      numIndices(numIndices),
-      indices(indices),
-      vertices(vertices),
-      normals(normals),
-      uvs(nullptr),
-      material(material) {}
+        : numVertices(numVertices),
+          numIndices(numIndices),
+          indices(indices),
+          vertices(vertices),
+          normals(normals),
+          uvs(nullptr),
+          material(material) {}
 
     Mesh(const std::string &name, Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Material *material)
         : name(name),
@@ -66,6 +66,17 @@ struct Mesh {
           vertices(vertices),
           normals(normals),
           uvs(uvs),
+          material(material) {}
+
+    Mesh(const std::string &name, Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Vec2f *uvs, Vec3 *colors, Material *material)
+        : name(name),
+          numVertices(numVertices),
+          numIndices(numIndices),
+          indices(indices),
+          vertices(vertices),
+          normals(normals),
+          uvs(uvs),
+          colors(colors),
           material(material) {}
 
     void getVertices(const int index, Vec3 &v0, Vec3 &v1, Vec3 &v2) const {
@@ -120,7 +131,7 @@ struct Mesh {
         if (b1 < 0 || b1 > 1) return false;
 
         const auto qvec = tvec.cross(v0v1);
-        b2               = r.dir.dot(qvec) * invDet;
+        b2              = r.dir.dot(qvec) * invDet;
         if (b2 < 0 || b1 + b2 > 1) return false;
 
         const float root = v0v2.dot(qvec) * invDet;

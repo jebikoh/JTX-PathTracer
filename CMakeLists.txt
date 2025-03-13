@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.28)
 
-option(ENABLE_CUDA_BACKEND "Enable CUDA backend" OFF)
-option(ENABLE_PROFILING "Enable profiling" ON)
-option(ENABLE_PERF_FLAGS "Enable performance flags" ON)
-option(ENABLE_MULTI_THREADING "Enable multi-threading" ON)
-option(DISABLE_UI "Disable UI" OFF)
-option(ENABLE_DEBUG_TRACES "Enable debug traces" ON)
+option(JTX_ENABLE_CUDA_BACKEND "Enable CUDA backend" OFF)
+option(JTX_ENABLE_PROFILING "Enable profiling" ON)
+option(JTX_ENABLE_PERF_FLAGS "Enable performance flags" ON)
+option(JTX_ENABLE_MULTI_THREADING "Enable multi-threading" ON)
+option(JTX_DISABLE_UI "Disable UI" OFF)
+option(JTX_ENABLE_DEBUG_TRACES "Enable debug traces" ON)
 
-if (ENABLE_CUDA_BACKEND)
+if (JTX_ENABLE_CUDA_BACKEND)
     project(JTX VERSION 1.0.0 LANGUAGES CXX CUDA)
 else ()
     project(JTX VERSION 1.0.0 LANGUAGES CXX)
@@ -15,43 +15,43 @@ endif ()
 
 set(CMAKE_CXX_STANDARD 20)
 
-if (ENABLE_CUDA_BACKEND)
+if (JTX_ENABLE_CUDA_BACKEND)
     include(CheckLanguage)
     check_language(CUDA)
 
     if (CMAKE_CUDA_COMPILER)
         set(USE_CUDA ON CACHE BOOL "Use CUDA backend" FORCE)
 
-        add_compile_definitions(-DENABLE_CUDA_BACKEND)
+        add_compile_definitions(-DJTX_ENABLE_CUDA_BACKEND)
 
         message(STATUS "CUDA compiler: ${CMAKE_CUDA_COMPILER}")
         message(STATUS "CUDA compiler version: ${CMAKE_CUDA_COMPILER_VERSION}")
     else ()
         set(USE_CUDA OFF CACHE BOOL "Use CUDA backend" FORCE)
-        set(ENABLE_CUDA_BACKEND OFF CACHE BOOL "Enable CUDA backend" FORCE)
+        set(JTX_ENABLE_CUDA_BACKEND OFF CACHE BOOL "Enable CUDA backend" FORCE)
         message(STATUS "CUDA compiler not found, continuing without CUDA support")
     endif ()
 else ()
     message(STATUS "CUDA support disabled")
 endif ()
 
-if (ENABLE_PROFILING)
-    add_compile_definitions(-DENABLE_PROFILING)
+if (JTX_ENABLE_PROFILING)
+    add_compile_definitions(-DJTX_ENABLE_PROFILING)
 endif ()
 
-if (ENABLE_MULTI_THREADING)
-    add_compile_definitions(-DENABLE_MULTI_THREADING)
+if (JTX_ENABLE_MULTI_THREADING)
+    add_compile_definitions(-DJTX_ENABLE_MULTI_THREADING)
 endif ()
 
-if (DISABLE_UI)
-    add_compile_definitions(-DDISABLE_UI)
+if (JTX_DISABLE_UI)
+    add_compile_definitions(-DJTX_DISABLE_UI)
 endif ()
 
-if (ENABLE_DEBUG_TRACES)
-    add_compile_definitions(-DENABLE_DEBUG_TRACES)
+if (JTX_ENABLE_DEBUG_TRACES)
+    add_compile_definitions(-DJTX_ENABLE_DEBUG_TRACES)
 endif ()
 
-if (ENABLE_PERF_FLAGS)
+if (JTX_ENABLE_PERF_FLAGS)
     if (MSVC)
         message(STATUS "Using MSVC compiler")
         add_compile_options(/O2 /fp:fast)
@@ -72,10 +72,14 @@ include_directories(${OPENGL_INCLUDE_DIR})
 
 add_subdirectory(ext/glad)
 
-# assimp
-set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
-set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-add_subdirectory(ext/assimp)
+add_subdirectory(ext/fastgltf)
+
+include(FetchContent)
+FetchContent_Declare(
+        fmt
+        GIT_REPOSITORY https://github.com/fmtlib/fmt
+        GIT_TAG        e69e5f977d458f2650bb346dadf2ad30c5320281) # 10.2.1
+FetchContent_MakeAvailable(fmt)
 
 # ImGUI
 set(IMGUI_PATH "ext/imgui")
@@ -125,27 +129,18 @@ add_executable(JTX
         src/loader.cpp
 )
 
-target_link_libraries(JTX PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui assimp)
+target_link_libraries(JTX PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui fmt::fmt)
 
 target_include_directories(JTX
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/jtxlib/src
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/stb
-        ${CMAKE_CURRENT_SOURCE_DIR}/ext/tinyobjloader
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext/rapidobj
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/tinyexr
-        ${CMAKE_CURRENT_SOURCE_DIR}/ext/tinygltf
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/IconsLucide
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/imfilebrowser
         ${OPENGL_LIBRARIES}
 )
-
-if (WIN32)
-    add_custom_command(TARGET JTX POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_FILE:assimp>
-            $<TARGET_FILE_DIR:jtxlib>
-    )
-endif ()
 
 add_custom_command(TARGET JTX POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory

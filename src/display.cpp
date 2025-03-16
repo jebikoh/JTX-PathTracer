@@ -714,7 +714,7 @@ void Display::render() {
 
     glBindTexture(GL_TEXTURE_2D, textureId_);
 
-#ifdef ENABLE_DEBUG_TRACES
+#ifdef JTX_ENABLE_DEBUG_TRACES
     if (camera_->debugMode_ != DebugMode::NONE) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, camera_->width_, camera_->height_, 0, GL_RGB, GL_UNSIGNED_BYTE, camera_->debugImg_.data());
     } else {

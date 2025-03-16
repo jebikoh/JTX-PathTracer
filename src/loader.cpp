@@ -8,6 +8,7 @@
 #include <rapidobj.hpp>
 
 const Material DEFAULT_MATERIAL = {.type = Material::DIFFUSE, .albedo = Vec3(1, 0.451, 0.969), .albedoTexId = -1};
+constexpr int JTX_SCENE_MATERIAL_LIMIT = 128;
 
 bool loadScene(const std::string &path, Scene &scene) {
     const size_t lastDot = path.find_last_of(".");
@@ -25,6 +26,7 @@ bool loadScene(const std::string &path, Scene &scene) {
 }
 
 bool loadObj(const std::string &path, Scene &scene) {
+    scene.materials.reserve(JTX_SCENE_MATERIAL_LIMIT);
     // LOAD
     rapidobj::Result result = rapidobj::ParseFile(path);
     if (result.error) {
@@ -147,13 +149,13 @@ bool loadObj(const std::string &path, Scene &scene) {
             if (i0.texcoord_index != -1 && i1.texcoord_index != -1 && i2.texcoord_index != -1) {
                 uv[vertexCount] = Vec2f(
                         texcoords[i0.texcoord_index * 2 + 0],
-                        texcoords[i0.texcoord_index * 2 + 1]);
+                        -texcoords[i0.texcoord_index * 2 + 1]);
                 uv[vertexCount + 1] = Vec2f(
                         texcoords[i1.texcoord_index * 2 + 0],
-                        texcoords[i1.texcoord_index * 2 + 1]);
+                        -texcoords[i1.texcoord_index * 2 + 1]);
                 uv[vertexCount + 2] = Vec2f(
                         texcoords[i2.texcoord_index * 2 + 0],
-                        texcoords[i2.texcoord_index * 2 + 1]);
+                        -texcoords[i2.texcoord_index * 2 + 1]);
             } else {
                 uv[vertexCount]     = Vec2f(0, 0);
                 uv[vertexCount + 1] = Vec2f(0, 0);

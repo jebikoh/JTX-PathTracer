@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
     Scene scene = createShaderBallSceneWithLight(true);
     scene.buildBVH();
 
-#ifndef DISABLE_UI
+#ifndef JTX_DISABLE_UI
     StaticCamera camera{
             IMAGE_WIDTH,
             IMAGE_HEIGHT,

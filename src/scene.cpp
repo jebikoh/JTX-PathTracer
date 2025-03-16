@@ -260,8 +260,8 @@ Scene createShaderBallSceneWithLight(const bool highSubdivision) {
 
     // Base
     // scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05});
-    // scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.01, .alphaY = 0.01, .texId = scene.meshes[3].material->texId});
-    // scene.meshes[3].material = &scene.materials.back();
+    scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.01, .alphaY = 0.01, .albedoTexId = -1});
+    scene.meshes[3].material = &scene.materials.back();
 
     return scene;
 }

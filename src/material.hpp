@@ -18,7 +18,7 @@ struct Material {
     float alphaY = 0;
     Vec3 emission = Vec3(0, 0, 0);
     
-    int albedoTexId = -1
+    int albedoTexId = -1;
 };
 
 struct SurfaceIntersection {

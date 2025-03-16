@@ -334,7 +334,7 @@ void Display::renderConfig() {
             fullWidth();
             ImGui::InputInt("##MaxDepth", &camera_->maxDepth_, 0);
 
-#ifdef ENABLE_DEBUG_TRACES
+#ifdef JTX_ENABLE_DEBUG_TRACES
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             rightAlignText("Debug Mode");

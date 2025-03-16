@@ -39,11 +39,32 @@ public:
     RGB8Image img_;
     std::atomic<int> currentSample_;
 
-#ifdef ENABLE_DEBUG_TRACES
+#ifdef JTX_ENABLE_DEBUG_TRACES
     DebugMode debugMode_ = DebugMode::NONE;
     RGB8Image debugImg_;
-#endif
 
+    /**
+* Constructor
+* @param width Image/Viewport width
+* @param height Image/Viewport height
+* @param cameraProperties Camera orientation and focus properties
+* @param xPixelSamples Number of sub-pixel samples in the x direction
+* @param yPixelSamples Number of sub-pixel samples in the y direction
+* @param maxDepth Maximum ray depth
+*/
+    explicit Camera(const int width, const int height, CameraProperties cameraProperties, const int xPixelSamples, const int yPixelSamples, const int maxDepth, const int threadCount = 4)
+        : width_(width),
+          height_(height),
+          aspectRatio_(static_cast<Float>(width) / static_cast<Float>(height)),
+          xPixelSamples_(xPixelSamples),
+          yPixelSamples_(yPixelSamples),
+          maxDepth_(maxDepth),
+          properties_(std::move(cameraProperties)),
+          img_(width, height),
+          debugImg_(width, height),
+          acc_(width, height),
+          threadCount_(threadCount) {}
+#else
     /**
      * Constructor
      * @param width Image/Viewport width
@@ -62,9 +83,9 @@ public:
           maxDepth_(maxDepth),
           properties_(std::move(cameraProperties)),
           img_(width, height),
-          debugImg_(width, height),
           acc_(width, height),
           threadCount_(threadCount) {}
+#endif
 
     /**
      * Saves the image buffer to a file (.png)
@@ -151,7 +172,7 @@ protected:
         return {origin, sample - origin, rng.sample<float>()};
     }
 
-#ifdef ENABLE_DEBUG_TRACES
+#ifdef JTX_ENABLE_DEBUG_TRACES
     /**
      * Creates a ray in the middle of the pixel with no defocus
      * @param i Row

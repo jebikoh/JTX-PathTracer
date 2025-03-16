@@ -41,7 +41,7 @@ void Camera::resize(const int w, const int h) {
     this->acc_.clear();
     this->acc_.resize(w, h);
 
-#ifdef ENABLE_DEBUG_TRACES
+#ifdef JTX_ENABLE_DEBUG_TRACES
     this->debugImg_.clear();
     this->debugImg_.resize(w, h);
 #endif
@@ -53,7 +53,7 @@ void StaticCamera::render(const Scene &scene) {
     stopRender_ = false;
     acc_.clear();
 
-#ifdef ENABLE_DEBUG_TRACES
+#ifdef JTX_ENABLE_DEBUG_TRACES
     debugImg_.clear();
 #endif
 
@@ -75,7 +75,7 @@ void StaticCamera::render(const Scene &scene) {
     std::vector<std::thread> threads;
     threads.reserve(threadCount_);
 
-#ifdef ENABLE_DEBUG_TRACES
+#ifdef JTX_ENABLE_DEBUG_TRACES
     // If a debug mode is selected, perform the debug trace instead
     if (debugMode_ != DebugMode::NONE) {
         for (unsigned int t = 0; t < threadCount_; ++t) {

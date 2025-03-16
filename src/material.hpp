@@ -9,15 +9,16 @@ struct Material {
         CONDUCTOR = 2,
     };
 
-    Type type;
-    Vec3 albedo;
-    Float refractionIndex;
-    Vec3 IOR;
-    Vec3 k;
-    float alphaX, alphaY;
+    Type type = DIFFUSE;
+    Vec3 albedo = Color::WHITE;
+    Float refractionIndex = 1.5f;
+    Vec3 IOR = Vec3(0.0f, 0.0f, 0.0f);
+    Vec3 k = Vec3(0.0f, 0.0f, 0.0f);
+    float alphaX = 0;
+    float alphaY = 0;
     Vec3 emission = Vec3(0, 0, 0);
     
-    int albedoTexId;
+    int albedoTexId = -1
 };
 
 struct SurfaceIntersection {

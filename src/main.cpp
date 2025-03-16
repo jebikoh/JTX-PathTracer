@@ -26,7 +26,9 @@ int main(int argc, char *argv[]) {
             8,
             MAX_DEPTH,
             threadCapacity - 2};
+#ifdef JTX_ENABLE_DEBUG_TRACES
     camera.debugMode_ = DebugMode::NONE;
+#endif
 
     Display display(IMAGE_WIDTH + SIDEBAR_WIDTH, IMAGE_HEIGHT, &camera);
     if (!display.init()) {

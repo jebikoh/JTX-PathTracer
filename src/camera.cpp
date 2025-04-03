@@ -10,7 +10,7 @@ void Camera::init() {
     const Float viewportHeight = 2 * h * properties_.focusDistance;
     const Float viewportWidth  = viewportHeight * aspectRatio_;
 
-    w_ = normalize(properties_.center - properties_.target);
+    w_ = normalize(properties_.position - properties_.target);
     u_ = normalize(jtx::cross(properties_.up, w_));
     v_ = jtx::cross(w_, u_);
 
@@ -21,7 +21,7 @@ void Camera::init() {
     dv_                  = viewportV / static_cast<float>(height_);
 
     // Viewport anchors
-    const auto vpUpperLeft = properties_.center - (properties_.focusDistance * w_) - viewportU / 2 - viewportV / 2;
+    const auto vpUpperLeft = properties_.position - (properties_.focusDistance * w_) - viewportU / 2 - viewportV / 2;
     vp00_                  = vpUpperLeft + 0.5 * (du_ + dv_);
 
     // Defocus disk

@@ -14,8 +14,8 @@ void RGB8Image::save(const char *path) const {
 
     for (int y = 0; y < h_; ++y) {
         for (int x = 0; x < w_; ++x) {
-            int src_index                 = (y * w_ + x) * 3;
-            int dst_index                 = ((h_ - 1 - y) * w_ + x) * 3;
+            const int src_index                 = (y * w_ + x) * 3;
+            const int dst_index                 = ((h_ - 1 - y) * w_ + x) * 3;
             flipped_buffer[dst_index]     = buffer[y * w_ + x].R;
             flipped_buffer[dst_index + 1] = buffer[y * w_ + x].G;
             flipped_buffer[dst_index + 2] = buffer[y * w_ + x].B;

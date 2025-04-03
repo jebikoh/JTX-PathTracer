@@ -1,8 +1,8 @@
 #include "scene.hpp"
-#include "mesh.hpp"
 #include "loader.hpp"
+#include "logger.hpp"
+#include "mesh.hpp"
 
-static constexpr int SCENE_MATERIAL_LIMIT = 64;
 static const Vec3 GOLD_IOR                = {0.15557, 0.42415, 1.3831};
 static const Vec3 GOLD_K                  = {-3.6024, -2.4721, -1.9155};
 
@@ -93,6 +93,7 @@ bool Scene::anyHit(const Ray &r, const Interval t) const {
 }
 
 void Scene::buildBVH(const int maxPrimsInNode) {
+    LOG_INFO("Building BVH");
     maxPrimsInNode_ = maxPrimsInNode;
     primitives_.resize(triangles.size());
 
@@ -110,60 +111,26 @@ void Scene::buildBVH(const int maxPrimsInNode) {
 
     nodes_     = new LinearBVHNode[totalNodes];
     int offset = 0;
+    LOG_INFO("Flattening BVH");
     flattenBVH(root, nodes_, &offset);
+    LOG_INFO("Flattened BVH");
 
     // Clean-up the tree
     root->destroy();
     delete root;
 
     bvhBuilt_ = true;
+    LOG_INFO("Built BVH");
 
     // Pre-process lights that need the scene radius
+    LOG_INFO("Pre-processing lights");
     const float sceneRadius = getSceneRadius();
     for (auto &light: lights) {
         if (light.type == Light::DISTANT) {
             light.sceneRadius = sceneRadius;
         }
     }
-}
-
-Scene createMeshScene() {
-    Scene scene;
-    scene.name = "Mesh Scene";
-
-    scene.cameraProperties.center        = Vec3(0, 0, 8);
-    scene.cameraProperties.target        = Vec3(0, 0, -1);
-    scene.cameraProperties.up            = Vec3(0, 1, 0);
-    scene.cameraProperties.yfov          = 20;
-    scene.cameraProperties.defocusAngle  = 0;
-    scene.cameraProperties.focusDistance = 3.4;
-
-    scene.skyColor = Vec3(0.7, 0.8, 1.0);
-
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Vec3(1, 0.3, 0.5)});
-
-    const auto vertices = new Vec3[4];
-    vertices[0]         = Vec3(-1, -1, -1);
-    vertices[1]         = Vec3(-1, 1, -1);
-    vertices[2]         = Vec3(1, 1, -1);
-    vertices[3]         = Vec3(1, -1, -1);
-
-    const auto indices = new Vec3i[2];
-    indices[0]         = Vec3i(0, 1, 2);
-    indices[1]         = Vec3i(0, 2, 3);
-
-    const auto normals = new Vec3[4];
-    normals[0]         = Vec3(0, 0, 1);
-    normals[1]         = Vec3(0, 0, 1);
-    normals[2]         = Vec3(0, 0, 1);
-    normals[3]         = Vec3(0, 0, 1);
-
-    scene.meshes.push_back({indices, 2, vertices, 4, normals, &scene.materials.back()});
-
-    scene.triangles.push_back({0, 0});
-    scene.triangles.push_back({1, 0});
-
-    return scene;
+    LOG_INFO("Lights processed");
 }
 
 Scene createScene(const std::string &path, const Mat4 &t, const Vec3 &background) {
@@ -171,7 +138,7 @@ Scene createScene(const std::string &path, const Mat4 &t, const Vec3 &background
     scene.name = "File scene";
     loadScene(path, scene);
 
-    scene.cameraProperties.center        = Vec3(0, 0, 8);
+    scene.cameraProperties.position        = Vec3(0, 0, 8);
     scene.cameraProperties.target        = Vec3(0, 0, 0);
     scene.cameraProperties.up            = Vec3(0, 1, 0);
     scene.cameraProperties.yfov          = 20;
@@ -179,10 +146,6 @@ Scene createScene(const std::string &path, const Mat4 &t, const Vec3 &background
     scene.cameraProperties.focusDistance = 1;
 
     scene.skyColor = background;
-
-    std::cout << "Scene loaded with:" << std::endl;
-    std::cout << " - " << scene.meshes.size() << " meshes" << std::endl;
-    std::cout << " - " << scene.triangles.size() << " triangles" << std::endl;
 
     int numVertices = 0;
     for (const auto &mesh: scene.meshes) {
@@ -212,13 +175,21 @@ Scene createShaderBallScene(const bool highSubdivision) {
     }
 
 
-    scene.cameraProperties.center = Vec3(2.5, 16, 12);
+    scene.cameraProperties.position = Vec3(2.5, 16, 12);
     scene.cameraProperties.target = Vec3(0, 3, 0);
     scene.cameraProperties.yfov   = 40;
 
     scene.skyColor = Vec3(0.7, 0.8, 1.0);
 
-    scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05});
+    scene.materials.push_back({
+        .mType = Material::CONDUCTOR,
+        .parameters = {
+            .ior = GOLD_IOR,
+            .k = GOLD_K,
+            .alphaX = 0.05,
+            .alphaY = 0.05
+        }
+    });
     // scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.01, .alphaY = 0.01, .texId = scene.meshes[3].material->texId});
     scene.meshes[3].material = &scene.materials.back();
 
@@ -237,7 +208,7 @@ Scene createShaderBallSceneWithLight(const bool highSubdivision) {
         scene                  = createScene(path, t);
     }
 
-    scene.cameraProperties.center = Vec3(2.5, 16, 12);
+    scene.cameraProperties.position = Vec3(2.5, 16, 12);
     scene.cameraProperties.target = Vec3(0, 3, 0);
     scene.cameraProperties.yfov   = 40;
 
@@ -260,7 +231,15 @@ Scene createShaderBallSceneWithLight(const bool highSubdivision) {
 
     // Base
     // scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05});
-    scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.01, .alphaY = 0.01, .albedoTexId = -1});
+
+    Material matDielectric{};
+    matDielectric.mType = Material::DIELECTRIC;
+    matDielectric.parameters.ior = Vec3(1.5);
+    matDielectric.parameters.alphaX = 0.01;
+    matDielectric.parameters.alphaY = 0.01;
+    matDielectric.textureIndices.albedo = -1;
+
+    scene.materials.push_back(matDielectric);
     scene.meshes[3].material = &scene.materials.back();
 
     return scene;
@@ -271,20 +250,38 @@ Scene createKnobScene() {
     const std::string path = "assets/scenes/knob.obj";
     auto scene             = createScene(path, t);
 
-    scene.cameraProperties.center = Vec3(0, 3, 8);
+    scene.cameraProperties.position = Vec3(0, 3, 8);
     scene.cameraProperties.target = Vec3(0, 0, 0);
     scene.cameraProperties.yfov   = 15;
 
-    scene.materials.push_back({.type = Material::DIFFUSE, .albedo = Vec3(0.3, 0.3, 0.)});
+    scene.materials.push_back({
+        .mType = Material::DIFFUSE,
+        .parameters = {.albedo = Vec3(0.3, 0.3, 0.0)},
+    });
     scene.meshes[0].material = &scene.materials.back();
 
     const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
     const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};
-    scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05});
+    scene.materials.push_back({
+        .mType = Material::CONDUCTOR,
+        .parameters =  {
+            .ior = GOLD_IOR,
+            .k = GOLD_K,
+            .alphaX = 0.05,
+            .alphaY = 0.05
+        }
+    });
     scene.meshes[1].material = &scene.materials.back();
     scene.meshes[2].material = &scene.materials.back();
 
-    scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.3, .alphaY = 0.3});
+    scene.materials.push_back({
+        .mType = Material::DIELECTRIC,
+        .parameters = {
+            .ior = Vec3(1.5),
+            .alphaX = 0.3,
+            .alphaY = 0.3
+        }
+    });
     scene.meshes[3].material = &scene.materials.back();
 
     return scene;

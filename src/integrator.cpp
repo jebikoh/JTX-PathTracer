@@ -24,7 +24,7 @@ Vec3 integrateBasic(Ray ray, const Scene &scene, int maxDepth, RNG &rng) {
         }
         // Emission (L_e)
         // PBRT checks for specular bounce
-        radiance += beta * record.material->emission;
+        radiance += beta * record.material->parameters.emission;
 
         // Depth exceeded
         if (depth++ == maxDepth) break;
@@ -72,7 +72,7 @@ Vec3 integrate(Ray ray, const Scene &scene, const int maxDepth, RNG &rng) {
         // Only do this in case of a specular bounce
         // We account for emission via light sampling
         if (specularBounce) {
-            radiance += beta * record.material->emission;
+            radiance += beta * record.material->parameters.emission;
         }
 
         // Depth exceeded

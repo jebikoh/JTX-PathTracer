@@ -127,6 +127,7 @@ add_executable(JTX
         src/bsdf/disney.hpp
         src/loader.hpp
         src/loader.cpp
+        src/logger.hpp
 )
 
 target_link_libraries(JTX PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui fmt::fmt)

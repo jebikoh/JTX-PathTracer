@@ -10,12 +10,8 @@
 
 constexpr float RAY_EPSILON = 1e-4f;
 
-// Very basic scene struct
-// Will change if this starts running into performance issues
-// 01/29: I've moved the BVH logic here. The BVH tree regularly needs to access
-//        scene geometry, doing this will help eliminate a pointer dereference.
 struct CameraProperties {
-    Vec3 center;
+    Vec3 position;
     Vec3 target;
     Vec3 up;
     Float yfov;
@@ -40,9 +36,6 @@ public:
     CameraProperties cameraProperties;
 
     void destroy() {
-        for (auto &mesh : meshes) {
-            mesh.destroy();
-        }
         if (bvhBuilt_) destroyBVH();
     }
 
@@ -92,7 +85,6 @@ private:
     LinearBVHNode *nodes_ = nullptr;
 };
 
-Scene createMeshScene();
 Scene createScene(const std::string &path, const Mat4 &t, const Vec3 &background = Vec3(0.7, 0.8, 1.0));
 Scene createShaderBallScene(bool highSubdivision = false);
 Scene createShaderBallSceneWithLight(bool highSubdivision = false);

@@ -363,21 +363,21 @@ void Display::renderConfig() {
             rightAlignText("Position  X");
             ImGui::TableSetColumnIndex(1);
             fullWidth();
-            ImGui::InputFloat("##PositionX", &camera_->properties_.center.x);
+            ImGui::InputFloat("##PositionX", &camera_->properties_.position.x);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             rightAlignText("Y");
             ImGui::TableSetColumnIndex(1);
             fullWidth();
-            ImGui::InputFloat("##PositionY", &camera_->properties_.center.y);
+            ImGui::InputFloat("##PositionY", &camera_->properties_.position.y);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
             rightAlignText("Z");
             ImGui::TableSetColumnIndex(1);
             fullWidth();
-            ImGui::InputFloat("##PositionZ", &camera_->properties_.center.z);
+            ImGui::InputFloat("##PositionZ", &camera_->properties_.position.z);
 
             ImGui::TableNextRow();
             ImGui::TableSetColumnIndex(0);
@@ -471,38 +471,38 @@ void Display::renderMaterialEditor(const size_t selectedMeshIndex) {
         ImGui::TableSetColumnIndex(1);
         fullWidth();
         const char *materialTypes[] = {"DIFFUSE", "DIELECTRIC", "CONDUCTOR"};
-        int currentType             = material->type;
+        int currentType             = material->mType;
         if (ImGui::Combo("Type", &currentType, materialTypes, IM_ARRAYSIZE(materialTypes))) {
-            material->type = static_cast<Material::Type>(currentType);
+            material->mType = static_cast<Material::Type>(currentType);
         }
 
-        switch (material->type) {
+        switch (material->mType) {
             case Material::DIFFUSE:
                 tableRow("Albedo");
-                ImGui::ColorEdit3("Albedo", &material->albedo.x);
+                ImGui::ColorEdit3("Albedo", &material->parameters.albedo.x);
                 break;
             case Material::CONDUCTOR:
                 tableRow("IOR");
-                ImGui::InputFloat3("IOR", &material->IOR.x);
+                ImGui::InputFloat3("IOR", &material->parameters.ior.x);
 
                 tableRow("k");
-                ImGui::InputFloat3("k", &material->k.x);
+                ImGui::InputFloat3("k", &material->parameters.k.x);
 
                 tableRow("Roughness X");
-                ImGui::InputFloat("Alpha X", &material->alphaX);
+                ImGui::InputFloat("Alpha X", &material->parameters.alphaX);
 
                 tableRow("Y");
-                ImGui::InputFloat("Alpha Y", &material->alphaY);
+                ImGui::InputFloat("Alpha Y", &material->parameters.alphaY);
                 break;
             case Material::DIELECTRIC:
                 tableRow("IOR");
-                ImGui::InputFloat("IOR", &material->IOR.x);
+                ImGui::InputFloat("IOR", &material->parameters.ior.x);
 
                 tableRow("Roughness X");
-                ImGui::InputFloat("Alpha X", &material->alphaX);
+                ImGui::InputFloat("Alpha X", &material->parameters.alphaX);
 
                 tableRow("Y");
-                ImGui::InputFloat("Alpha Y", &material->alphaY);
+                ImGui::InputFloat("Alpha Y", &material->parameters.alphaY);
                 break;
             default:
                 break;
@@ -1015,19 +1015,19 @@ void Display::processEvents(bool &isRunning) {
 
 void Display::panCamera(const int deltaX, const int deltaY) {
     resetRender_       = true;
-    const Vec3 forward = normalize(camera_->properties_.target - camera_->properties_.center);
+    const Vec3 forward = normalize(camera_->properties_.target - camera_->properties_.position);
     const Vec3 right   = normalize(cross(forward, camera_->properties_.up));
     const Vec3 up      = normalize(cross(right, forward));
 
     const Vec3 delta = (right * static_cast<float>(-deltaX) + up * static_cast<float>(deltaY)) * camSensitivity_;
-    camera_->properties_.center += delta;
+    camera_->properties_.position += delta;
     camera_->properties_.target += delta;
 }
 
 void Display::zoomCamera(int scroll) {
     resetRender_                = true;
     float zoomFactor            = 1.0f + static_cast<float>(scroll) * camSensitivity_;
-    camera_->properties_.center = camera_->properties_.target + (camera_->properties_.center - camera_->properties_.target) * zoomFactor;
+    camera_->properties_.position = camera_->properties_.target + (camera_->properties_.position - camera_->properties_.target) * zoomFactor;
 }
 
 void Display::rotateCamera() {

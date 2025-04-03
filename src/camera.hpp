@@ -140,7 +140,7 @@ protected:
      */
     Vec3 sampleDefocusDisc(RNG &rng) const {
         Vec3 p = rng.sampleUnitDisc();
-        return properties_.center + (p.x * defocus_u_) + (p.y * defocus_v_);
+        return properties_.position + (p.x * defocus_u_) + (p.y * defocus_v_);
     }
 
     bool stopRender_ = false;
@@ -168,7 +168,7 @@ protected:
         const auto offset = Vec2f((static_cast<float>(x) + dx) / static_cast<float>(xPixelSamples_), (static_cast<float>(y) + dy) / static_cast<float>(yPixelSamples_));
         const auto sample = vp00_ + (static_cast<float>(i) + offset.x) * du_ + (static_cast<float>(j) + offset.y) * dv_;
 
-        auto origin = (properties_.defocusAngle <= 0) ? properties_.center : sampleDefocusDisc(rng);
+        auto origin = (properties_.defocusAngle <= 0) ? properties_.position : sampleDefocusDisc(rng);
         return {origin, sample - origin, rng.sample<float>()};
     }
 
@@ -181,7 +181,7 @@ protected:
      */
     Ray getDebugRay(const uint32_t i, const uint32_t j) const {
         const auto sample = vp00_ + (static_cast<float>(i) + 0.5f) * du_ + (static_cast<float>(j) + 0.5f) * dv_;
-        return {properties_.center, sample - properties_.center, 0.0f};
+        return {properties_.position, sample - properties_.position, 0.0f};
     }
 #endif
 };

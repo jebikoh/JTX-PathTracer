@@ -4,21 +4,25 @@
 
 struct Material {
     enum Type {
-        DIFFUSE = 0,
+        DIFFUSE    = 0,
         DIELECTRIC = 1,
-        CONDUCTOR = 2,
+        CONDUCTOR  = 2,
     };
 
-    Type type = DIFFUSE;
-    Vec3 albedo = Color::WHITE;
-    Float refractionIndex = 1.5f;
-    Vec3 IOR = Vec3(0.0f, 0.0f, 0.0f);
-    Vec3 k = Vec3(0.0f, 0.0f, 0.0f);
-    float alphaX = 0;
-    float alphaY = 0;
-    Vec3 emission = Vec3(0, 0, 0);
-    
-    int albedoTexId = -1;
+    Type mType = DIFFUSE;
+
+    struct Parameters {
+        Vec3 albedo;
+        Vec3 ior;
+        Vec3 k;
+        Vec3 emission;
+        float alphaY;
+        float alphaX;
+    } parameters;
+
+    struct TextureIndices {
+        uint albedo = -1;
+    } textureIndices;
 };
 
 struct SurfaceIntersection {
@@ -29,7 +33,7 @@ struct SurfaceIntersection {
     Vec3 bitangent;
 
     const Material *material;
-    Float t;
+    float t;
     bool frontFace;
 
     void setFaceNormal(const Ray &r, const Vec3 &n) {

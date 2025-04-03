@@ -12,11 +12,11 @@ struct Mesh {
     int numVertices;
     int numIndices;
 
-    Vec3i *indices;
-    Vec3 *vertices;
-    Vec3 *normals;
-    Vec2f *uvs;
-    Vec3 *colors;
+    std::vector<Vec3i> indices;
+    std::vector<Vec3> vertices;
+    std::vector<Vec3> normals;
+    std::vector<Vec2f> uvs;
+    std::vector<Vec3> colors;
 
     Material *material;
 
@@ -29,55 +29,6 @@ struct Mesh {
     void recalculateTransform() {
         transform = scale * rX * rY * rZ * translate;
     }
-
-    Mesh(Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Material *material)
-        : numVertices(numVertices),
-          numIndices(numIndices),
-          indices(indices),
-          vertices(vertices),
-          normals(normals),
-          uvs(nullptr),
-          material(material) {}
-
-    Mesh(const std::string &name, Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Material *material)
-        : name(name),
-          numVertices(numVertices),
-          numIndices(numIndices),
-          indices(indices),
-          vertices(vertices),
-          normals(normals),
-          uvs(nullptr),
-          material(material) {}
-
-    Mesh(Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Vec2f *uvs, Material *material)
-        : numVertices(numVertices),
-          numIndices(numIndices),
-          indices(indices),
-          vertices(vertices),
-          normals(normals),
-          uvs(uvs),
-          material(material) {}
-
-    Mesh(const std::string &name, Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Vec2f *uvs, Material *material)
-        : name(name),
-          numVertices(numVertices),
-          numIndices(numIndices),
-          indices(indices),
-          vertices(vertices),
-          normals(normals),
-          uvs(uvs),
-          material(material) {}
-
-    Mesh(const std::string &name, Vec3i *indices, const int numIndices, Vec3 *vertices, const int numVertices, Vec3 *normals, Vec2f *uvs, Vec3 *colors, Material *material)
-        : name(name),
-          numVertices(numVertices),
-          numIndices(numIndices),
-          indices(indices),
-          vertices(vertices),
-          normals(normals),
-          uvs(uvs),
-          colors(colors),
-          material(material) {}
 
     void getVertices(const int index, Vec3 &v0, Vec3 &v1, Vec3 &v2) const {
         const Vec3i i = indices[index];
@@ -200,13 +151,6 @@ struct Mesh {
         if (!t.surrounds(root)) return false;
 
         return true;
-    }
-
-    void destroy() const {
-        if (indices) delete[] indices;
-        if (vertices) delete[] vertices;
-        if (normals) delete[] normals;
-        if (uvs) delete[] uvs;
     }
 };
 

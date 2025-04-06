@@ -74,6 +74,12 @@ add_subdirectory(ext/glad)
 
 add_subdirectory(ext/fastgltf)
 
+set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "Disable ISPC support" FORCE)
+set(EMBREE_TUTORIALS OFF CACHE BOOL "Disable tutorials" FORCE)
+set(EMBREE_STATIC_LIB ON CACHE BOOL "Build static library" FORCE)
+set(EMBREE_TASKING_SYSTEM "INTERNAL" CACHE STRING "Use internal tasking system" FORCE)
+add_subdirectory(ext/embree)
+
 include(FetchContent)
 FetchContent_Declare(
         fmt
@@ -130,7 +136,7 @@ add_executable(JTX
         src/logger.hpp
 )
 
-target_link_libraries(JTX PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui fmt::fmt)
+target_link_libraries(JTX PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui fmt::fmt embree)
 
 target_include_directories(JTX
         PRIVATE

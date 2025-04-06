@@ -29,7 +29,7 @@ bool loadScene(const std::string &path, Scene &scene) {
 }
 
 bool loadObj(const std::string &path, Scene &scene) {
-    LOG_INFO("Loading OBJ file: ", path);
+    LOG_INFO("Loading OBJ file: {}", path);
     scene.materials.reserve(JTX_SCENE_MATERIAL_LIMIT);
     // LOAD
     rapidobj::Result result = rapidobj::ParseFile(path);
@@ -165,7 +165,6 @@ bool loadObj(const std::string &path, Scene &scene) {
         scene.meshes.push_back(newMesh);
 
         // Build triangles
-        LOG_INFO("Building mesh faces");
         int meshIndex = scene.meshes.size() - 1;
         for (int i = 0; i < numIdx; i++) {
             Triangle tri;

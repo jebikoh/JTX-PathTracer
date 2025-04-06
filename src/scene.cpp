@@ -113,14 +113,14 @@ void Scene::buildBVH(const int maxPrimsInNode) {
     int offset = 0;
     LOG_INFO("Flattening BVH");
     flattenBVH(root, nodes_, &offset);
-    LOG_INFO("Flattened BVH");
+    LOG_INFO("Finished flattening BVH");
 
     // Clean-up the tree
     root->destroy();
     delete root;
 
     bvhBuilt_ = true;
-    LOG_INFO("Built BVH");
+    LOG_INFO("Finished building BVH");
 
     // Pre-process lights that need the scene radius
     LOG_INFO("Pre-processing lights");
@@ -151,8 +151,6 @@ Scene createScene(const std::string &path, const Mat4 &t, const Vec3 &background
     for (const auto &mesh: scene.meshes) {
         numVertices += mesh.numVertices;
     }
-
-    std::cout << " - " << numVertices << " vertices" << std::endl;
 
     // Transform all verts and norms
     for (int i = 0; i < scene.meshes[0].numVertices; ++i) {

@@ -11,6 +11,3 @@
 [submodule "ext/fastgltf"]
 	path = ext/fastgltf
 	url = https://github.com/spnda/fastgltf.git
-[submodule "ext/embree"]
-	path = ext/embree
-	url = https://github.com/RenderKit/embree.git

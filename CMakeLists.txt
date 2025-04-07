@@ -74,11 +74,15 @@ add_subdirectory(ext/glad)
 
 add_subdirectory(ext/fastgltf)
 
-set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "Disable ISPC support" FORCE)
-set(EMBREE_TUTORIALS OFF CACHE BOOL "Disable tutorials" FORCE)
-set(EMBREE_STATIC_LIB ON CACHE BOOL "Build static library" FORCE)
-set(EMBREE_TASKING_SYSTEM "INTERNAL" CACHE STRING "Use internal tasking system" FORCE)
-add_subdirectory(ext/embree)
+# EMBREE
+set(EMBREE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ext/embree/include)
+
+if(WIN32)
+    set(EMBREE_LIBRARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ext/embree/lib)
+    set(EMBREE_LIBRARIES ${EMBREE_LIBRARY_DIR}/ext/embree/lib/embree4.lib)
+endif()
+
+include_directories(${EMBREE_INCLUDE_DIR})
 
 include(FetchContent)
 FetchContent_Declare(
@@ -136,7 +140,7 @@ add_executable(JTX
         src/logger.hpp
 )
 
-target_link_libraries(JTX PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui fmt::fmt embree)
+target_link_libraries(JTX PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui fmt::fmt ${EMBREE_LIBRARIES})
 
 target_include_directories(JTX
         PRIVATE
@@ -155,3 +159,10 @@ add_custom_command(TARGET JTX POST_BUILD
         $<TARGET_FILE_DIR:JTX>/assets
         COMMENT "Copying assets directory to output folder"
 )
+
+if(WIN32)
+    add_custom_command(TARGET JTX POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${EMBREE_LIBRARY_DIR}/embree4.dll
+            $<TARGET_FILE_DIR:JTX>)
+endif()

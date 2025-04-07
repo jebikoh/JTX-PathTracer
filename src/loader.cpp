@@ -7,6 +7,10 @@
 #include <fmt/core.h>
 #include <rapidobj.hpp>
 
+#include <fastgltf/core.hpp>
+#include <fastgltf/glm_element_traits.hpp>
+#include <fastgltf/tools.hpp>
+
 const Material DEFAULT_MATERIAL = {
         .mType      = Material::DIFFUSE,
         .parameters = {
@@ -179,6 +183,43 @@ bool loadObj(const std::string &path, Scene &scene) {
     return true;
 }
 
-bool loadGltf(const std::string &path, Scene &scene) {
-    return false;
+bool loadGltf(const std::filesystem::path &path, Scene &scene) {
+    LOG_INFO("Loading glTF file: {}", path.string());
+
+    constexpr auto gltfOptions = fastgltf::Options::DontRequireValidAssetMember | fastgltf::Options::AllowDouble | fastgltf::Options::LoadExternalBuffers;
+    fastgltf::Asset gltf;
+    fastgltf::Parser parser;
+
+    // LOAD
+    auto data = fastgltf::GltfDataBuffer::FromPath(path);
+    if (!data) {
+        LOG_ERROR("Failed to load glTF file: {}", path.string());
+        return false;
+    }
+
+    // DETERMINE GLTF TYPE AND PARSE
+    const auto type = fastgltf::determineGltfFileType(data.get());
+    if (type == fastgltf::GltfType::glTF) {
+        auto load = parser.loadGltf(data.get(), path.parent_path(), gltfOptions);
+        if (load) gltf = std::move(load.get());
+        else {
+            LOG_ERROR("Failed to parse glTF file: {}", fastgltf::getErrorMessage(load.error()));
+            return false;
+        }
+    } else if (type == fastgltf::GltfType::GLB) {
+        auto load = parser.loadGltfBinary(data.get(), path.parent_path(), gltfOptions);
+        if (load) gltf = std::move(load.get());
+        else {
+            LOG_ERROR("Failed to parse GLB file: {}", fastgltf::getErrorMessage(load.error()));
+            return false;
+        }
+    } else {
+        LOG_ERROR("Failed to determine GLTF type: {}", path.string());
+        return false;
+    }
+
+    // TEXTURES
+    for (fastgltf::Image &image : gltf.images) {
+
+    }
 }

@@ -140,7 +140,7 @@ add_executable(JTX
         src/logger.hpp
 )
 
-target_link_libraries(JTX PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui fmt::fmt ${EMBREE_LIBRARIES})
+target_link_libraries(JTX PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui fmt::fmt fastgltf::fastgltf ${EMBREE_LIBRARIES})
 
 target_include_directories(JTX
         PRIVATE

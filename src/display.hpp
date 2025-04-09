@@ -50,7 +50,6 @@ private:
     int logicalWidth_, logicalHeight_;
     float windowScale_;
     StaticCamera *camera_;
-    DynamicCamera *dynamicCamera_;
 
     int renderWidth_;
     float scaleX_, scaleY_;

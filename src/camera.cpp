@@ -183,129 +183,129 @@ void StaticCamera::render(const Scene &scene) {
     }
 }
 
-DynamicCamera::DynamicCamera(
-        const int width,
-        const int height,
-        CameraProperties cameraProperties,
-        const int xPixelSamples,
-        const int yPixelSamples,
-        const int maxDepth,
-        const int samplesPerPass,
-        const int threadCount)
-    : Camera(width, height, std::move(cameraProperties), xPixelSamples, yPixelSamples, maxDepth, threadCount),
-      samplesPerPass_(samplesPerPass),
-      endBarrier_(threadCount_, [&]() noexcept {
-          currentSample_.fetch_add(samplesPerPass_);
-          // Reset the queue if we haven't reached the spp
-          if (currentSample_.load() < getSpp()) {
-              queue_.reset();
-          }
-      }) {
-    initWorkQueue();
-    startThreads();
-}
-
-void DynamicCamera::initWorkQueue() {
-    queue_.nextJobIndex = 0;
-    queue_.jobs.clear();
-    for (int r = 0; r < height_; r += 32) {
-        for (int c = 0; c < width_; c += 32) {
-            RayTraceJob job{};
-            job.startRow = r;
-            job.startCol = c;
-            job.endRow   = std::min(r + 32, height_);
-            job.endCol   = std::min(c + 32, width_);
-            queue_.jobs.push_back(job);
-        }
-    }
-}
-
-void DynamicCamera::startThreads() {
-    for (auto i = 0; i < threadCount_; ++i) {
-        threads_.emplace_back(&DynamicCamera::workerThread, this);
-    }
-}
-
-void DynamicCamera::stopThreads() {
-    {
-        std::unique_lock<std::mutex> lock(queueMutex_);
-        stopThreads_ = true;
-    }
-
-    queueCondition_.notify_all();
-    for (auto &thread: threads_) {
-        if (thread.joinable()) thread.join();
-    }
-}
-
-void DynamicCamera::resize(int w, int h) {
-    Camera::resize(w, h);
-    initWorkQueue();
-}
-
-void DynamicCamera::render(const Scene &scene) {
-    {
-        std::unique_lock<std::mutex> lock(queueMutex_);
-        stopThreads_ = false;
-        resetRender_ = true;
-    }
-
-    scene_ = &scene;
-    init();
-    acc_.clear();
-    img_.clear();
-    queue_.reset();
-    resetRender_ = false;
-
-    queueCondition_.notify_all();
-}
-
-void DynamicCamera::workerThread() {
-    while (true) {
-        // Wait for work
-        std::unique_lock lock(queueMutex_);
-        queueCondition_.wait(lock, [this] { return stopThreads_ || queue_.workAvailable(); });
-
-        lock.unlock();
-        if (stopThreads_) break;
-
-        const int sample = currentSample_.load();
-
-        while (true) {
-            if (resetRender_) break;
-
-            const auto jobIndex = queue_.nextJobIndex.fetch_add(1, std::memory_order_relaxed);
-            if (jobIndex >= queue_.jobs.size()) { break; }
-
-            const auto &job = queue_.jobs[jobIndex];
-
-            for (auto currSample = sample; currSample < jtx::min(sample + samplesPerPass_, getSpp()); currSample++) {
-                if (resetRender_) break;
-                for (auto row = job.startRow; row < job.endRow; ++row) {
-                    if (resetRender_) break;
-                    for (auto col = job.startCol; col < job.endCol; ++col) {
-                        if (resetRender_) { break; }
-
-                        // Seed the PCG with row, column, and sample #
-                        RNG sampler(row, col, currSample + 1);
-
-                        const Ray r = getRay(col, row, currSample, sampler);
-
-                        // Vec3 sampleColor = integrateBasic(r, *scene_, maxDepth_, sampler);
-                        // Color sampleColor = integrate(r, *job.scene, maxDepth_, sampler);
-                        Vec3 sampleColor = integrateMIS(r, *scene_, maxDepth_, false, sampler);
-
-                        // Clamp the color
-                        if (sampleColor[0] > 1.0f) sampleColor[0] = 1.0f;
-                        if (sampleColor[1] > 1.0f) sampleColor[1] = 1.0f;
-                        if (sampleColor[2] > 1.0f) sampleColor[2] = 1.0f;
-
-                        auto currAcc = acc_.updatePixel(sampleColor, row, col);
-                        img_.setPixel(currAcc / static_cast<float>(currSample + 1), row, col);
-                    }
-                }
-            }
-        }// Render loop
-        endBarrier_.arrive_and_wait();
-    }// Thread loop
-}
+//DynamicCamera::DynamicCamera(
+//        const int width,
+//        const int height,
+//        CameraProperties cameraProperties,
+//        const int xPixelSamples,
+//        const int yPixelSamples,
+//        const int maxDepth,
+//        const int samplesPerPass,
+//        const int threadCount)
+//    : Camera(width, height, std::move(cameraProperties), xPixelSamples, yPixelSamples, maxDepth, threadCount),
+//      samplesPerPass_(samplesPerPass),
+//      endBarrier_(threadCount_, [&]() noexcept {
+//          currentSample_.fetch_add(samplesPerPass_);
+//          // Reset the queue if we haven't reached the spp
+//          if (currentSample_.load() < getSpp()) {
+//              queue_.reset();
+//          }
+//      }) {
+//    initWorkQueue();
+//    startThreads();
+//}
+//
+//void DynamicCamera::initWorkQueue() {
+//    queue_.nextJobIndex = 0;
+//    queue_.jobs.clear();
+//    for (int r = 0; r < height_; r += 32) {
+//        for (int c = 0; c < width_; c += 32) {
+//            RayTraceJob job{};
+//            job.startRow = r;
+//            job.startCol = c;
+//            job.endRow   = std::min(r + 32, height_);
+//            job.endCol   = std::min(c + 32, width_);
+//            queue_.jobs.push_back(job);
+//        }
+//    }
+//}
+//
+//void DynamicCamera::startThreads() {
+//    for (auto i = 0; i < threadCount_; ++i) {
+//        threads_.emplace_back(&DynamicCamera::workerThread, this);
+//    }
+//}
+//
+//void DynamicCamera::stopThreads() {
+//    {
+//        std::unique_lock<std::mutex> lock(queueMutex_);
+//        stopThreads_ = true;
+//    }
+//
+//    queueCondition_.notify_all();
+//    for (auto &thread: threads_) {
+//        if (thread.joinable()) thread.join();
+//    }
+//}
+//
+//void DynamicCamera::resize(int w, int h) {
+//    Camera::resize(w, h);
+//    initWorkQueue();
+//}
+//
+//void DynamicCamera::render(const Scene &scene) {
+//    {
+//        std::unique_lock<std::mutex> lock(queueMutex_);
+//        stopThreads_ = false;
+//        resetRender_ = true;
+//    }
+//
+//    scene_ = &scene;
+//    init();
+//    acc_.clear();
+//    img_.clear();
+//    queue_.reset();
+//    resetRender_ = false;
+//
+//    queueCondition_.notify_all();
+//}
+//
+//void DynamicCamera::workerThread() {
+//    while (true) {
+//        // Wait for work
+//        std::unique_lock lock(queueMutex_);
+//        queueCondition_.wait(lock, [this] { return stopThreads_ || queue_.workAvailable(); });
+//
+//        lock.unlock();
+//        if (stopThreads_) break;
+//
+//        const int sample = currentSample_.load();
+//
+//        while (true) {
+//            if (resetRender_) break;
+//
+//            const auto jobIndex = queue_.nextJobIndex.fetch_add(1, std::memory_order_relaxed);
+//            if (jobIndex >= queue_.jobs.size()) { break; }
+//
+//            const auto &job = queue_.jobs[jobIndex];
+//
+//            for (auto currSample = sample; currSample < jtx::min(sample + samplesPerPass_, getSpp()); currSample++) {
+//                if (resetRender_) break;
+//                for (auto row = job.startRow; row < job.endRow; ++row) {
+//                    if (resetRender_) break;
+//                    for (auto col = job.startCol; col < job.endCol; ++col) {
+//                        if (resetRender_) { break; }
+//
+//                        // Seed the PCG with row, column, and sample #
+//                        RNG sampler(row, col, currSample + 1);
+//
+//                        const Ray r = getRay(col, row, currSample, sampler);
+//
+//                        // Vec3 sampleColor = integrateBasic(r, *scene_, maxDepth_, sampler);
+//                        // Color sampleColor = integrate(r, *job.scene, maxDepth_, sampler);
+//                        Vec3 sampleColor = integrateMIS(r, *scene_, maxDepth_, false, sampler);
+//
+//                        // Clamp the color
+//                        if (sampleColor[0] > 1.0f) sampleColor[0] = 1.0f;
+//                        if (sampleColor[1] > 1.0f) sampleColor[1] = 1.0f;
+//                        if (sampleColor[2] > 1.0f) sampleColor[2] = 1.0f;
+//
+//                        auto currAcc = acc_.updatePixel(sampleColor, row, col);
+//                        img_.setPixel(currAcc / static_cast<float>(currSample + 1), row, col);
+//                    }
+//                }
+//            }
+//        }// Render loop
+//        endBarrier_.arrive_and_wait();
+//    }// Thread loop
+//}

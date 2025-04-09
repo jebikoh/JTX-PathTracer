@@ -4,8 +4,8 @@
 #include "logger.hpp"
 #include "mesh.hpp"
 
-static const Vec3 GOLD_IOR                = {0.15557, 0.42415, 1.3831};
-static const Vec3 GOLD_K                  = {-3.6024, -2.4721, -1.9155};
+static const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
+static const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};
 
 bool Scene::closestHit(const Ray &r, Interval t, SurfaceIntersection &record) const {
     const auto invDir     = 1 / r.dir;
@@ -26,7 +26,7 @@ bool Scene::closestHit(const Ray &r, Interval t, SurfaceIntersection &record) co
             if (node->numPrimitives > 0) {
                 // Leaf node
                 for (int i = 0; i < node->numPrimitives; ++i) {
-                    const Triangle& tri = primitives_[node->primitivesOffset + i];
+                    const Triangle &tri = primitives_[node->primitivesOffset + i];
                     float u, v;
                     if (meshes[tri.meshIndex].tClosestHit(r, t, record, tri.index, u, v)) {
                         hitAnything = true;
@@ -67,7 +67,7 @@ bool Scene::anyHit(const Ray &r, const Interval t) const {
         if (node->bbox.hit(r.origin, r.dir, t)) {
             if (node->numPrimitives > 0) {
                 for (int i = 0; i < node->numPrimitives; ++i) {
-                    const Triangle& tri = primitives_[node->primitivesOffset + i];
+                    const Triangle &tri = primitives_[node->primitivesOffset + i];
                     if (meshes[tri.meshIndex].tAnyHit(r, t, tri.index)) {
                         return true;
                     }
@@ -139,7 +139,7 @@ Scene createScene(const std::string &path, const Mat4 &t, const Vec3 &background
     scene.name = "File scene";
     loadScene(path, scene);
 
-    scene.cameraProperties.position        = Vec3(0, 0, 8);
+    scene.cameraProperties.position      = Vec3(0, 0, 8);
     scene.cameraProperties.target        = Vec3(0, 0, 0);
     scene.cameraProperties.up            = Vec3(0, 1, 0);
     scene.cameraProperties.yfov          = 20;
@@ -170,20 +170,17 @@ Scene createShaderBallScene(const bool highSubdivision) {
 
 
     scene.cameraProperties.position = Vec3(2.5, 16, 12);
-    scene.cameraProperties.target = Vec3(0, 3, 0);
-    scene.cameraProperties.yfov   = 40;
+    scene.cameraProperties.target   = Vec3(0, 3, 0);
+    scene.cameraProperties.yfov     = 40;
 
     scene.skyColor = Vec3(0.7, 0.8, 1.0);
 
-    scene.materials.push_back({
-        .mType = Material::CONDUCTOR,
-        .parameters = {
-            .ior = GOLD_IOR,
-            .k = GOLD_K,
-            .alphaX = 0.05,
-            .alphaY = 0.05
-        }
-    });
+    scene.materials.push_back({.mType      = Material::CONDUCTOR,
+                               .parameters = {
+                                       .ior    = GOLD_IOR,
+                                       .k      = GOLD_K,
+                                       .alphaY = 0.05,
+                                       .alphaX = 0.05}});
     // scene.materials.push_back({.type = Material::DIELECTRIC, .IOR = Vec3(1.5), .alphaX = 0.01, .alphaY = 0.01, .texId = scene.meshes[3].material->texId});
     scene.meshes[3].material = &scene.materials.back();
 
@@ -252,37 +249,31 @@ Scene createKnobScene() {
     auto scene             = createScene(path, t);
 
     scene.cameraProperties.position = Vec3(0, 3, 8);
-    scene.cameraProperties.target = Vec3(0, 0, 0);
-    scene.cameraProperties.yfov   = 15;
+    scene.cameraProperties.target   = Vec3(0, 0, 0);
+    scene.cameraProperties.yfov     = 15;
 
     scene.materials.push_back({
-        .mType = Material::DIFFUSE,
-        .parameters = {.albedo = Vec3(0.3, 0.3, 0.0)},
+            .mType      = Material::DIFFUSE,
+            .parameters = {.albedo = Vec3(0.3, 0.3, 0.0)},
     });
     scene.meshes[0].material = &scene.materials.back();
 
-    const Vec3 GOLD_IOR = {0.15557, 0.42415, 1.3831};
-    const Vec3 GOLD_K   = {-3.6024, -2.4721, -1.9155};
-    scene.materials.push_back({
-        .mType = Material::CONDUCTOR,
-        .parameters =  {
-            .ior = GOLD_IOR,
-            .k = GOLD_K,
-            .alphaX = 0.05,
-            .alphaY = 0.05
-        }
-    });
+    scene.materials.push_back({.mType      = Material::CONDUCTOR,
+                               .parameters = {
+                                       .ior    = GOLD_IOR,
+                                       .k      = GOLD_K,
+                                       .alphaY = 0.05,
+                                       .alphaX = 0.05,
+                               }});
     scene.meshes[1].material = &scene.materials.back();
     scene.meshes[2].material = &scene.materials.back();
 
-    scene.materials.push_back({
-        .mType = Material::DIELECTRIC,
-        .parameters = {
-            .ior = Vec3(1.5),
-            .alphaX = 0.3,
-            .alphaY = 0.3
-        }
-    });
+    scene.materials.push_back({.mType      = Material::DIELECTRIC,
+                               .parameters = {
+                                       .ior    = Vec3(1.5),
+                                       .alphaY = 0.3,
+                                       .alphaX = 0.3,
+                               }});
     scene.meshes[3].material = &scene.materials.back();
 
     return scene;

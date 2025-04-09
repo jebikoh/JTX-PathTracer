@@ -29,19 +29,19 @@ public:
         const float cosTheta_i = jtx::absCosTheta(wi);
         if (cosTheta_o == 0 || cosTheta_i == 0) return {};
 
-
+        return {};
     }
 
     bool sample(const Vec3 &wo, float uc, const Vec2f &u, BSDFSample &s) const {
-
+        return false;
     }
 
     [[nodiscard]] float pdf(const Vec3 &wo, const Vec3 &wi) const {
-
+        return false;
     }
 
 private:
     GGX mf_;
     Vec3 albedo_;
     float metallic_;
-}
+};

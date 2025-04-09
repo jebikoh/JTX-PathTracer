@@ -24,8 +24,8 @@ struct Material {
     } parameters;
 
     struct TextureIndices {
-        size_t albedo = -1;
-        size_t mr = -1;
+        int32_t albedo = -1;
+        int32_t mr = -1;
     } textureIndices;
 };
 

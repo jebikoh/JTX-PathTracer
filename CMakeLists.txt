@@ -75,14 +75,14 @@ add_subdirectory(ext/glad)
 add_subdirectory(ext/fastgltf)
 
 # EMBREE
-set(EMBREE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ext/embree/include)
-
-if(WIN32)
-    set(EMBREE_LIBRARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ext/embree/lib)
-    set(EMBREE_LIBRARIES ${EMBREE_LIBRARY_DIR}/ext/embree/lib/embree4.lib)
-endif()
-
-include_directories(${EMBREE_INCLUDE_DIR})
+#set(EMBREE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ext/embree/include)
+#
+#if(WIN32)
+#    set(EMBREE_LIBRARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ext/embree/lib)
+#    set(EMBREE_LIBRARIES ${EMBREE_LIBRARY_DIR}/ext/embree/lib/embree4.lib)
+#endif()
+#
+#include_directories(${EMBREE_INCLUDE_DIR})
 
 include(FetchContent)
 FetchContent_Declare(
@@ -141,7 +141,8 @@ add_executable(JTX
         src/bsdf/metallic_roughness.hpp
 )
 
-target_link_libraries(JTX PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui fmt::fmt fastgltf::fastgltf ${EMBREE_LIBRARIES})
+#target_link_libraries(JTX PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui fmt::fmt fastgltf::fastgltf ${EMBREE_LIBRARIES})
+target_link_libraries(JTX PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui fmt::fmt fastgltf::fastgltf)
 
 target_include_directories(JTX
         PRIVATE
@@ -161,9 +162,9 @@ add_custom_command(TARGET JTX POST_BUILD
         COMMENT "Copying assets directory to output folder"
 )
 
-if(WIN32)
-    add_custom_command(TARGET JTX POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${EMBREE_LIBRARY_DIR}/embree4.dll
-            $<TARGET_FILE_DIR:JTX>)
-endif()
+#if(WIN32)
+#    add_custom_command(TARGET JTX POST_BUILD
+#            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#            ${EMBREE_LIBRARY_DIR}/embree4.dll
+#            $<TARGET_FILE_DIR:JTX>)
+#endif()

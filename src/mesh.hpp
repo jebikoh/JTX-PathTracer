@@ -9,9 +9,6 @@
 struct Mesh {
     std::string name;
 
-    int numVertices;
-    int numIndices;
-
     std::vector<Vec3i> indices;
     std::vector<Vec3> vertices;
     std::vector<Vec3> normals;

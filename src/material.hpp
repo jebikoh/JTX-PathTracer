@@ -7,6 +7,7 @@ struct Material {
         DIFFUSE    = 0,
         DIELECTRIC = 1,
         CONDUCTOR  = 2,
+        METALLIC_ROUGHNESS = 3,
     };
 
     Type mType = DIFFUSE;
@@ -18,10 +19,13 @@ struct Material {
         Vec3 emission;
         float alphaY;
         float alphaX;
+        float metallic;
+        float roughness;
     } parameters;
 
     struct TextureIndices {
-        uint albedo = -1;
+        size_t albedo = -1;
+        size_t mr = -1;
     } textureIndices;
 };
 

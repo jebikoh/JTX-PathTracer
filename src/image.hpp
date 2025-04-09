@@ -92,32 +92,42 @@ private:
 };
 
 enum class ImageFormat {
-    AUTO,
-    EXR
+    STBI,
+    EXR,
+    CONSTANT
 };
 
 class TextureImage {
 public:
-    TextureImage()
-        : width_(0),
-          height_(0),
-          channels_(0),
-          data_(nullptr) {}
+    TextureImage() = delete;
 
     explicit TextureImage(const char *path) { load(path); }
     explicit TextureImage(const unsigned char *buffer, size_t bufferSize, ImageFormat format) {
         load(buffer, bufferSize, format);
     }
+    explicit TextureImage(const Vec3 &color, const std::string &name) {
+        format_ = ImageFormat::CONSTANT;;
+        name_ = name;
+
+        width_ = 1;
+        height_ = 1;
+        channels_ = 1;
+
+        data_ = new float[3];
+        data_[0] = color.r;
+        data_[1] = color.g;
+        data_[2] = color.b;
+    }
 
     TextureImage(TextureImage &&other) noexcept
-        : isExr_(other.isExr_),
-          path_(other.path_),
+        : format_(other.format_),
+          name_(other.name_),
           width_(other.width_),
           height_(other.height_),
           channels_(other.channels_),
           data_(other.data_) {
         other.data_  = nullptr;
-        other.path_  = "";
+        other.name_  = "";
         other.width_ = other.height_ = other.channels_ = 0;
     }
 
@@ -215,13 +225,14 @@ public:
     }
 
 private:
-    bool isExr_;
-    std::string path_;
-
-    bool loadEXR(const char *path);
+    ImageFormat format_;
+    std::string name_;
 
     int width_;
     int height_;
     int channels_;
     float *data_;
+
+
+    bool loadEXR(const char *path);
 };

@@ -8,7 +8,6 @@
 #include <rapidobj.hpp>
 
 #include <fastgltf/core.hpp>
-#include <fastgltf/glm_element_traits.hpp>
 #include <fastgltf/tools.hpp>
 
 const Material DEFAULT_MATERIAL = {
@@ -24,9 +23,11 @@ bool loadScene(const std::string &path, Scene &scene) {
         return false;
     }
     const auto ext = path.substr(lastDot);
+    const size_t lastSlash = path.find_last_of("/");
+    scene.name = path.substr(lastSlash + 1, lastDot);
 
     if (ext == ".obj") { return loadObj(path, scene); }
-    if (ext == ".gltf") { return loadGltf(path, scene); }
+    if (ext == ".gltf" || ext == ".glb") { return loadGltf(path, scene); }
 
     LOG_ERROR("File extension not supported: ", ext);
     return false;
@@ -90,7 +91,7 @@ bool loadObj(const std::string &path, Scene &scene) {
         Mesh newMesh{};
 
         const auto &mesh = shape.mesh;
-        newMesh.name = shape.name.empty() ? std::string("mesh_") + std::to_string(scene.meshes.size()) : shape.name;
+        newMesh.name     = shape.name.empty() ? std::string("mesh_") + std::to_string(scene.meshes.size()) : shape.name;
         LOG_INFO("Loading mesh: {}", newMesh.name);
 
         const int numIdx      = mesh.indices.size() / 3;
@@ -183,6 +184,34 @@ bool loadObj(const std::string &path, Scene &scene) {
     return true;
 }
 
+std::optional<TextureImage> detail::loadTexture(fastgltf::Asset &asset, fastgltf::Image &image) {
+    std::optional<TextureImage> result;
+    std::visit(fastgltf::visitor{
+                       [](auto &arg) {},
+                       [&](fastgltf::sources::URI &filePath) {
+                           assert(filePath.fileByteOffset == 0);// We don't support offsets with stbi.
+                           assert(filePath.uri.isLocalPath());  // We're only capable of loading local files.
+                           const std::string path(filePath.uri.path().begin(), filePath.uri.path().end());
+                           result = TextureImage(path.c_str());
+                       },
+                       [&](fastgltf::sources::Array &vector) {
+                           result = TextureImage(reinterpret_cast<const unsigned char *>(vector.bytes.data()), static_cast<size_t>(vector.bytes.size()), ImageFormat::STBI);
+                       },
+                       [&](fastgltf::sources::BufferView &view) {
+                           auto &bufferView = asset.bufferViews[view.bufferViewIndex];
+                           auto &buffer     = asset.buffers[bufferView.bufferIndex];
+                           std::visit(fastgltf::visitor{
+                                              [](auto &arg) {},
+                                              [&](fastgltf::sources::Array &vector) {
+                                                  result = TextureImage(reinterpret_cast<const unsigned char *>(vector.bytes.data() + bufferView.byteOffset), static_cast<int>(bufferView.byteLength), ImageFormat::STBI);
+                                              }},
+                                      buffer.data);
+                       },
+               },
+               image.data);
+    return result;
+}
+
 bool loadGltf(const std::filesystem::path &path, Scene &scene) {
     LOG_INFO("Loading glTF file: {}", path.string());
 
@@ -219,7 +248,146 @@ bool loadGltf(const std::filesystem::path &path, Scene &scene) {
     }
 
     // TEXTURES
-    for (fastgltf::Image &image : gltf.images) {
+    size_t textureIndex = 0;
+    std::unordered_map<size_t, size_t> indexMap;
+    for (fastgltf::Image &image: gltf.images) {
+        std::optional<TextureImage> img = detail::loadTexture(gltf, image);
 
+        std::string imgName;
+        if (image.name.empty()) {
+            imgName = "texture_" + std::to_string(scene.textures.size());
+        } else {
+            imgName = image.name;
+        }
+
+        if (img.has_value()) {
+            indexMap[textureIndex] = scene.textures.size();
+            scene.textures.emplace_back(std::move(img.value()));
+            LOG_INFO("Loaded texture: {}", imgName);
+        } else {
+            indexMap[textureIndex] = -1;
+            LOG_ERROR("Failed to load texture: {}", imgName);
+        }
+        textureIndex++;
     }
+
+    // MATERIALS
+    scene.materials.reserve(gltf.materials.size());
+    std::unordered_map<size_t, size_t> materials;
+    for (fastgltf::Material &material : gltf.materials) {
+        Material mat;
+        mat.mType = Material::METALLIC_ROUGHNESS;
+        mat.parameters.albedo = Vec3(material.pbrData.baseColorFactor.data());
+        mat.parameters.metallic = material.pbrData.metallicFactor;
+        mat.parameters.roughness = material.pbrData.roughnessFactor;
+
+        if (material.pbrData.baseColorTexture.has_value()) {
+            size_t index = gltf.textures[material.pbrData.baseColorTexture.value().textureIndex].imageIndex.value();
+            mat.textureIndices.albedo = indexMap[index];
+        }
+
+        if (material.pbrData.metallicRoughnessTexture.has_value()) {
+            size_t index = gltf.textures[material.pbrData.metallicRoughnessTexture.value().textureIndex].imageIndex.value();
+            mat.textureIndices.mr = indexMap[index];
+        }
+        scene.materials.emplace_back(std::move(mat));
+    }
+
+    // SCENE DATA
+    for (fastgltf::Mesh &mesh : gltf.meshes) {
+        std::string prefix = mesh.name.c_str();
+        prefix += "_";
+
+        int meshIndex = 0;
+        for (auto &&p : mesh.primitives) {
+            Mesh newMesh;
+            newMesh.name = prefix + std::to_string(meshIndex);
+            LOG_INFO("Loading mesh: {}", newMesh.name);
+
+            // INDICES
+            {
+                fastgltf::Accessor &accessor = gltf.accessors[p.indicesAccessor.value()];
+                newMesh.indices.reserve(accessor.count / 3);
+                std::vector<uint32_t> indices(accessor.count);
+
+                // fastgltf iterates one-by-one, but we store our
+                fastgltf::iterateAccessor<std::uint32_t>(gltf, accessor,
+                    [&](const std::uint32_t idx) {
+                        indices.push_back(idx);
+                    });
+
+                for (size_t i = 0; i < indices.size(); i += 3) {
+                    newMesh.indices.emplace_back(&indices[i]);
+                }
+            }
+
+            // VERTICES
+            {
+                fastgltf::Accessor &accessor = gltf.accessors[p.findAttribute("POSITION")->accessorIndex];
+                newMesh.vertices.reserve(accessor.count);
+                fastgltf::iterateAccessor<fastgltf::math::fvec3>(gltf, accessor,
+                    [&](const fastgltf::math::fvec3 &v) {
+                        newMesh.vertices.emplace_back(v.data());
+                    });
+            }
+
+            // NORMALS
+            {
+                auto normals = p.findAttribute("NORMAL");
+                if (normals != p.attributes.end()) {
+                    auto &accessor = gltf.accessors[normals->accessorIndex];
+                    fastgltf::iterateAccessor<fastgltf::math::fvec3>(gltf, accessor,
+                        [&](const fastgltf::math::fvec3 &v) {
+                            newMesh.normals.emplace_back(v.data());
+                        });
+                }
+            }
+
+            // UVS
+            {
+                auto uvs = p.findAttribute("TEXCOORD_0");
+                if (uvs != p.attributes.end()) {
+                    auto &accessor = gltf.accessors[uvs->accessorIndex];
+                    fastgltf::iterateAccessor<fastgltf::math::fvec2>(gltf, accessor,
+                        [&](const fastgltf::math::fvec2 &v) {
+                            newMesh.uvs.emplace_back(v.data());
+                        });
+                }
+            }
+
+            // COLORS
+            {
+                auto colors = p.findAttribute("COLOR_0");
+                if (colors != p.attributes.end()) {
+                    auto &accessor = gltf.accessors[colors->accessorIndex];
+                    fastgltf::iterateAccessor<fastgltf::math::fvec4>(gltf, accessor,
+                        [&](const fastgltf::math::fvec4 &v) {
+                            newMesh.colors.emplace_back(v.data());
+                        });
+                }
+            }
+
+            if (p.materialIndex.has_value()) {
+                newMesh.material = &scene.materials[p.materialIndex.value()];
+            } else {
+                newMesh.material = &scene.materials.front();
+            }
+
+            meshIndex = scene.meshes.size();
+            for (int i = 0; i < newMesh.indices.size(); i++) {
+                Triangle tri;
+                tri.index     = i;
+                tri.meshIndex = meshIndex;
+                scene.triangles.emplace_back(tri);
+            }
+
+            LOG_INFO("Loaded mesh {} with {} vertices and {} faces", newMesh.name, newMesh.indices.size(), newMesh.vertices.size());
+
+            scene.meshes.emplace_back(std::move(newMesh));
+            meshIndex++;
+        }
+    }
+
+    LOG_INFO("Loaded scene: {}", scene.name);
+    return true;
 }

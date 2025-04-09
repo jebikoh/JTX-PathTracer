@@ -3,6 +3,7 @@
 #include "bvh.hpp"
 #include "camera.hpp"
 #include "display.hpp"
+#include "loader.hpp"
 #include "scene.hpp"
 #include <thread>
 
@@ -14,7 +15,18 @@ constexpr int MAX_DEPTH    = 50;
 int main(int argc, char *argv[]) {
     const int threadCapacity = std::thread::hardware_concurrency();
 
-    Scene scene = createShaderBallSceneWithLight(true);
+    // Scene scene = createShaderBallSceneWithLight(true);
+
+    Scene scene;
+    loadScene("assets/scenes/helmet.glb", scene);
+    scene.cameraProperties.position = Vec3(1, 1, 1);
+    scene.cameraProperties.target   = Vec3(0, 0, 0);
+    scene.cameraProperties.yfov     = 40;
+    scene.skyColor    = Color::SKY_BLUE;
+
+    scene.materials.back().mType = Material::DIFFUSE;
+    scene.materials.back().parameters.albedo = Color::BLACK;
+
     scene.buildBVH();
 
 #ifndef JTX_DISABLE_UI

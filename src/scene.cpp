@@ -1,4 +1,5 @@
 #include "scene.hpp"
+#include "bsdf/conductor.hpp"
 #include "loader.hpp"
 #include "logger.hpp"
 #include "mesh.hpp"
@@ -147,13 +148,8 @@ Scene createScene(const std::string &path, const Mat4 &t, const Vec3 &background
 
     scene.skyColor = background;
 
-    int numVertices = 0;
-    for (const auto &mesh: scene.meshes) {
-        numVertices += mesh.numVertices;
-    }
-
     // Transform all verts and norms
-    for (int i = 0; i < scene.meshes[0].numVertices; ++i) {
+    for (int i = 0; i < scene.meshes[0].vertices.size(); ++i) {
         scene.meshes[0].vertices[i] = t.applyToPoint(scene.meshes[0].vertices[i]);
         scene.meshes[0].normals[i]  = t.applyToNormal(scene.meshes[0].normals[i]);
     }
@@ -207,8 +203,8 @@ Scene createShaderBallSceneWithLight(const bool highSubdivision) {
     }
 
     scene.cameraProperties.position = Vec3(2.5, 16, 12);
-    scene.cameraProperties.target = Vec3(0, 3, 0);
-    scene.cameraProperties.yfov   = 40;
+    scene.cameraProperties.target   = Vec3(0, 3, 0);
+    scene.cameraProperties.yfov     = 40;
 
     // scene.skyColor = Vec3(0.1, 0.1, 0.1);
     // scene.skyColor    = BLACK;
@@ -230,14 +226,21 @@ Scene createShaderBallSceneWithLight(const bool highSubdivision) {
     // Base
     // scene.materials.push_back({.type = Material::CONDUCTOR, .IOR = GOLD_IOR, .k = GOLD_K, .alphaX = 0.05, .alphaY = 0.05});
 
-    Material matDielectric{};
-    matDielectric.mType = Material::DIELECTRIC;
-    matDielectric.parameters.ior = Vec3(1.5);
-    matDielectric.parameters.alphaX = 0.01;
-    matDielectric.parameters.alphaY = 0.01;
-    matDielectric.textureIndices.albedo = -1;
+    // Material matDielectric{};
+    // matDielectric.mType = Material::DIELECTRIC;
+    // matDielectric.parameters.ior = Vec3(1.5);
+    // matDielectric.parameters.alphaX = 0.01;
+    // matDielectric.parameters.alphaY = 0.01;
+    // matDielectric.textureIndices.albedo = -1;
 
-    scene.materials.push_back(matDielectric);
+    Material matSS{};
+    matSS.mType                 = Material::CONDUCTOR;
+    matSS.parameters            = JTX_BXDF_PRESET_STAINLESS_STEEL;
+    matSS.parameters.alphaX     = 0.01;
+    matSS.parameters.alphaY     = 0.01;
+    matSS.textureIndices.albedo = -1;
+
+    scene.materials.push_back(matSS);
     scene.meshes[3].material = &scene.materials.back();
 
     return scene;

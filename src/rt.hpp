@@ -15,7 +15,7 @@ constexpr Float INF = jtx::INFINITY_F;
 constexpr Float PI  = jtx::PI_F;
 
 using Vec2i = jtx::Vec2i;
-using Vec3i = jtx::Vec3i;
+using Vec3i = jtx::Vec3<uint32_t>;
 
 using Mat4 = jtx::Mat4;
 using Transform = jtx::Transform;

@@ -29,7 +29,7 @@ void RGB8Image::save(const char *path) const {
 TextureImage &TextureImage::operator=(TextureImage &&other) noexcept {
     if (this != &other) {
         if (data_) {
-            if (isExr_) {
+            if (format_ != ImageFormat::STBI) {
                 free(data_);
             } else {
                 stbi_image_free(data_);
@@ -40,7 +40,7 @@ TextureImage &TextureImage::operator=(TextureImage &&other) noexcept {
         width_ = other.width_;
         height_ = other.height_;
         channels_ = other.channels_;
-        isExr_ = other.isExr_;
+        format_ = other.format_;
 
         other.data_ = nullptr;
         other.width_ = other.height_ = other.channels_ = 0;
@@ -50,7 +50,7 @@ TextureImage &TextureImage::operator=(TextureImage &&other) noexcept {
 
 TextureImage::~TextureImage() {
     if (data_) {
-        if (isExr_) {
+        if (format_ != ImageFormat::STBI) {
             free(data_);
         } else {
             stbi_image_free(data_);
@@ -59,16 +59,16 @@ TextureImage::~TextureImage() {
 }
 
 bool TextureImage::load(const char *path) {
-    path_                 = std::string(path);
-    const std::string ext = path_.substr(path_.find_last_of(".") + 1);
+    name_                 = std::string(path);
+    const std::string ext = name_.substr(name_.find_last_of(".") + 1);
 
     if (ext == "exr" || ext == "EXR") {
         // Use TinyEXR for EXR files
-        isExr_ = true;
+        format_ = ImageFormat::EXR;
         return loadEXR(path);
     } else {
         // Use stb_image for other formats
-        isExr_ = false;
+        format_ = ImageFormat::STBI;
         data_  = stbi_loadf(path, &width_, &height_, &channels_, 0);
         return data_ != nullptr;
     }
@@ -81,7 +81,7 @@ bool TextureImage::load(const unsigned char *buffer, const size_t bufferSize, co
     }
 
     if (format == ImageFormat::EXR) {
-        isExr_ = true;
+        format_ = ImageFormat::EXR;
         const char *err;
         const int ret = LoadEXRFromMemory(&data_, &width_, &height_, buffer, bufferSize, &err);
         if (ret != TINYEXR_SUCCESS) {
@@ -92,17 +92,17 @@ bool TextureImage::load(const unsigned char *buffer, const size_t bufferSize, co
             }
         }
         channels_ = 4;
-        path_ = "mem_exr";
+        name_ = "mem_exr";
         return true;
     } else {
-        isExr_ = false;
+        format_ = ImageFormat::STBI;
         data_ = stbi_loadf_from_memory(buffer, static_cast<int>(bufferSize), &width_, &height_, &channels_, 0);
         if (!data_) {
             LOG_ERROR("Failed to load texture from memory");
             return false;
         }
 
-        path_ = "mem_stbi";
+        name_ = "mem_stbi";
         return true;
     }
 }

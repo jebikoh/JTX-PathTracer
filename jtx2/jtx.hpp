@@ -7,7 +7,7 @@
 // Typedefs
 using vec2  = jtx::Vec2f;
 using vec2i = jtx::Vec2i;
-using vec2u = jtx::Vec2u;
+using vec2u = jtx::Vec2<uint32_t>;
 
 using vec3  = jtx::Vec3f;
 using vec3i = jtx::Vec3i;

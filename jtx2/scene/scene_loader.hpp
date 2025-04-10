@@ -3,8 +3,11 @@
 #include "scene.hpp"
 
 #include <filesystem>
+#include <set>
 
 namespace jtx {
+
+static const std::set<std::string> JTX_SCENE_SUPPORTED_FORMATS = {"obj", "gltf", "glb"};
 
 /**
  * Loads any of the supported filetypes into the given scene.

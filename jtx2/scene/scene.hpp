@@ -1,6 +1,6 @@
 #pragma once
 
-#include <jtx.hpp>
+#include "jtx.hpp"
 #include "material.h"
 
 // TODO: add TRS transform and basic scene graph

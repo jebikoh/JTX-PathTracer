@@ -1,15 +1,11 @@
 #include "scene_loader.hpp"
-#include <set>
-
 #include <rapidobj.hpp>
-
-static const std::set<std::string> JTX_SUPPORTED_FILE_EXTENSIONS = {"obj", "gltf", "glb"};
 
 bool jtx::loadScene(const std::filesystem::path &path, Scene &scene) {
     LOG_INFO("Loading scene: {}", path.string());
     auto fileExt = path.extension().string();
     std::ranges::transform(fileExt, fileExt.begin(), [](const unsigned char c) { return std::tolower(c); });
-    if (!JTX_SUPPORTED_FILE_EXTENSIONS.contains(fileExt)) {
+    if (!JTX_SCENE_SUPPORTED_FORMATS.contains(fileExt)) {
         LOG_ERROR("File extension not supported: {}", fileExt);
         return false;
     }
@@ -65,7 +61,6 @@ bool jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &scene) 
             if (textureMap.contains(texturePath)) {
                 mat.textureIndices.albedo = textureMap[texturePath];
             } else {
-                LOG_INFO("Loading texture: {}", texturePath);
                 // TODO
                 // textureMap[texturePath] = scene.textures.size() - 1;
                 // mat.textureIndices.albedo = tex

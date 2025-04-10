@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 
+# CMAKE FLAGS
 option(JTX_ENABLE_CUDA_BACKEND "Enable CUDA backend" OFF)
 option(JTX_ENABLE_PROFILING "Enable profiling" ON)
 option(JTX_ENABLE_PERF_FLAGS "Enable performance flags" ON)
@@ -15,6 +16,7 @@ endif ()
 
 set(CMAKE_CXX_STANDARD 20)
 
+# PROCESS CMAKE FLAGS
 if (JTX_ENABLE_CUDA_BACKEND)
     include(CheckLanguage)
     check_language(CUDA)
@@ -63,27 +65,39 @@ if (JTX_ENABLE_PERF_FLAGS)
     endif ()
 endif ()
 
-add_subdirectory(ext/jtxlib)
-
+# DEPENDENCIES
+# Vulkan
+find_package(Vulkan REQUIRED)
+# volk
+add_subdirectory(ext/volk)
+# VkBootstrap
+add_subdirectory(ext/vkbootstrap)
+# VMA
+add_subdirectory(ext/vma)
+# SDL2
 add_subdirectory(ext/sdl EXCLUDE_FROM_ALL)
-
-find_package(OpenGL REQUIRED)
-include_directories(${OPENGL_INCLUDE_DIR})
-
-add_subdirectory(ext/glad)
-
+# ImGUI
+add_library(imgui STATIC)
+target_include_directories(imgui PUBLIC ext/imgui)
+target_sources(imgui PRIVATE
+        ext/imgui/imgui.h
+        ext/imgui/imgui.cpp
+        ext/imgui/imgui_demo.cpp
+        ext/imgui/imgui_draw.cpp
+        ext/imgui/imgui_widgets.cpp
+        ext/imgui/imgui_tables.cpp
+        ext/imgui/imgui_impl_vulkan.cpp
+        ext/imgui/imgui_impl_sdl2.cpp
+)
+target_compile_definitions(imgui
+        PUBLIC IMGUI_IMPL_VULKAN_USE_VOLK
+)
+target_link_libraries(imgui PUBLIC volk Vulkan::Vulkan SDL2::SDL2)
+# JTXlib
+add_subdirectory(ext/jtxlib)
+# fastglTF
 add_subdirectory(ext/fastgltf)
-
-# EMBREE
-#set(EMBREE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ext/embree/include)
-#
-#if(WIN32)
-#    set(EMBREE_LIBRARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ext/embree/lib)
-#    set(EMBREE_LIBRARIES ${EMBREE_LIBRARY_DIR}/ext/embree/lib/embree4.lib)
-#endif()
-#
-#include_directories(${EMBREE_INCLUDE_DIR})
-
+# fmt
 include(FetchContent)
 FetchContent_Declare(
         fmt
@@ -91,61 +105,53 @@ FetchContent_Declare(
         GIT_TAG        e69e5f977d458f2650bb346dadf2ad30c5320281) # 10.2.1
 FetchContent_MakeAvailable(fmt)
 
-# ImGUI
-set(IMGUI_PATH "ext/imgui")
-file(GLOB IMGUI_SOURCES ${IMGUI_PATH}/*.cpp)
-add_library(imgui STATIC ${IMGUI_SOURCES})
-target_include_directories(imgui PUBLIC ${IMGUI_PATH})
-target_link_libraries(imgui PRIVATE glad SDL2::SDL2)
-
-add_executable(JTX
-        src/main.cpp
-        src/rt.hpp
-        src/util/color.hpp
-        src/camera.hpp
-        src/image.hpp
-        src/bvh.hpp
-        src/material.hpp
-        src/display.hpp
-        src/display.cpp
-        src/image.cpp
-        src/scene.hpp
-        src/scene.cpp
-        src/camera.cpp
-        src/primitives.hpp
-        src/primitives.hpp
-        src/util/rand.hpp
-        src/util/interval.hpp
-        src/util/interval.cpp
-        src/util/aabb.hpp
-        src/util/aabb.cpp
-        src/bvh.cpp
-        src/sampling.hpp
-        src/util/hash.hpp
-        src/filter.hpp
-        src/mesh.hpp
-        src/integrator.hpp
-        src/integrator.cpp
-        src/util/complex.hpp
-        src/bsdf/diffuse.hpp
-        src/bsdf/bxdf.hpp
-        src/bsdf/bxdf.cpp
-        src/bsdf/conductor.hpp
-        src/bsdf/dielectric.hpp
-        src/bsdf/microfacet.hpp
-        src/lights/lights.hpp
-        src/bsdf/disney.hpp
-        src/loader.hpp
-        src/loader.cpp
-        src/logger.hpp
-        src/bsdf/metallic_roughness.hpp
+# JTX Executable
+SET (JVK_HEADERS
+        jtx2/ui/jvk/buffer.hpp
+        jtx2/ui/jvk/commands.hpp
+        jtx2/ui/jvk/context.hpp
+        jtx2/ui/jvk/descriptor.hpp
+        jtx2/ui/jvk/fence.hpp
+        jtx2/ui/jvk/image.hpp
+        jtx2/ui/jvk/init.hpp
+        jtx2/ui/jvk/jvk.hpp
+        jtx2/ui/jvk/pipeline.hpp
+        jtx2/ui/jvk/queue.hpp
+        jtx2/ui/jvk/sampler.hpp
+        jtx2/ui/jvk/semaphore.hpp
+        jtx2/ui/jvk/shaders.hpp
+        jtx2/ui/jvk/swapchain.hpp
+        jtx2/ui/jvk/util.hpp
 )
 
-#target_link_libraries(JTX PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui fmt::fmt fastgltf::fastgltf ${EMBREE_LIBRARIES})
-target_link_libraries(JTX PRIVATE jtxlib SDL2::SDL2main SDL2::SDL2 glad imgui fmt::fmt fastgltf::fastgltf)
+set (JVK_SOURCE
+        jtx2/ui/jvk/descriptor.cpp
+        jtx2/ui/jvk/pipeline.cpp
+        jtx2/ui/jvk/util.cpp
+)
+
+add_executable(
+        JTX
+        ${JVK_SOURCE}
+        ${JVK_HEADERS}
+        jtx2/main.cpp
+        jtx2/jtx.hpp
+        jtx2/util/logger.hpp
+        jtx2/scene/scene.hpp
+        jtx2/material.h
+        jtx2/scene/scene_loader.hpp
+        jtx2/image.hpp
+        jtx2/ui/display.hpp
+        jtx2/ui/display.cpp
+        jtx2/scene/scene_loader.cpp
+)
+
+
+target_link_libraries(JTX PRIVATE Vulkan::Vulkan GPUOpen::VulkanMemoryAllocator vk-bootstrap::vk-bootstrap volk jtxlib SDL2::SDL2main SDL2::SDL2 imgui fmt::fmt fastgltf::fastgltf)
 
 target_include_directories(JTX
         PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/jtx2/
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/jtxlib/src
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/stb
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/rapidobj
@@ -161,10 +167,3 @@ add_custom_command(TARGET JTX POST_BUILD
         $<TARGET_FILE_DIR:JTX>/assets
         COMMENT "Copying assets directory to output folder"
 )
-
-#if(WIN32)
-#    add_custom_command(TARGET JTX POST_BUILD
-#            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-#            ${EMBREE_LIBRARY_DIR}/embree4.dll
-#            $<TARGET_FILE_DIR:JTX>)
-#endif()

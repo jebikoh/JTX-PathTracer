@@ -2,7 +2,6 @@
 
 #include <jtxlib/math.hpp>
 
-
 class BVHTree;
 class PrimitiveList;
 

@@ -11,3 +11,12 @@
 [submodule "ext/fastgltf"]
 	path = ext/fastgltf
 	url = https://github.com/spnda/fastgltf.git
+[submodule "ext/vkbootstrap"]
+	path = ext/vkbootstrap
+	url = https://github.com/charles-lunarg/vk-bootstrap.git
+[submodule "ext/vma"]
+	path = ext/vma
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+[submodule "ext/volk"]
+	path = ext/volk
+	url = https://github.com/zeux/volk.git

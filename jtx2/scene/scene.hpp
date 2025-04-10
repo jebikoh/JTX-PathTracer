@@ -7,6 +7,14 @@
 
 namespace jtx {
 
+struct TextureImage;
+
+/**
+ * A mesh consists of a group of triangles that share a single material.
+ *
+ * A mesh's geometry is defined by its starting position in it's parent
+ * scene's index buffer and the number of triangles it contains.
+ */
 struct Mesh {
     std::string name;
     uint32_t startIndex;
@@ -41,7 +49,7 @@ struct Scene {
 
     // Materials & textures
     std::vector<Material> materials;
-    // std::vector<TextureImage> textures;
+    std::vector<TextureImage> textures;
     std::vector<Mesh> meshes;
 };
 

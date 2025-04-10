@@ -1,15 +1,16 @@
 #include "scene_loader.hpp"
-
 #include <set>
+
+#include <rapidobj.hpp>
 
 static const std::set<std::string> JTX_SUPPORTED_FILE_EXTENSIONS = {"obj", "gltf", "glb"};
 
 bool jtx::loadScene(const std::filesystem::path &path, Scene &scene) {
-    LOG_INFO("Loading scene: {}", path.c_str());
+    LOG_INFO("Loading scene: {}", path.string());
     auto fileExt = path.extension().string();
     std::ranges::transform(fileExt, fileExt.begin(), [](const unsigned char c) { return std::tolower(c); });
     if (!JTX_SUPPORTED_FILE_EXTENSIONS.contains(fileExt)) {
-        LOG_ERROR("File extension not supported: ", fileExt);
+        LOG_ERROR("File extension not supported: {}", fileExt);
         return false;
     }
 
@@ -23,4 +24,134 @@ bool jtx::loadScene(const std::filesystem::path &path, Scene &scene) {
 
     LOG_INFO("Scene loaded");
     return true;
+}
+
+/**
+ * A few things to note about the OBJ loader:
+ *  - The y texture coordinate is flipped in OBJ files
+ *  - OBJ files allow different materials per face, but we only support one material per mesh;
+ *    so we just grab the first material ID per mesh and use that for all faces
+ */
+bool jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &scene) {
+    LOG_INFO("Loading OBJ file: {}", path.string());
+
+    rapidobj::Result result = rapidobj::ParseFile(path.string());
+    if (result.error) {
+        LOG_ERROR("Error loading OBJ file: {}", result.error.code.message());
+        return false;
+    }
+
+    std::string baseDir = path.parent_path().string();
+
+    // We only support triangles
+    const bool bTriangulateSuccess = rapidobj::Triangulate(result);
+    if (!bTriangulateSuccess) {
+        LOG_ERROR("Error triangulating OBJ file: {}", result.error.code.message());
+        return false;
+    }
+
+    // Hashmap to keep track of textures we've already loaded
+    std::unordered_map<std::string, int> textureMap;
+
+    // Load all materials
+    for (const auto & material : result.materials) {
+        Material mat{};
+
+        // Diffuse material loading
+        auto data = material.diffuse.data();
+        mat.parameters.albedo = vec3(data);
+        if (!material.diffuse_texname.empty()) {
+            auto texturePath = material.diffuse_texname;
+            if (textureMap.contains(texturePath)) {
+                mat.textureIndices.albedo = textureMap[texturePath];
+            } else {
+                LOG_INFO("Loading texture: {}", texturePath);
+                // TODO
+                // textureMap[texturePath] = scene.textures.size() - 1;
+                // mat.textureIndices.albedo = tex
+            }
+        } else {
+            mat.textureIndices.albedo = JTX_MATERIAL_TEXTURE_INDEX_NONE;
+        }
+
+        scene.materials.push_back(mat);
+    }
+
+    const auto &positions = result.attributes.positions;
+    const auto &normals   = result.attributes.normals;
+    const auto &uvs       = result.attributes.texcoords;
+
+    // Process meshes
+    // All mesh data is stored into buffers on the scene struct
+    for (const auto &shape : result.shapes) {
+        const auto &mesh = shape.mesh;
+        Mesh newMesh{};
+
+        newMesh.name = shape.name.empty() ? std::string("mesh_") + std::to_string(scene.meshes.size()) : shape.name;
+        LOG_INFO("Loading mesh: {}", newMesh.name);
+
+        const auto numVertices = mesh.indices.size();
+        const auto numIndices = numVertices / 3;
+
+        newMesh.startIndex = scene.indices.size();
+        newMesh.numIndices = numIndices;
+
+        // Add material for the mesh if it exists, o/w we assign the first material
+        newMesh.materialIndex = !mesh.material_ids.empty() ? mesh.material_ids[0] : 0;
+        scene.meshes.push_back(newMesh);
+
+        // We keep track of the current vertex index ourselves
+        auto vertexIndex = static_cast<uint32_t>(scene.positions.size());
+        for (size_t i = 0; i < mesh.indices.size(); i += 3) {
+            const auto i0 = mesh.indices[i];
+            const auto i1 = mesh.indices[i + 1];
+            const auto i2 = mesh.indices[i + 2];
+            scene.indices.emplace_back(vertexIndex, vertexIndex + 1, vertexIndex + 2);
+            scene.materialIndices.push_back(newMesh.materialIndex);
+
+            // Positions
+            {
+                // FYI, jtx vector classes have an unsafe constructor that take in a T pointer
+                scene.positions.emplace_back(&positions[i0.position_index * 3]);
+                scene.positions.emplace_back(&positions[i1.position_index * 3]);
+                scene.positions.emplace_back(&positions[i2.position_index * 3]);
+            }
+
+            // Normals
+            {
+                if (i0.normal_index < 0 || i1.normal_index < 0 || i2.normal_index < 0) {
+                    LOG_ERROR("Mesh {} has no normals", newMesh.name);
+                    return false;
+                }
+
+                scene.normals.emplace_back(&normals[i0.normal_index * 3]);
+                scene.normals.emplace_back(&normals[i1.normal_index * 3]);
+                scene.normals.emplace_back(&normals[i2.normal_index * 3]);
+            }
+
+            // UVs
+            {
+                if (i0.texcoord_index < 0 || i1.texcoord_index < 0 || i2.texcoord_index < 0) {
+                    scene.uvs.emplace_back(0, 0);
+                    scene.uvs.emplace_back(0, 0);
+                    scene.uvs.emplace_back(0, 0);
+                } else {
+                    // V coordinates are flipped in OBJ files
+                    scene.uvs.emplace_back(uvs[i0.texcoord_index * 2 + 0], 1-uvs[i0.texcoord_index * 2 + 1]);
+                    scene.uvs.emplace_back(uvs[i1.texcoord_index * 2 + 0], 1-uvs[i1.texcoord_index * 2 + 1]);
+                    scene.uvs.emplace_back(uvs[i2.texcoord_index * 2 + 0], 1-uvs[i2.texcoord_index * 2 + 1]);
+                }
+            }
+
+            vertexIndex += 3;
+        }
+    }
+
+    LOG_INFO("OBJ file loaded with {} meshes, {} vertices, {} indices", scene.meshes.size(), scene.positions.size(), scene.indices.size());
+    return true;
+}
+
+bool jtx::detail::loadGltf(const std::filesystem::path &path, jtx::Scene &scene) {
+    LOG_ERROR("GLTF loading not implemented yet");
+    return false;
 }

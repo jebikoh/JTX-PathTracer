@@ -1,5 +1,5 @@
 #pragma once
-#include <jtx.hpp>
+#include "jtx.hpp"
 
 static constexpr int32_t JTX_MATERIAL_TEXTURE_INDEX_NONE = -1;
 

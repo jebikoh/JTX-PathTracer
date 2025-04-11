@@ -1,4 +1,7 @@
 #include "scene_loader.hpp"
+
+#include "image.hpp"
+
 #include <rapidobj.hpp>
 
 bool jtx::loadScene(const std::filesystem::path &path, Scene &scene) {
@@ -61,9 +64,10 @@ bool jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &scene) 
             if (textureMap.contains(texturePath)) {
                 mat.textureIndices.albedo = textureMap[texturePath];
             } else {
-                // TODO
-                // textureMap[texturePath] = scene.textures.size() - 1;
-                // mat.textureIndices.albedo = tex
+                scene.textures.emplace_back(Image8u::loadImage(texturePath));
+                const size_t textureIndex = scene.textures.size() - 1;
+                textureMap[texturePath] = textureIndex;
+                mat.textureIndices.albedo = textureIndex;
             }
         } else {
             mat.textureIndices.albedo = JTX_MATERIAL_TEXTURE_INDEX_NONE;

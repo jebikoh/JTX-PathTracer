@@ -4,10 +4,9 @@
 #include "material.h"
 
 // TODO: add TRS transform and basic scene graph
-
 namespace jtx {
 
-struct TextureImage;
+class Image8u;
 
 /**
  * A mesh consists of a group of triangles that share a single material.
@@ -49,7 +48,7 @@ struct Scene {
 
     // Materials & textures
     std::vector<Material> materials;
-    std::vector<TextureImage> textures;
+    std::vector<Image8u> textures;
     std::vector<Mesh> meshes;
 };
 

@@ -13,12 +13,21 @@
 
 #include <filesystem>
 
-jtx::Image8u::Image8u(const uint8_t *buffer, int w, int h, int c)
+jtx::Image8u::Image8u(const uint8_t *buffer, const int w, const int h, const int c)
     : width(w),
       height(h),
       channels(c) {
     m_data.resize(w * h * c);
     memcpy(m_data.data(), buffer, w * h * c);
+}
+
+jtx::Image8u::Image8u(Image8u &&image) noexcept {
+    width    = image.width;
+    height   = image.height;
+    channels = image.channels;
+    m_data   = std::move(image.m_data);
+
+    image.destroy();
 }
 
 void jtx::Image8u::destroy() {
@@ -73,5 +82,77 @@ jtx::Image8u jtx::Image8u::loadImage(const uint8_t *buffer, const size_t size) {
     stbi_image_free((void *) data);
 
     LOG_INFO("Loaded 8-bit texture from memory");
+    return image;
+}
+
+jtx::Image32f::Image32f(const float *buffer, const int w, const int h, const int c)
+    : width(w),
+      height(h),
+      channels(c) {
+    m_data.resize(w * h * c);
+    memcpy(m_data.data(), buffer, w * h * c);
+}
+
+jtx::Image32f::Image32f(Image32f &&image) noexcept {
+    width    = image.width;
+    height   = image.height;
+    channels = image.channels;
+    m_data   = std::move(image.m_data);
+
+    image.destroy();
+}
+
+void jtx::Image32f::destroy() {
+    width    = 0;
+    height   = 0;
+    channels = 0;
+    m_data.resize(0);
+}
+
+jtx::Image32f jtx::Image32f::loadImage(const std::filesystem::path &path) {
+    LOG_INFO("Loading 32-bit float texture: {}", path.string());
+
+    auto fileExt = path.extension().string();
+    std::ranges::transform(fileExt, fileExt.begin(), [](const unsigned char c) { return std::tolower(c); });
+    if (!JTX_IMAGE_SUPPORTED_FORMATS_32BIT.contains(fileExt)) {
+        LOG_ERROR("Unsupported image format: {}", fileExt);
+        return {};
+    }
+
+    Image32f image;
+    const float *data = stbi_loadf(path.c_str(), &image.width, &image.height, &image.channels, 0);
+    if (!data) {
+        LOG_ERROR("Failed to load image or image was empty: {}", path.string());
+        return {};
+    }
+
+    image.m_data.resize(image.width * image.height * image.channels);
+    memcpy(image.m_data.data(), data, image.width * image.height * image.channels);
+    stbi_image_free((void *) data);
+
+    LOG_INFO("Loaded 32-bit float texture: {}", path.string());
+    return image;
+}
+
+jtx::Image32f jtx::Image32f::loadImage(const uint8_t *buffer, size_t size) {
+    LOG_INFO("Loading 32-bit float texture from memory");
+
+    if (!buffer || size == 0) {
+        LOG_ERROR("Invalid buffer provided");
+        return {};
+    }
+
+    Image32f image;
+    const float *data = stbi_loadf_from_memory(buffer, size, &image.width, &image.height, &image.channels, 0);
+    if (!data) {
+        LOG_ERROR("Failed to load image from memory");
+        return {};
+    }
+
+    image.m_data.resize(image.width * image.height * image.channels);
+    memcpy(image.m_data.data(), data, image.width * image.height * image.channels);
+    stbi_image_free((void *) data);
+
+    LOG_INFO("Loaded 32-bit float texture from memory");
     return image;
 }

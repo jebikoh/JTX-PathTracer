@@ -1,6 +1,8 @@
 #pragma once
 #include "jtx.hpp"
 
+namespace jtx {
+
 static constexpr int32_t JTX_MATERIAL_TEXTURE_INDEX_NONE = -1;
 
 struct Material {
@@ -32,3 +34,5 @@ struct Material {
 
     bool isEmissive() const { return parameters.emission.lenSqr() > 0.0f; }
 };
+
+}

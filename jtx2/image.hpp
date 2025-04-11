@@ -113,7 +113,7 @@ private:
 
 template<typename T>
 T Image8u::getPixel(int row, int col) {
-    LOG_ERROR("Attempted to retrieve pixel in unsupported format");
+    LOG_ERROR(TEXTURE, "Attempted to retrieve pixel in unsupported format");
     return T::unimplemented;
 }
 
@@ -228,7 +228,7 @@ private:
 
 template<typename T>
 T Image32f::getPixel(int row, int col) {
-    LOG_ERROR("Attempted to retrieve pixel in unsupported format");
+    LOG_ERROR(TEXTURE, "Attempted to retrieve pixel in unsupported format");
     return T::unimplemented;
 }
 

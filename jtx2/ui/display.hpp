@@ -5,6 +5,7 @@
 #include "jvk/descriptor.hpp"
 #include "jvk/fence.hpp"
 #include "jvk/image.hpp"
+#include "jvk/immediate_buffer.hpp"
 #include "jvk/jvk.hpp"
 #include "jvk/queue.hpp"
 #include "jvk/sampler.hpp"
@@ -24,7 +25,7 @@ constexpr int JTX_MAX_FRAMES_IN_FLIGHT = 2;
  *                 renders the progressive output to a textured quad.
  *
  * All the high-level Vulkan structures are stored in this class and the sub-renderers
- * operate on them.
+ * operate on them. This only for purposes of logical organization.
  */
 class Display {
 public:
@@ -36,15 +37,17 @@ public:
     static Display *get();
 
 private:
-    bool m_isInitialized = false;
-    bool m_stopRendering = false;
-    int m_frameNumber = 0;
-    float m_deltaTime = 1;
+    bool m_bIsInitialized   = false;
+    bool m_bStopRendering   = false;
+    bool m_bResizeRequested = false;
+    int m_frameNumber       = 0;
+    float m_deltaTime       = 1;
 
-    VkExtent2D m_extent{1920, 1080};
+    VkExtent2D m_windowExtent{1920, 1080};
+    struct SDL_Window *m_pWindow = nullptr;
 
     // Vulkan & allocators
-    jvk::Context m_context;
+    jvk::Context m_ctx;
     VmaAllocator m_allocator{};
     jvk::DynamicDescriptorAllocator m_descriptorAllocator;
 
@@ -61,6 +64,7 @@ private:
 
     // Queues
     jvk::Queue m_graphicsQueue;
+    jvk::ImmediateBuffer m_immBuffer;
 
     // Draw Images (Rasterization)
     struct DrawImage {
@@ -82,14 +86,25 @@ private:
     FrameData &getCurrentFrame() { return m_frameData[m_frameNumber % JTX_MAX_FRAMES_IN_FLIGHT]; }
 
     // Initializer functions
+    void initWindow();
     void initVulkan();
+    void initAllocators();
     void initSwapchain();
-    void initCommands();
-    void initDescriptors();
     void initDrawImages();
     void initFrameData();
+    void initImmediateBuffer();
+
+    void destroyWindow() const;
+    void destroyVulkan();
+    void destroyAllocators();
+    void destroySwapchain();
+    void destroyDrawImages() const;
+    void destroyFrameData();
+    void destroyImmediateBuffer();
 
     // Default data
     void initDefaultImages();
     void initDefaultSamplers();
+
+    void resizeSwapchain();
 };

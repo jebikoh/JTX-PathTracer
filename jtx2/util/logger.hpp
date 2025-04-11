@@ -7,15 +7,33 @@
 #include <fmt/color.h>
 #include <fmt/core.h>
 
-#define LOG_INFO(msg, ...) Logger::get().log(LogLevel::INFO, msg, ##__VA_ARGS__)
-#define LOG_ERROR(msg, ...) Logger::get().log(LogLevel::ERR, msg, ##__VA_ARGS__)
-#define LOG_FATAL(msg, ...) Logger::get().log(LogLevel::FATAL, msg, ##__VA_ARGS__)
+#define LOG_INFO(category, msg, ...) Logger::get().log({__LINE__, __FUNCTION__, LogLevel::INFO, LogCategory::category}, msg, ##__VA_ARGS__)
+#define LOG_ERROR(category, msg, ...) Logger::get().log({__LINE__, __FUNCTION__, LogLevel::INFO, LogCategory::category}, msg, ##__VA_ARGS__)
+#define LOG_FATAL(category, msg, ...) Logger::get().log({__LINE__, __FUNCTION__, LogLevel::INFO, LogCategory::category}, msg, ##__VA_ARGS__)
 
 enum class LogLevel {
     INFO  = 0,
     ERR = 1, // I hate windows so much...
     DEBUG = 2,
     FATAL = 3
+};
+
+enum class LogCategory {
+    GENERAL = 0,
+    DISPLAY = 1,
+    UI = 2,
+    RASTERIZER = 3,
+    TRACER = 4,
+    VULKAN = 5,
+    TEXTURE = 6,
+    LOADER = 7,
+};
+
+struct LogContext {
+    int line;
+    const char *function;
+    LogLevel level;
+    LogCategory category;
 };
 
 struct Logger {
@@ -40,9 +58,37 @@ struct Logger {
     }
 
     template<typename... Args>
-    static void log(const LogLevel level, fmt::format_string<Args...> format, Args &&...args) {
+    static void log(const LogContext ctx, fmt::format_string<Args...> format, Args &&...args) {
         printTime();
-        switch (level) {
+
+        switch (ctx.category) {
+            case LogCategory::GENERAL:
+                fmt::print("[GENERAL] ");
+            break;
+            case LogCategory::DISPLAY:
+                fmt::print("[DISPLAY] ");
+            break;
+            case LogCategory::UI:
+                fmt::print("[UI] ");
+            break;
+            case LogCategory::RASTERIZER:
+                fmt::print("[RASTERIZER] ");
+            break;
+            case LogCategory::TRACER:
+                fmt::print("[TRACER] ");
+            break;
+            case LogCategory::VULKAN:
+                fmt::print("[VULKAN] ");
+            break;
+            case LogCategory::TEXTURE:
+                fmt::print("[TEXTURE] ");
+            break;
+            case LogCategory::LOADER:
+                fmt::print("[LOADER] ");
+            break;
+        }
+
+        switch (ctx.level) {
             case LogLevel::INFO:
                 fmt::print("[INFO] ");
             break;
@@ -57,8 +103,10 @@ struct Logger {
             break;
         }
 
+        fmt::print("[{}:{}] ", ctx.function, ctx.line);
+
         print(format, std::forward<Args>(args)...);
-        if (level == LogLevel::FATAL) {
+        if (ctx.level == LogLevel::FATAL) {
             abort();
         }
     }

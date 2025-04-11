@@ -9,7 +9,7 @@
 
 inline void checkVulkanError(const VkResult result, char const *const func, const char *const file, int const line) {
     if (result) {
-        LOG_FATAL("Detected Vulkan error at {}:{} '{}': {}", file, line, func, string_VkResult(result));
+        LOG_FATAL(VULKAN, "Detected Vulkan error at {}:{} '{}': {}", file, line, func, string_VkResult(result));
     }
 }
 

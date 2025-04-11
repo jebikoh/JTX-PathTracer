@@ -156,7 +156,7 @@ VkPipeline jvk::PipelineBuilder::buildPipeline(const VkDevice device) const {
 
     VkPipeline newPipeline;
     if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &newPipeline) != VK_SUCCESS) {
-        LOG_ERROR("Failed to create pipeline");
+        LOG_ERROR(VULKAN, "Failed to create pipeline");
         return VK_NULL_HANDLE;
     } else {
         return newPipeline;

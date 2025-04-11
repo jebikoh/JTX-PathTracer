@@ -128,6 +128,7 @@ set (JVK_SOURCE
         jtx2/ui/jvk/descriptor.cpp
         jtx2/ui/jvk/pipeline.cpp
         jtx2/ui/jvk/util.cpp
+        jtx2/ui/jvk/immediate_buffer.hpp
 )
 
 add_executable(
@@ -165,7 +166,7 @@ target_include_directories(JTX
 
 add_custom_command(TARGET JTX POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/src/assets
+        ${CMAKE_SOURCE_DIR}/jtx2/assets
         $<TARGET_FILE_DIR:JTX>/assets
         COMMENT "Copying assets directory to output folder"
 )

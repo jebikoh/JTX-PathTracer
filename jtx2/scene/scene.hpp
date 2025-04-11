@@ -2,11 +2,10 @@
 
 #include "jtx.hpp"
 #include "material.h"
+#include "image.hpp"
 
 // TODO: add TRS transform and basic scene graph
 namespace jtx {
-
-class Image8u;
 
 /**
  * A mesh consists of a group of triangles that share a single material.

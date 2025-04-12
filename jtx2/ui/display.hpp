@@ -1,5 +1,6 @@
 #pragma once
 
+#include "jvk/buffer.hpp"
 #include "jvk/commands.hpp"
 #include "jvk/context.hpp"
 #include "jvk/descriptor.hpp"
@@ -14,6 +15,8 @@
 
 constexpr int JTX_MAX_FRAMES_IN_FLIGHT = 2;
 
+class RasterizationEngine;
+
 /**
  * This class is responsible for the UI and handling high-level rendering
  * and state-management
@@ -25,10 +28,13 @@ constexpr int JTX_MAX_FRAMES_IN_FLIGHT = 2;
  *                 renders the progressive output to a textured quad.
  *
  * All the high-level Vulkan structures are stored in this class and the sub-renderers
- * operate on them. This only for purposes of logical organization.
+ * operate on them. This only for logical organization and readability.
  */
 class Display {
 public:
+    // Needs access to createImage/createBuffer methods
+    friend class RasterizationEngine;
+
     void init();
     void draw();
     void run();
@@ -105,6 +111,15 @@ private:
     // Default data
     void initDefaultImages();
     void initDefaultSamplers();
+
+    // Image utilities
+    // The caller is responsible for keeping track of these and destroying them on cleanup
+    jvk::Image createImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool bMipmapped = false, VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT) const;
+    jvk::Image createImage(void *pData, VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool bMipmapped = false, VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT) const;
+
+    // Buffer utilites
+    jvk::Buffer createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage) const;
+    void destroyBuffer(const jvk::Buffer &buffer) const;
 
     void resizeSwapchain();
 };

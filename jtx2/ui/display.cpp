@@ -315,6 +315,41 @@ void Display::destroyImmediateBuffer() {
     m_immBuffer.destroy();
     LOG_INFO(DISPLAY, "Immediate buffer destroyed");
 }
+#pragma endregion
+
+#pragma region Utilities
+
+jvk::Image Display::createImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool bMipmapped, VkSampleCountFlagBits sampleCount) const {
+    jvk::Image image;
+    image.imageFormat         = format;
+    image.imageExtent         = extent;
+    VkImageCreateInfo imgInfo = jvk::init::image(format, usage, extent, sampleCount);
+    if (bMipmapped) {
+        imgInfo.mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(extent.width, extent.height))) + 1);
+    }
+
+    VmaAllocationCreateInfo allocInfo = {};
+    allocInfo.usage                   = VMA_MEMORY_USAGE_GPU_ONLY;
+    allocInfo.requiredFlags           = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    CHECK_VK(vmaCreateImage(m_allocator, &imgInfo, &allocInfo, &image.image, &image.allocation, nullptr));
+
+    VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+    if (jvk::formatHasDepth(image.imageFormat)) {
+        aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+        if (format > VK_FORMAT_D16_UNORM_S8_UINT) {
+            aspectFlags |= VK_IMAGE_ASPECT_DEPTH_BIT;
+        }
+    }
+
+    VkImageViewCreateInfo viewInfo       = jvk::init::imageView(format, image.image, aspectFlags);
+    viewInfo.subresourceRange.levelCount = imgInfo.mipLevels;
+    CHECK_VK(vkCreateImageView(m_ctx, &viewInfo, nullptr, &image.imageView));
+
+    return image;
+}
+jvk::Image Display::createImage(void *pData, VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool bMipmapped, VkSampleCountFlagBits sampleCount) const {
+    
+}
 
 #pragma endregion
 

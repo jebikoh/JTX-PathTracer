@@ -348,8 +348,65 @@ jvk::Image Display::createImage(VkExtent3D extent, VkFormat format, VkImageUsage
     return image;
 }
 
-jvk::Image Display::createImage(void *pData, VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool bMipmapped, VkSampleCountFlagBits sampleCount) const {
-    return {};
+jvk::Image Display::createImage(void *pData, VkExtent3D extent, size_t nChannels, VkFormat format, VkImageUsageFlags usage, bool bMipmapped, VkSampleCountFlagBits sampleCount) const {
+    // Staging buffer, we will always assume data has 4 channels
+    size_t dataSize           = extent.width * extent.height * extent.depth * nChannels;
+    jvk::Buffer stagingBuffer = createBuffer(dataSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+    memcpy(stagingBuffer.info.pMappedData, pData, dataSize);
+
+    VkImageUsageFlags imgUsages = VK_IMAGE_USAGE_TRANSFER_DST_BIT | usage;
+    if (bMipmapped) imgUsages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+    jvk::Image image = createImage(extent, format, imgUsages, bMipmapped);
+    m_immBuffer.submit(m_graphicsQueue.queue, [&](VkCommandBuffer cmd) {
+        jvk::transitionImage(cmd, image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
+        VkBufferImageCopy copyRegion{};
+        copyRegion.bufferOffset      = 0;
+        copyRegion.bufferRowLength   = 0;
+        copyRegion.bufferImageHeight = 0;
+
+        copyRegion.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        copyRegion.imageSubresource.mipLevel       = 0;
+        copyRegion.imageSubresource.baseArrayLayer = 0;
+        copyRegion.imageSubresource.layerCount     = 1;
+        copyRegion.imageExtent                     = extent;
+
+        vkCmdCopyBufferToImage(cmd, stagingBuffer.buffer, image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
+
+        if (bMipmapped) {
+            jvk::generateMipmaps(cmd, image.image, {image.imageExtent.width, image.imageExtent.height});
+        }
+
+        jvk::transitionImage(cmd, image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    });
+
+    destroyBuffer(stagingBuffer);
+    return image;
+}
+
+void Display::destroyImage(const jvk::Image &image) const {
+    image.destroy(m_ctx, m_allocator);
+}
+
+jvk::Buffer Display::createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage) const {
+    VkBufferCreateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    info.pNext = nullptr;
+    info.size  = allocSize;
+    info.usage = usage;
+
+    VmaAllocationCreateInfo allocInfo{};
+    allocInfo.usage = memUsage;
+    allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+    jvk::Buffer buffer{};
+    CHECK_VK(vmaCreateBuffer(m_allocator, &info, &allocInfo, &buffer.buffer, &buffer.allocation, &buffer.info));
+    return buffer;
+}
+
+void Display::destroyBuffer(const jvk::Buffer &buffer) const {
+    buffer.destroy(m_allocator);
 }
 
 #pragma endregion
@@ -361,7 +418,7 @@ void Display::resizeSwapchain() {
 
     int w, h;
     SDL_GetWindowSize(m_pWindow, &w, &h);
-    m_windowExtent.width = w;
+    m_windowExtent.width  = w;
     m_windowExtent.height = h;
 
     m_swapchain.init(m_ctx, m_windowExtent.width, m_windowExtent.height);

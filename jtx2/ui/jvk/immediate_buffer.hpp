@@ -4,6 +4,7 @@
 #include "fence.hpp"
 #include "init.hpp"
 #include "jvk.hpp"
+#include <functional>
 
 namespace jvk {
 

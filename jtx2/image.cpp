@@ -48,7 +48,7 @@ jtx::Image8u jtx::Image8u::loadImage(const std::filesystem::path &path) {
     }
 
     Image8u image;
-    const uint8_t *data = stbi_load(path.c_str(), &image.width, &image.height, &image.channels, 0);
+    const uint8_t *data = stbi_load(reinterpret_cast<const char *>(path.c_str()), &image.width, &image.height, &image.channels, 0);
     if (!data) {
         LOG_ERROR(TEXTURE, "Failed to load image or image was empty: {}", path.string());
         return {};
@@ -120,7 +120,7 @@ jtx::Image32f jtx::Image32f::loadImage(const std::filesystem::path &path) {
     }
 
     Image32f image;
-    const float *data = stbi_loadf(path.c_str(), &image.width, &image.height, &image.channels, 0);
+    const float *data = stbi_loadf(reinterpret_cast<const char *>(path.c_str()), &image.width, &image.height, &image.channels, 0);
     if (!data) {
         LOG_ERROR(TEXTURE,"Failed to load image or image was empty: {}", path.string());
         return {};

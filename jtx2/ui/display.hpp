@@ -114,11 +114,58 @@ private:
 
     // Image utilities
     // The caller is responsible for keeping track of these and destroying them on cleanup
-    jvk::Image createImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool bMipmapped = false, VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT) const;
-    jvk::Image createImage(void *pData, VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool bMipmapped = false, VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT) const;
 
-    // Buffer utilites
+    /**
+     * Creates an empty image with the given parameters using this engine's allocator.
+     *
+     * The user is responsible for keeping track of and destroying this image on cleanup.
+     * @param extent image extent
+     * @param format image format
+     * @param usage memory usage
+     * @param bMipmapped true if the image should be mipmapped
+     * @param sampleCount sample count
+     * @return empty image
+     */
+    jvk::Image createImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool bMipmapped = false, VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT) const;
+
+    /**
+     * Creates an image with the given parameters using this engine's allocator.
+     * Copies the provided data to the image via a staging buffer
+     *
+     *
+     * The user is responsible for keeping track of and destroying this image on cleanup.
+     * @param pData data pointer
+     * @param extent data extent
+     * @param nChannels data channel count
+     * @param format image format
+     * @param usage image memory usage
+     * @param bMipmapped true if the image should be mipmapped
+     * @param sampleCount sample count
+     * @return image containing provided data
+     */
+    jvk::Image createImage(void *pData, VkExtent3D extent, size_t nChannels, VkFormat format, VkImageUsageFlags usage, bool bMipmapped = false, VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT) const;
+
+    /**
+     * Destroys the image using this engine's context and allocator
+     * @param image image to destroy
+     */
+    void destroyImage(const jvk::Image &image) const;
+
+    // Buffer utilities
+
+    /**
+     * Creates an empty mapped buffer with the given parameters using this engine's allocator.
+     * @param allocSize size of the buffer
+     * @param usage buffer usage
+     * @param memUsage memory usage
+     * @return empty buffer
+     */
     jvk::Buffer createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage) const;
+
+    /**
+     * Destroys the buffer using this engine's allocator
+     * @param buffer buffer to destroy
+     */
     void destroyBuffer(const jvk::Buffer &buffer) const;
 
     void resizeSwapchain();

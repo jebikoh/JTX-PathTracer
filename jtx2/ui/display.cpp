@@ -347,8 +347,9 @@ jvk::Image Display::createImage(VkExtent3D extent, VkFormat format, VkImageUsage
 
     return image;
 }
+
 jvk::Image Display::createImage(void *pData, VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool bMipmapped, VkSampleCountFlagBits sampleCount) const {
-    
+    return {};
 }
 
 #pragma endregion

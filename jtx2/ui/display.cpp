@@ -1,3 +1,4 @@
+#define VOLK_IMPLEMENTATION
 #include "display.hpp"
 
 #include "jvk/util.hpp"
@@ -29,7 +30,8 @@ void Display::init() {
     initDrawImages();
     initFrameData();
     initImmediateBuffer();
-
+    initDefaultImages();
+    initDefaultSamplers();
 
     m_bIsInitialized = true;
     LOG_INFO(DISPLAY, "Initialized display");
@@ -66,7 +68,9 @@ void Display::run() {
 }
 
 void Display::cleanup() {
-    LOG_INFO(DISPLAY, "Cleaning up engine resoures...");
+    LOG_INFO(DISPLAY, "Cleaning up engine resources...");
+    destroyDefaultSamplers();
+    destroyDefaultImages();
     destroyImmediateBuffer();
     destroyFrameData();
     destroyDrawImages();
@@ -425,3 +429,49 @@ void Display::resizeSwapchain() {
     m_bResizeRequested = false;
     LOG_INFO(DISPLAY, "Swapchain resized");
 }
+
+#pragma region Default data
+
+void Display::initDefaultImages() {
+    LOG_INFO(DISPLAY, "Initializing default images");
+    uint32_t white = jtx::packUnorm4x8({1.0f, 1.0f, 1.0f, 1.0f});
+    m_whiteImage = createImage((void *) &white, VkExtent3D{1, 1, 1}, 4, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
+
+    uint32_t black = jtx::packUnorm4x8({0.0f, 0.0f, 0.0f, 1.0f});
+    m_blackImage = createImage((void *) &black, VkExtent3D{1, 1, 1}, 4, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
+
+    // Error checkerboard
+    uint32_t magenta = jtx::packUnorm4x8({1.0f, 0.0f, 1.0f, 1.0f});
+    uint32_t pixels[16 * 16];
+    for (int x = 0; x < 16; ++x) {
+        for (int y = 0; y < 16; ++y) {
+            pixels[y * 16 + x] = ((x % 2) ^ (y % 2)) ? magenta : black;
+        }
+    }
+    m_errorCheckerboardImage = createImage(pixels, VkExtent3D{16, 16, 1}, 4, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
+    LOG_INFO(DISPLAY, "Default images initialized");
+}
+
+void Display::destroyDefaultImages() const {
+    LOG_INFO(DISPLAY, "Destroying default images");
+    destroyImage(m_whiteImage);
+    destroyImage(m_blackImage);
+    destroyImage(m_errorCheckerboardImage);
+    LOG_INFO(DISPLAY, "Default images destroyed");
+}
+
+void Display::initDefaultSamplers() {
+    LOG_INFO(DISPLAY, "Initializing default samplers");
+    CHECK_VK(m_samplerLinear.init(m_ctx, VK_FILTER_LINEAR, VK_FILTER_LINEAR));
+    CHECK_VK(m_samplerNearest.init(m_ctx, VK_FILTER_NEAREST, VK_FILTER_NEAREST));
+    LOG_INFO(DISPLAY, "Default samplers initialized");
+}
+
+void Display::destroyDefaultSamplers() const {
+    LOG_INFO(DISPLAY, "Destroying default samplers");
+    m_samplerLinear.destroy();
+    m_samplerNearest.destroy();
+    LOG_INFO(DISPLAY, "Default samplers destroyed");
+}
+
+#pragma endregion

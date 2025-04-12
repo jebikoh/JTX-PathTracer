@@ -20,7 +20,7 @@ struct Sampler {
         return vkCreateSampler(device, &info, nullptr, &sampler);
     }
 
-    void destroy() {
+    void destroy() const {
         vkDestroySampler(device, sampler, nullptr);
     }
 

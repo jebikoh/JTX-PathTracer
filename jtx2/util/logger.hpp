@@ -8,14 +8,15 @@
 #include <fmt/core.h>
 
 #define LOG_INFO(category, msg, ...) Logger::get().log({__LINE__, __FUNCTION__, LogLevel::INFO, LogCategory::category}, msg, ##__VA_ARGS__)
-#define LOG_ERROR(category, msg, ...) Logger::get().log({__LINE__, __FUNCTION__, LogLevel::INFO, LogCategory::category}, msg, ##__VA_ARGS__)
-#define LOG_FATAL(category, msg, ...) Logger::get().log({__LINE__, __FUNCTION__, LogLevel::INFO, LogCategory::category}, msg, ##__VA_ARGS__)
+#define LOG_ERROR(category, msg, ...) Logger::get().log({__LINE__, __FUNCTION__, LogLevel::ERR, LogCategory::category}, msg, ##__VA_ARGS__)
+#define LOG_FATAL(category, msg, ...) Logger::get().log({__LINE__, __FUNCTION__, LogLevel::FATAL, LogCategory::category}, msg, ##__VA_ARGS__)
+#define LOG_DEBUG(category, msg, ...) Logger::get().log({__LINE__, __FUNCTION__, LogLevel::DEBUG, LogCategory::category}, msg, ##__VA_ARGS__)
 
 enum class LogLevel {
     INFO  = 0,
     ERR = 1, // I hate windows so much...
     DEBUG = 2,
-    FATAL = 3
+    FATAL = 3,
 };
 
 enum class LogCategory {

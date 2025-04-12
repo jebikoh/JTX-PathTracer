@@ -49,7 +49,7 @@ private:
     int m_frameNumber       = 0;
     float m_deltaTime       = 1;
 
-    VkExtent2D m_windowExtent{1920, 1080};
+    VkExtent2D m_windowExtent{1700, 900};
     struct SDL_Window *m_pWindow = nullptr;
 
     // Vulkan & allocators
@@ -111,6 +111,8 @@ private:
     // Default data
     void initDefaultImages();
     void initDefaultSamplers();
+    void destroyDefaultImages() const;
+    void destroyDefaultSamplers() const;
 
     // Image utilities
     // The caller is responsible for keeping track of these and destroying them on cleanup
@@ -136,7 +138,7 @@ private:
      * The user is responsible for keeping track of and destroying this image on cleanup.
      * @param pData data pointer
      * @param extent data extent
-     * @param nChannels data channel count
+     * @param nChannels data channel count (TODO: have this be auto-detected from the format)
      * @param format image format
      * @param usage image memory usage
      * @param bMipmapped true if the image should be mipmapped

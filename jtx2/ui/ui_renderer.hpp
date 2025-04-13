@@ -13,7 +13,7 @@ class Display;
 
 /**
  * This class is responsible for rendering the UI using ImGui, including initialization
- * destroy, and event handling.
+ * destruction, and event handling.
  */
 class UIRenderer {
 public:

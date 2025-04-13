@@ -129,6 +129,7 @@ set (JVK_SOURCE
         jtx2/ui/jvk/pipeline.cpp
         jtx2/ui/jvk/util.cpp
         jtx2/ui/jvk/immediate_buffer.hpp
+        jtx2/ui/rasterizer/render_data.hpp
 )
 
 add_executable(
@@ -149,8 +150,8 @@ add_executable(
         jtx2/image.cpp
         jtx2/ui/ui_renderer.hpp
         jtx2/ui/ui_renderer.cpp
-        jtx2/ui/rasterizer.hpp
-        jtx2/ui/rasterizer.cpp
+        jtx2/ui/rasterizer/rasterizer.hpp
+        jtx2/ui/rasterizer/rasterizer.cpp
 )
 
 

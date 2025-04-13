@@ -1,7 +1,7 @@
 #pragma once
 
-#include "jvk/jvk.hpp"
-#include "jvk/buffer.hpp"
+#include "ui/jvk/jvk.hpp"
+#include "ui/jvk/buffer.hpp"
 
 namespace jtx {
 

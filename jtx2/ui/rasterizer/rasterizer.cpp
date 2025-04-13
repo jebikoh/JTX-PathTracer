@@ -1,5 +1,5 @@
 #include "rasterizer.hpp"
-#include "display.hpp"
+#include "ui/display.hpp"
 #include "scene/scene.hpp"
 
 namespace jtx {

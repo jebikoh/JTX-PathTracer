@@ -13,11 +13,14 @@
 #include "jvk/semaphore.hpp"
 #include "jvk/swapchain.hpp"
 
+#include "rasterizer.hpp"
 #include "ui_renderer.hpp"
 
-constexpr int JTX_MAX_FRAMES_IN_FLIGHT = 2;
+#include "scene/scene.hpp"
 
-class RasterizationEngine;
+namespace jtx {
+
+constexpr int JTX_MAX_FRAMES_IN_FLIGHT = 2;
 
 /**
  * This class is responsible for the UI and handling high-level rendering
@@ -35,13 +38,18 @@ class RasterizationEngine;
 class Display {
 public:
     // Needs access to createImage/createBuffer methods
-    friend class RasterizationEngine;
+    friend class Rasterizer;
     friend class UIRenderer;
 
     void init();
     void draw();
     void run();
     void cleanup();
+
+    void setScene(jtx::Scene *pScene) {
+        m_pScene = pScene;
+        m_rasterizer.loadScene();
+    }
 
     static Display *get();
 
@@ -93,6 +101,10 @@ private:
 
     // Secondary renderers
     UIRenderer m_uiRenderer{this};
+    Rasterizer m_rasterizer{this};
+
+    // Scene
+    jtx::Scene *m_pScene = nullptr;
 
     // Functions
     FrameData &getCurrentFrame() { return m_frameData[m_frameNumber % JTX_MAX_FRAMES_IN_FLIGHT]; }
@@ -162,13 +174,13 @@ private:
     // Buffer utilities
 
     /**
-     * Creates an empty mapped buffer with the given parameters using this engine's allocator.
+     * Creates an empty buffer with the given parameters using this engine's allocator.
      * @param allocSize size of the buffer
      * @param usage buffer usage
      * @param memUsage memory usage
      * @return empty buffer
      */
-    jvk::Buffer createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage) const;
+    jvk::Buffer createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, VmaAllocationCreateFlags memFlags = 0) const;
 
     /**
      * Destroys the buffer using this engine's allocator
@@ -178,3 +190,5 @@ private:
 
     void resizeSwapchain();
 };
+
+}// namespace jtx

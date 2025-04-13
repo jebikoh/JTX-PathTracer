@@ -5,8 +5,10 @@
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
 
-
 struct ImGuiDockNode;
+
+namespace jtx {
+
 class Display;
 
 /**
@@ -15,7 +17,8 @@ class Display;
  */
 class UIRenderer {
 public:
-    UIRenderer(Display *pDisplay) : m_pDisplay(pDisplay) {}
+    UIRenderer(Display *pDisplay)
+        : m_pDisplay(pDisplay) {}
 
     void init();
     void cleanup() const;
@@ -70,3 +73,5 @@ private:
     static void drawConsolePanel();
     static void drawPropertiesPanel();
 };
+
+}// namespace jtx

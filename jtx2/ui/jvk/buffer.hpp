@@ -9,6 +9,8 @@ struct Buffer {
     VmaAllocation allocation;
     VmaAllocationInfo info;
 
+    bool isValid() const { return buffer != VK_NULL_HANDLE; }
+
     operator VkBuffer() const { return buffer; }
 
     void destroy(VmaAllocator allocator) const {

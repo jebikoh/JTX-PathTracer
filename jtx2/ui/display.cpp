@@ -11,6 +11,8 @@
 #include <imgui_impl_sdl2.h>
 #include <thread>
 
+namespace jtx {
+
 constexpr bool JTX_USE_VALIDATION_LAYERS = true;
 
 Display *loadedDisplay = nullptr;
@@ -33,8 +35,8 @@ void Display::run() {
                 }
             }
 
-            m_uiRenderer.handleInput(e);
-            m_uiRenderer.processEvents(e);
+            //            m_uiRenderer.handleInput(e);
+            //            m_uiRenderer.processEvents(e);
         }
 
         if (m_bStopRendering) {
@@ -44,7 +46,7 @@ void Display::run() {
 
         if (m_bResizeRequested) resizeSwapchain();
 
-        m_uiRenderer.newFrame();
+        //        m_uiRenderer.newFrame();
         draw();
     }
 }
@@ -70,7 +72,7 @@ void Display::draw() {
     // Retrieve viewport position and size
     vec2 viewportPosition;
     vec2 viewportSize;
-    m_uiRenderer.getViewportPosition(viewportPosition, viewportSize);
+    //    m_uiRenderer.getViewportPosition(viewportPosition, viewportSize);
 
     // Ok...now what?
 
@@ -81,7 +83,7 @@ void Display::draw() {
     // Draw to draw image
     jvk::transitionImage(cmd, m_drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
-    float flashValue = std::abs(std::sin(m_frameNumber / 60.0f));
+    float flashValue             = std::abs(std::sin(m_frameNumber / 60.0f));
     VkClearColorValue clearValue = {{0.0f, 0.0f, flashValue, 1.0f}};
 
     VkImageSubresourceRange clearRange = jvk::init::imageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
@@ -90,11 +92,11 @@ void Display::draw() {
     // Copy draw image to swapchain
     jvk::transitionImage(cmd, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    jvk::copyImageToImage(cmd, m_drawImage.image,  m_swapchain.images[swapchainImageIndex], m_drawImage.extent, m_swapchain.extent);
+    jvk::copyImageToImage(cmd, m_drawImage.image, m_swapchain.images[swapchainImageIndex], m_drawImage.extent, m_swapchain.extent);
 
     // Draw UI
     jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-    m_uiRenderer.draw(cmd, m_swapchain.imageViews[swapchainImageIndex]);
+    //    m_uiRenderer.draw(cmd, m_swapchain.imageViews[swapchainImageIndex]);
 
     // Transition to presentation format
     jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
@@ -162,7 +164,7 @@ void Display::init() {
     initDefaultImages();
     initDefaultSamplers();
 
-    m_uiRenderer.init();
+    //    m_uiRenderer.init();
 
     m_bIsInitialized = true;
     LOG_INFO(DISPLAY, "Initialized display");
@@ -358,7 +360,8 @@ void Display::cleanup() {
         LOG_INFO(DISPLAY, "Cleaning up engine resources...");
         vkDeviceWaitIdle(m_ctx);
 
-        m_uiRenderer.cleanup();
+        //        m_uiRenderer.cleanup();
+        m_rasterizer.cleanup();
 
         destroyDefaultSamplers();
         destroyDefaultImages();
@@ -460,7 +463,7 @@ jvk::Image Display::createImage(VkExtent3D extent, VkFormat format, VkImageUsage
 jvk::Image Display::createImage(const void *pData, const VkExtent3D extent, const size_t nChannels, const VkFormat format, const VkImageUsageFlags usage, const bool bMipmapped, VkSampleCountFlagBits sampleCount) const {
     // Staging buffer, we will always assume data has 4 channels
     size_t dataSize           = extent.width * extent.height * extent.depth * nChannels;
-    jvk::Buffer stagingBuffer = createBuffer(dataSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+    jvk::Buffer stagingBuffer = createBuffer(dataSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
     memcpy(stagingBuffer.info.pMappedData, pData, dataSize);
 
     VkImageUsageFlags imgUsages = VK_IMAGE_USAGE_TRANSFER_DST_BIT | usage;
@@ -498,7 +501,7 @@ void Display::destroyImage(const jvk::Image &image) const {
     image.destroy(m_ctx, m_allocator);
 }
 
-jvk::Buffer Display::createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage) const {
+jvk::Buffer Display::createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, VmaAllocationCreateFlags memFlags) const {
     VkBufferCreateInfo info{};
     info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     info.pNext = nullptr;
@@ -507,7 +510,7 @@ jvk::Buffer Display::createBuffer(size_t allocSize, VkBufferUsageFlags usage, Vm
 
     VmaAllocationCreateInfo allocInfo{};
     allocInfo.usage = memUsage;
-    allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    allocInfo.flags = memFlags;
 
     jvk::Buffer buffer{};
     CHECK_VK(vmaCreateBuffer(m_allocator, &info, &allocInfo, &buffer.buffer, &buffer.allocation, &buffer.info));
@@ -524,10 +527,10 @@ void Display::destroyBuffer(const jvk::Buffer &buffer) const {
 void Display::initDefaultImages() {
     LOG_INFO(DISPLAY, "Initializing default images");
     uint32_t white = jtx::packUnorm4x8({1.0f, 1.0f, 1.0f, 1.0f});
-    m_whiteImage = createImage((void *) &white, VkExtent3D{1, 1, 1}, 4, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
+    m_whiteImage   = createImage((void *) &white, VkExtent3D{1, 1, 1}, 4, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
 
     uint32_t black = jtx::packUnorm4x8({0.0f, 0.0f, 0.0f, 1.0f});
-    m_blackImage = createImage((void *) &black, VkExtent3D{1, 1, 1}, 4, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
+    m_blackImage   = createImage((void *) &black, VkExtent3D{1, 1, 1}, 4, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
 
     // Error checkerboard
     uint32_t magenta = jtx::packUnorm4x8({1.0f, 0.0f, 1.0f, 1.0f});
@@ -564,3 +567,5 @@ void Display::destroyDefaultSamplers() const {
 }
 
 #pragma endregion
+
+}// namespace jtx

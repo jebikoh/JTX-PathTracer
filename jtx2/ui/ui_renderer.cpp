@@ -5,20 +5,22 @@
 #include <imgui_impl_vulkan.h>
 #include <imgui_internal.h>
 
+namespace jtx {
+
 void UIRenderer::init() {
     LOG_INFO(UI, "Initializing UI renderer");
 
     const VkDescriptorPoolSize poolSizes[] = {{VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
-                                        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
-                                        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
-                                        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
-                                        {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
-                                        {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
-                                        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
-                                        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
-                                        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
-                                        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
-                                        {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
+                                              {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
+                                              {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
+                                              {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
+                                              {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
+                                              {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
+                                              {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
+                                              {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
+                                              {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
+                                              {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
+                                              {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -231,7 +233,7 @@ auto UIRenderer::setLayout(const ImGuiID dockSpaceId, const ImGuiViewport *viewp
     ImGui::DockBuilderAddNode(dockSpaceId, dockSpaceFlags | ImGuiDockNodeFlags_DockSpace);
     ImGui::DockBuilderSetNodeSize(dockSpaceId, viewport->Size);
 
-    ImGuiID dock_main_id        = dockSpaceId;
+    ImGuiID dock_main_id         = dockSpaceId;
     const ImGuiID dock_right_id  = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.2f, nullptr, &dock_main_id);
     const ImGuiID dock_bottom_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.25f, nullptr, &dock_main_id);
 
@@ -283,3 +285,5 @@ void UIRenderer::drawPropertiesPanel() {
     ImGui::Text("Properties Panel");
     ImGui::End();
 }
+
+}// namespace jtx

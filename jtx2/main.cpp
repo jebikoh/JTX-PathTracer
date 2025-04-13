@@ -1,9 +1,14 @@
 #include <ui/display.hpp>
+#include <scene/scene_loader.hpp>
 
 int main(int argc, char *argv[]) {
-    Display display;
+    jtx::Scene scene;
+    jtx::loadScene("assets/f22.obj", scene);
+
+    jtx::Display display;
     display.init();
-    display.run();
+    display.setScene(&scene);
     display.cleanup();
+
     return 0;
 }

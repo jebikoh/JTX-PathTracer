@@ -80,13 +80,10 @@ void Display::draw() {
     VkImageSubresourceRange clearRange = jvk::init::imageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
     vkCmdClearColorImage(cmd, m_drawImage.image.image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
 
-    // Copy draw image to swapchain image
-    jvk::transitionImage(cmd, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-    jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    jvk::copyImageToImage(cmd, m_drawImage.image, m_swapchain.images[swapchainImageIndex], m_drawImage.extent, m_swapchain.extent);
-
     // Draw UI
-    jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    // ImGui draws the draw image as a texture, so we need to transition it to a shader read only layout
+    jvk::transitionImage(cmd, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     m_uiRenderer.draw(cmd, m_swapchain.imageViews[swapchainImageIndex]);
     jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
@@ -290,10 +287,8 @@ void Display::initDrawImages() {
     m_drawImage.image.imageExtent = drawExtent;
 
     VkImageUsageFlags drawImageUsages = {};
-    drawImageUsages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;    // Copy from image
-    drawImageUsages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;    // Copy to image
-    drawImageUsages |= VK_IMAGE_USAGE_STORAGE_BIT;         // Allow compute shader to write
     drawImageUsages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;// Graphics pipeline
+    drawImageUsages |= VK_IMAGE_USAGE_SAMPLED_BIT;         // Allow sampling for UI
 
     const VkImageCreateInfo drawImageInfo = jvk::init::image(m_drawImage.image.imageFormat, drawImageUsages, m_drawImage.image.imageExtent);
 

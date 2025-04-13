@@ -49,11 +49,14 @@ private:
     Display *m_pDisplay = nullptr;
     VkDescriptorPool m_descriptorPool{};
 
+    // Used to draw texture to viewport
+    VkDescriptorSet m_drawImageDescriptorSet{};
+
     void setupStyle();
 
     // Docking setup
     void setupDockSpace();
-    void resetLayout(ImGuiID dockSpaceId, ImGuiViewport *viewport, ImGuiDockNodeFlags dockSpaceFlags);
+    void setLayout(ImGuiID dockSpaceId, ImGuiViewport *viewport, ImGuiDockNodeFlags dockSpaceFlags);
     void drawMenuBar(ImGuiID dockSpaceId, ImGuiViewport *viewport, ImGuiDockNodeFlags dockSpaceFlags);
 
     void drawViewportPanel();

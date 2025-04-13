@@ -56,6 +56,9 @@ void UIRenderer::init() {
 
     setupStyle();
 
+    // Create descriptor set layout for draw image
+    m_drawImageDescriptorSet = ImGui_ImplVulkan_AddTexture(m_pDisplay->m_samplerLinear, m_pDisplay->m_drawImage.image.imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
     LOG_INFO(UI, "UI renderer initialized");
 }
 
@@ -95,6 +98,7 @@ void UIRenderer::handleInput(SDL_Event &event) {
 
 void UIRenderer::cleanup() {
     LOG_INFO(UI, "Cleaning up UI renderer");
+    ImGui_ImplVulkan_RemoveTexture(m_drawImageDescriptorSet);
     ImGui_ImplVulkan_Shutdown();
     vkDestroyDescriptorPool(m_pDisplay->m_ctx.device, m_descriptorPool, nullptr);
     LOG_INFO(UI, "UI renderer cleaned up");
@@ -216,7 +220,7 @@ void UIRenderer::setupDockSpace() {
     ImGui::End();
 }
 
-void UIRenderer::resetLayout(ImGuiID dockSpaceId, ImGuiViewport *viewport, ImGuiDockNodeFlags dockSpaceFlags) {
+void UIRenderer::setLayout(ImGuiID dockSpaceId, ImGuiViewport *viewport, ImGuiDockNodeFlags dockSpaceFlags) {
     ImGui::DockBuilderRemoveNode(dockSpaceId);
     ImGui::DockBuilderAddNode(dockSpaceId, dockSpaceFlags | ImGuiDockNodeFlags_DockSpace);
     ImGui::DockBuilderSetNodeSize(dockSpaceId, viewport->Size);
@@ -254,7 +258,7 @@ void UIRenderer::drawMenuBar(ImGuiID dockSpaceId, ImGuiViewport *viewport, ImGui
 
         if (ImGui::BeginMenu("View")) {
             if (ImGui::MenuItem("Reset Layout")) {
-                resetLayout(dockSpaceId, viewport, dockSpaceFlags);
+                setLayout(dockSpaceId, viewport, dockSpaceFlags);
             }
             ImGui::EndMenu();
         }
@@ -265,35 +269,33 @@ void UIRenderer::drawMenuBar(ImGuiID dockSpaceId, ImGuiViewport *viewport, ImGui
 
 void UIRenderer::drawViewportPanel() {
     ImGui::Begin("Viewport");
-    ImVec2 contentRegion = ImGui::GetContentRegionAvail();
-    ImVec2 windowPos     = ImGui::GetCursorScreenPos();
 
-    // Retrieve the ImDrawList to draw custom primitives
-    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    ImVec2 availSize = ImGui::GetContentRegionAvail();
+    auto imgExtent = m_pDisplay->m_drawImage.image.imageExtent;
 
-    // Choose a spacing (in pixels) for each line of the grid
-    const float spacing = 20.0f;
+    float aspect_ratio = static_cast<float>(imgExtent.width) / static_cast<float>(imgExtent.height);
 
-    // Decide on a grid color and transparency (RGBA)
-    ImU32 gridColor = IM_COL32(255, 255, 255, 50); // Slightly transparent white
-
-    // Draw vertical lines
-    for (float x = 0.0f; x < contentRegion.x; x += spacing) {
-        drawList->AddLine(
-                ImVec2(windowPos.x + x, windowPos.y),
-                ImVec2(windowPos.x + x, windowPos.y + contentRegion.y),
-                gridColor
-        );
+    ImVec2 image_size = availSize;
+    if (availSize.x / availSize.y > aspect_ratio)
+    {
+        image_size.y = availSize.y;
+        image_size.x = aspect_ratio * image_size.y;
+    }
+    else
+    {
+        image_size.x = availSize.x;
+        image_size.y = image_size.x / aspect_ratio;
     }
 
-    // Draw horizontal lines
-    for (float y = 0.0f; y < contentRegion.y; y += spacing) {
-        drawList->AddLine(
-                ImVec2(windowPos.x, windowPos.y + y),
-                ImVec2(windowPos.x + contentRegion.x, windowPos.y + y),
-                gridColor
-        );
-    }
+    ImVec2 offset(
+            (availSize.x - image_size.x) * 0.5f,
+            (availSize.y - image_size.y) * 0.5f
+    );
+
+    ImGui::SetCursorPos(offset);
+
+    ImGui::Image((ImTextureID)m_drawImageDescriptorSet, image_size);
+
     ImGui::End();
 }
 

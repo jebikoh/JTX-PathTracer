@@ -44,7 +44,7 @@ public:
     void init();
     void draw();
     void run();
-    void cleanup();
+    void destroy();
 
     void setScene(jtx::Scene *pScene) {
         m_pScene = pScene;
@@ -138,7 +138,7 @@ private:
     /**
      * Creates an empty image with the given parameters using this engine's allocator.
      *
-     * The user is responsible for keeping track of and destroying this image on cleanup.
+     * The user is responsible for keeping track of and destroying this image on destroy.
      * @param extent image extent
      * @param format image format
      * @param usage memory usage
@@ -153,7 +153,7 @@ private:
      * Copies the provided data to the image via a staging buffer
      *
      *
-     * The user is responsible for keeping track of and destroying this image on cleanup.
+     * The user is responsible for keeping track of and destroying this image on destroy.
      * @param pData data pointer
      * @param extent data extent
      * @param nChannels data channel count (TODO: have this be auto-detected from the format)

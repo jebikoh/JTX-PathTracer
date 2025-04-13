@@ -112,7 +112,7 @@ void Rasterizer::loadScene() {
     LOG_INFO(RASTERIZER, "Scene loaded");
 }
 
-void Rasterizer::cleanup() {
+void Rasterizer::destroy() {
     clearGPUSceneBuffers();
 }
 

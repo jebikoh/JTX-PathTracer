@@ -102,7 +102,7 @@ void UIRenderer::handleInput(const SDL_Event &event) {
     }
 }
 
-void UIRenderer::cleanup() const {
+void UIRenderer::destroy() const {
     LOG_INFO(UI, "Cleaning up UI renderer");
     ImGui_ImplVulkan_Shutdown();
     vkDestroyDescriptorPool(m_pDisplay->m_ctx.device, m_descriptorPool, nullptr);

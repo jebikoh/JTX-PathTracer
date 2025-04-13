@@ -16,7 +16,7 @@ public:
     Rasterizer(Display *pDisplay)
         : m_pDisplay(pDisplay) {}
 
-    void cleanup();
+    void destroy();
 
     /**
      * This will (re)load the scene from the display and setup GPU resources.

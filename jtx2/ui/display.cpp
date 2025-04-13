@@ -355,13 +355,13 @@ void Display::initImmediateBuffer() {
 #pragma endregion
 #pragma region Cleanup
 
-void Display::cleanup() {
+void Display::destroy() {
     if (m_bIsInitialized) {
-        LOG_INFO(DISPLAY, "Cleaning up engine resources...");
+        LOG_INFO(DISPLAY, "Destroying engine resources...");
         vkDeviceWaitIdle(m_ctx);
 
         //        m_uiRenderer.cleanup();
-        m_rasterizer.cleanup();
+        m_rasterizer.destroy();
 
         destroyDefaultSamplers();
         destroyDefaultImages();
@@ -373,7 +373,7 @@ void Display::cleanup() {
         destroyVulkan();
         destroyWindow();
 
-        LOG_INFO(DISPLAY, "Engine resources cleared");
+        LOG_INFO(DISPLAY, "Engine resources destroyed");
     }
 
     loadedDisplay = nullptr;

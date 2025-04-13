@@ -13,7 +13,7 @@ class Display;
 
 /**
  * This class is responsible for rendering the UI using ImGui, including initialization
- * cleanup, and event handling.
+ * destroy, and event handling.
  */
 class UIRenderer {
 public:
@@ -21,7 +21,7 @@ public:
         : m_pDisplay(pDisplay) {}
 
     void init();
-    void cleanup() const;
+    void destroy() const;
 
     /**
      * Custom input handling for UI for custom behavior like mouse focus.

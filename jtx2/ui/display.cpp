@@ -50,7 +50,7 @@ void Display::run() {
 }
 
 void Display::draw() {
-    auto &frame = getCurrentFrame();
+    const auto &frame = getCurrentFrame();
 
     CHECK_VK(frame.drawFence.wait());
     CHECK_VK(frame.drawFence.reset());
@@ -67,6 +67,13 @@ void Display::draw() {
     auto cmd = frame.cmdBuffer;
     CHECK_VK(cmd.reset());
 
+    // Retrieve viewport position and size
+    vec2 viewportPosition;
+    vec2 viewportSize;
+    m_uiRenderer.getViewportPosition(viewportPosition, viewportSize);
+
+    // Ok...now what?
+
     m_drawImage.extent.width  = static_cast<uint32_t>(static_cast<float>(std::min(m_swapchain.extent.width, m_drawImage.image.imageExtent.width)) * m_drawImage.renderScale);
     m_drawImage.extent.height = static_cast<uint32_t>(static_cast<float>(std::min(m_swapchain.extent.height, m_drawImage.image.imageExtent.height)) * m_drawImage.renderScale);
 
@@ -80,11 +87,16 @@ void Display::draw() {
     VkImageSubresourceRange clearRange = jvk::init::imageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
     vkCmdClearColorImage(cmd, m_drawImage.image.image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
 
+    // Copy draw image to swapchain
+    jvk::transitionImage(cmd, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    jvk::copyImageToImage(cmd, m_drawImage.image,  m_swapchain.images[swapchainImageIndex], m_drawImage.extent, m_swapchain.extent);
+
     // Draw UI
-    // ImGui draws the draw image as a texture, so we need to transition it to a shader read only layout
-    jvk::transitionImage(cmd, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     m_uiRenderer.draw(cmd, m_swapchain.imageViews[swapchainImageIndex]);
+
+    // Transition to presentation format
     jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
     CHECK_VK(cmd.end());
@@ -95,6 +107,7 @@ void Display::draw() {
     VkSemaphoreSubmitInfoKHR signalInfo     = frame.drawSemaphore.submitInfo(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT_KHR);
     m_graphicsQueue.submit(&submitInfo, &waitInfo, &signalInfo, frame.drawFence);
 
+    // Present
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.pNext              = nullptr;
@@ -287,6 +300,8 @@ void Display::initDrawImages() {
     m_drawImage.image.imageExtent = drawExtent;
 
     VkImageUsageFlags drawImageUsages = {};
+    drawImageUsages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;    // Copy from image
+    drawImageUsages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;    // Copy to image
     drawImageUsages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;// Graphics pipeline
     drawImageUsages |= VK_IMAGE_USAGE_SAMPLED_BIT;         // Allow sampling for UI
 
@@ -442,7 +457,7 @@ jvk::Image Display::createImage(VkExtent3D extent, VkFormat format, VkImageUsage
     return image;
 }
 
-jvk::Image Display::createImage(void *pData, VkExtent3D extent, size_t nChannels, VkFormat format, VkImageUsageFlags usage, bool bMipmapped, VkSampleCountFlagBits sampleCount) const {
+jvk::Image Display::createImage(const void *pData, const VkExtent3D extent, const size_t nChannels, const VkFormat format, const VkImageUsageFlags usage, const bool bMipmapped, VkSampleCountFlagBits sampleCount) const {
     // Staging buffer, we will always assume data has 4 channels
     size_t dataSize           = extent.width * extent.height * extent.depth * nChannels;
     jvk::Buffer stagingBuffer = createBuffer(dataSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);

@@ -151,7 +151,7 @@ private:
      * @param sampleCount sample count
      * @return image containing provided data
      */
-    jvk::Image createImage(void *pData, VkExtent3D extent, size_t nChannels, VkFormat format, VkImageUsageFlags usage, bool bMipmapped = false, VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT) const;
+    jvk::Image createImage(const void *pData, VkExtent3D extent, size_t nChannels, VkFormat format, VkImageUsageFlags usage, bool bMipmapped = false, VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT) const;
 
     /**
      * Destroys the image using this engine's context and allocator

@@ -13,7 +13,7 @@
 #include "jvk/semaphore.hpp"
 #include "jvk/swapchain.hpp"
 
-#include "rasterizer.hpp"
+#include "rasterizer/rasterizer.hpp"
 #include "ui_renderer.hpp"
 
 #include "scene/scene.hpp"

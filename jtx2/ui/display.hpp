@@ -13,6 +13,8 @@
 #include "jvk/semaphore.hpp"
 #include "jvk/swapchain.hpp"
 
+#include "ui_renderer.hpp"
+
 constexpr int JTX_MAX_FRAMES_IN_FLIGHT = 2;
 
 class RasterizationEngine;
@@ -34,6 +36,7 @@ class Display {
 public:
     // Needs access to createImage/createBuffer methods
     friend class RasterizationEngine;
+    friend class UIRenderer;
 
     void init();
     void draw();
@@ -87,6 +90,9 @@ private:
 
     jvk::Sampler m_samplerLinear;
     jvk::Sampler m_samplerNearest;
+
+    // Secondary renderers
+    UIRenderer m_uiRenderer{this};
 
     // Functions
     FrameData &getCurrentFrame() { return m_frameData[m_frameNumber % JTX_MAX_FRAMES_IN_FLIGHT]; }

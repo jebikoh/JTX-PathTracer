@@ -48,4 +48,9 @@ public:
 private:
     Display *m_pDisplay = nullptr;
     VkDescriptorPool m_descriptorPool{};
+
+    void setupStyle();
+
+    // Draw functions
+    void drawDockSpace();
 };

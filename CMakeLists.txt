@@ -147,6 +147,8 @@ add_executable(
         jtx2/scene/scene_loader.cpp
         jtx2/util/color.hpp
         jtx2/image.cpp
+        jtx2/ui/ui_renderer.hpp
+        jtx2/ui/ui_renderer.cpp
 )
 
 

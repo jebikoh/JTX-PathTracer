@@ -15,6 +15,125 @@ constexpr bool JTX_USE_VALIDATION_LAYERS = true;
 
 Display *loadedDisplay = nullptr;
 
+
+void Display::run() {
+    SDL_Event e;
+    bool bQuit = false;
+
+    while (!bQuit) {
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) bQuit = true;
+
+            if (e.type == SDL_WINDOWEVENT) {
+                if (e.window.event == SDL_WINDOWEVENT_MINIMIZED) {
+                    m_bStopRendering = true;
+                }
+                if (e.window.event == SDL_WINDOWEVENT_RESTORED) {
+                    m_bStopRendering = false;
+                }
+            }
+
+            m_uiRenderer.handleInput(e);
+            m_uiRenderer.processEvents(e);
+        }
+
+        if (m_bStopRendering) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            continue;
+        }
+
+        if (m_bResizeRequested) resizeSwapchain();
+
+        m_uiRenderer.newFrame();
+        draw();
+    }
+}
+
+void Display::draw() {
+    auto &frame = getCurrentFrame();
+
+    CHECK_VK(frame.drawFence.wait());
+    CHECK_VK(frame.drawFence.reset());
+
+    // Get swapchain image
+    uint32_t swapchainImageIndex;
+    VkResult e = m_swapchain.acquireNextImage(m_ctx, frame.swapchainSemaphore, &swapchainImageIndex);
+    if (e == VK_ERROR_OUT_OF_DATE_KHR) {
+        m_bResizeRequested = true;
+        return;
+    }
+
+    // Reset and begin command buffer
+    auto cmd = frame.cmdBuffer;
+    CHECK_VK(cmd.reset());
+
+    m_drawImage.extent.width  = static_cast<uint32_t>(static_cast<float>(std::min(m_swapchain.extent.width, m_drawImage.image.imageExtent.width)) * m_drawImage.renderScale);
+    m_drawImage.extent.height = static_cast<uint32_t>(static_cast<float>(std::min(m_swapchain.extent.height, m_drawImage.image.imageExtent.height)) * m_drawImage.renderScale);
+
+    CHECK_VK(cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT));
+    // Draw to draw image
+    jvk::transitionImage(cmd, m_drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+
+    float flashValue = std::abs(std::sin(m_frameNumber / 60.0f));
+    VkClearColorValue clearValue = {{0.0f, 0.0f, flashValue, 1.0f}};
+
+    VkImageSubresourceRange clearRange = jvk::init::imageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
+    vkCmdClearColorImage(cmd, m_drawImage.image.image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
+
+    // Copy draw image to swapchain image
+    jvk::transitionImage(cmd, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    jvk::copyImageToImage(cmd, m_drawImage.image, m_swapchain.images[swapchainImageIndex], m_drawImage.extent, m_swapchain.extent);
+
+    // Draw UI
+    jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    m_uiRenderer.draw(cmd, m_swapchain.imageViews[swapchainImageIndex]);
+    jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
+    CHECK_VK(cmd.end());
+
+    // Submit buffer
+    VkCommandBufferSubmitInfoKHR submitInfo = cmd.submitInfo();
+    VkSemaphoreSubmitInfoKHR waitInfo       = frame.swapchainSemaphore.submitInfo(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR);
+    VkSemaphoreSubmitInfoKHR signalInfo     = frame.drawSemaphore.submitInfo(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT_KHR);
+    m_graphicsQueue.submit(&submitInfo, &waitInfo, &signalInfo, frame.drawFence);
+
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.pNext              = nullptr;
+    presentInfo.swapchainCount     = 1;
+    presentInfo.pSwapchains        = &m_swapchain.swapchain;
+    presentInfo.pWaitSemaphores    = &frame.drawSemaphore.semaphore;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pImageIndices      = &swapchainImageIndex;
+
+    VkResult presentResult = vkQueuePresentKHR(m_graphicsQueue, &presentInfo);
+    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR) {
+        m_bResizeRequested = true;
+    }
+
+    m_frameNumber++;
+}
+
+Display *Display::get() {
+    return loadedDisplay;
+}
+
+void Display::resizeSwapchain() {
+    LOG_INFO(DISPLAY, "Resizing swapchain");
+    vkDeviceWaitIdle(m_ctx);
+    m_swapchain.destroy(m_ctx);
+
+    int w, h;
+    SDL_GetWindowSize(m_pWindow, &w, &h);
+    m_windowExtent.width  = w;
+    m_windowExtent.height = h;
+
+    m_swapchain.init(m_ctx, m_windowExtent.width, m_windowExtent.height);
+    m_bResizeRequested = false;
+    LOG_INFO(DISPLAY, "Swapchain resized");
+}
+
 #pragma region Initialization
 
 void Display::init() {
@@ -33,56 +152,10 @@ void Display::init() {
     initDefaultImages();
     initDefaultSamplers();
 
+    m_uiRenderer.init();
+
     m_bIsInitialized = true;
     LOG_INFO(DISPLAY, "Initialized display");
-}
-void Display::run() {
-    SDL_Event e;
-    bool bQuit = false;
-
-    while (!bQuit) {
-        while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) bQuit = true;
-
-            if (e.type == SDL_WINDOWEVENT) {
-                if (e.window.event == SDL_WINDOWEVENT_MINIMIZED) {
-                    m_bStopRendering = true;
-                }
-                if (e.window.event == SDL_WINDOWEVENT_RESTORED) {
-                    m_bStopRendering = false;
-                }
-            }
-
-            // ImGui_ImplSDL2_ProcessEvent(&e);
-        }
-
-        if (m_bStopRendering) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            continue;
-        }
-
-        if (m_bResizeRequested) resizeSwapchain();
-        // draw() -> ui renderer
-        // draw() -> rasterizer or RT output
-    }
-}
-
-void Display::cleanup() {
-    LOG_INFO(DISPLAY, "Cleaning up engine resources...");
-    destroyDefaultSamplers();
-    destroyDefaultImages();
-    destroyImmediateBuffer();
-    destroyFrameData();
-    destroyDrawImages();
-    destroySwapchain();
-    destroyAllocators();
-    destroyVulkan();
-    destroyWindow();
-    LOG_INFO(DISPLAY, "Engine resources cleared");
-}
-
-Display *Display::get() {
-    return loadedDisplay;
 }
 
 void Display::initWindow() {
@@ -270,6 +343,29 @@ void Display::initImmediateBuffer() {
 #pragma endregion
 #pragma region Cleanup
 
+void Display::cleanup() {
+    if (m_bIsInitialized) {
+        LOG_INFO(DISPLAY, "Cleaning up engine resources...");
+        vkDeviceWaitIdle(m_ctx);
+
+        m_uiRenderer.cleanup();
+
+        destroyDefaultSamplers();
+        destroyDefaultImages();
+        destroyImmediateBuffer();
+        destroyFrameData();
+        destroyDrawImages();
+        destroySwapchain();
+        destroyAllocators();
+        destroyVulkan();
+        destroyWindow();
+
+        LOG_INFO(DISPLAY, "Engine resources cleared");
+    }
+
+    loadedDisplay = nullptr;
+}
+
 void Display::destroyWindow() const {
     LOG_INFO(DISPLAY, "Destroying window");
     SDL_DestroyWindow(m_pWindow);
@@ -320,7 +416,6 @@ void Display::destroyImmediateBuffer() {
     LOG_INFO(DISPLAY, "Immediate buffer destroyed");
 }
 #pragma endregion
-
 #pragma region Utilities
 
 jvk::Image Display::createImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool bMipmapped, VkSampleCountFlagBits sampleCount) const {
@@ -414,22 +509,6 @@ void Display::destroyBuffer(const jvk::Buffer &buffer) const {
 }
 
 #pragma endregion
-
-void Display::resizeSwapchain() {
-    LOG_INFO(DISPLAY, "Resizing swapchain");
-    vkDeviceWaitIdle(m_ctx);
-    m_swapchain.destroy(m_ctx);
-
-    int w, h;
-    SDL_GetWindowSize(m_pWindow, &w, &h);
-    m_windowExtent.width  = w;
-    m_windowExtent.height = h;
-
-    m_swapchain.init(m_ctx, m_windowExtent.width, m_windowExtent.height);
-    m_bResizeRequested = false;
-    LOG_INFO(DISPLAY, "Swapchain resized");
-}
-
 #pragma region Default data
 
 void Display::initDefaultImages() {

@@ -51,6 +51,12 @@ private:
 
     void setupStyle();
 
-    // Draw functions
-    void drawDockSpace();
+    // Docking setup
+    void setupDockSpace();
+    void resetLayout(ImGuiID dockSpaceId, ImGuiViewport *viewport, ImGuiDockNodeFlags dockSpaceFlags);
+    void drawMenuBar(ImGuiID dockSpaceId, ImGuiViewport *viewport, ImGuiDockNodeFlags dockSpaceFlags);
+
+    void drawViewportPanel();
+    void drawConsolePanel();
+    void drawPropertiesPanel();
 };

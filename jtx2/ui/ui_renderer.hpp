@@ -4,8 +4,9 @@
 
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
-#include <imgui_impl_vulkan.h>
 
+
+struct ImGuiDockNode;
 class Display;
 
 /**
@@ -17,20 +18,20 @@ public:
     UIRenderer(Display *pDisplay) : m_pDisplay(pDisplay) {}
 
     void init();
-    void cleanup();
+    void cleanup() const;
 
     /**
      * Custom input handling for UI for custom behavior like mouse focus.
      * Should be called during event polling, before processEvents()
      * @param event SDL event to process
      */
-    void handleInput(SDL_Event &event);
+    static void handleInput(const SDL_Event &event);
 
     /**
      * ImGui event processing function.
      * @param event SDL event to process
      */
-    void processEvents(SDL_Event &event) { ImGui_ImplSDL2_ProcessEvent(&event); }
+    static void processEvents(const SDL_Event &event) { ImGui_ImplSDL2_ProcessEvent(&event); }
 
     /**
      * Creates a new draw frame and generates draw data for the UI.
@@ -45,21 +46,27 @@ public:
      */
     void draw(VkCommandBuffer cmd, VkImageView targetImageView) const;
 
+    /**
+     * Retrieves the position and size of the viewport window
+     * @param position position output (top left corner)
+     * @param size size output
+     */
+    void getViewportPosition(vec2 &position, vec2 &size) const;
+
 private:
     Display *m_pDisplay = nullptr;
     VkDescriptorPool m_descriptorPool{};
 
-    // Used to draw texture to viewport
-    VkDescriptorSet m_drawImageDescriptorSet{};
+    // We need to store the central node so we can easily retrieve its dimensions
+    ImGuiDockNode *m_centralNode{};
 
-    void setupStyle();
+    static void setupStyle();
 
     // Docking setup
     void setupDockSpace();
-    void setLayout(ImGuiID dockSpaceId, ImGuiViewport *viewport, ImGuiDockNodeFlags dockSpaceFlags);
-    void drawMenuBar(ImGuiID dockSpaceId, ImGuiViewport *viewport, ImGuiDockNodeFlags dockSpaceFlags);
+    static void setLayout(ImGuiID dockSpaceId, const ImGuiViewport *viewport, ImGuiDockNodeFlags dockSpaceFlags);
+    static void drawMenuBar(ImGuiID dockSpaceId, const ImGuiViewport *viewport, ImGuiDockNodeFlags dockSpaceFlags);
 
-    void drawViewportPanel();
-    void drawConsolePanel();
-    void drawPropertiesPanel();
+    static void drawConsolePanel();
+    static void drawPropertiesPanel();
 };

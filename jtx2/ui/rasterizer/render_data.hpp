@@ -41,7 +41,6 @@ struct GPUMaterialInstance;
 struct GPURenderObject {
     uint32_t start;
     uint32_t count;
-    VkBuffer indexBuffer;
 
     GPUMaterialInstance *material;
 
@@ -49,6 +48,10 @@ struct GPURenderObject {
     mat4 nTransform;
 };
 
+struct GPUDrawContext {
+    std::vector<GPURenderObject> opaque;
+    std::vector<GPURenderObject> transparent;
+};
 
 #pragma region Material
 enum class GPUMaterialPass : uint8_t {
@@ -67,49 +70,35 @@ struct GPUMaterialInstance {
     VkDescriptorSet descriptorSet;
 };
 
-struct GPUMaterial {
-    // Pipelines
-    jvk::Pipeline opaquePipeline;
-    jvk::Pipeline transparentPipeline;
+/**
+ * GPU resources for the material instance.
+ */
+struct GPUMaterialResources {
+    struct GPUMaterialImages {
+        jvk::Image ambient;
+        jvk::Image diffuse;
+        jvk::Image specular;
+    } images;
 
-    VkDescriptorSetLayout descriptorSetLayout;
+    struct GPUMaterialSamplers {
+        jvk::Sampler ambient;
+        jvk::Sampler diffuse;
+        jvk::Sampler specular;
+    } samplers;
 
-    /**
-     * Material data to be written to UBO
-     */
-    struct GPUMaterialData {
-        // Temporary Blinn-Phong shading data
-        vec4 ambient;
-        vec4 diffuse;
-        vec4 specular;
-        float shininess;
-    };
+    VkBuffer ubo;
+    uint32_t uboOffset;
+};
 
-    /**
-     * GPU resources for the material instance.
-     */
-    struct GPUMaterialResources {
-        struct GPUMaterialImages {
-            jvk::Image ambient;
-            jvk::Image diffuse;
-            jvk::Image specular;
-        } images;
-
-        struct GPUMaterialSamplers {
-            jvk::Sampler ambient;
-            jvk::Sampler diffuse;
-            jvk::Sampler specular;
-        } samplers;
-
-        VkBuffer ubo;
-        uint32_t uboOffset;
-    };
-
-    jvk::DescriptorWriter writer;
-
-    void buildPipelines(Display *display);
-    void destroy(VkDevice device) const;
-    GPUMaterialInstance writeMaterial(VkDevice device, GPUMaterialPass pass, const GPUMaterialResources &resources, jvk::DynamicDescriptorAllocator &descriptorAllocator);
+/**
+ * Material data to be written to UBO
+ */
+struct GPUMaterialDataUBO {
+    // Temporary Blinn-Phong shading data
+    vec4 ambient;
+    vec4 diffuse;
+    vec4 specular;
+    float shininess;
 };
 #pragma endregion
 

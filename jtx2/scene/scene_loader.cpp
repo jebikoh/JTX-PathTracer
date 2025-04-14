@@ -76,6 +76,16 @@ bool jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &scene) 
         scene.materials.push_back(mat);
     }
 
+    if (scene.materials.empty()) {
+        LOG_INFO(LOADER, "No materials found in OBJ file, adding default material");
+        Material mat{};
+        mat.parameters.albedo = vec3(1.0f, 1.0f, 1.0f);
+
+        mat.textureIndices.albedo = JTX_MATERIAL_TEXTURE_INDEX_NONE;
+        mat.textureIndices.metallicRoughness = JTX_MATERIAL_TEXTURE_INDEX_NONE;
+        scene.materials.push_back(mat);
+    }
+
     const auto &positions = result.attributes.positions;
     const auto &normals   = result.attributes.normals;
     const auto &uvs       = result.attributes.texcoords;

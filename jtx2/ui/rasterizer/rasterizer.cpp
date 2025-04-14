@@ -1,13 +1,25 @@
 #include "rasterizer.hpp"
-#include "ui/display.hpp"
 #include "scene/scene.hpp"
+#include "ui/display.hpp"
+#include "ui/jvk/shaders.hpp"
 
 namespace jtx {
+
+void Rasterizer::init() {
+    initSceneDataDescriptorSetLayout();
+    initMaterialResources();
+}
+
+void Rasterizer::destroy() {
+    destroyGPUSceneData();
+    destroyMaterialResources();
+    destroySceneDataDescriptorSetLayout();
+}
 
 void Rasterizer::loadScene() {
     LOG_INFO(RASTERIZER, "Loading scene");
     if (m_bSceneLoaded) {
-        clearGPUSceneBuffers();
+        destroyGPUSceneData();
     }
 
     const Scene *scene = m_pDisplay->m_pScene;
@@ -78,6 +90,7 @@ void Rasterizer::loadScene() {
         memcpy(static_cast<char *>(data) + offset, scene->colors.data(), colorBufferSize);
     }
     vmaUnmapMemory(m_pDisplay->m_allocator, staging.allocation);
+    LOG_DEBUG(RASTERIZER, "Vertex data copied to staging buffer");
 
     // Copy to GPU
     m_pDisplay->m_immBuffer.submit(m_pDisplay->m_graphicsQueue, [&](VkCommandBuffer cmd) {
@@ -106,17 +119,56 @@ void Rasterizer::loadScene() {
             vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneBuffers.color.buffer, 1, &copyRegion);
         }
     });
+    LOG_DEBUG(RASTERIZER, "Staging buffer copied to GPU");
 
     m_pDisplay->destroyBuffer(staging);
+
+    // Load materials
+    m_materialInstances.clear();
+    m_materialInstances.reserve(scene->materials.size());
+
+    LOG_DEBUG(RASTERIZER, "Creating material UBO");
+    LOG_DEBUG(RASTERIZER, "Scene has {} materials", scene->materials.size());
+    // Create UBO that can hold material data for all materials
+    m_materialBufferUBO = m_pDisplay->createBuffer(sizeof(GPUMaterialDataUBO) * scene->materials.size(), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
+    LOG_DEBUG(RASTERIZER, "Created material UBO");
+
+    void *materialData;
+    vmaMapMemory(m_pDisplay->m_allocator, m_materialBufferUBO.allocation, &materialData);
+
+    size_t uboOffset = 0;
+    for (const auto &material : scene->materials) {
+        GPUMaterialDataUBO uboData{};
+        uboData.diffuse = vec4(material.parameters.albedo, 1.0f);
+        uboData.ambient = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        uboData.specular = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        uboData.shininess = 32.0f;
+        static_cast<GPUMaterialDataUBO *>(materialData)[uboOffset] = uboData;
+
+        GPUMaterialResources resources{};
+        // For now, we are just going to use default textures/samplers
+        resources.images.diffuse = m_pDisplay->m_whiteImage;
+        resources.images.ambient = m_pDisplay->m_whiteImage;
+        resources.images.specular = m_pDisplay->m_whiteImage;
+        resources.samplers.diffuse = m_pDisplay->m_samplerLinear;
+        resources.samplers.ambient = m_pDisplay->m_samplerLinear;
+        resources.samplers.specular = m_pDisplay->m_samplerLinear;
+
+        resources.ubo = m_materialBufferUBO;
+        resources.uboOffset = uboOffset * sizeof(GPUMaterialDataUBO);
+
+        GPUMaterialInstance mat = writeMaterial(GPUMaterialPass::OPAQUE, resources);
+        m_materialInstances.push_back(mat);
+
+        uboOffset++;
+    }
+    vmaUnmapMemory(m_pDisplay->m_allocator, m_materialBufferUBO.allocation);
+
     m_bSceneLoaded = true;
     LOG_INFO(RASTERIZER, "Scene loaded");
 }
 
-void Rasterizer::destroy() {
-    clearGPUSceneBuffers();
-}
-
-void Rasterizer::clearGPUSceneBuffers() {
+void Rasterizer::destroyGPUSceneData() {
     if (m_bSceneLoaded) {
         LOG_DEBUG(RASTERIZER, "Destroying GPU scene buffers");
         LOG_DEBUG(RASTERIZER, "Destroying index buffer");
@@ -131,10 +183,129 @@ void Rasterizer::clearGPUSceneBuffers() {
             LOG_DEBUG(RASTERIZER, "Destroying color buffer");
             m_pDisplay->destroyBuffer(m_gpuSceneBuffers.color);
         }
-        m_bSceneLoaded = false;
+
+        LOG_DEBUG(RASTERIZER, "Destroying material UBO");
+        m_pDisplay->destroyBuffer(m_materialBufferUBO);
+
+        m_bSceneLoaded    = false;
         m_gpuSceneBuffers = {};
         LOG_DEBUG(RASTERIZER, "Destroyed GPU scene buffers");
     }
+}
+
+void Rasterizer::initMaterialResources() {
+    VkShaderModule vertShader;
+    if (!jvk::loadShaderModule("../shaders/mesh.vert.spv", m_pDisplay->m_ctx, &vertShader)) {
+        LOG_FATAL(RASTERIZER, "Failed to load vertex shader");
+    }
+
+    VkShaderModule fragShader;
+    if (!jvk::loadShaderModule("../shaders/mesh.frag.spv", m_pDisplay->m_ctx, &fragShader)) {
+        LOG_FATAL(RASTERIZER, "Failed to load fragment shader");
+    }
+
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.offset     = 0;
+    pushConstantRange.size       = sizeof(GPUDrawPushConstants);
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+    jvk::DescriptorLayoutBuilder builder;
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);        // Material UBO
+    builder.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);// Ambient
+    builder.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);// Diffuse
+    builder.addBinding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);// Specular
+    m_gpuMaterials.descriptorSetLayout = builder.build(m_pDisplay->m_ctx, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    VkDescriptorSetLayout layouts[] = {m_sceneDataDescriptorSetLayout, m_gpuMaterials.descriptorSetLayout};
+
+    VkPipelineLayoutCreateInfo layoutInfo = jvk::init::pipelineLayout();
+    layoutInfo.setLayoutCount             = 2;
+    layoutInfo.pSetLayouts                = layouts;
+    layoutInfo.pushConstantRangeCount     = 1;
+    layoutInfo.pPushConstantRanges        = &pushConstantRange;
+
+    VkPipelineLayout layout;
+    CHECK_VK(vkCreatePipelineLayout(m_pDisplay->m_ctx, &layoutInfo, nullptr, &layout));
+
+    m_gpuMaterials.opaquePipeline.pipelineLayout      = layout;
+    m_gpuMaterials.transparentPipeline.pipelineLayout = layout;
+
+    jvk::PipelineBuilder pipelineBuilder;
+    pipelineBuilder.setShaders(vertShader, fragShader);
+    pipelineBuilder.setInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    pipelineBuilder.setPolygonMode(VK_POLYGON_MODE_FILL);
+    pipelineBuilder.setCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    pipelineBuilder.setMultiSamplingNone();
+    pipelineBuilder.disableBlending();
+    pipelineBuilder.enableDepthTest(true, VK_COMPARE_OP_LESS_OR_EQUAL);
+    pipelineBuilder.disableStencilTest();
+    pipelineBuilder.setColorAttachmentFormat(m_pDisplay->m_drawImage.image.imageFormat);
+    pipelineBuilder.setDepthAttachmentFormat(m_pDisplay->m_drawImage.depthStencilImage.imageFormat);
+    pipelineBuilder._pipelineLayout = layout;
+
+    m_gpuMaterials.opaquePipeline.pipeline = pipelineBuilder.buildPipeline(m_pDisplay->m_ctx);
+
+    pipelineBuilder.enableBlendingAdditive();
+    m_gpuMaterials.transparentPipeline.pipeline = pipelineBuilder.buildPipeline(m_pDisplay->m_ctx);
+
+    vkDestroyShaderModule(m_pDisplay->m_ctx, vertShader, nullptr);
+    vkDestroyShaderModule(m_pDisplay->m_ctx, fragShader, nullptr);
+}
+
+void Rasterizer::destroyMaterialResources() const {
+    vkDestroyDescriptorSetLayout(m_pDisplay->m_ctx, m_gpuMaterials.descriptorSetLayout, nullptr);
+    m_gpuMaterials.opaquePipeline.destroy(m_pDisplay->m_ctx, true);
+    m_gpuMaterials.transparentPipeline.destroy(m_pDisplay->m_ctx, false);
+}
+
+GPUMaterialInstance Rasterizer::writeMaterial(GPUMaterialPass pass, const GPUMaterialResources &resources) {
+    GPUMaterialInstance mat{};
+    mat.mType = pass;
+
+    if (pass == GPUMaterialPass::OPAQUE) {
+        mat.pipeline = m_gpuMaterials.opaquePipeline;
+    } else if (pass == GPUMaterialPass::TRANSPARENT) {
+        mat.pipeline = m_gpuMaterials.transparentPipeline;
+    } else {
+        LOG_ERROR(RASTERIZER, "Invalid material pass type");
+        return {};
+    }
+
+    mat.descriptorSet = m_pDisplay->m_descriptorAllocator.allocate(m_pDisplay->m_ctx, m_gpuMaterials.descriptorSetLayout);
+
+    writer.clear();
+    writer.writeBuffer(0, resources.ubo, sizeof(GPUMaterialDataUBO), resources.uboOffset, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    writer.writeImage(1, resources.images.ambient.imageView, resources.samplers.ambient, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    writer.writeImage(2, resources.images.diffuse.imageView, resources.samplers.diffuse, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    writer.writeImage(3, resources.images.specular.imageView, resources.samplers.specular, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    writer.updateSet(m_pDisplay->m_ctx, mat.descriptorSet);
+
+    return mat;
+}
+
+void Rasterizer::populateContext() {
+    m_drawContext.opaque.clear();
+    m_drawContext.transparent.clear();
+
+    // Loop through meshes
+    for (const auto &mesh : m_pDisplay->m_pScene->meshes) {
+        GPURenderObject obj{};
+        obj.start = mesh.startIndex;
+        obj.count = mesh.numIndices;
+        obj.transform = mat4::identity();
+        obj.nTransform = mat4::identity();
+        // TODO
+    }
+}
+
+void Rasterizer::initSceneDataDescriptorSetLayout() {
+    jvk::DescriptorLayoutBuilder builder;
+    builder.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    m_sceneDataDescriptorSetLayout = builder.build(m_pDisplay->m_ctx, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+}
+
+void Rasterizer::destroySceneDataDescriptorSetLayout() const {
+    vkDestroyDescriptorSetLayout(m_pDisplay->m_ctx, m_sceneDataDescriptorSetLayout, nullptr);
 }
 
 }// namespace jtx

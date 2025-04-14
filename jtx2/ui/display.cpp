@@ -165,6 +165,7 @@ void Display::init() {
     initDefaultSamplers();
 
     //    m_uiRenderer.init();
+    m_rasterizer.init();
 
     m_bIsInitialized = true;
     LOG_INFO(DISPLAY, "Initialized display");
@@ -360,7 +361,7 @@ void Display::destroy() {
         LOG_INFO(DISPLAY, "Destroying engine resources...");
         vkDeviceWaitIdle(m_ctx);
 
-        //        m_uiRenderer.cleanup();
+        //        m_uiRenderer.destroy();
         m_rasterizer.destroy();
 
         destroyDefaultSamplers();

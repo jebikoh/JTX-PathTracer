@@ -39,6 +39,7 @@ class Display {
 public:
     // Needs access to createImage/createBuffer methods
     friend class Rasterizer;
+    friend class GPUMaterial;
     friend class UIRenderer;
 
     void init();

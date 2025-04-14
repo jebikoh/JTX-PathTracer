@@ -14,8 +14,7 @@ class Display;
  * This class is responsible for rasterizing the scene, including managing
  * GPU resources, pipelines, and rendering commands.
  *
- * A quick overview of the GPU data. We pass data through push constants and
- * two UBOs:
+ * A quick overview of the GPU data.
  *  - Push Constants: per-object data
  *      - World matrix (ma4)
  *      - Normal matrix (mat4)
@@ -33,18 +32,15 @@ class Display;
  *      - Diffuse value (vec4)
  *      - Specular value (vec4)
  *      - Shininess value (float)
- *  - Image/Sampler (layout 1, binding 1-3): material textures
- *      - Ambient texture/sampler
- *      - Diffuse texture/sampler
- *      - Specular texture/sampler
+ *  - Image/Sampler (layout 1, binding 1): ambient texture/sampler
+ *  - Image/Sampler (layout 1, binding 2): diffuse texture/sampler
+ *  - Image/Sampler (layout 1, binding 3): specular texture/sampler
  *
  * Push constants are modified per-object, per-frame
  *
- * The first layout is initialized in init() and is updated at the start
- * of every frame.
+ * The first layout is initialized in init() and is updated at the start of every frame.
  *
- * The second layout is initialized in loadScene() and is only updated
- * if a material has been updated.
+ * The second layout is initialized in loadScene() and is only updated if a material has been updated.
  */
 class Rasterizer {
 public:
@@ -76,7 +72,7 @@ private:
     // Scene
     bool m_bSceneLoaded = false;
 
-    // The rasterizer also needs to keep track of some per-frame data
+    // Scene data needs to be updated every frame
     struct FrameData {
         jvk::Buffer sceneDataBuffer;
         VkDescriptorSet sceneDataDescriptorSet;

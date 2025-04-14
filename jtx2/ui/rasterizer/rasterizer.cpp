@@ -6,14 +6,14 @@
 namespace jtx {
 
 void Rasterizer::init() {
-    initSceneDataDescriptorSetLayout();
+    initFrameData();
     initMaterialResources();
 }
 
 void Rasterizer::destroy() {
     destroyGPUSceneData();
     destroyMaterialResources();
-    destroySceneDataDescriptorSetLayout();
+    destroyFrameData();
 }
 
 void Rasterizer::loadScene() {
@@ -263,9 +263,9 @@ GPUMaterialInstance Rasterizer::writeMaterial(GPUMaterialPass pass, const GPUMat
     mat.mType = pass;
 
     if (pass == GPUMaterialPass::OPAQUE) {
-        mat.pipeline = m_gpuMaterials.opaquePipeline;
+        mat.pipeline = &m_gpuMaterials.opaquePipeline;
     } else if (pass == GPUMaterialPass::TRANSPARENT) {
-        mat.pipeline = m_gpuMaterials.transparentPipeline;
+        mat.pipeline = &m_gpuMaterials.transparentPipeline;
     } else {
         LOG_ERROR(RASTERIZER, "Invalid material pass type");
         return {};
@@ -283,7 +283,7 @@ GPUMaterialInstance Rasterizer::writeMaterial(GPUMaterialPass pass, const GPUMat
     return mat;
 }
 
-void Rasterizer::populateContext() {
+void Rasterizer::updateContext() {
     m_drawContext.opaque.clear();
     m_drawContext.transparent.clear();
 
@@ -292,20 +292,126 @@ void Rasterizer::populateContext() {
         GPURenderObject obj{};
         obj.start = mesh.startIndex;
         obj.count = mesh.numIndices;
+        // TODO: update this when we write a scene graph
         obj.transform = mat4::identity();
         obj.nTransform = mat4::identity();
-        // TODO
+        obj.material = &m_materialInstances[mesh.materialIndex];
     }
 }
 
-void Rasterizer::initSceneDataDescriptorSetLayout() {
+void Rasterizer::initFrameData() {
     jvk::DescriptorLayoutBuilder builder;
     builder.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     m_sceneDataDescriptorSetLayout = builder.build(m_pDisplay->m_ctx, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    for (auto &frame : m_frameData) {
+        frame.sceneDataBuffer = m_pDisplay->createBuffer(sizeof(GPUDrawSceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+        frame.sceneDataDescriptorSet = m_pDisplay->m_descriptorAllocator.allocate(m_pDisplay->m_ctx, m_sceneDataDescriptorSetLayout);
+    }
 }
 
-void Rasterizer::destroySceneDataDescriptorSetLayout() const {
+void Rasterizer::destroyFrameData() const {
     vkDestroyDescriptorSetLayout(m_pDisplay->m_ctx, m_sceneDataDescriptorSetLayout, nullptr);
+    for (auto &frame : m_frameData) {
+        m_pDisplay->destroyBuffer(frame.sceneDataBuffer);
+    }
+}
+
+void Rasterizer::draw(VkCommandBuffer cmd) {
+    updateContext();
+
+    // Sort draws (only opaque for now)
+    std::vector<uint32_t> opaqueDraws;
+    opaqueDraws.reserve(m_drawContext.opaque.size());
+    for (uint32_t i = 0; i < m_drawContext.opaque.size(); ++i) {
+        opaqueDraws.push_back(i);
+    }
+
+    std::sort(opaqueDraws.begin(), opaqueDraws.end(), [&](const auto &iA, const auto &iB) {
+        const GPURenderObject &A = m_drawContext.opaque[iA];
+        const GPURenderObject &B = m_drawContext.opaque[iB];
+
+        if (A.material == B.material) {
+            return A.start < B.start;
+        }
+        return A.material < B.material;
+    });
+
+    // Setup attachments & clear buffers
+    VkRenderingAttachmentInfo colorAttachment = jvk::init::renderingAttachment(m_pDisplay->m_drawImage.image.imageView, nullptr, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    VkClearValue clearValue{};
+    clearValue.depthStencil.depth = 1.0f;
+
+    VkRenderingAttachmentInfo depthAttachment = jvk::init::depthRenderingAttachment(m_pDisplay->m_drawImage.depthStencilImage.imageView, &clearValue, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    VkRenderingInfo renderingInfo             = jvk::init::rendering(m_pDisplay->m_drawImage.extent, &colorAttachment, &depthAttachment);
+
+    vkCmdBeginRenderingKHR(cmd, &renderingInfo);
+
+    // Update scene data
+    FrameData &frameData = m_frameData[m_pDisplay->getCurrentFrameIndex()];
+
+    jvk::Buffer sceneDataBuffer = frameData.sceneDataBuffer;
+    void *rawSceneData;
+    vmaMapMemory(m_pDisplay->m_allocator, sceneDataBuffer.allocation, &rawSceneData);
+    GPUDrawSceneData *sceneData = static_cast<GPUDrawSceneData *>(rawSceneData);
+    *sceneData = m_sceneData;
+    vmaUnmapMemory(m_pDisplay->m_allocator, sceneDataBuffer.allocation);
+
+    // Write scene data to descriptor set
+    jvk::DescriptorWriter dWriter{};
+    dWriter.writeBuffer(0, sceneDataBuffer, sizeof(GPUDrawSceneData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    dWriter.updateSet(m_pDisplay->m_ctx, frameData.sceneDataDescriptorSet);
+
+    jvk::Pipeline *lastPipeline = nullptr;
+    GPUMaterialInstance *lastMaterial = nullptr;
+
+    vkCmdBindIndexBuffer(cmd, m_gpuSceneBuffers.index.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+    auto draw = [&](const GPURenderObject &r) {
+        if (lastMaterial != r.material) {
+            lastMaterial = r.material;
+
+            if (r.material->pipeline != lastPipeline) {
+                lastPipeline = r.material->pipeline;
+                vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, lastPipeline->pipeline);
+                vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->pipelineLayout, 0, 1, &frameData.sceneDataDescriptorSet, 0, nullptr);
+
+                const auto &drawExtent = m_pDisplay->m_drawImage.extent;
+
+                VkViewport viewport{};
+                viewport.x        = 0;
+                viewport.y        = 0;
+                viewport.width    = static_cast<float>(drawExtent.width);
+                viewport.height   = static_cast<float>(drawExtent.height);
+                viewport.minDepth = 0.0f;
+                viewport.maxDepth = 1.0f;
+                vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+                VkRect2D scissor{};
+                scissor.offset.x      = 0;
+                scissor.offset.y      = 0;
+                scissor.extent.width  = drawExtent.width;
+                scissor.extent.height = drawExtent.height;
+                vkCmdSetScissor(cmd, 0, 1, &scissor);
+            }
+
+            vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->pipelineLayout, 1, 1, &r.material->descriptorSet, 0, nullptr);
+        }
+
+        GPUDrawPushConstants pushConstants{};
+        pushConstants.normal = r.nTransform;
+        pushConstants.world  = r.transform;
+        vkCmdPushConstants(cmd, r.material->pipeline->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GPUDrawPushConstants), &pushConstants);
+
+        vkCmdDrawIndexed(cmd, r.count, 1, r.start, 0, 0);
+    };
+
+    for (const auto &r : opaqueDraws) {
+        draw(m_drawContext.opaque[r]);
+    }
+
+    vkCmdEndRenderingKHR(cmd);
 }
 
 }// namespace jtx

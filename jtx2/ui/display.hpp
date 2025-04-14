@@ -20,8 +20,6 @@
 
 namespace jtx {
 
-constexpr int JTX_MAX_FRAMES_IN_FLIGHT = 2;
-
 /**
  * This class is responsible for the UI and handling high-level rendering
  * and state-management
@@ -39,7 +37,6 @@ class Display {
 public:
     // Needs access to createImage/createBuffer methods
     friend class Rasterizer;
-    friend class GPUMaterial;
     friend class UIRenderer;
 
     void init();
@@ -109,6 +106,7 @@ private:
 
     // Functions
     FrameData &getCurrentFrame() { return m_frameData[m_frameNumber % JTX_MAX_FRAMES_IN_FLIGHT]; }
+    size_t getCurrentFrameIndex() const { return m_frameNumber % JTX_MAX_FRAMES_IN_FLIGHT; }
 
     // Initializer functions
     void initWindow();

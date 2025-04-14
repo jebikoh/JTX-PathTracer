@@ -13,6 +13,38 @@ class Display;
 /**
  * This class is responsible for rasterizing the scene, including managing
  * GPU resources, pipelines, and rendering commands.
+ *
+ * A quick overview of the GPU data. We pass data through push constants and
+ * two UBOs:
+ *  - Push Constants: per-object data
+ *      - World matrix (ma4)
+ *      - Normal matrix (mat4)
+ *  - UBO (layout 0, binding 0): scene data
+ *      - View matrix (mat4)
+ *      - Proj matrix (mat4)
+ *      - View * Proj matrix (mat4)
+ *      - Camera position (vec4)
+ *      - Vertex buffer address (uint64_t)
+ *      - Normal buffer address (uint64_t)
+ *      - UV buffer address (uint64_t)
+ *      - Color buffer address (uint64_t)
+ *  - UBO (layout 1, binding 0): material data
+*       - Ambient value (vec4)
+ *      - Diffuse value (vec4)
+ *      - Specular value (vec4)
+ *      - Shininess value (float)
+ *  - Image/Sampler (layout 1, binding 1-3): material textures
+ *      - Ambient texture/sampler
+ *      - Diffuse texture/sampler
+ *      - Specular texture/sampler
+ *
+ * Push constants are modified per-object, per-frame
+ *
+ * The first layout is initialized in init() and is updated at the start
+ * of every frame.
+ *
+ * The second layout is initialized in loadScene() and is only updated
+ * if a material has been updated.
  */
 class Rasterizer {
 public:
@@ -22,6 +54,8 @@ public:
     void init();
 
     void destroy();
+
+    void draw(VkCommandBuffer cmd);
 
     /**
      * This will (re)load the scene from the display and setup GPU resources.
@@ -42,10 +76,15 @@ private:
     // Scene
     bool m_bSceneLoaded = false;
 
-    VkDescriptorSet m_sceneDataDescriptorSet             = VK_NULL_HANDLE;
+    // The rasterizer also needs to keep track of some per-frame data
+    struct FrameData {
+        jvk::Buffer sceneDataBuffer;
+        VkDescriptorSet sceneDataDescriptorSet;
+    } m_frameData[JTX_MAX_FRAMES_IN_FLIGHT];
+
     VkDescriptorSetLayout m_sceneDataDescriptorSetLayout = VK_NULL_HANDLE;
-    void initSceneDataDescriptorSetLayout();
-    void destroySceneDataDescriptorSetLayout() const;
+    void initFrameData();
+    void destroyFrameData() const;
 
     struct GPUSceneBuffers {
         jvk::Buffer index;
@@ -77,7 +116,7 @@ private:
     GPUDrawContext m_drawContext;
     GPUDrawSceneData m_sceneData;
 
-    void populateContext();
+    void updateContext();
 
     /**
      * Builds material pipelines and descriptor set layouts

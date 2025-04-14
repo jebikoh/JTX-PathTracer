@@ -66,7 +66,7 @@ struct GPUMaterialInstance {
     // We use this for draw sorting later
     GPUMaterialPass mType = GPUMaterialPass::OPAQUE;
 
-    jvk::Pipeline pipeline;
+    jvk::Pipeline *pipeline;
     VkDescriptorSet descriptorSet;
 };
 

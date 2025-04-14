@@ -21,3 +21,5 @@ using mat4 = jtx::Mat4;
 
 using Ray       = jtx::Rayf;
 using Transform = jtx::Transform;
+
+constexpr int JTX_MAX_FRAMES_IN_FLIGHT = 2;

@@ -48,11 +48,11 @@ private:
     void destroySceneDataDescriptorSetLayout() const;
 
     struct GPUSceneBuffers {
-        jvk::Buffer index;
-        jvk::Buffer position;
-        jvk::Buffer normal;
-        jvk::Buffer uv;
-        jvk::Buffer color;
+        jvk::Buffer index{};
+        jvk::Buffer position{};
+        jvk::Buffer normal{};
+        jvk::Buffer uv{};
+        jvk::Buffer color{};
 
         VkDeviceAddress positionAddress;
         VkDeviceAddress normalAddress;
@@ -78,6 +78,7 @@ private:
     GPUDrawSceneData m_sceneData;
 
     void populateContext();
+    void updateSceneData();
 
     /**
      * Builds material pipelines and descriptor set layouts

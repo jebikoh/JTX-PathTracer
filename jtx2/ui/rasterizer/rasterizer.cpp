@@ -288,14 +288,18 @@ void Rasterizer::populateContext() {
     m_drawContext.transparent.clear();
 
     // Loop through meshes
-    for (const auto &mesh : m_pDisplay->m_pScene->meshes) {
+    for (const auto &mesh: m_pDisplay->m_pScene->meshes) {
         GPURenderObject obj{};
-        obj.start = mesh.startIndex;
-        obj.count = mesh.numIndices;
-        obj.transform = mat4::identity();
+        obj.start      = mesh.startIndex;
+        obj.count      = mesh.numIndices;
+        obj.transform  = mat4::identity();
         obj.nTransform = mat4::identity();
         // TODO
     }
+}
+
+void Rasterizer::updateSceneData() {
+
 }
 
 void Rasterizer::initSceneDataDescriptorSetLayout() {

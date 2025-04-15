@@ -152,6 +152,8 @@ add_executable(
         jtx2/ui/ui_renderer.cpp
         jtx2/ui/rasterizer/rasterizer.hpp
         jtx2/ui/rasterizer/rasterizer.cpp
+        jtx2/ui/rasterizer/camera.hpp
+        jtx2/ui/rasterizer/camera.cpp
 )
 
 

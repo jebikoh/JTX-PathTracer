@@ -50,6 +50,8 @@ public:
 
     void draw(VkCommandBuffer cmd);
 
+    void processSDLEvent(const SDL_Event &event);
+
     /**
      * This will (re)load the scene from the display and setup GPU resources.
      *
@@ -70,7 +72,7 @@ private:
 
     // Scene
     bool m_bSceneLoaded = false;
-    Camera m_camera{.position = {0.0f, 0.0f, 10.0f}};
+    Camera m_camera{.position = {0.0f, 0.0f, 1.0f}};
 
     // Frame data (scene UBO buffers)
     struct FrameData {

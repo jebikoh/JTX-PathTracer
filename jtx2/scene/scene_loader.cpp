@@ -106,7 +106,9 @@ bool jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &scene) 
         newMesh.numIndices = numIndices;
 
         // Add material for the mesh if it exists, o/w we assign the first material
-        newMesh.materialIndex = !mesh.material_ids.empty() ? mesh.material_ids[0] : 0;
+        // TODO: add proper check for materials
+        newMesh.materialIndex = !mesh.material_ids.empty() ? 0 : 0;
+        // newMesh.materialIndex = !mesh.material_ids.empty() ? mesh.material_ids[0] : 0;
         scene.meshes.push_back(newMesh);
 
         // We keep track of the current vertex index ourselves

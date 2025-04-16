@@ -42,7 +42,7 @@ struct Scene {
     // Vertex data
     std::vector<vec3> positions;
     std::vector<vec3> normals;
-    std::vector<vec2u> uvs;
+    std::vector<vec2u> uvs; // Why are these uints?
     std::vector<vec3> colors;
 
     // Materials & textures

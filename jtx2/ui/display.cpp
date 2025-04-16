@@ -34,6 +34,8 @@ void Display::run() {
                 }
             }
 
+            m_rasterizer.processSDLEvent(e);
+
             //            m_uiRenderer.handleInput(e);
             //            m_uiRenderer.processEvents(e);
         }
@@ -85,7 +87,7 @@ void Display::draw() {
     m_rasterizer.draw(cmd);
 
     // Copy draw image to swapchain
-    jvk::transitionImage(cmd, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    jvk::transitionImage(cmd, m_drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     jvk::copyImageToImage(cmd, m_drawImage.image, m_swapchain.images[swapchainImageIndex], m_drawImage.extent, m_swapchain.extent);
 

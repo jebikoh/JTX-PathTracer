@@ -64,7 +64,7 @@ void Rasterizer::draw(const VkCommandBuffer cmd) {
     // Update scene data UBO & descriptor set (layout 0, binding 0)
     const FrameData &frame = m_frameData[m_pDisplay->getCurrentFrameIndex()];
 
-    *frame.gpuSceneDataUBOMapping           = m_gpuSceneUboData;
+    *frame.gpuSceneDataUBOMapping = m_gpuSceneUboData;
 
     jvk::Pipeline *lastPipeline       = nullptr;
     GPUMaterialInstance *lastMaterial = nullptr;
@@ -117,8 +117,12 @@ void Rasterizer::draw(const VkCommandBuffer cmd) {
     }
 
     vkCmdEndRenderingKHR(cmd);
-
     // Skip transparent objects for now
+}
+
+void Rasterizer::processSDLEvent(const SDL_Event &event) {
+    // m_camera.processSDLEvent(event);
+    return;
 }
 
 void Rasterizer::loadScene() {

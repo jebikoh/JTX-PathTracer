@@ -1,18 +1,21 @@
 #include "camera.hpp"
+#include <glm/ext/matrix_transform.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
 
-mat4 Camera::getViewMatrix() const {
-    const mat4 cameraTranslation = jtx::translate(position);
-    const mat4 cameraRotation    = getRotationMatrix();
-    return jtx::inverse(cameraTranslation * cameraRotation).value();
+glm::mat4 Camera::getViewMatrix() const {
+    const glm::mat4 cameraTranslation = glm::translate(glm::mat4(1.0f), position);
+    const glm::mat4 cameraRotation    = getRotationMatrix();
+    return glm::inverse(cameraTranslation * cameraRotation);
 }
 
-mat4 Camera::getRotationMatrix() const {
-    quat pitchRotation = angleAxis(pitch, vec3(1, 0, 0));
-    quat yawRotation   = angleAxis(yaw, vec3(0, -1, 0));
-    return toMat4(quat(yawRotation) * quat(pitchRotation));
+glm::mat4 Camera::getRotationMatrix() const {
+    glm::quat pitchRotation = glm::angleAxis(pitch, glm::vec3(1, 0, 0));
+    glm::quat yawRotation   = glm::angleAxis(yaw, glm::vec3(0, -1, 0));
+    return glm::toMat4(glm::quat(yawRotation) * glm::quat(pitchRotation));
 }
 
-void Camera::processSDLEvent(SDL_Event &event) {
+void Camera::processSDLEvent(const SDL_Event &event) {
     if (event.type == SDL_KEYDOWN) {
         if (event.key.keysym.sym == SDLK_w) { velocity.z = -1; }
         if (event.key.keysym.sym == SDLK_s) { velocity.z = 1; }
@@ -36,12 +39,12 @@ void Camera::processSDLEvent(SDL_Event &event) {
     }
 }
 
-void Camera::update(float deltaTime) {
-    const mat4 rot = getRotationMatrix();
-    position += vec3(rot * vec4(velocity * speed * deltaTime, 0.0f));
+void Camera::update(const float deltaTime) {
+    const glm::mat4 rot = getRotationMatrix();
+    position += glm::vec3(rot * glm::vec4(velocity * speed * deltaTime, 0.0f));
 }
 
-vec3 Camera::getFront() const {
-    const mat4 rot = getRotationMatrix();
-    return -vec3(rot[2]);
+glm::vec3 Camera::getFront() const {
+    const glm::mat4 rot = getRotationMatrix();
+    return -glm::vec3(rot[2]);
 }

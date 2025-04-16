@@ -17,3 +17,6 @@
 [submodule "ext/volk"]
 	path = ext/volk
 	url = https://github.com/zeux/volk.git
+[submodule "ext/glm"]
+	path = ext/glm
+	url = https://github.com/g-truc/glm.git

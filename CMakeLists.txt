@@ -95,6 +95,10 @@ target_compile_definitions(imgui
 target_link_libraries(imgui PUBLIC volk Vulkan::Vulkan SDL2::SDL2)
 # JTXlib
 add_subdirectory(ext/jtxlib)
+# GLM (temporary)
+add_library(glm INTERFACE)
+target_include_directories(glm INTERFACE ext/glm)
+
 # fastglTF
 add_subdirectory(ext/fastgltf)
 # fmt
@@ -157,7 +161,19 @@ add_executable(
 )
 
 
-target_link_libraries(JTX PRIVATE Vulkan::Vulkan GPUOpen::VulkanMemoryAllocator vk-bootstrap::vk-bootstrap volk jtxlib SDL2::SDL2main SDL2::SDL2 imgui fmt::fmt fastgltf::fastgltf)
+target_link_libraries(JTX PRIVATE
+        Vulkan::Vulkan
+        GPUOpen::VulkanMemoryAllocator
+        vk-bootstrap::vk-bootstrap
+        volk
+        jtxlib
+        SDL2::SDL2main
+        SDL2::SDL2
+        imgui
+        fmt::fmt
+        fastgltf::fastgltf
+        glm
+)
 
 target_include_directories(JTX
         PRIVATE

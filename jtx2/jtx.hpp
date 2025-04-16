@@ -22,3 +22,6 @@ using quat = jtx::Quaternion;
 
 using Ray       = jtx::Rayf;
 using Transform = jtx::Transform;
+
+// Global constants
+constexpr int JTX_MAX_FRAMES_IN_FLIGHT = 2;

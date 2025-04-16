@@ -17,10 +17,9 @@
 #include "ui_renderer.hpp"
 
 #include "scene/scene.hpp"
+#include "jtx.hpp"
 
 namespace jtx {
-
-constexpr int JTX_MAX_FRAMES_IN_FLIGHT = 2;
 
 /**
  * This class is responsible for the UI and handling high-level rendering
@@ -109,6 +108,7 @@ private:
 
     // Functions
     FrameData &getCurrentFrame() { return m_frameData[m_frameNumber % JTX_MAX_FRAMES_IN_FLIGHT]; }
+    size_t getCurrentFrameIndex() const { return m_frameNumber % JTX_MAX_FRAMES_IN_FLIGHT; }
 
     // Initializer functions
     void initWindow();
@@ -179,9 +179,11 @@ private:
      * @param allocSize size of the buffer
      * @param usage buffer usage
      * @param memUsage memory usage
+     * @param memFlags memory flags
+     * @param memPropFlags vulkan memory flags
      * @return empty buffer
      */
-    jvk::Buffer createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, VmaAllocationCreateFlags memFlags = 0) const;
+    jvk::Buffer createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, VmaAllocationCreateFlags memFlags = 0, VkMemoryPropertyFlags memPropFlags = 0) const;
 
     /**
      * Destroys the buffer using this engine's allocator

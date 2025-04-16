@@ -17,7 +17,6 @@ constexpr bool JTX_USE_VALIDATION_LAYERS = true;
 
 Display *loadedDisplay = nullptr;
 
-
 void Display::run() {
     SDL_Event e;
     bool bQuit = false;
@@ -70,10 +69,9 @@ void Display::draw() {
     CHECK_VK(cmd.reset());
 
     // Retrieve viewport position and size
-    vec2 viewportPosition;
-    vec2 viewportSize;
+    // vec2 viewportPosition;
+    // vec2 viewportSize;
     //    m_uiRenderer.getViewportPosition(viewportPosition, viewportSize);
-
     // Ok...now what?
 
     m_drawImage.extent.width  = static_cast<uint32_t>(static_cast<float>(std::min(m_swapchain.extent.width, m_drawImage.image.imageExtent.width)) * m_drawImage.renderScale);
@@ -81,13 +79,10 @@ void Display::draw() {
 
     CHECK_VK(cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT));
     // Draw to draw image
-    jvk::transitionImage(cmd, m_drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    jvk::transitionImage(cmd, m_drawImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    jvk::transitionImage(cmd, m_drawImage.depthStencilImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
-    float flashValue             = std::abs(std::sin(m_frameNumber / 60.0f));
-    VkClearColorValue clearValue = {{0.0f, 0.0f, flashValue, 1.0f}};
-
-    VkImageSubresourceRange clearRange = jvk::init::imageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
-    vkCmdClearColorImage(cmd, m_drawImage.image.image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange);
+    m_rasterizer.draw(cmd);
 
     // Copy draw image to swapchain
     jvk::transitionImage(cmd, m_drawImage.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
@@ -502,7 +497,7 @@ void Display::destroyImage(const jvk::Image &image) const {
     image.destroy(m_ctx, m_allocator);
 }
 
-jvk::Buffer Display::createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, VmaAllocationCreateFlags memFlags) const {
+jvk::Buffer Display::createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, VmaAllocationCreateFlags memFlags, VkMemoryPropertyFlags memPropFlags) const {
     VkBufferCreateInfo info{};
     info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     info.pNext = nullptr;
@@ -512,6 +507,7 @@ jvk::Buffer Display::createBuffer(size_t allocSize, VkBufferUsageFlags usage, Vm
     VmaAllocationCreateInfo allocInfo{};
     allocInfo.usage = memUsage;
     allocInfo.flags = memFlags;
+    allocInfo.requiredFlags = memPropFlags;
 
     jvk::Buffer buffer{};
     CHECK_VK(vmaCreateBuffer(m_allocator, &info, &allocInfo, &buffer.buffer, &buffer.allocation, &buffer.info));

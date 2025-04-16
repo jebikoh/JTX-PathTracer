@@ -8,6 +8,7 @@ int main(int argc, char *argv[]) {
     jtx::Display display;
     display.init();
     display.setScene(&scene);
+    display.run();
     display.destroy();
 
     return 0;

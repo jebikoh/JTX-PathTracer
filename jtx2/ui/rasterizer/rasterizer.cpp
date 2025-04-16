@@ -3,23 +3,128 @@
 #include "ui/display.hpp"
 #include "ui/jvk/shaders.hpp"
 
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/transform.hpp>
+
 namespace jtx {
 
 void Rasterizer::init() {
-    initSceneDataDescriptorSetLayout();
+    LOG_INFO(RASTERIZER, "Initializing Rasterizer");
+    initFrameData();
     initMaterialResources();
+    LOG_INFO(RASTERIZER, "Rasterizer initialized");
 }
 
 void Rasterizer::destroy() {
-    destroyGPUSceneData();
+    LOG_INFO(RASTERIZER, "Destroying Rasterizer");
+    destroyGPUScene();
     destroyMaterialResources();
-    destroySceneDataDescriptorSetLayout();
+    destroyFrameData();
+    LOG_INFO(RASTERIZER, "Rasterizer destroyed");
+}
+
+void Rasterizer::draw(const VkCommandBuffer cmd) {
+    if (!m_bSceneLoaded) {
+        return;
+    }
+
+    updateSceneData();
+    populateContext();
+
+    // Draw sorting
+    std::vector<uint32_t> opaqueDraws;
+    opaqueDraws.reserve(m_drawContext.opaque.size());
+    for (uint32_t i = 0; i < m_drawContext.opaque.size(); i++) {
+        opaqueDraws.push_back(i);
+    }
+
+    std::ranges::sort(opaqueDraws, [&](const auto &iA, const auto &iB) {
+        const GPURenderObject &A = m_drawContext.opaque[iA];
+        const GPURenderObject &B = m_drawContext.opaque[iB];
+        if (A.material == B.material) {
+            return A.start < B.start;
+        }
+        return A.material < B.material;
+    });
+
+    // Begin render pass
+    const Display::DrawImage *drawImage             = &m_pDisplay->m_drawImage;
+    const VkRenderingAttachmentInfo colorAttachment = jvk::init::renderingAttachment(drawImage->image.imageView, nullptr, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+    VkClearValue clearValue{};
+    clearValue.depthStencil.depth   = 1.0f;
+    clearValue.depthStencil.stencil = 0;
+
+    const VkRenderingAttachmentInfo depthAttachment = jvk::init::depthRenderingAttachment(drawImage->depthStencilImage.imageView, &clearValue, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    const VkRenderingInfo renderingInfo             = jvk::init::rendering(drawImage->extent, &colorAttachment, &depthAttachment);
+
+    vkCmdBeginRenderingKHR(cmd, &renderingInfo);
+
+    // Update scene data UBO & descriptor set (layout 0, binding 0)
+    const FrameData &frame = m_frameData[m_pDisplay->getCurrentFrameIndex()];
+
+    *frame.gpuSceneDataUBOMapping           = m_gpuSceneUboData;
+
+    jvk::Pipeline *lastPipeline       = nullptr;
+    GPUMaterialInstance *lastMaterial = nullptr;
+    auto drawExtent                   = m_pDisplay->m_drawImage.extent;
+
+    // Bind index buffer
+    vkCmdBindIndexBuffer(cmd, m_gpuSceneMeshData.index, 0, VK_INDEX_TYPE_UINT32);
+
+    auto draw = [&](const GPURenderObject &r) {
+        if (r.material != lastMaterial) {
+            lastMaterial = r.material;
+
+            if (r.material->pipeline != lastPipeline) {
+                lastPipeline = r.material->pipeline;
+
+                vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->pipeline);
+                vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->pipelineLayout, 0, 1, &frame.gpuSceneDataUboDescriptorSet, 0, nullptr);
+
+                VkViewport viewport{};
+                viewport.x        = 0;
+                viewport.y        = 0;
+                viewport.width    = static_cast<float>(drawExtent.width);
+                viewport.height   = static_cast<float>(drawExtent.height);
+                viewport.minDepth = 0.0f;
+                viewport.maxDepth = 1.0f;
+                vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+                // SCISSOR
+                VkRect2D scissor{};
+                scissor.offset.x      = 0;
+                scissor.offset.y      = 0;
+                scissor.extent.width  = drawExtent.width;
+                scissor.extent.height = drawExtent.height;
+                vkCmdSetScissor(cmd, 0, 1, &scissor);
+            }
+
+            vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->pipelineLayout, 1, 1, &r.material->descriptorSet, 0, nullptr);
+        }
+
+        GPUDrawPushConstants pushConstants{};
+        pushConstants.world  = glm::mat4(1.0f);
+        pushConstants.normal = glm::mat4(1.0f);
+        vkCmdPushConstants(cmd, r.material->pipeline->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConstants), &pushConstants);
+
+        vkCmdDrawIndexed(cmd, r.count, 1, r.start, 0, 0);
+    };
+
+    for (const auto &r: opaqueDraws) {
+        draw(m_drawContext.opaque[r]);
+    }
+
+    vkCmdEndRenderingKHR(cmd);
+
+    // Skip transparent objects for now
 }
 
 void Rasterizer::loadScene() {
     LOG_INFO(RASTERIZER, "Loading scene");
     if (m_bSceneLoaded) {
-        destroyGPUSceneData();
+        destroyGPUScene();
     }
 
     const Scene *scene = m_pDisplay->m_pScene;
@@ -39,35 +144,35 @@ void Rasterizer::loadScene() {
     constexpr VmaMemoryUsage bufferMemoryUsage      = VMA_MEMORY_USAGE_GPU_ONLY;
 
     LOG_DEBUG(RASTERIZER, "Creating GPU buffers");
-    m_gpuSceneBuffers.position = m_pDisplay->createBuffer(positionBufferSize, vertexBufferUsages, bufferMemoryUsage);
+    m_gpuSceneMeshData.position = m_pDisplay->createBuffer(positionBufferSize, vertexBufferUsages, bufferMemoryUsage);
     LOG_DEBUG(RASTERIZER, "Created position GPU buffer");
-    m_gpuSceneBuffers.normal = m_pDisplay->createBuffer(normalBufferSize, vertexBufferUsages, bufferMemoryUsage);
+    m_gpuSceneMeshData.normal = m_pDisplay->createBuffer(normalBufferSize, vertexBufferUsages, bufferMemoryUsage);
     LOG_DEBUG(RASTERIZER, "Created normal GPU buffer");
-    m_gpuSceneBuffers.uv = m_pDisplay->createBuffer(uvBufferSize, vertexBufferUsages, bufferMemoryUsage);
+    m_gpuSceneMeshData.uv = m_pDisplay->createBuffer(uvBufferSize, vertexBufferUsages, bufferMemoryUsage);
     LOG_DEBUG(RASTERIZER, "Created UV GPU buffer");
     if (bSceneHasVertexColors) {
-        m_gpuSceneBuffers.color = m_pDisplay->createBuffer(colorBufferSize, vertexBufferUsages, bufferMemoryUsage);
+        m_gpuSceneMeshData.color = m_pDisplay->createBuffer(colorBufferSize, vertexBufferUsages, bufferMemoryUsage);
         LOG_DEBUG(RASTERIZER, "Created color GPU buffer");
     }
 
     // Device addresses
     VkBufferDeviceAddressInfo deviceAddressInfo{};
-    deviceAddressInfo.sType           = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-    deviceAddressInfo.buffer          = m_gpuSceneBuffers.position.buffer;
-    m_gpuSceneBuffers.positionAddress = vkGetBufferDeviceAddress(m_pDisplay->m_ctx, &deviceAddressInfo);
-    deviceAddressInfo.buffer          = m_gpuSceneBuffers.normal.buffer;
-    m_gpuSceneBuffers.normalAddress   = vkGetBufferDeviceAddress(m_pDisplay->m_ctx, &deviceAddressInfo);
-    deviceAddressInfo.buffer          = m_gpuSceneBuffers.uv.buffer;
-    m_gpuSceneBuffers.uvAddress       = vkGetBufferDeviceAddress(m_pDisplay->m_ctx, &deviceAddressInfo);
+    deviceAddressInfo.sType            = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+    deviceAddressInfo.buffer           = m_gpuSceneMeshData.position.buffer;
+    m_gpuSceneMeshData.positionAddress = vkGetBufferDeviceAddress(m_pDisplay->m_ctx, &deviceAddressInfo);
+    deviceAddressInfo.buffer           = m_gpuSceneMeshData.normal.buffer;
+    m_gpuSceneMeshData.normalAddress   = vkGetBufferDeviceAddress(m_pDisplay->m_ctx, &deviceAddressInfo);
+    deviceAddressInfo.buffer           = m_gpuSceneMeshData.uv.buffer;
+    m_gpuSceneMeshData.uvAddress       = vkGetBufferDeviceAddress(m_pDisplay->m_ctx, &deviceAddressInfo);
     if (bSceneHasVertexColors) {
-        deviceAddressInfo.buffer       = m_gpuSceneBuffers.color.buffer;
-        m_gpuSceneBuffers.colorAddress = vkGetBufferDeviceAddress(m_pDisplay->m_ctx, &deviceAddressInfo);
+        deviceAddressInfo.buffer        = m_gpuSceneMeshData.color.buffer;
+        m_gpuSceneMeshData.colorAddress = vkGetBufferDeviceAddress(m_pDisplay->m_ctx, &deviceAddressInfo);
     }
 
     // Index buffer
     LOG_DEBUG(RASTERIZER, "Creating index buffer");
     constexpr VkBufferUsageFlags indexBufferUsages = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-    m_gpuSceneBuffers.index                        = m_pDisplay->createBuffer(indexBufferSize, indexBufferUsages, bufferMemoryUsage);
+    m_gpuSceneMeshData.index                       = m_pDisplay->createBuffer(indexBufferSize, indexBufferUsages, bufferMemoryUsage);
     LOG_DEBUG(RASTERIZER, "Created index buffer");
 
     // Staging buffer
@@ -99,24 +204,24 @@ void Rasterizer::loadScene() {
 
         copyRegion.srcOffset = 0;
         copyRegion.size      = indexBufferSize;
-        vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneBuffers.index.buffer, 1, &copyRegion);
+        vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneMeshData.index.buffer, 1, &copyRegion);
 
         copyRegion.srcOffset += indexBufferSize;
         copyRegion.size = positionBufferSize;
-        vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneBuffers.position.buffer, 1, &copyRegion);
+        vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneMeshData.position.buffer, 1, &copyRegion);
 
         copyRegion.srcOffset += positionBufferSize;
         copyRegion.size = normalBufferSize;
-        vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneBuffers.normal.buffer, 1, &copyRegion);
+        vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneMeshData.normal.buffer, 1, &copyRegion);
 
         copyRegion.srcOffset += normalBufferSize;
         copyRegion.size = uvBufferSize;
-        vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneBuffers.uv.buffer, 1, &copyRegion);
+        vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneMeshData.uv.buffer, 1, &copyRegion);
 
         if (bSceneHasVertexColors) {
             copyRegion.srcOffset += uvBufferSize;
             copyRegion.size = colorBufferSize;
-            vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneBuffers.color.buffer, 1, &copyRegion);
+            vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneMeshData.color.buffer, 1, &copyRegion);
         }
     });
     LOG_DEBUG(RASTERIZER, "Staging buffer copied to GPU");
@@ -124,41 +229,41 @@ void Rasterizer::loadScene() {
     m_pDisplay->destroyBuffer(staging);
 
     // Load materials
-    m_materialInstances.clear();
-    m_materialInstances.reserve(scene->materials.size());
+    m_gpuMaterialInstances.clear();
+    m_gpuMaterialInstances.reserve(scene->materials.size());
 
     LOG_DEBUG(RASTERIZER, "Creating material UBO");
     LOG_DEBUG(RASTERIZER, "Scene has {} materials", scene->materials.size());
     // Create UBO that can hold material data for all materials
-    m_materialBufferUBO = m_pDisplay->createBuffer(sizeof(GPUMaterialDataUBO) * scene->materials.size(), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
+    m_materialBufferUBO = m_pDisplay->createBuffer(sizeof(GPUMaterialUBOData) * scene->materials.size(), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
     LOG_DEBUG(RASTERIZER, "Created material UBO");
 
     void *materialData;
     vmaMapMemory(m_pDisplay->m_allocator, m_materialBufferUBO.allocation, &materialData);
 
     size_t uboOffset = 0;
-    for (const auto &material : scene->materials) {
-        GPUMaterialDataUBO uboData{};
-        uboData.diffuse = vec4(material.parameters.albedo, 1.0f);
-        uboData.ambient = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-        uboData.specular = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-        uboData.shininess = 32.0f;
-        static_cast<GPUMaterialDataUBO *>(materialData)[uboOffset] = uboData;
+    for (const auto &material: scene->materials) {
+        GPUMaterialUBOData uboData{};
+        uboData.diffuse                                            = vec4(material.parameters.albedo, 1.0f);
+        uboData.ambient                                            = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        uboData.specular                                           = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        uboData.shininess                                          = 32.0f;
+        static_cast<GPUMaterialUBOData *>(materialData)[uboOffset] = uboData;
 
         GPUMaterialResources resources{};
         // For now, we are just going to use default textures/samplers
-        resources.images.diffuse = m_pDisplay->m_whiteImage;
-        resources.images.ambient = m_pDisplay->m_whiteImage;
-        resources.images.specular = m_pDisplay->m_whiteImage;
-        resources.samplers.diffuse = m_pDisplay->m_samplerLinear;
-        resources.samplers.ambient = m_pDisplay->m_samplerLinear;
+        resources.images.diffuse    = m_pDisplay->m_whiteImage;
+        resources.images.ambient    = m_pDisplay->m_whiteImage;
+        resources.images.specular   = m_pDisplay->m_whiteImage;
+        resources.samplers.diffuse  = m_pDisplay->m_samplerLinear;
+        resources.samplers.ambient  = m_pDisplay->m_samplerLinear;
         resources.samplers.specular = m_pDisplay->m_samplerLinear;
 
-        resources.ubo = m_materialBufferUBO;
-        resources.uboOffset = uboOffset * sizeof(GPUMaterialDataUBO);
+        resources.ubo       = m_materialBufferUBO;
+        resources.uboOffset = uboOffset * sizeof(GPUMaterialUBOData);
 
         GPUMaterialInstance mat = writeMaterial(GPUMaterialPass::OPAQUE, resources);
-        m_materialInstances.push_back(mat);
+        m_gpuMaterialInstances.push_back(mat);
 
         uboOffset++;
     }
@@ -168,29 +273,23 @@ void Rasterizer::loadScene() {
     LOG_INFO(RASTERIZER, "Scene loaded");
 }
 
-void Rasterizer::destroyGPUSceneData() {
-    if (m_bSceneLoaded) {
-        LOG_DEBUG(RASTERIZER, "Destroying GPU scene buffers");
-        LOG_DEBUG(RASTERIZER, "Destroying index buffer");
-        m_pDisplay->destroyBuffer(m_gpuSceneBuffers.index);
-        LOG_DEBUG(RASTERIZER, "Destroying vertex buffers");
-        m_pDisplay->destroyBuffer(m_gpuSceneBuffers.position);
-        LOG_DEBUG(RASTERIZER, "Destroying normal buffer");
-        m_pDisplay->destroyBuffer(m_gpuSceneBuffers.normal);
-        LOG_DEBUG(RASTERIZER, "Destroying UV buffer");
-        m_pDisplay->destroyBuffer(m_gpuSceneBuffers.uv);
-        if (!m_gpuSceneBuffers.color.isValid()) {
-            LOG_DEBUG(RASTERIZER, "Destroying color buffer");
-            m_pDisplay->destroyBuffer(m_gpuSceneBuffers.color);
-        }
-
-        LOG_DEBUG(RASTERIZER, "Destroying material UBO");
-        m_pDisplay->destroyBuffer(m_materialBufferUBO);
-
-        m_bSceneLoaded    = false;
-        m_gpuSceneBuffers = {};
-        LOG_DEBUG(RASTERIZER, "Destroyed GPU scene buffers");
+void Rasterizer::destroyGPUSceneMeshData() {
+    LOG_DEBUG(RASTERIZER, "Destroying GPU scene buffers");
+    LOG_DEBUG(RASTERIZER, "Destroying index buffer");
+    m_pDisplay->destroyBuffer(m_gpuSceneMeshData.index);
+    LOG_DEBUG(RASTERIZER, "Destroying vertex buffers");
+    m_pDisplay->destroyBuffer(m_gpuSceneMeshData.position);
+    LOG_DEBUG(RASTERIZER, "Destroying normal buffer");
+    m_pDisplay->destroyBuffer(m_gpuSceneMeshData.normal);
+    LOG_DEBUG(RASTERIZER, "Destroying UV buffer");
+    m_pDisplay->destroyBuffer(m_gpuSceneMeshData.uv);
+    if (m_gpuSceneMeshData.color.isValid()) {
+        LOG_DEBUG(RASTERIZER, "Destroying color buffer");
+        m_pDisplay->destroyBuffer(m_gpuSceneMeshData.color);
     }
+
+    m_gpuSceneMeshData = {};
+    LOG_DEBUG(RASTERIZER, "Destroyed GPU scene buffers");
 }
 
 void Rasterizer::initMaterialResources() {
@@ -216,7 +315,7 @@ void Rasterizer::initMaterialResources() {
     builder.addBinding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);// Specular
     m_gpuMaterials.descriptorSetLayout = builder.build(m_pDisplay->m_ctx, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
-    VkDescriptorSetLayout layouts[] = {m_sceneDataDescriptorSetLayout, m_gpuMaterials.descriptorSetLayout};
+    VkDescriptorSetLayout layouts[] = {m_gpuSceneDataUboDescriptorLayout, m_gpuMaterials.descriptorSetLayout};
 
     VkPipelineLayoutCreateInfo layoutInfo = jvk::init::pipelineLayout();
     layoutInfo.setLayoutCount             = 2;
@@ -258,14 +357,18 @@ void Rasterizer::destroyMaterialResources() const {
     m_gpuMaterials.transparentPipeline.destroy(m_pDisplay->m_ctx, false);
 }
 
+void Rasterizer::destroyGPUSceneMaterials() const {
+    m_pDisplay->destroyBuffer(m_materialBufferUBO);
+}
+
 GPUMaterialInstance Rasterizer::writeMaterial(GPUMaterialPass pass, const GPUMaterialResources &resources) {
     GPUMaterialInstance mat{};
     mat.mType = pass;
 
     if (pass == GPUMaterialPass::OPAQUE) {
-        mat.pipeline = m_gpuMaterials.opaquePipeline;
+        mat.pipeline = &m_gpuMaterials.opaquePipeline;
     } else if (pass == GPUMaterialPass::TRANSPARENT) {
-        mat.pipeline = m_gpuMaterials.transparentPipeline;
+        mat.pipeline = &m_gpuMaterials.transparentPipeline;
     } else {
         LOG_ERROR(RASTERIZER, "Invalid material pass type");
         return {};
@@ -273,12 +376,12 @@ GPUMaterialInstance Rasterizer::writeMaterial(GPUMaterialPass pass, const GPUMat
 
     mat.descriptorSet = m_pDisplay->m_descriptorAllocator.allocate(m_pDisplay->m_ctx, m_gpuMaterials.descriptorSetLayout);
 
-    writer.clear();
-    writer.writeBuffer(0, resources.ubo, sizeof(GPUMaterialDataUBO), resources.uboOffset, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-    writer.writeImage(1, resources.images.ambient.imageView, resources.samplers.ambient, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-    writer.writeImage(2, resources.images.diffuse.imageView, resources.samplers.diffuse, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-    writer.writeImage(3, resources.images.specular.imageView, resources.samplers.specular, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-    writer.updateSet(m_pDisplay->m_ctx, mat.descriptorSet);
+    m_descriptorWriter.clear();
+    m_descriptorWriter.writeBuffer(0, resources.ubo, sizeof(GPUMaterialUBOData), resources.uboOffset, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+    m_descriptorWriter.writeImage(1, resources.images.ambient.imageView, resources.samplers.ambient, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    m_descriptorWriter.writeImage(2, resources.images.diffuse.imageView, resources.samplers.diffuse, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    m_descriptorWriter.writeImage(3, resources.images.specular.imageView, resources.samplers.specular, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    m_descriptorWriter.updateSet(m_pDisplay->m_ctx, mat.descriptorSet);
 
     return mat;
 }
@@ -288,28 +391,73 @@ void Rasterizer::populateContext() {
     m_drawContext.transparent.clear();
 
     // Loop through meshes
-    for (const auto &mesh: m_pDisplay->m_pScene->meshes) {
+    const Scene *scene = m_pDisplay->m_pScene;
+    for (const auto &mesh: scene->meshes) {
         GPURenderObject obj{};
         obj.start      = mesh.startIndex;
         obj.count      = mesh.numIndices;
-        obj.transform  = mat4::identity();
-        obj.nTransform = mat4::identity();
-        // TODO
+        obj.transform  = glm::mat4(1.0f);
+        obj.nTransform = glm::mat4(1.0f);
+        obj.material   = &m_gpuMaterialInstances[mesh.materialIndex];
+        m_drawContext.opaque.push_back(obj);
     }
 }
 
 void Rasterizer::updateSceneData() {
+    m_camera.update(m_pDisplay->m_deltaTime);
 
+    const glm::mat4 view = m_camera.getViewMatrix();
+    glm::mat4 proj       = glm::perspective(glm::radians(70.f), static_cast<float>(m_pDisplay->m_windowExtent.width) / static_cast<float>(m_pDisplay->m_windowExtent.height), 0.1f, 10000.0f);
+    proj[1][1] *= -1;
+
+    m_gpuSceneUboData.view      = view;
+    m_gpuSceneUboData.proj      = proj;
+    m_gpuSceneUboData.viewProj  = view * proj;
+    m_gpuSceneUboData.cameraPos = glm::vec4(m_camera.position, 1.0f);
+
+    m_gpuSceneUboData.vertexBufferAddress = m_gpuSceneMeshData.positionAddress;
+    m_gpuSceneUboData.normalBufferAddress = m_gpuSceneMeshData.normalAddress;
+    m_gpuSceneUboData.uvBufferAddress     = m_gpuSceneMeshData.uvAddress;
+    m_gpuSceneUboData.colorBufferAddress  = m_gpuSceneMeshData.colorAddress;
+}
+void Rasterizer::destroyGPUScene() {
+    // TODO: this need some kind of check on the in-flight frame
+    if (m_bSceneLoaded) {
+        destroyGPUSceneMeshData();
+        destroyGPUSceneMaterials();
+    }
+    m_bSceneLoaded = false;
 }
 
-void Rasterizer::initSceneDataDescriptorSetLayout() {
+void Rasterizer::initFrameData() {
     jvk::DescriptorLayoutBuilder builder;
     builder.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-    m_sceneDataDescriptorSetLayout = builder.build(m_pDisplay->m_ctx, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+    m_gpuSceneDataUboDescriptorLayout = builder.build(m_pDisplay->m_ctx, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    for (auto &frame: m_frameData) {
+        frame.gpuSceneDataUboDescriptorSet = m_pDisplay->m_descriptorAllocator.allocate(m_pDisplay->m_ctx, m_gpuSceneDataUboDescriptorLayout);
+        frame.gpuSceneDataUBO              = m_pDisplay->createBuffer(
+                sizeof(GPUSceneUBOData),
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VMA_MEMORY_USAGE_CPU_TO_GPU,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        void *data;
+        vmaMapMemory(m_pDisplay->m_allocator, frame.gpuSceneDataUBO.allocation, &data);
+        frame.gpuSceneDataUBOMapping = static_cast<GPUSceneUBOData *>(data);
+
+        jvk::DescriptorWriter writer;
+        writer.writeBuffer(0, frame.gpuSceneDataUBO.buffer, sizeof(GPUSceneUBOData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+        writer.updateSet(m_pDisplay->m_ctx, frame.gpuSceneDataUboDescriptorSet);
+    }
 }
 
-void Rasterizer::destroySceneDataDescriptorSetLayout() const {
-    vkDestroyDescriptorSetLayout(m_pDisplay->m_ctx, m_sceneDataDescriptorSetLayout, nullptr);
+void Rasterizer::destroyFrameData() const {
+    vkDestroyDescriptorSetLayout(m_pDisplay->m_ctx, m_gpuSceneDataUboDescriptorLayout, nullptr);
+
+    for (auto &frame: m_frameData) {
+        vmaUnmapMemory(m_pDisplay->m_allocator, frame.gpuSceneDataUBO.allocation);
+        m_pDisplay->destroyBuffer(frame.gpuSceneDataUBO);
+    }
 }
 
 }// namespace jtx

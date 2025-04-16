@@ -6,6 +6,7 @@
 #include "ui/jvk/pipeline.hpp"
 #include "ui/jvk/sampler.hpp"
 #include "ui/jvk/descriptor.hpp"
+#include <glm/mat4x4.hpp>
 #include <cstdint>
 
 namespace jtx {
@@ -15,12 +16,14 @@ class Display;
 /**
  * All meshes are stored in a single set of buffers, meaning, we can just
  * send the device addresses in the UBO instead of push constants.
+ *
  */
-struct alignas(256) GPUDrawSceneData {
-    mat4 view;
-    mat4 proj;
-    mat4 viewProj;
-    vec4 cameraPos;
+struct alignas(256) GPUSceneUBOData {
+    // TODO: change these to JTX mat4s
+    glm::mat4 view;
+    glm::mat4 proj;
+    glm::mat4 viewProj;
+    glm::vec4 cameraPos;
 
     VkDeviceAddress vertexBufferAddress;
     VkDeviceAddress normalBufferAddress;
@@ -29,8 +32,8 @@ struct alignas(256) GPUDrawSceneData {
 };
 
 struct GPUDrawPushConstants {
-    mat4 world;
-    mat4 normal;
+    glm::mat4 world;
+    glm::mat4 normal;
 };
 
 struct GPUMaterialInstance;
@@ -44,8 +47,8 @@ struct GPURenderObject {
 
     GPUMaterialInstance *material;
 
-    mat4 transform;
-    mat4 nTransform;
+    glm::mat4 transform;
+    glm::mat4 nTransform;
 };
 
 struct GPUDrawContext {
@@ -66,7 +69,7 @@ struct GPUMaterialInstance {
     // We use this for draw sorting later
     GPUMaterialPass mType = GPUMaterialPass::OPAQUE;
 
-    jvk::Pipeline pipeline;
+    jvk::Pipeline *pipeline;
     VkDescriptorSet descriptorSet;
 };
 
@@ -93,7 +96,7 @@ struct GPUMaterialResources {
 /**
  * Material data to be written to UBO
  */
-struct GPUMaterialDataUBO {
+struct alignas(256) GPUMaterialUBOData {
     // Temporary Blinn-Phong shading data
     vec4 ambient;
     vec4 diffuse;

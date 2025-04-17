@@ -9,10 +9,11 @@
 
 #if defined(NDEBUG)
 #define LOG_DEBUG(category, msg, ...) \
-      do { /* nothing */ } while(0)
+    do { /* nothing */                \
+    } while (0)
 #else
 #define LOG_DEBUG(category, msg, ...) \
-      Logger::get().log({__LINE__, __func__, LogLevel::DEBUG, LogCategory::category}, msg, ##__VA_ARGS__)
+    Logger::get().log({__LINE__, __func__, LogLevel::DEBUG, LogCategory::category}, msg, ##__VA_ARGS__)
 #endif
 
 #define LOG_INFO(category, msg, ...) \
@@ -27,19 +28,20 @@
 enum class LogLevel {
     INFO  = 0,
     DEBUG = 1,
-    ERR = 2, // I hate windows so much...
+    ERR   = 2,// I hate windows so much...
     FATAL = 3,
 };
 
 enum class LogCategory {
-    GENERAL = 0,
-    DISPLAY = 1,
-    UI = 2,
+    GENERAL    = 0,
+    DISPLAY    = 1,
+    UI         = 2,
     RASTERIZER = 3,
-    TRACER = 4,
-    VULKAN = 5,
-    TEXTURE = 6,
-    LOADER = 7,
+    TRACER     = 4,
+    VULKAN     = 5,
+    TEXTURE    = 6,
+    LOADER     = 7,
+    INPUT      = 8,
 };
 
 struct LogContext {
@@ -52,7 +54,8 @@ struct LogContext {
 struct Logger {
     std::chrono::time_point<std::chrono::system_clock> start;
 
-    Logger() : start(std::chrono::system_clock::now()) {}
+    Logger()
+        : start(std::chrono::system_clock::now()) {}
 
     static Logger &get() {
         static Logger logger;
@@ -77,43 +80,46 @@ struct Logger {
         switch (ctx.category) {
             case LogCategory::GENERAL:
                 fmt::print("[GENERAL] ");
-            break;
+                break;
             case LogCategory::DISPLAY:
                 fmt::print("[DISPLAY] ");
-            break;
+                break;
             case LogCategory::UI:
                 fmt::print("[UI] ");
-            break;
+                break;
             case LogCategory::RASTERIZER:
                 fmt::print("[RASTERIZER] ");
-            break;
+                break;
             case LogCategory::TRACER:
                 fmt::print("[TRACER] ");
-            break;
+                break;
             case LogCategory::VULKAN:
                 fmt::print("[VULKAN] ");
-            break;
+                break;
             case LogCategory::TEXTURE:
                 fmt::print("[TEXTURE] ");
-            break;
+                break;
             case LogCategory::LOADER:
                 fmt::print("[LOADER] ");
-            break;
+                break;
+            case LogCategory::INPUT:
+                fmt::print("[INPUT] ");
+                break;
         }
 
         switch (ctx.level) {
             case LogLevel::INFO:
                 fmt::print("[INFO] ");
-            break;
+                break;
             case LogLevel::ERR:
                 fmt::print("[ERROR] ");
-            break;
+                break;
             case LogLevel::DEBUG:
                 fmt::print("[DEBUG] ");
-            break;
+                break;
             case LogLevel::FATAL:
                 fmt::print("[FATAL] ");
-            break;
+                break;
         }
 
         fmt::print("[{}:{}] ", ctx.function, ctx.line);

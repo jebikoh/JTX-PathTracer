@@ -420,7 +420,7 @@ void Rasterizer::populateContext() {
 }
 
 void Rasterizer::updateSceneData() {
-    m_camera.update(m_pDisplay->m_deltaTime);
+    m_camera.update();
 
     const glm::mat4 view = m_camera.getViewMatrix();
     glm::mat4 proj       = glm::perspective(glm::radians(70.f), static_cast<float>(m_pDisplay->m_windowExtent.width) / static_cast<float>(m_pDisplay->m_windowExtent.height), 0.1f, 10000.0f);

@@ -26,16 +26,11 @@ public:
 
     /**
      * Custom input handling for UI for custom behavior like mouse focus.
-     * Should be called during event polling, before processEvents()
+     * This should ideally be called before passing the input elsewhere
      * @param event SDL event to process
+     * @return true if UI wants to consume the event, false o/w
      */
-    static void handleInput(const SDL_Event &event);
-
-    /**
-     * ImGui event processing function.
-     * @param event SDL event to process
-     */
-    static void processEvents(const SDL_Event &event) { ImGui_ImplSDL2_ProcessEvent(&event); }
+    static bool processSDLEvents(const SDL_Event &event);
 
     /**
      * Creates a new draw frame and generates draw data for the UI.

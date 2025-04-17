@@ -34,10 +34,11 @@ void Display::run() {
                 }
             }
 
-            m_rasterizer.processSDLEvent(e);
+            const bool bUiWantsEvent = m_uiRenderer.processSDLEvents(e);
 
-            //            m_uiRenderer.handleInput(e);
-            m_uiRenderer.processEvents(e);
+            if (!bUiWantsEvent) {
+                m_rasterizer.processSDLEvent(e);
+            }
         }
 
         if (m_bStopRendering) {
@@ -178,6 +179,8 @@ void Display::init() {
 void Display::initWindow() {
     LOG_INFO(DISPLAY, "Initializing window");
     SDL_Init(SDL_INIT_VIDEO);
+    SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "1");
+    SDL_SetHint(SDL_HINT_TRACKPAD_IS_TOUCH_ONLY, "1");
     constexpr auto windowFlags = static_cast<SDL_WindowFlags>(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
     m_pWindow                  = SDL_CreateWindow(
             "JTX",

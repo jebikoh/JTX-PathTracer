@@ -100,14 +100,14 @@ void UIRenderer::newFrame() {
     ImGui::Render();
 }
 
-void UIRenderer::handleInput(const SDL_Event &event) {
-    if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT && !ImGui::GetIO().WantCaptureMouse) {
-        SDL_SetRelativeMouseMode(SDL_TRUE);
-    }
+bool UIRenderer::processSDLEvents(const SDL_Event &event) {
+    ImGui_ImplSDL2_ProcessEvent(&event);
 
-    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
-        SDL_SetRelativeMouseMode(SDL_FALSE);
-    }
+    const ImGuiIO &io = ImGui::GetIO();
+    const bool bWantsMouse = io.WantCaptureMouse;
+    const bool bWantsKeyboard = io.WantCaptureKeyboard;
+
+    return bWantsMouse || bWantsKeyboard;
 }
 
 void UIRenderer::destroy() const {

@@ -1,12 +1,13 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include "jvk.hpp"
 
 namespace jvk {
 
 void transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout);
 
 void copyImageToImage(VkCommandBuffer cmd, VkImage src, VkImage dst, VkExtent2D srcSize, VkExtent2D dstSize);
+void copyImageToImage(VkCommandBuffer cmd, VkImage src, VkImage dst, VkExtent2D srcSize[2], VkExtent2D dstSize[2]);
 
 void generateMipmaps(VkCommandBuffer cmd, VkImage image, VkExtent2D imageSize);
 
@@ -16,4 +17,10 @@ bool getSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat *pFormat)
 bool getSupportedDepthStencilFormat(VkPhysicalDevice physicalDevice, VkFormat *pFormat);
 bool formatHasStencil(VkFormat format);
 bool formatHasDepth(VkFormat format);
+
+struct ViewRectangle {
+  int32_t x, y;
+  uint32_t w, h;
+};
+
 }

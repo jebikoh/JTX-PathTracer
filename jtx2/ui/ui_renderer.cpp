@@ -71,14 +71,19 @@ void UIRenderer::draw(const VkCommandBuffer cmd, const VkImageView targetImageVi
     vkCmdEndRenderingKHR(cmd);
 }
 
-bool UIRenderer::getViewportPosition(vec2 &position, vec2 &size) const {
+bool UIRenderer::getViewportRectangle(jvk::ViewRectangle &out) const {
     if (!m_pCentralNode) return false;
 
-    const ImVec2 fbScale = ImGui::GetIO().DisplayFramebufferScale;
-    const vec2 scale = {fbScale.x, fbScale.y};
+    const ImVec2 scale = ImGui::GetIO().DisplayFramebufferScale;
 
-    const auto tPos = m_pCentralNode->Pos;
-    const auto tSize = m_pCentralNode->Size;
+    const auto pos  = m_pCentralNode->Pos;
+    const auto size = m_pCentralNode->Size;
+
+    out.x = pos.x * scale.x;
+    out.y = pos.y * scale.y;
+    out.w = size.x * scale.x;
+    out.h = size.y * scale.y;
+    return true;
 }
 
 void UIRenderer::newFrame() {

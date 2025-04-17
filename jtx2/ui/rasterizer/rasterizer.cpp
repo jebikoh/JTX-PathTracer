@@ -49,14 +49,17 @@ void Rasterizer::draw(const VkCommandBuffer cmd) {
     });
 
     // Begin render pass
+    VkClearValue drawImageClearValue{};
+    drawImageClearValue.color = {0.0f, 0.0f, 0.0f, 1.0f};
+
     const Display::DrawImage *drawImage             = &m_pDisplay->m_drawImage;
-    const VkRenderingAttachmentInfo colorAttachment = jvk::init::renderingAttachment(drawImage->image.imageView, nullptr, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    const VkRenderingAttachmentInfo colorAttachment = jvk::init::renderingAttachment(drawImage->image.imageView, &drawImageClearValue, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-    VkClearValue clearValue{};
-    clearValue.depthStencil.depth   = 1.0f;
-    clearValue.depthStencil.stencil = 0;
+    VkClearValue dsClearValue{};
+    dsClearValue.depthStencil.depth   = 1.0f;
+    dsClearValue.depthStencil.stencil = 0;
 
-    const VkRenderingAttachmentInfo depthAttachment = jvk::init::depthRenderingAttachment(drawImage->depthStencilImage.imageView, &clearValue, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    const VkRenderingAttachmentInfo depthAttachment = jvk::init::depthRenderingAttachment(drawImage->depthStencilImage.imageView, &dsClearValue, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
     const VkRenderingInfo renderingInfo             = jvk::init::rendering(drawImage->extent, &colorAttachment, &depthAttachment);
 
     vkCmdBeginRenderingKHR(cmd, &renderingInfo);
@@ -107,9 +110,10 @@ void Rasterizer::draw(const VkCommandBuffer cmd) {
         GPUDrawPushConstants pushConstants{};
         pushConstants.world  = glm::mat4(1.0f);
         pushConstants.normal = glm::mat4(1.0f);
-        vkCmdPushConstants(cmd, r.material->pipeline->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConstants), &pushConstants);
+        vkCmdPushConstants(cmd, r.material->pipeline->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,   0, sizeof(pushConstants), &pushConstants);
 
-        vkCmdDrawIndexed(cmd, r.count, 1, r.start, 0, 0);
+        // Need to multiply by 3 because r.count and r.start are relative to vec3u
+        vkCmdDrawIndexed(cmd, r.count * 3, 1, r.start * 3, 0, 0);
     };
 
     for (const auto &r: opaqueDraws) {
@@ -121,8 +125,7 @@ void Rasterizer::draw(const VkCommandBuffer cmd) {
 }
 
 void Rasterizer::processSDLEvent(const SDL_Event &event) {
-    // m_camera.processSDLEvent(event);
-    return;
+    m_camera.processSDLEvent(event);
 }
 
 void Rasterizer::loadScene() {
@@ -341,6 +344,7 @@ void Rasterizer::initMaterialResources() {
     pipelineBuilder.setMultiSamplingNone();
     pipelineBuilder.disableBlending();
     pipelineBuilder.enableDepthTest(true, VK_COMPARE_OP_LESS_OR_EQUAL);
+    pipelineBuilder.disableDepthTest();
     pipelineBuilder.disableStencilTest();
     pipelineBuilder.setColorAttachmentFormat(m_pDisplay->m_drawImage.image.imageFormat);
     pipelineBuilder.setDepthAttachmentFormat(m_pDisplay->m_drawImage.depthStencilImage.imageFormat);
@@ -416,9 +420,8 @@ void Rasterizer::updateSceneData() {
 
     m_gpuSceneUboData.view      = view;
     m_gpuSceneUboData.proj      = proj;
-    m_gpuSceneUboData.viewProj  = view * proj;
-    m_gpuSceneUboData.cameraPos = glm::vec4(m_camera.position, 1.0f);
-
+    m_gpuSceneUboData.viewProj  = proj * view;
+    m_gpuSceneUboData.cameraPos = glm::vec4(m_camera.position, 5.0f);
     m_gpuSceneUboData.vertexBufferAddress = m_gpuSceneMeshData.positionAddress;
     m_gpuSceneUboData.normalBufferAddress = m_gpuSceneMeshData.normalAddress;
     m_gpuSceneUboData.uvBufferAddress     = m_gpuSceneMeshData.uvAddress;

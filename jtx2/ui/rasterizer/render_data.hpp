@@ -24,7 +24,6 @@ struct alignas(256) GPUSceneUBOData {
     glm::mat4 proj;
     glm::mat4 viewProj;
     glm::vec4 cameraPos;
-
     VkDeviceAddress vertexBufferAddress;
     VkDeviceAddress normalBufferAddress;
     VkDeviceAddress uvBufferAddress;

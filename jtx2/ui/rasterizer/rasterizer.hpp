@@ -72,7 +72,7 @@ private:
 
     // Scene
     bool m_bSceneLoaded = false;
-    Camera m_camera{.position = {0.0f, 0.0f, 1.0f}};
+    Camera m_camera{.position = {0.0f, 0.0f, 5.0f}, .speed = 0.1};
 
     // Frame data (scene UBO buffers)
     struct FrameData {

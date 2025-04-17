@@ -53,15 +53,16 @@ public:
      * Retrieves the position and size of the viewport window
      * @param position position output (top left corner)
      * @param size size output
+     * @return true if position and size were retrieved, false if not (e.g. when central node is is not initialized yet)
      */
-    void getViewportPosition(vec2 &position, vec2 &size) const;
+    bool getViewportPosition(vec2 &position, vec2 &size) const;
 
 private:
     Display *m_pDisplay = nullptr;
     VkDescriptorPool m_descriptorPool{};
 
     // We need to store the central node so we can easily retrieve its dimensions
-    ImGuiDockNode *m_centralNode{};
+    ImGuiDockNode *m_pCentralNode{};
 
     static void setupStyle();
 

@@ -1,6 +1,7 @@
 #extension GL_EXT_buffer_reference : require
+#extension GL_EXT_scalar_block_layout : require
 
-layout(buffer_reference, std430) readonly buffer Vec3Buffer {
+layout(buffer_reference, scalar) readonly buffer Vec3Buffer {
     vec3 data[];
 };
 

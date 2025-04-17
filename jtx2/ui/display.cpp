@@ -37,7 +37,7 @@ void Display::run() {
             m_rasterizer.processSDLEvent(e);
 
             //            m_uiRenderer.handleInput(e);
-            //            m_uiRenderer.processEvents(e);
+            m_uiRenderer.processEvents(e);
         }
 
         if (m_bStopRendering) {
@@ -47,7 +47,7 @@ void Display::run() {
 
         if (m_bResizeRequested) resizeSwapchain();
 
-        //        m_uiRenderer.newFrame();
+        m_uiRenderer.newFrame();
         draw();
     }
 }
@@ -70,11 +70,9 @@ void Display::draw() {
     auto cmd = frame.cmdBuffer;
     CHECK_VK(cmd.reset());
 
-    // Retrieve viewport position and size
-    // vec2 viewportPosition;
-    // vec2 viewportSize;
-    //    m_uiRenderer.getViewportPosition(viewportPosition, viewportSize);
-    // Ok...now what?
+    vec2 position;
+    vec2 size;
+    m_uiRenderer.getViewportPosition(position, size);
 
     m_drawImage.extent.width  = static_cast<uint32_t>(static_cast<float>(std::min(m_swapchain.extent.width, m_drawImage.image.imageExtent.width)) * m_drawImage.renderScale);
     m_drawImage.extent.height = static_cast<uint32_t>(static_cast<float>(std::min(m_swapchain.extent.height, m_drawImage.image.imageExtent.height)) * m_drawImage.renderScale);
@@ -93,7 +91,7 @@ void Display::draw() {
 
     // Draw UI
     jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-    //    m_uiRenderer.draw(cmd, m_swapchain.imageViews[swapchainImageIndex]);
+    m_uiRenderer.draw(cmd, m_swapchain.imageViews[swapchainImageIndex]);
 
     // Transition to presentation format
     jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
@@ -161,7 +159,7 @@ void Display::init() {
     initDefaultImages();
     initDefaultSamplers();
 
-    //    m_uiRenderer.init();
+    m_uiRenderer.init();
     m_rasterizer.init();
 
     m_bIsInitialized = true;
@@ -215,6 +213,7 @@ void Display::initVulkan() {
     features12.sType               = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
     features12.bufferDeviceAddress = true;
     features12.descriptorIndexing  = true;
+    features12.scalarBlockLayout   = true;
 
     vkb::PhysicalDeviceSelector pdSelector{vkbInstance};
     const auto vkbPdResult = pdSelector
@@ -303,7 +302,6 @@ void Display::initDrawImages() {
     drawImageUsages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;    // Copy from image
     drawImageUsages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;    // Copy to image
     drawImageUsages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;// Graphics pipeline
-    drawImageUsages |= VK_IMAGE_USAGE_SAMPLED_BIT;         // Allow sampling for UI
 
     const VkImageCreateInfo drawImageInfo = jvk::init::image(m_drawImage.image.imageFormat, drawImageUsages, m_drawImage.image.imageExtent);
 
@@ -358,7 +356,7 @@ void Display::destroy() {
         LOG_INFO(DISPLAY, "Destroying engine resources...");
         vkDeviceWaitIdle(m_ctx);
 
-        //        m_uiRenderer.destroy();
+        m_uiRenderer.destroy();
         m_rasterizer.destroy();
 
         destroyDefaultSamplers();
@@ -507,8 +505,8 @@ jvk::Buffer Display::createBuffer(size_t allocSize, VkBufferUsageFlags usage, Vm
     info.usage = usage;
 
     VmaAllocationCreateInfo allocInfo{};
-    allocInfo.usage = memUsage;
-    allocInfo.flags = memFlags;
+    allocInfo.usage         = memUsage;
+    allocInfo.flags         = memFlags;
     allocInfo.requiredFlags = memPropFlags;
 
     jvk::Buffer buffer{};

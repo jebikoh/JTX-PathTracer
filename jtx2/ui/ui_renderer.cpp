@@ -71,11 +71,14 @@ void UIRenderer::draw(const VkCommandBuffer cmd, const VkImageView targetImageVi
     vkCmdEndRenderingKHR(cmd);
 }
 
-void UIRenderer::getViewportPosition(vec2 &position, vec2 &size) const {
-    auto p   = m_centralNode->Pos;
-    auto s   = m_centralNode->Size;
-    position = {p.x, p.y};
-    size     = {s.x, s.y};
+bool UIRenderer::getViewportPosition(vec2 &position, vec2 &size) const {
+    if (!m_pCentralNode) return false;
+
+    const ImVec2 fbScale = ImGui::GetIO().DisplayFramebufferScale;
+    const vec2 scale = {fbScale.x, fbScale.y};
+
+    const auto tPos = m_pCentralNode->Pos;
+    const auto tSize = m_pCentralNode->Size;
 }
 
 void UIRenderer::newFrame() {
@@ -221,7 +224,7 @@ void UIRenderer::setupDockSpace() {
     const ImGuiID dockSpaceId                   = ImGui::GetID("JTX_DockSpace");
     constexpr ImGuiDockNodeFlags dockSpaceFlags = ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoDockingInCentralNode;
     ImGui::DockSpace(dockSpaceId, ImVec2(0.0f, 0.0f), dockSpaceFlags);
-    m_centralNode = ImGui::DockBuilderGetCentralNode(dockSpaceId);
+    m_pCentralNode = ImGui::DockBuilderGetCentralNode(dockSpaceId);
 
     drawMenuBar(dockSpaceId, viewport, dockSpaceFlags);
 

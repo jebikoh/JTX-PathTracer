@@ -32,6 +32,13 @@ void Rasterizer::draw(const VkCommandBuffer cmd) {
     updateSceneData();
     populateContext();
 
+    // Viewport calculations
+    const int32_t viewRectY = m_pDisplay->m_swapchain.extent.height - (m_viewRectangle.y + m_viewRectangle.h);
+    const VkRect2D renderArea{
+        {m_viewRectangle.x, m_viewRectangle.y},
+        {m_viewRectangle.w, m_viewRectangle.h}
+    };
+
     // Draw sorting
     std::vector<uint32_t> opaqueDraws;
     opaqueDraws.reserve(m_drawContext.opaque.size());
@@ -60,7 +67,8 @@ void Rasterizer::draw(const VkCommandBuffer cmd) {
     dsClearValue.depthStencil.stencil = 0;
 
     const VkRenderingAttachmentInfo depthAttachment = jvk::init::depthRenderingAttachment(drawImage->depthStencilImage.imageView, &dsClearValue, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-    const VkRenderingInfo renderingInfo             = jvk::init::rendering(drawImage->extent, &colorAttachment, &depthAttachment);
+    VkRenderingInfo renderingInfo             = jvk::init::rendering(m_pDisplay->m_swapchain.extent, &colorAttachment, &depthAttachment);
+    renderingInfo.renderArea = renderArea;
 
     vkCmdBeginRenderingKHR(cmd, &renderingInfo);
 
@@ -87,20 +95,20 @@ void Rasterizer::draw(const VkCommandBuffer cmd) {
                 vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->pipelineLayout, 0, 1, &frame.gpuSceneDataUboDescriptorSet, 0, nullptr);
 
                 VkViewport viewport{};
-                viewport.x        = 0;
-                viewport.y        = 0;
-                viewport.width    = static_cast<float>(drawExtent.width);
-                viewport.height   = static_cast<float>(drawExtent.height);
+                viewport.x        = static_cast<float>(m_viewRectangle.x);
+                viewport.y        = static_cast<float>(m_viewRectangle.y);
+                viewport.width    = static_cast<float>(m_viewRectangle.w);
+                viewport.height   = static_cast<float>(m_viewRectangle.h);
                 viewport.minDepth = 0.0f;
                 viewport.maxDepth = 1.0f;
                 vkCmdSetViewport(cmd, 0, 1, &viewport);
 
                 // SCISSOR
                 VkRect2D scissor{};
-                scissor.offset.x      = 0;
-                scissor.offset.y      = 0;
-                scissor.extent.width  = drawExtent.width;
-                scissor.extent.height = drawExtent.height;
+                scissor.offset.x      = static_cast<float>(m_viewRectangle.x);
+                scissor.offset.y      = static_cast<float>(m_viewRectangle.y);
+                scissor.extent.width  = static_cast<float>(m_viewRectangle.w);
+                scissor.extent.height = static_cast<float>(m_viewRectangle.h);
                 vkCmdSetScissor(cmd, 0, 1, &scissor);
             }
 

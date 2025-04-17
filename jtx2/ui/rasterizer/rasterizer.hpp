@@ -7,6 +7,7 @@
 #include "ui/jvk/jvk.hpp"
 #include "ui/jvk/pipeline.hpp"
 #include "ui/rasterizer/render_data.hpp"
+#include "ui/jvk/util.hpp"
 
 namespace jtx {
 
@@ -52,6 +53,8 @@ public:
 
     void processSDLEvent(const SDL_Event &event);
 
+    void setViewportRectangle(const jvk::ViewRectangle &viewRectangle) { m_viewRectangle = viewRectangle; }
+
     /**
      * This will (re)load the scene from the display and setup GPU resources.
      *
@@ -69,6 +72,7 @@ private:
     // It might be worth to store some commonly used members (as copies or pointers) within this class
     // during initialization to avoid some pointer chasing
     Display *m_pDisplay = nullptr;
+    jvk::ViewRectangle m_viewRectangle{};
 
     // Scene
     bool m_bSceneLoaded = false;

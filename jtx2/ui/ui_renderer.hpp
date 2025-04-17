@@ -1,6 +1,7 @@
 #pragma once
 
 #include "jvk/jvk.hpp"
+#include "jvk/util.hpp"
 
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
@@ -51,11 +52,10 @@ public:
 
     /**
      * Retrieves the position and size of the viewport window
-     * @param position position output (top left corner)
-     * @param size size output
+     * @param out ViewRectangle containing top left coordinate of viewport window and width/height
      * @return true if position and size were retrieved, false if not (e.g. when central node is is not initialized yet)
      */
-    bool getViewportPosition(vec2 &position, vec2 &size) const;
+    bool getViewportRectangle(jvk::ViewRectangle &out) const;
 
 private:
     Display *m_pDisplay = nullptr;

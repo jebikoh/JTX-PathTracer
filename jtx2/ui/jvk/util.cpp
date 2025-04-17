@@ -1,5 +1,5 @@
-#include "init.hpp"
 #include "util.hpp"
+#include "init.hpp"
 
 void jvk::transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout) {
     // Creates a pipeline barrier stalls the pipeline until the image is ready
@@ -8,8 +8,8 @@ void jvk::transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout oldL
     // 3. The image is now ready for reads and writes (dstAccessMask) from any stage (dstStageMask)
 
     VkImageMemoryBarrier2KHR imageBarrier = {};
-    imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR;
-    imageBarrier.pNext = nullptr;
+    imageBarrier.sType                    = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR;
+    imageBarrier.pNext                    = nullptr;
 
     // Stage masks specify when the barrier is executed
     // Access masks specify what type of memory operations are being executed
@@ -36,21 +36,21 @@ void jvk::transitionImage(VkCommandBuffer cmd, VkImage image, VkImageLayout oldL
         aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
     }
     imageBarrier.subresourceRange = jvk::init::imageSubresourceRange(aspectMask);
-    imageBarrier.image = image;
+    imageBarrier.image            = image;
 
     // Create the dependency & submit
-    VkDependencyInfoKHR depInfo = {};
-    depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-    depInfo.pNext = nullptr;
+    VkDependencyInfoKHR depInfo     = {};
+    depInfo.sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    depInfo.pNext                   = nullptr;
     depInfo.imageMemoryBarrierCount = 1;
-    depInfo.pImageMemoryBarriers = &imageBarrier;
+    depInfo.pImageMemoryBarriers    = &imageBarrier;
     vkCmdPipelineBarrier2KHR(cmd, &depInfo);
 }
 
-void jvk::copyImageToImage(VkCommandBuffer cmd, VkImage src, VkImage dst, VkExtent2D srcSize, VkExtent2D dstSize) {
+void jvk::copyImageToImage(const VkCommandBuffer cmd, const VkImage src, const VkImage dst, const VkExtent2D srcSize, const VkExtent2D dstSize) {
     // Bit-block Transfer: copying data from one location to another
     // This is slower than `vkCmdCopyImage` but is more flexible
-    VkImageBlit2KHR blitRegion {};
+    VkImageBlit2KHR blitRegion{};
     blitRegion.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2_KHR;
     blitRegion.pNext = nullptr;
 
@@ -62,26 +62,68 @@ void jvk::copyImageToImage(VkCommandBuffer cmd, VkImage src, VkImage dst, VkExte
     blitRegion.dstOffsets[1].y = dstSize.height;
     blitRegion.dstOffsets[1].z = 1;
 
-    blitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    blitRegion.srcSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
     blitRegion.srcSubresource.baseArrayLayer = 0;
-    blitRegion.srcSubresource.layerCount = 1;
-    blitRegion.srcSubresource.mipLevel = 0;
+    blitRegion.srcSubresource.layerCount     = 1;
+    blitRegion.srcSubresource.mipLevel       = 0;
 
-    blitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    blitRegion.dstSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
     blitRegion.dstSubresource.baseArrayLayer = 0;
-    blitRegion.dstSubresource.layerCount = 1;
-    blitRegion.srcSubresource.mipLevel = 0;
+    blitRegion.dstSubresource.layerCount     = 1;
+    blitRegion.srcSubresource.mipLevel       = 0;
 
     VkBlitImageInfo2KHR blitInfo = {};
-    blitInfo.sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2_KHR;
-    blitInfo.pNext = nullptr;
-    blitInfo.srcImage = src;
-    blitInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-    blitInfo.dstImage = dst;
-    blitInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    blitInfo.filter = VK_FILTER_LINEAR;
-    blitInfo.regionCount = 1;
-    blitInfo.pRegions = &blitRegion;
+    blitInfo.sType               = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2_KHR;
+    blitInfo.pNext               = nullptr;
+    blitInfo.srcImage            = src;
+    blitInfo.srcImageLayout      = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    blitInfo.dstImage            = dst;
+    blitInfo.dstImageLayout      = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    blitInfo.filter              = VK_FILTER_LINEAR;
+    blitInfo.regionCount         = 1;
+    blitInfo.pRegions            = &blitRegion;
+
+    vkCmdBlitImage2KHR(cmd, &blitInfo);
+}
+void jvk::copyImageToImage(VkCommandBuffer cmd, VkImage src, VkImage dst, VkExtent2D srcSize[2], VkExtent2D dstSize[2]) {
+    VkImageBlit2KHR blitRegion{};
+    blitRegion.sType = VK_STRUCTURE_TYPE_IMAGE_BLIT_2_KHR;
+    blitRegion.pNext = nullptr;
+
+    blitRegion.srcOffsets[0].x = srcSize[0].width;
+    blitRegion.srcOffsets[0].y = srcSize[0].height;
+    blitRegion.srcOffsets[0].z = 0;
+    blitRegion.srcOffsets[1].x = srcSize[1].width;
+    blitRegion.srcOffsets[1].y = srcSize[1].height;
+    blitRegion.srcOffsets[1].z = 1;
+
+    blitRegion.dstOffsets[0].x = dstSize[0].width;
+    blitRegion.dstOffsets[0].y = dstSize[0].height;
+    blitRegion.dstOffsets[0].z = 0;
+    blitRegion.dstOffsets[1].x = dstSize[1].width;
+    blitRegion.dstOffsets[1].y = dstSize[1].height;
+    blitRegion.dstOffsets[1].z = 1;
+
+    blitRegion.srcSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+    blitRegion.srcSubresource.baseArrayLayer = 0;
+    blitRegion.srcSubresource.layerCount     = 1;
+    blitRegion.srcSubresource.mipLevel       = 0;
+
+    blitRegion.dstSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+    blitRegion.dstSubresource.baseArrayLayer = 0;
+    blitRegion.dstSubresource.layerCount     = 1;
+    blitRegion.srcSubresource.mipLevel       = 0;
+
+    VkBlitImageInfo2KHR blitInfo = {};
+    blitInfo.sType               = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2_KHR;
+    blitInfo.pNext               = nullptr;
+    blitInfo.srcImage            = src;
+    blitInfo.srcImageLayout      = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    blitInfo.dstImage            = dst;
+    blitInfo.dstImageLayout      = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    blitInfo.filter              = VK_FILTER_LINEAR;
+    blitInfo.regionCount         = 1;
+    blitInfo.pRegions            = &blitRegion;
 
     vkCmdBlitImage2KHR(cmd, &blitInfo);
 }
@@ -97,25 +139,25 @@ void jvk::generateMipmaps(VkCommandBuffer cmd, VkImage image, VkExtent2D imageSi
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2_KHR;
         barrier.pNext = nullptr;
 
-        barrier.srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+        barrier.srcStageMask  = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
         barrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
-        barrier.dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+        barrier.dstStageMask  = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
         barrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
 
         barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
         barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 
-        VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        barrier.subresourceRange = jvk::init::imageSubresourceRange(aspectMask);
-        barrier.subresourceRange.levelCount = 1;
+        VkImageAspectFlags aspectMask         = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange              = jvk::init::imageSubresourceRange(aspectMask);
+        barrier.subresourceRange.levelCount   = 1;
         barrier.subresourceRange.baseMipLevel = mip;
-        barrier.image = image;
+        barrier.image                         = image;
 
         VkDependencyInfoKHR dependencyInfo{};
-        dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-        dependencyInfo.pNext = nullptr;
+        dependencyInfo.sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        dependencyInfo.pNext                   = nullptr;
         dependencyInfo.imageMemoryBarrierCount = 1;
-        dependencyInfo.pImageMemoryBarriers = &barrier;
+        dependencyInfo.pImageMemoryBarriers    = &barrier;
 
         vkCmdPipelineBarrier2KHR(cmd, &dependencyInfo);
         if (mip < mipLevels - 1) {
@@ -131,26 +173,26 @@ void jvk::generateMipmaps(VkCommandBuffer cmd, VkImage image, VkExtent2D imageSi
             blit.dstOffsets[1].y = halfSize.height;
             blit.dstOffsets[1].z = 1;
 
-            blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            blit.srcSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
             blit.srcSubresource.baseArrayLayer = 0;
-            blit.srcSubresource.layerCount = 1;
-            blit.srcSubresource.mipLevel = mip;
+            blit.srcSubresource.layerCount     = 1;
+            blit.srcSubresource.mipLevel       = mip;
 
-            blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            blit.dstSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
             blit.dstSubresource.baseArrayLayer = 0;
-            blit.dstSubresource.layerCount = 1;
-            blit.dstSubresource.mipLevel = mip + 1;
+            blit.dstSubresource.layerCount     = 1;
+            blit.dstSubresource.mipLevel       = mip + 1;
 
             VkBlitImageInfo2KHR blitInfo{};
-            blitInfo.sType = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2_KHR;
-            blitInfo.pNext = nullptr;
-            blitInfo.srcImage = image;
+            blitInfo.sType          = VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2_KHR;
+            blitInfo.pNext          = nullptr;
+            blitInfo.srcImage       = image;
             blitInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            blitInfo.dstImage = image;
+            blitInfo.dstImage       = image;
             blitInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            blitInfo.filter = VK_FILTER_LINEAR;
-            blitInfo.regionCount = 1;
-            blitInfo.pRegions = &blit;
+            blitInfo.filter         = VK_FILTER_LINEAR;
+            blitInfo.regionCount    = 1;
+            blitInfo.pRegions       = &blit;
 
             vkCmdBlitImage2KHR(cmd, &blitInfo);
             imageSize = halfSize;
@@ -162,14 +204,13 @@ void jvk::generateMipmaps(VkCommandBuffer cmd, VkImage image, VkExtent2D imageSi
 
 bool jvk::getSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat *pFormat) {
     std::vector<VkFormat> formats = {
-        VK_FORMAT_D32_SFLOAT_S8_UINT,
-        VK_FORMAT_D32_SFLOAT,
-        VK_FORMAT_D24_UNORM_S8_UINT,
-        VK_FORMAT_D16_UNORM_S8_UINT,
-        VK_FORMAT_D16_UNORM
-    };
+            VK_FORMAT_D32_SFLOAT_S8_UINT,
+            VK_FORMAT_D32_SFLOAT,
+            VK_FORMAT_D24_UNORM_S8_UINT,
+            VK_FORMAT_D16_UNORM_S8_UINT,
+            VK_FORMAT_D16_UNORM};
 
-    for (auto &format : formats) {
+    for (auto &format: formats) {
         VkFormatProperties props;
         vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
         if (props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
@@ -183,10 +224,9 @@ bool jvk::getSupportedDepthFormat(VkPhysicalDevice physicalDevice, VkFormat *pFo
 
 bool jvk::getSupportedDepthStencilFormat(VkPhysicalDevice physicalDevice, VkFormat *pFormat) {
     std::vector<VkFormat> formats = {
-        VK_FORMAT_D32_SFLOAT_S8_UINT,
-        VK_FORMAT_D24_UNORM_S8_UINT,
-        VK_FORMAT_D16_UNORM_S8_UINT
-    };
+            VK_FORMAT_D32_SFLOAT_S8_UINT,
+            VK_FORMAT_D24_UNORM_S8_UINT,
+            VK_FORMAT_D16_UNORM_S8_UINT};
 
     for (auto &format: formats) {
         VkFormatProperties props;
@@ -212,11 +252,10 @@ bool jvk::formatHasStencil(const VkFormat format) {
 
 bool jvk::formatHasDepth(const VkFormat format) {
     std::vector<VkFormat> formats = {
-        VK_FORMAT_D32_SFLOAT_S8_UINT,
-        VK_FORMAT_D32_SFLOAT,
-        VK_FORMAT_D24_UNORM_S8_UINT,
-        VK_FORMAT_D16_UNORM_S8_UINT,
-        VK_FORMAT_D16_UNORM
-    };
+            VK_FORMAT_D32_SFLOAT_S8_UINT,
+            VK_FORMAT_D32_SFLOAT,
+            VK_FORMAT_D24_UNORM_S8_UINT,
+            VK_FORMAT_D16_UNORM_S8_UINT,
+            VK_FORMAT_D16_UNORM};
     return std::ranges::find(formats, format) != formats.end();
 }

@@ -70,9 +70,10 @@ void Display::draw() {
     auto cmd = frame.cmdBuffer;
     CHECK_VK(cmd.reset());
 
-    vec2 position;
-    vec2 size;
-    m_uiRenderer.getViewportPosition(position, size);
+    jvk::ViewRectangle rect;
+    if (m_uiRenderer.getViewportRectangle(rect)) {
+        m_rasterizer.setViewportRectangle(rect);
+    }
 
     m_drawImage.extent.width  = static_cast<uint32_t>(static_cast<float>(std::min(m_swapchain.extent.width, m_drawImage.image.imageExtent.width)) * m_drawImage.renderScale);
     m_drawImage.extent.height = static_cast<uint32_t>(static_cast<float>(std::min(m_swapchain.extent.height, m_drawImage.image.imageExtent.height)) * m_drawImage.renderScale);
@@ -87,7 +88,15 @@ void Display::draw() {
     // Copy draw image to swapchain
     jvk::transitionImage(cmd, m_drawImage.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    jvk::copyImageToImage(cmd, m_drawImage.image, m_swapchain.images[swapchainImageIndex], m_drawImage.extent, m_swapchain.extent);
+
+    VkExtent2D srcExtent[2];
+    srcExtent[0] = {0, 0};
+    srcExtent[1] = {rect.w, rect.h};
+    VkExtent2D dstExtent[2];
+    dstExtent[0] = {static_cast<uint32_t>(rect.x), static_cast<uint32_t>(rect.y)};
+    dstExtent[1] = {rect.x + rect.w, rect.y + rect.h};
+
+    jvk::copyImageToImage(cmd, m_drawImage.image, m_swapchain.images[swapchainImageIndex], srcExtent, dstExtent);
 
     // Draw UI
     jvk::transitionImage(cmd, m_swapchain.images[swapchainImageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);

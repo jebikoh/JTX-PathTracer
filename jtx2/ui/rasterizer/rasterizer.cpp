@@ -355,7 +355,6 @@ void Rasterizer::initMaterialResources() {
     pipelineBuilder.setMultiSamplingNone();
     pipelineBuilder.disableBlending();
     pipelineBuilder.enableDepthTest(true, VK_COMPARE_OP_LESS_OR_EQUAL);
-    pipelineBuilder.disableDepthTest();
     pipelineBuilder.disableStencilTest();
     pipelineBuilder.setColorAttachmentFormat(m_pDisplay->m_drawImage.image.imageFormat);
     pipelineBuilder.setDepthAttachmentFormat(m_pDisplay->m_drawImage.depthStencilImage.imageFormat);

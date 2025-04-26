@@ -11,6 +11,8 @@ namespace jtx {
 
 void Rasterizer::init() {
     LOG_INFO(RASTERIZER, "Initializing Rasterizer");
+    m_ctx = m_pDisplay->m_ctx;
+    m_allocator = m_pDisplay->m_allocator;
     initFrameData();
     initMaterialResources();
     LOG_INFO(RASTERIZER, "Rasterizer initialized");
@@ -33,7 +35,6 @@ void Rasterizer::draw(const VkCommandBuffer cmd) {
     populateContext();
 
     // Viewport calculations
-    const int32_t viewRectY = m_pDisplay->m_swapchain.extent.height - (m_viewRectangle.y + m_viewRectangle.h);
     const VkRect2D renderArea{
         {m_viewRectangle.x, m_viewRectangle.y},
         {m_viewRectangle.w, m_viewRectangle.h}
@@ -77,9 +78,8 @@ void Rasterizer::draw(const VkCommandBuffer cmd) {
 
     *frame.gpuSceneDataUBOMapping = m_gpuSceneUboData;
 
-    jvk::Pipeline *lastPipeline       = nullptr;
-    GPUMaterialInstance *lastMaterial = nullptr;
-    auto drawExtent                   = m_pDisplay->m_drawImage.extent;
+    const jvk::Pipeline *lastPipeline       = nullptr;
+    const GPUMaterialInstance *lastMaterial = nullptr;
 
     // Bind index buffer
     vkCmdBindIndexBuffer(cmd, m_gpuSceneMeshData.index, 0, VK_INDEX_TYPE_UINT32);
@@ -135,6 +135,9 @@ void Rasterizer::draw(const VkCommandBuffer cmd) {
 void Rasterizer::processSDLEvent(const SDL_Event &event) {
     m_camera.processSDLEvent(event);
 }
+void Rasterizer::skipEvent() {
+    m_camera.resetInputState();
+}
 
 void Rasterizer::loadScene() {
     LOG_INFO(RASTERIZER, "Loading scene");
@@ -174,14 +177,14 @@ void Rasterizer::loadScene() {
     VkBufferDeviceAddressInfo deviceAddressInfo{};
     deviceAddressInfo.sType            = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
     deviceAddressInfo.buffer           = m_gpuSceneMeshData.position.buffer;
-    m_gpuSceneMeshData.positionAddress = vkGetBufferDeviceAddress(m_pDisplay->m_ctx, &deviceAddressInfo);
+    m_gpuSceneMeshData.positionAddress = vkGetBufferDeviceAddress(m_ctx, &deviceAddressInfo);
     deviceAddressInfo.buffer           = m_gpuSceneMeshData.normal.buffer;
-    m_gpuSceneMeshData.normalAddress   = vkGetBufferDeviceAddress(m_pDisplay->m_ctx, &deviceAddressInfo);
+    m_gpuSceneMeshData.normalAddress   = vkGetBufferDeviceAddress(m_ctx, &deviceAddressInfo);
     deviceAddressInfo.buffer           = m_gpuSceneMeshData.uv.buffer;
-    m_gpuSceneMeshData.uvAddress       = vkGetBufferDeviceAddress(m_pDisplay->m_ctx, &deviceAddressInfo);
+    m_gpuSceneMeshData.uvAddress       = vkGetBufferDeviceAddress(m_ctx, &deviceAddressInfo);
     if (bSceneHasVertexColors) {
         deviceAddressInfo.buffer        = m_gpuSceneMeshData.color.buffer;
-        m_gpuSceneMeshData.colorAddress = vkGetBufferDeviceAddress(m_pDisplay->m_ctx, &deviceAddressInfo);
+        m_gpuSceneMeshData.colorAddress = vkGetBufferDeviceAddress(m_ctx, &deviceAddressInfo);
     }
 
     // Index buffer
@@ -309,12 +312,12 @@ void Rasterizer::destroyGPUSceneMeshData() {
 
 void Rasterizer::initMaterialResources() {
     VkShaderModule vertShader;
-    if (!jvk::loadShaderModule("../shaders/mesh.vert.spv", m_pDisplay->m_ctx, &vertShader)) {
+    if (!jvk::loadShaderModule("../shaders/mesh.vert.spv", m_ctx, &vertShader)) {
         LOG_FATAL(RASTERIZER, "Failed to load vertex shader");
     }
 
     VkShaderModule fragShader;
-    if (!jvk::loadShaderModule("../shaders/mesh.frag.spv", m_pDisplay->m_ctx, &fragShader)) {
+    if (!jvk::loadShaderModule("../shaders/mesh.frag.spv", m_ctx, &fragShader)) {
         LOG_FATAL(RASTERIZER, "Failed to load fragment shader");
     }
 
@@ -328,7 +331,7 @@ void Rasterizer::initMaterialResources() {
     builder.addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);// Ambient
     builder.addBinding(2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);// Diffuse
     builder.addBinding(3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);// Specular
-    m_gpuMaterials.descriptorSetLayout = builder.build(m_pDisplay->m_ctx, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+    m_gpuMaterials.descriptorSetLayout = builder.build(m_ctx, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
     VkDescriptorSetLayout layouts[] = {m_gpuSceneDataUboDescriptorLayout, m_gpuMaterials.descriptorSetLayout};
 
@@ -339,7 +342,7 @@ void Rasterizer::initMaterialResources() {
     layoutInfo.pPushConstantRanges        = &pushConstantRange;
 
     VkPipelineLayout layout;
-    CHECK_VK(vkCreatePipelineLayout(m_pDisplay->m_ctx, &layoutInfo, nullptr, &layout));
+    CHECK_VK(vkCreatePipelineLayout(m_ctx, &layoutInfo, nullptr, &layout));
 
     m_gpuMaterials.opaquePipeline.pipelineLayout      = layout;
     m_gpuMaterials.transparentPipeline.pipelineLayout = layout;
@@ -358,19 +361,19 @@ void Rasterizer::initMaterialResources() {
     pipelineBuilder.setDepthAttachmentFormat(m_pDisplay->m_drawImage.depthStencilImage.imageFormat);
     pipelineBuilder._pipelineLayout = layout;
 
-    m_gpuMaterials.opaquePipeline.pipeline = pipelineBuilder.buildPipeline(m_pDisplay->m_ctx);
+    m_gpuMaterials.opaquePipeline.pipeline = pipelineBuilder.buildPipeline(m_ctx);
 
     pipelineBuilder.enableBlendingAdditive();
-    m_gpuMaterials.transparentPipeline.pipeline = pipelineBuilder.buildPipeline(m_pDisplay->m_ctx);
+    m_gpuMaterials.transparentPipeline.pipeline = pipelineBuilder.buildPipeline(m_ctx);
 
-    vkDestroyShaderModule(m_pDisplay->m_ctx, vertShader, nullptr);
-    vkDestroyShaderModule(m_pDisplay->m_ctx, fragShader, nullptr);
+    vkDestroyShaderModule(m_ctx, vertShader, nullptr);
+    vkDestroyShaderModule(m_ctx, fragShader, nullptr);
 }
 
 void Rasterizer::destroyMaterialResources() const {
-    vkDestroyDescriptorSetLayout(m_pDisplay->m_ctx, m_gpuMaterials.descriptorSetLayout, nullptr);
-    m_gpuMaterials.opaquePipeline.destroy(m_pDisplay->m_ctx, true);
-    m_gpuMaterials.transparentPipeline.destroy(m_pDisplay->m_ctx, false);
+    vkDestroyDescriptorSetLayout(m_ctx, m_gpuMaterials.descriptorSetLayout, nullptr);
+    m_gpuMaterials.opaquePipeline.destroy(m_ctx, true);
+    m_gpuMaterials.transparentPipeline.destroy(m_ctx, false);
 }
 
 void Rasterizer::destroyGPUSceneMaterials() const {
@@ -390,14 +393,14 @@ GPUMaterialInstance Rasterizer::writeMaterial(GPUMaterialPass pass, const GPUMat
         return {};
     }
 
-    mat.descriptorSet = m_pDisplay->m_descriptorAllocator.allocate(m_pDisplay->m_ctx, m_gpuMaterials.descriptorSetLayout);
+    mat.descriptorSet = m_pDisplay->m_descriptorAllocator.allocate(m_ctx, m_gpuMaterials.descriptorSetLayout);
 
     m_descriptorWriter.clear();
     m_descriptorWriter.writeBuffer(0, resources.ubo, sizeof(GPUMaterialUBOData), resources.uboOffset, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     m_descriptorWriter.writeImage(1, resources.images.ambient.imageView, resources.samplers.ambient, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
     m_descriptorWriter.writeImage(2, resources.images.diffuse.imageView, resources.samplers.diffuse, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
     m_descriptorWriter.writeImage(3, resources.images.specular.imageView, resources.samplers.specular, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-    m_descriptorWriter.updateSet(m_pDisplay->m_ctx, mat.descriptorSet);
+    m_descriptorWriter.updateSet(m_ctx, mat.descriptorSet);
 
     return mat;
 }
@@ -447,10 +450,10 @@ void Rasterizer::destroyGPUScene() {
 void Rasterizer::initFrameData() {
     jvk::DescriptorLayoutBuilder builder;
     builder.addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-    m_gpuSceneDataUboDescriptorLayout = builder.build(m_pDisplay->m_ctx, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
+    m_gpuSceneDataUboDescriptorLayout = builder.build(m_ctx, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
 
     for (auto &frame: m_frameData) {
-        frame.gpuSceneDataUboDescriptorSet = m_pDisplay->m_descriptorAllocator.allocate(m_pDisplay->m_ctx, m_gpuSceneDataUboDescriptorLayout);
+        frame.gpuSceneDataUboDescriptorSet = m_pDisplay->m_descriptorAllocator.allocate(m_ctx, m_gpuSceneDataUboDescriptorLayout);
         frame.gpuSceneDataUBO              = m_pDisplay->createBuffer(
                 sizeof(GPUSceneUBOData),
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -462,12 +465,12 @@ void Rasterizer::initFrameData() {
 
         jvk::DescriptorWriter writer;
         writer.writeBuffer(0, frame.gpuSceneDataUBO.buffer, sizeof(GPUSceneUBOData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-        writer.updateSet(m_pDisplay->m_ctx, frame.gpuSceneDataUboDescriptorSet);
+        writer.updateSet(m_ctx, frame.gpuSceneDataUboDescriptorSet);
     }
 }
 
 void Rasterizer::destroyFrameData() const {
-    vkDestroyDescriptorSetLayout(m_pDisplay->m_ctx, m_gpuSceneDataUboDescriptorLayout, nullptr);
+    vkDestroyDescriptorSetLayout(m_ctx, m_gpuSceneDataUboDescriptorLayout, nullptr);
 
     for (auto &frame: m_frameData) {
         vmaUnmapMemory(m_pDisplay->m_allocator, frame.gpuSceneDataUBO.allocation);

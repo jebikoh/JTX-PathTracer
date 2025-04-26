@@ -38,6 +38,8 @@ void Display::run() {
 
             if (!bUiWantsEvent) {
                 m_rasterizer.processSDLEvent(e);
+            } else {
+                m_rasterizer.skipEvent();
             }
         }
 

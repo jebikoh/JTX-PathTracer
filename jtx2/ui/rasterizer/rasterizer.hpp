@@ -6,8 +6,10 @@
 #include "ui/jvk/descriptor.hpp"
 #include "ui/jvk/jvk.hpp"
 #include "ui/jvk/pipeline.hpp"
-#include "ui/rasterizer/render_data.hpp"
 #include "ui/jvk/util.hpp"
+#include "ui/rasterizer/render_data.hpp"
+
+#include <ui/jvk/context.hpp>
 
 namespace jtx {
 
@@ -53,6 +55,8 @@ public:
 
     void processSDLEvent(const SDL_Event &event);
 
+    void skipEvent();
+
     void setViewportRectangle(const jvk::ViewRectangle &viewRectangle) { m_viewRectangle = viewRectangle; }
 
     /**
@@ -72,6 +76,9 @@ private:
     // It might be worth to store some commonly used members (as copies or pointers) within this class
     // during initialization to avoid some pointer chasing
     Display *m_pDisplay = nullptr;
+    jvk::Context m_ctx;
+    VmaAllocator m_allocator{};
+
     jvk::ViewRectangle m_viewRectangle{};
 
     // Scene

@@ -52,65 +52,81 @@ public:
     glm::vec3 getRightVector() const { return glm::normalize(glm::cross(getFrontVector(), up)); }
 
     void processSDLEvent(const SDL_Event &e) {
-        static std::unordered_map<SDL_FingerID, glm::vec2> fingers;
-        static glm::vec2 lastCenter{0.0f};
-        static bool bShiftHeld = false;
-
         if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) {
             const bool bDown = e.type == SDL_KEYDOWN;
             if (e.key.keysym.sym == SDLK_LSHIFT || e.key.keysym.sym == SDLK_RSHIFT) {
-                bShiftHeld = bDown;
+                m_bShiftHeld  = bDown;
+            }
+            if (e.key.keysym.sym == SDLK_LALT || e.key.keysym.sym == SDLK_RALT) {
+                m_bAltHeld    = bDown;
             }
             return;
         }
 
         if (e.type == SDL_FINGERDOWN) {
-            fingers[e.tfinger.fingerId] = {e.tfinger.x, e.tfinger.y};
+            m_fingers[e.tfinger.fingerId] = {e.tfinger.x, e.tfinger.y};
 
-            if (fingers.size() == 2) {
-                auto it           = fingers.begin();
+            if (m_fingers.size() == 2) {
+                auto it           = m_fingers.begin();
                 const glm::vec2 a = it->second;
                 ++it;
                 const glm::vec2 b = it->second;
-                lastCenter        = 0.5f * (a + b);
+                m_lastCenter      = 0.5f * (a + b);
+                m_gestureMode     = GestureMode::None;
             }
             return;
         }
 
         if (e.type == SDL_FINGERUP) {
-            fingers.erase(e.tfinger.fingerId);
+            m_fingers.erase(e.tfinger.fingerId);
+            if (m_fingers.size() < 2) {
+                m_gestureMode = GestureMode::None;
+            }
             return;
         }
 
-        if (e.type == SDL_FINGERMOTION && fingers.size() == 2) {
-            fingers[e.tfinger.fingerId] = {e.tfinger.x, e.tfinger.y};
+        if (m_bAltHeld) {
+            if (e.type == SDL_MULTIGESTURE && std::abs(e.mgesture.dDist) > 0.002f) {
+                const float zoomFactor = e.mgesture.dDist > 0.0f ? 1.0f / dollySpeed : dollySpeed;
+                distance               = std::max(0.01f, distance * zoomFactor);
+                m_gestureMode = GestureMode::Dolly;
+            }
+            return;
+        }
 
-            auto it           = fingers.begin();
+        if (e.type == SDL_FINGERMOTION && m_fingers.size() == 2) {
+            m_fingers[e.tfinger.fingerId] = {e.tfinger.x, e.tfinger.y};
+
+            auto it           = m_fingers.begin();
             const glm::vec2 a = it->second;
             ++it;
             const glm::vec2 b      = it->second;
             const glm::vec2 center = 0.5f * (a + b);
-            const glm::vec2 delta  = center - lastCenter;
-            lastCenter             = center;
+            const glm::vec2 delta  = center - m_lastCenter;
+            m_lastCenter           = center;
 
-            if (bShiftHeld) {
+            if (m_bShiftHeld) {
                 // Pan
+                m_gestureMode = GestureMode::Pan;
                 target += -delta.x * panSpeed * getRightVector();
                 target += -delta.y * panSpeed * up;
             } else {
-                // Orbit
+                m_gestureMode = GestureMode::Orbit;
                 yaw -= delta.x * orbitSpeed * glm::two_pi<float>();
                 pitch += delta.y * orbitSpeed * glm::pi<float>();
             }
-            return;
         }
+    }
 
-        if (e.type == SDL_MULTIGESTURE) {
-            if (std::abs(e.mgesture.dDist) > 0.002f) {
-                const float zoomFactor = e.mgesture.dDist > 0.0f ? 1.0f / dollySpeed : dollySpeed;
-                distance               = std::max(0.01f, distance * zoomFactor);
-            }
-        }
+    /**
+     * This resets input tracking state; should be called any time SDL events
+     * are not forwarded to this class
+     */
+    void resetInputState() {
+        m_fingers.clear();
+        m_lastCenter  = glm::vec2(0.0f);
+        m_bShiftHeld  = false;
+        m_gestureMode = GestureMode::None;
     }
 
     /**
@@ -125,11 +141,19 @@ public:
         const glm::vec3 orbitOffset(
                 cosPitch * sinYaw,
                 sinPitch,
-                cosPitch * cosYaw
-        );
+                cosPitch * cosYaw);
 
         position = target + distance * orbitOffset;
     }
-private:
 
+private:
+    std::unordered_map<SDL_FingerID, glm::vec2> m_fingers;
+    enum class GestureMode { None,
+                             Dolly,
+                             Orbit,
+                             Pan } m_gestureMode = GestureMode::None;
+    glm::vec2 m_lastCenter{0.0f};
+    glm::vec2 m_startPinchDist{0.0f};
+    bool m_bShiftHeld = false;
+    bool m_bAltHeld = false;
 };

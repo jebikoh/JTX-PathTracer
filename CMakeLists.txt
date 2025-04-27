@@ -136,28 +136,46 @@ set (JVK_SOURCE
         jtx2/ui/rasterizer/render_data.hpp
 )
 
-add_executable(
-        JTX
-        ${JVK_SOURCE}
-        ${JVK_HEADERS}
-        jtx2/main.cpp
-        jtx2/jtx.hpp
-        jtx2/util/logger.hpp
+set (JTX_SCENE
         jtx2/scene/scene.hpp
-        jtx2/material.h
         jtx2/scene/scene_loader.hpp
-        jtx2/image.hpp
+        jtx2/scene/scene_loader.cpp
+)
+
+set (JTX_UTIL
+        jtx2/util/logger.hpp
+        jtx2/util/color.hpp
+)
+
+set (JTX_UI
         jtx2/ui/display.hpp
         jtx2/ui/display.cpp
-        jtx2/scene/scene_loader.cpp
-        jtx2/util/color.hpp
-        jtx2/image.cpp
         jtx2/ui/ui_renderer.hpp
         jtx2/ui/ui_renderer.cpp
         jtx2/ui/rasterizer/rasterizer.hpp
         jtx2/ui/rasterizer/rasterizer.cpp
         jtx2/ui/rasterizer/camera.hpp
         jtx2/ui/rasterizer/camera.cpp
+)
+
+set (JTX_BACKEND_CPU
+        jtx2/backends/cpu/bvh.hpp
+)
+
+add_executable(
+        JTX
+        ${JVK_SOURCE}
+        ${JVK_HEADERS}
+        ${JTX_SCENE}
+        ${JTX_UTIL}
+        ${JTX_UI}
+        ${JTX_BACKEND_CPU}
+        jtx2/main.cpp
+        jtx2/jtx.hpp
+        jtx2/material.h
+        jtx2/image.hpp
+        jtx2/image.cpp
+        jtx2/util/aabb.hpp
 )
 
 

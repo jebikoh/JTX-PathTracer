@@ -23,5 +23,14 @@ using quat = jtx::Quaternion;
 using Ray       = jtx::Rayf;
 using Transform = jtx::Transform;
 
-// Global constants
+// Constants
 constexpr int JTX_MAX_FRAMES_IN_FLIGHT = 2;
+
+enum JtxResult {
+    JTX_SUCCESS                      = 0, // Success
+    JTX_FAILURE                      = -1,// Generic failure
+    JTX_ERROR_INVALID_FILE_EXTENSION = -2,// Invalid file extension
+    JTX_ERROR_INVALID_DATA           = -3,// Invalid data (empty or nullptr)
+    JTX_ERROR_FILE_LOADING           = -4,// Error while loading file
+    JTX_ERROR_FILE_INVALID_DATA      = -5,// File data is invalid
+};

@@ -13,146 +13,158 @@
 
 #include <filesystem>
 
+#pragma region Image8u
 jtx::Image8u::Image8u(const uint8_t *buffer, const int w, const int h, const int c)
     : width(w),
       height(h),
       channels(c) {
-    m_data.resize(w * h * c);
-    memcpy(m_data.data(), buffer, w * h * c);
+    data = new uint8_t[w * h * c];
+    memcpy(data, buffer, w * h * c);
 }
 
-jtx::Image8u::Image8u(Image8u &&image) noexcept {
-    width    = image.width;
-    height   = image.height;
-    channels = image.channels;
-    m_data   = std::move(image.m_data);
+jtx::Image8u::Image8u(Image8u &&other) noexcept
+    : width(other.width),
+      height(other.height),
+      channels(other.channels),
+      data(other.data) {
+    other.data = nullptr;
+    other.destroy();
+}
 
-    image.destroy();
+jtx::Image8u &jtx::Image8u::operator=(Image8u &&other) noexcept {
+    if (this != &other) {
+        destroy();
+        width    = other.width;
+        height   = other.height;
+        channels = other.channels;
+        data     = other.data;
+
+        other.data = nullptr;
+        other.destroy();
+    }
+    return *this;
 }
 
 void jtx::Image8u::destroy() {
     width    = 0;
     height   = 0;
     channels = 0;
-    m_data.resize(0);
+
+    if (data != nullptr) {
+        delete[] data;
+        data = nullptr;
+    }
 }
 
-jtx::Image8u jtx::Image8u::loadImage(const std::filesystem::path &path) {
+JtxResult jtx::Image8u::load(const std::filesystem::path &path, Image8u &out) {
     LOG_INFO(TEXTURE, "Loading 8-bit texture: {}", path.string());
 
     auto fileExt = path.extension().string();
     std::ranges::transform(fileExt, fileExt.begin(), [](const unsigned char c) { return std::tolower(c); });
     if (!JTX_IMAGE_SUPPORTED_FORMATS_8BIT.contains(fileExt)) {
         LOG_ERROR(TEXTURE, "Unsupported image format: {}", fileExt);
-        return {};
+        return JTX_ERROR_INVALID_FILE_EXTENSION;
     }
 
-    Image8u image;
-    const uint8_t *data = stbi_load(reinterpret_cast<const char *>(path.c_str()), &image.width, &image.height, &image.channels, 0);
+    uint8_t *data = stbi_load(reinterpret_cast<const char *>(path.c_str()), &out.width, &out.height, &out.channels, 0);
     if (!data) {
         LOG_ERROR(TEXTURE, "Failed to load image or image was empty: {}", path.string());
-        return {};
+        return JTX_ERROR_FILE_LOADING;
     }
 
-    image.m_data.resize(image.width * image.height * image.channels);
-    memcpy(image.m_data.data(), data, image.width * image.height * image.channels);
-    stbi_image_free((void *) data);
+    out.data = new uint8_t[out.width * out.height * out.channels];
+    memcpy(out.data, data, out.width * out.height * out.channels);
+    stbi_image_free(data);
 
-    LOG_INFO(TEXTURE,"Loaded 8-bit texture: {}", path.string());
-    return image;
+    LOG_INFO(TEXTURE, "Loaded 8-bit texture: {}", path.string());
+    return JTX_SUCCESS;
 }
 
-jtx::Image8u jtx::Image8u::loadImage(const uint8_t *buffer, const size_t size) {
-    LOG_INFO(TEXTURE,"Loading 8-bit texture from memory");
+JtxResult jtx::Image8u::load(const uint8_t *buffer, const size_t size, Image8u &out) {
+    LOG_INFO(TEXTURE, "Loading 8-bit texture from memory");
 
     if (!buffer || size == 0) {
-        LOG_ERROR(TEXTURE,"Invalid buffer provided");
-        return {};
+        LOG_ERROR(TEXTURE, "Invalid buffer provided");
+        return JTX_ERROR_INVALID_DATA;
     }
 
-    Image8u image;
-    const uint8_t *data = stbi_load_from_memory(buffer, size, &image.width, &image.height, &image.channels, 0);
+    uint8_t *data = stbi_load_from_memory(buffer, size, &out.width, &out.height, &out.channels, 0);
     if (!data) {
-        LOG_ERROR(TEXTURE,"Failed to load image from memory");
-        return {};
+        LOG_ERROR(TEXTURE, "Failed to load image from memory: {}", stbi_failure_reason());
+        return JTX_ERROR_FILE_LOADING;
     }
 
-    image.m_data.resize(image.width * image.height * image.channels);
-    memcpy(image.m_data.data(), data, image.width * image.height * image.channels);
-    stbi_image_free((void *) data);
+    out.data = new uint8_t[out.width * out.height * out.channels];
+    memcpy(out.data, data, out.width * out.height * out.channels);
+    stbi_image_free(data);
 
-    LOG_INFO(TEXTURE,"Loaded 8-bit texture from memory");
-    return image;
+    LOG_INFO(TEXTURE, "Loaded 8-bit texture from memory");
+    return JTX_SUCCESS;
 }
+#pragma endregion
 
+#pragma region Image32f
 jtx::Image32f::Image32f(const float *buffer, const int w, const int h, const int c)
     : width(w),
       height(h),
       channels(c) {
-    m_data.resize(w * h * c);
-    memcpy(m_data.data(), buffer, w * h * c);
-}
-
-jtx::Image32f::Image32f(Image32f &&image) noexcept {
-    width    = image.width;
-    height   = image.height;
-    channels = image.channels;
-    m_data   = std::move(image.m_data);
-
-    image.destroy();
+    data = new float[w * h * c];
+    memcpy(data, buffer, w * h * c);
 }
 
 void jtx::Image32f::destroy() {
     width    = 0;
     height   = 0;
     channels = 0;
-    m_data.resize(0);
+    if (data != nullptr) {
+        delete[] data;
+        data = nullptr;
+    }
 }
 
-jtx::Image32f jtx::Image32f::loadImage(const std::filesystem::path &path) {
-    LOG_INFO(TEXTURE,"Loading 32-bit float texture: {}", path.string());
+JtxResult jtx::Image32f::load(const std::filesystem::path &path, Image32f &out) {
+    LOG_INFO(TEXTURE, "Loading 32-bit float texture: {}", path.string());
 
     auto fileExt = path.extension().string();
     std::ranges::transform(fileExt, fileExt.begin(), [](const unsigned char c) { return std::tolower(c); });
     if (!JTX_IMAGE_SUPPORTED_FORMATS_32BIT.contains(fileExt)) {
-        LOG_ERROR(TEXTURE,"Unsupported image format: {}", fileExt);
-        return {};
+        LOG_ERROR(TEXTURE, "Unsupported image format: {}", fileExt);
+        return JTX_ERROR_INVALID_FILE_EXTENSION;
     }
 
-    Image32f image;
-    const float *data = stbi_loadf(reinterpret_cast<const char *>(path.c_str()), &image.width, &image.height, &image.channels, 0);
+    float *data = stbi_loadf(reinterpret_cast<const char *>(path.c_str()), &out.width, &out.height, &out.channels, 0);
     if (!data) {
-        LOG_ERROR(TEXTURE,"Failed to load image or image was empty: {}", path.string());
-        return {};
+        LOG_ERROR(TEXTURE, "Failed to load image or image was empty: {}", path.string());
+        return JTX_ERROR_FILE_LOADING;
     }
 
-    image.m_data.resize(image.width * image.height * image.channels);
-    memcpy(image.m_data.data(), data, image.width * image.height * image.channels);
-    stbi_image_free((void *) data);
+    out.data = new float[out.width * out.height * out.channels];
+    memcpy(out.data, data, out.width * out.height * out.channels);
+    stbi_image_free(data);
 
-    LOG_INFO(TEXTURE,"Loaded 32-bit float texture: {}", path.string());
-    return image;
+    LOG_INFO(TEXTURE, "Loaded 32-bit float texture: {}", path.string());
+    return JTX_SUCCESS;
 }
 
-jtx::Image32f jtx::Image32f::loadImage(const uint8_t *buffer, size_t size) {
-    LOG_INFO(TEXTURE,"Loading 32-bit float texture from memory");
+JtxResult jtx::Image32f::load(const uint8_t *buffer, const size_t size, Image32f &out) {
+    LOG_INFO(TEXTURE, "Loading 32-bit float texture from memory");
 
     if (!buffer || size == 0) {
-        LOG_ERROR(TEXTURE,"Invalid buffer provided");
-        return {};
+        LOG_ERROR(TEXTURE, "Invalid buffer provided");
+        return JTX_ERROR_INVALID_DATA;
     }
 
-    Image32f image;
-    const float *data = stbi_loadf_from_memory(buffer, size, &image.width, &image.height, &image.channels, 0);
+    float *data = stbi_loadf_from_memory(buffer, size, &out.width, &out.height, &out.channels, 0);
     if (!data) {
-        LOG_ERROR(TEXTURE,"Failed to load image from memory");
-        return {};
+        LOG_ERROR(TEXTURE, "Failed to load image from memory");
+        return JTX_ERROR_FILE_LOADING;
     }
 
-    image.m_data.resize(image.width * image.height * image.channels);
-    memcpy(image.m_data.data(), data, image.width * image.height * image.channels);
-    stbi_image_free((void *) data);
+    out.data = new float[out.width * out.height * out.channels];
+    memcpy(out.data, data, out.width * out.height * out.channels);
+    stbi_image_free(data);
 
-    LOG_INFO(TEXTURE,"Loaded 32-bit float texture from memory");
-    return image;
+    LOG_INFO(TEXTURE, "Loaded 32-bit float texture from memory");
+    return JTX_SUCCESS;
 }
+#pragma endregion

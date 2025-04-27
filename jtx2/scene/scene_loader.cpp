@@ -4,13 +4,13 @@
 
 #include <rapidobj.hpp>
 
-bool jtx::loadScene(const std::filesystem::path &path, Scene &scene) {
+JtxResult jtx::loadScene(const std::filesystem::path &path, Scene &scene) {
     LOG_INFO(LOADER,"Loading scene: {}", path.string());
     auto fileExt = path.extension().string();
     std::ranges::transform(fileExt, fileExt.begin(), [](const unsigned char c) { return std::tolower(c); });
     if (!JTX_SCENE_SUPPORTED_FORMATS.contains(fileExt)) {
         LOG_ERROR(LOADER,"File extension not supported: {}", fileExt);
-        return false;
+        return JTX_ERROR_INVALID_FILE_EXTENSION;
     }
 
     if (fileExt == ".obj") {
@@ -21,8 +21,9 @@ bool jtx::loadScene(const std::filesystem::path &path, Scene &scene) {
         return detail::loadGltf(path, scene);
     }
 
-    LOG_INFO(LOADER,"Scene loaded");
-    return true;
+    // This should ideally never be called
+    LOG_ERROR(LOADER, "Supported file extension missing loader");
+    return JTX_FAILURE;
 }
 
 /**
@@ -31,13 +32,13 @@ bool jtx::loadScene(const std::filesystem::path &path, Scene &scene) {
  *  - OBJ files allow different materials per face, but we only support one material per mesh;
  *    so we just grab the first material ID per mesh and use that for all faces
  */
-bool jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &scene) {
+JtxResult jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &scene) {
     LOG_INFO(LOADER,"Loading OBJ file: {}", path.string());
 
     rapidobj::Result result = rapidobj::ParseFile(path.string());
     if (result.error) {
         LOG_ERROR(LOADER,"Error loading OBJ file: {}", result.error.code.message());
-        return false;
+        return JTX_ERROR_FILE_LOADING;
     }
 
     std::string baseDir = path.parent_path().string();
@@ -46,7 +47,7 @@ bool jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &scene) 
     const bool bTriangulateSuccess = rapidobj::Triangulate(result);
     if (!bTriangulateSuccess) {
         LOG_ERROR(LOADER,"Error triangulating OBJ file: {}", result.error.code.message());
-        return false;
+        return JTX_ERROR_FILE_INVALID_DATA;
     }
 
     // Hashmap to keep track of textures we've already loaded
@@ -64,7 +65,8 @@ bool jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &scene) 
             if (textureMap.contains(texturePath)) {
                 mat.textureIndices.albedo = textureMap[texturePath];
             } else {
-                scene.textures.emplace_back(Image8u::loadImage(texturePath));
+                scene.textures.emplace_back();
+                Image8u::load(texturePath, scene.textures.back());
                 const size_t textureIndex = scene.textures.size() - 1;
                 textureMap[texturePath] = textureIndex;
                 mat.textureIndices.albedo = textureIndex;
@@ -132,7 +134,7 @@ bool jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &scene) 
             {
                 if (i0.normal_index < 0 || i1.normal_index < 0 || i2.normal_index < 0) {
                     LOG_ERROR(LOADER,"Mesh {} has no normals", newMesh.name);
-                    return false;
+                    return JTX_ERROR_FILE_INVALID_DATA;
                 }
 
                 scene.normals.emplace_back(&normals[i0.normal_index * 3]);
@@ -159,10 +161,10 @@ bool jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &scene) 
     }
 
     LOG_INFO(LOADER,"OBJ file loaded with {} meshes, {} vertices, {} indices", scene.meshes.size(), scene.positions.size(), scene.indices.size());
-    return true;
+    return JTX_SUCCESS;
 }
 
-bool jtx::detail::loadGltf(const std::filesystem::path &path, jtx::Scene &scene) {
+JtxResult jtx::detail::loadGltf(const std::filesystem::path &path, jtx::Scene &scene) {
     LOG_ERROR(LOADER,"GLTF loading not implemented yet");
-    return false;
+    return JTX_FAILURE;
 }

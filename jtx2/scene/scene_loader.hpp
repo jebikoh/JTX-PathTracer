@@ -17,11 +17,11 @@ static const std::set<std::string> JTX_SCENE_SUPPORTED_FORMATS = {".obj", ".gltf
  * @param path path to scene file
  * @param scene output scene
  */
-bool loadScene(const std::filesystem::path &path, Scene &scene);
+JtxResult loadScene(const std::filesystem::path &path, Scene &scene);
 
 namespace detail {
-bool loadObj(const std::filesystem::path &path, Scene &scene);
-bool loadGltf(const std::filesystem::path &path, Scene &scene);
+JtxResult loadObj(const std::filesystem::path &path, Scene &scene);
+JtxResult loadGltf(const std::filesystem::path &path, Scene &scene);
 }
 
 }

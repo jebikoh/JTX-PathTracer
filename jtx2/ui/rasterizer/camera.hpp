@@ -1,11 +1,11 @@
 #pragma once
 
 #include <SDL_events.h>
-#include <unordered_map>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 #include <jtxlib/math/math.hpp>
+#include <unordered_map>
 #include <util/logger.hpp>
 
 /**
@@ -84,24 +84,24 @@ public:
         if (e.type == SDL_MOUSEWHEEL) {
             if (e.wheel.y != 0) {
                 const float zoomFactor = (e.wheel.y > 0) ? (1.0f / dollySpeed) : dollySpeed;
-                distance = std::max(0.01f, distance * std::powf(zoomFactor, std::abs(e.wheel.y)));
+                distance               = std::max(0.01f, distance * std::powf(zoomFactor, std::abs(e.wheel.y)));
             }
             return;
         }
 
         if (e.type == SDL_MOUSEMOTION && m_bMmbHeld) {
             const glm::vec2 curr{static_cast<float>(e.motion.x), static_cast<float>(e.motion.y)};
-            const glm::vec2 deltaPixel  = curr - m_lastMousePos;
-            m_lastMousePos            = curr;
-            const glm::vec2 delta     = deltaPixel * 0.002f;
+            const glm::vec2 deltaPixel = curr - m_lastMousePos;
+            m_lastMousePos             = curr;
+            const glm::vec2 delta      = deltaPixel * 0.002f;
 
             if (m_bShiftHeld) {
                 m_gestureMode = GestureMode::Pan;
                 target += -delta.x * panSpeed * getRightVector();
-                target +=  delta.y * panSpeed * up;
+                target += delta.y * panSpeed * up;
             } else {
                 m_gestureMode = GestureMode::Orbit;
-                yaw   -= delta.x * orbitSpeed * glm::two_pi<float>();
+                yaw -= delta.x * orbitSpeed * glm::two_pi<float>();
                 pitch += delta.y * orbitSpeed * glm::pi<float>();
             }
             return;
@@ -134,7 +134,7 @@ public:
             if (e.type == SDL_MULTIGESTURE && std::abs(e.mgesture.dDist) > 0.002f) {
                 const float zoomFactor = e.mgesture.dDist > 0.0f ? 1.0f / dollySpeed : dollySpeed;
                 distance               = std::max(0.01f, distance * zoomFactor);
-                m_gestureMode = GestureMode::Dolly;
+                m_gestureMode          = GestureMode::Dolly;
             }
             return;
         }
@@ -169,12 +169,12 @@ public:
      */
     void resetInputState() {
         m_fingers.clear();
-        m_lastCenter = glm::vec2(0.0f);
+        m_lastCenter   = glm::vec2(0.0f);
         m_lastMousePos = glm::vec2(0.0f);
-        m_gestureMode = GestureMode::None;
-        m_bShiftHeld = false;
-        m_bAltHeld = false;
-        bool m_bMmbHeld = false;
+        m_gestureMode  = GestureMode::None;
+        m_bShiftHeld   = false;
+        m_bAltHeld     = false;
+        m_bMmbHeld     = false;
     }
 
     /**
@@ -203,6 +203,6 @@ private:
     glm::vec2 m_lastCenter{0.0f};
     glm::vec2 m_lastMousePos{0.0f};
     bool m_bShiftHeld = false;
-    bool m_bAltHeld = false;
-    bool m_bMmbHeld = false;
+    bool m_bAltHeld   = false;
+    bool m_bMmbHeld   = false;
 };

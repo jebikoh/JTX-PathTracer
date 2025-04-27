@@ -6,8 +6,10 @@
 
 namespace jtx {
 
-static const std::set<std::string> JTX_IMAGE_SUPPORTED_FORMATS_8BIT  = {".jpeg", ".png", ".bmp", ".hdr", ".psd", ".tga", ".gif", ".pic", ".pgm", ".ppm"};
-static const std::set<std::string> JTX_IMAGE_SUPPORTED_FORMATS_32BIT = {".jpeg", ".png", ".bmp", ".hdr", ".psd", ".tga", ".gif", ".pic", ".pgm", ".ppm", ".exr"};
+static const std::set<std::string> JTX_IMAGE_SUPPORTED_FORMATS_8BIT = {
+        ".jpeg", ".png", ".bmp", ".hdr", ".psd", ".tga", ".gif", ".pic", ".pgm", ".ppm"};
+static const std::set<std::string> JTX_IMAGE_SUPPORTED_FORMATS_32BIT = {
+        ".jpeg", ".png", ".bmp", ".hdr", ".psd", ".tga", ".gif", ".pic", ".pgm", ".ppm", ".exr"};
 
 // Image formats
 struct RGBA8u {
@@ -28,12 +30,27 @@ struct RGB32f {
 
 // Image classes
 
+// Macros for usage in tight-loops
+#define JTX_IMAGE_ROW_STRIDE(img) \
+    ((img).width * (img).channels)
+#define JTX_IMAGE_ROW_PTR(img, row) \
+    ((img).data + (row) * JTX_IMAGE_ROW_STRIDE(img))
+#define JTX_IMAGE_PIXEL_PTR(img, row, col) \
+    (JTX_IMAGE_ROW_PTR(img, row) + (col) * (img).channels)
+
+#define JTX_IMAGE_PIXEL_R (img, row, col)(JTX_IMAGE_PIXEL_PTR(img, row, col)[0])
+#define JTX_IMAGE_PIXEL_G (img, row, col)(JTX_IMAGE_PIXEL_PTR(img, row, col)[1])
+#define JTX_IMAGE_PIXEL_B (img, row, col)(JTX_IMAGE_PIXEL_PTR(img, row, col)[2])
+#define JTX_IMAGE_PIXEL_A (img, row, col)(JTX_IMAGE_PIXEL_PTR(img, row, col)[3])
+#define JTX_IMAGE_PIXEL_A_SAFE (img, row, col)(img.channels == 4 ? JTX_IMAGE_PIXEL_PTR(img, row, col)[3] : 1)
+
 /**
  * Represents an image with 8-bit unsigned integer channels: RGBA8u and RGB8u
  */
 class Image8u {
 public:
     int width, height, channels;
+    uint8_t *data;
 
     /**
      * Creates an empty image (0x0x0)
@@ -41,7 +58,9 @@ public:
     Image8u()
         : width(0),
           height(0),
-          channels(0) {}
+          channels(0),
+          data(nullptr) {
+    }
 
     /**
      * Creates a zeroed (black) image of the given size and channel count
@@ -53,7 +72,8 @@ public:
         : width(w),
           height(h),
           channels(c),
-          m_data(w * h * c, 0) {}
+          data(nullptr) {
+    }
 
     /**
      * Creates an image by copying data from a provided buffer
@@ -64,7 +84,8 @@ public:
      */
     Image8u(const uint8_t *buffer, int w, int h, int c);
 
-    Image8u(Image8u &&image) noexcept;
+    Image8u(Image8u &&other) noexcept;
+    Image8u &operator=(Image8u &&other) noexcept;
 
     void destroy();
 
@@ -74,23 +95,28 @@ public:
      *
      * A failed load will return an empty image
      * @param path path to image file
-     * @return 8-bit uint image
+     * @param out output image
+     * @return JTX_SUCCESS if successful, failure otherwise
      */
-    static Image8u loadImage(const std::filesystem::path &path);
+    static JtxResult load(const std::filesystem::path &path, Image8u &out);
 
     /**
      * Loads an image from a provided buffer
      * @param buffer 8-bit data buffer
      * @param size buffer size
-     * @return 8-bit uint image
+     * @param out output image
+     * @return JTX_SUCCESS if successful, failure otherwise
      */
-    static Image8u loadImage(const uint8_t *buffer, size_t size);
+    static JtxResult load(const uint8_t *buffer, size_t size, Image8u &out);
 
     /**
      * Retrieves pixel value at given coordinates. If the requested format has more channels
-     * than the image's format (RGB8u vs RGBA8u), the remaining channels will be set to 1
+     * than the image's format (RGB8u vs RGBA8u), the remaining channels will be set to 1.
+     *
+     * Using a wider pixel format (RGB32f, RGBA32f) will cast the values to the requested format
      *
      * This does not perform any bounds check--invalid coordinates will trigger a segfault
+     * If you are retrieving data in a tight-loop, consider using the pointer macros instead
      * @tparam T pixel format. Must be a format of 8-bit or higher precision
      * @param row row
      * @param col column
@@ -99,16 +125,10 @@ public:
     template<typename T>
     T getPixel(int row, int col);
 
-    const uint8_t *data() const { return m_data.data(); }
-    uint8_t *data() { return m_data.data(); }
+    const uint8_t &operator[](const int index) const { return data[index]; }
+    uint8_t &operator[](const int index) { return data[index]; }
 
-    const uint8_t &operator[](const int index) const { return m_data[index]; }
-    uint8_t &operator[](const int index) { return m_data[index]; }
-
-    bool isEmpty() const { return m_data.empty(); }
-
-private:
-    std::vector<uint8_t> m_data;
+    bool isEmpty() const { return width == 0 || height == 0 || channels == 0; }
 };
 
 template<typename T>
@@ -120,28 +140,29 @@ T Image8u::getPixel(int row, int col) {
 template<>
 inline RGB8u Image8u::getPixel<RGB8u>(const int row, const int col) {
     const int i = (row * width + col) * channels;
-    return {m_data[i], m_data[i + 1], m_data[i + 2]};
+    return {data[i], data[i + 1], data[i + 2]};
 }
 
 template<>
 inline RGBA8u Image8u::getPixel<RGBA8u>(const int row, const int col) {
     const int i   = (row * width + col) * channels;
-    RGBA8u result = {m_data[i], m_data[i + 1], m_data[i + 2], 1};
-    if (channels == 4) { result.a = m_data[i + 3]; }
+    RGBA8u result = {data[i], data[i + 1], data[i + 2], 1};
+    if (channels == 4) { result.a = data[i + 3]; }
     return result;
 }
 
 template<>
 inline RGB32f Image8u::getPixel<RGB32f>(const int row, const int col) {
     const int i = (row * width + col) * channels;
-    return {static_cast<float>(m_data[i]), static_cast<float>(m_data[i + 1]), static_cast<float>(m_data[i + 2])};
+    return {static_cast<float>(data[i]), static_cast<float>(data[i + 1]), static_cast<float>(data[i + 2])};
 }
 
 template<>
 inline RGBA32f Image8u::getPixel<RGBA32f>(const int row, const int col) {
-    const int i   = (row * width + col) * channels;
-    RGBA32f result = {static_cast<float>(m_data[i]), static_cast<float>(m_data[i + 1]), static_cast<float>(m_data[i + 2]), 1.0f};
-    if (channels == 4) { result.a = static_cast<float>(m_data[i + 3]); }
+    const int i    = (row * width + col) * channels;
+    RGBA32f result = {
+            static_cast<float>(data[i]), static_cast<float>(data[i + 1]), static_cast<float>(data[i + 2]), 1.0f};
+    if (channels == 4) { result.a = static_cast<float>(data[i + 3]); }
     return result;
 }
 
@@ -151,6 +172,7 @@ inline RGBA32f Image8u::getPixel<RGBA32f>(const int row, const int col) {
 class Image32f {
 public:
     int width, height, channels;
+    float *data;
 
     /**
      * Creates an empty image (0x0x0)
@@ -158,7 +180,9 @@ public:
     Image32f()
         : width(0),
           height(0),
-          channels(0) {}
+          channels(0),
+          data(nullptr) {
+    }
 
     /**
      * Creates a zeroed (black) image of the given size and channel count
@@ -170,7 +194,8 @@ public:
         : width(w),
           height(h),
           channels(c),
-          m_data(w * h * c, 0) {}
+          data(nullptr) {
+    }
 
     /**
      * Creates an image by copying data from a provided buffer
@@ -181,7 +206,8 @@ public:
      */
     Image32f(const float *buffer, int w, int h, int c);
 
-    Image32f(Image32f &&image) noexcept;
+    Image32f(Image32f &image)                  = delete;
+    Image32f &operator=(const Image32f &image) = delete;
 
     void destroy();
 
@@ -189,23 +215,26 @@ public:
      * Loads an image from the given file. Accepts any format supported by stb as well
      * as OpenEXR files. Any LDR formats will be loaded as HDR
      * @param path path to image file
-     * @return 32-bit float image
+     * @param out output image
+     * @return JTX_SUCCESS if successful, failure otherwise
      */
-    static Image32f loadImage(const std::filesystem::path &path);
+    static JtxResult load(const std::filesystem::path &path, Image32f &out);
 
     /**
      * Loads an image from a provided buffer
      * @param buffer 32-bit float buffer
      * @param size buffer size
-     * @return 32-bit float image
+     * @param out output image
+     * @return JTX_SUCCESS if successful, failure otherwise
      */
-    static Image32f loadImage(const uint8_t *buffer, size_t size);
+    static JtxResult load(const uint8_t *buffer, size_t size, Image32f &out);
 
     /**
      * Retrieves pixel value at given coordinate. If the requested format has more channels
      * than the image's format (RGB32f vs RGBA32f), the remaining channels will be set to 1.0f
      *
      * This does not perform any bounds check--invalid coordinates will trigger a segfault
+     * If you are retrieving data in a tight-loop, consider using the pointer macros instead
      * @tparam T pixel format. Must be a 32-bit float format (RGB32f or RGBA32f)
      * @param row row
      * @param col column
@@ -214,16 +243,10 @@ public:
     template<typename T>
     T getPixel(int row, int col);
 
-    const float *data() const { return m_data.data(); }
-    float *data() { return m_data.data(); }
+    const float &operator[](const int index) const { return data[index]; }
+    float &operator[](const int index) { return data[index]; }
 
-    const float &operator[](const int index) const { return m_data[index]; }
-    float &operator[](const int index) { return m_data[index]; }
-
-    bool isEmpty() const { return m_data.empty(); }
-
-private:
-    std::vector<float> m_data;
+    bool isEmpty() const { return width == 0 || height == 0 || channels == 0; }
 };
 
 template<typename T>
@@ -235,14 +258,14 @@ T Image32f::getPixel(int row, int col) {
 template<>
 inline RGB32f Image32f::getPixel<RGB32f>(const int row, const int col) {
     const int i = (row * width + col) * channels;
-    return {m_data[i], m_data[i + 1], m_data[i + 2]};
+    return {data[i], data[i + 1], data[i + 2]};
 }
 
 template<>
 inline RGBA32f Image32f::getPixel<RGBA32f>(const int row, const int col) {
     const int i    = (row * width + col) * channels;
-    RGBA32f result = {m_data[i], m_data[i + 1], m_data[i + 2], 1.0f};
-    if (channels == 4) { result.a = m_data[i + 3]; }
+    RGBA32f result = {data[i], data[i + 1], data[i + 2], 1.0f};
+    if (channels == 4) { result.a = data[i + 3]; }
     return result;
 }
 

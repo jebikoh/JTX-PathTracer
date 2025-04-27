@@ -1,7 +1,9 @@
 #pragma once
 
 #include <SDL_events.h>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 #include <jtxlib/math/math.hpp>
@@ -36,9 +38,9 @@ struct FPSCamera {
  */
 class OrbitCamera {
 public:
-    glm::vec3 target   = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 up       = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 target      = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 position    = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::quat orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 
     float yaw      = 0.0f;
     float pitch    = 0.0f;
@@ -48,9 +50,11 @@ public:
     float dollySpeed = 1.1f;
     float panSpeed   = 1.0f;
 
-    glm::mat4 getViewMatrix() const { return glm::lookAt(position, target, up); }
-    glm::vec3 getFrontVector() const { return glm::normalize(target - position); }
-    glm::vec3 getRightVector() const { return glm::normalize(glm::cross(getFrontVector(), up)); }
+    glm::vec3 getFrontVector() const { return orientation * glm::vec3(0, 0, -1); }
+    glm::vec3 getRightVector() const { return orientation * glm::vec3(1, 0, 0); }
+    glm::vec3 getUpVector() const { return orientation * glm::vec3(0, 1, 0); }
+
+    glm::mat4 getViewMatrix() const { return glm::lookAt(position, target, getUpVector()); }
 
     void processSDLEvent(const SDL_Event &e) {
         if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) {
@@ -98,11 +102,15 @@ public:
             if (m_bShiftHeld) {
                 m_gestureMode = GestureMode::Pan;
                 target += -delta.x * panSpeed * getRightVector();
-                target += delta.y * panSpeed * up;
+                target += delta.y * panSpeed * getUpVector();
             } else {
-                m_gestureMode = GestureMode::Orbit;
-                yaw -= delta.x * orbitSpeed * glm::two_pi<float>();
-                pitch += delta.y * orbitSpeed * glm::pi<float>();
+                m_gestureMode      = GestureMode::Orbit;
+                const float dYaw   = -delta.x * orbitSpeed * glm::two_pi<float>();
+                const float dPitch = -delta.y * orbitSpeed * glm::pi<float>();
+
+                glm::quat qYaw   = glm::angleAxis(dYaw, glm::vec3(0, 1, 0));
+                glm::quat qPitch = glm::angleAxis(dPitch, getRightVector());
+                orientation      = glm::normalize(qPitch * qYaw * orientation);
             }
             return;
         }
@@ -154,11 +162,15 @@ public:
                 // Pan
                 m_gestureMode = GestureMode::Pan;
                 target += -delta.x * panSpeed * getRightVector();
-                target += -delta.y * panSpeed * up;
+                target += -delta.y * panSpeed * getUpVector();
             } else {
                 m_gestureMode = GestureMode::Orbit;
-                yaw -= delta.x * orbitSpeed * glm::two_pi<float>();
-                pitch += delta.y * orbitSpeed * glm::pi<float>();
+                const float dYaw   = -delta.x * orbitSpeed * glm::two_pi<float>();
+                const float dPitch = delta.y * orbitSpeed * glm::pi<float>();
+
+                glm::quat qYaw   = glm::angleAxis(dYaw, glm::vec3(0, 1, 0));
+                glm::quat qPitch = glm::angleAxis(dPitch, getRightVector());
+                orientation      = glm::normalize(qPitch * qYaw * orientation);
             }
         }
     }
@@ -181,17 +193,7 @@ public:
      * This should be called once per frame after input has been handled
      */
     void update() {
-        const float cosPitch = std::cos(pitch);
-        const float sinPitch = std::sin(pitch);
-        const float cosYaw   = std::cos(yaw);
-        const float sinYaw   = std::sin(yaw);
-
-        const glm::vec3 orbitOffset(
-                cosPitch * sinYaw,
-                sinPitch,
-                cosPitch * cosYaw);
-
-        position = target + distance * orbitOffset;
+        position = target - getFrontVector() * distance;
     }
 
 private:

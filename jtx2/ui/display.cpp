@@ -154,7 +154,6 @@ void Display::resizeSwapchain() {
 }
 
 #pragma region Initialization
-
 void Display::init() {
     LOG_INFO(DISPLAY, "Initializing display");
 
@@ -179,7 +178,7 @@ void Display::init() {
 }
 
 void Display::initWindow() {
-    LOG_INFO(DISPLAY, "Initializing window");
+    LOG_DEBUG(DISPLAY, "Initializing window");
     SDL_Init(SDL_INIT_VIDEO);
     SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "1");
     SDL_SetHint(SDL_HINT_TRACKPAD_IS_TOUCH_ONLY, "1");
@@ -191,11 +190,11 @@ void Display::initWindow() {
             static_cast<int>(m_windowExtent.width),
             static_cast<int>(m_windowExtent.height),
             windowFlags);
-    LOG_INFO(DISPLAY, "Window initialized");
+    LOG_DEBUG(DISPLAY, "Window initialized");
 }
 
 void Display::initVulkan() {
-    LOG_INFO(DISPLAY, "Initializing vulkan");
+    LOG_DEBUG(DISPLAY, "Initializing vulkan");
 
     // Volk
     const auto volkResult = volkInitialize();
@@ -265,11 +264,11 @@ void Display::initVulkan() {
     m_graphicsQueue.queue  = vkbDevice.get_queue(vkb::QueueType::graphics).value();
     m_graphicsQueue.family = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
 
-    LOG_INFO(DISPLAY, "Vulkan initialized");
+    LOG_DEBUG(DISPLAY, "Vulkan initialized");
 }
 
 void Display::initAllocators() {
-    LOG_INFO(DISPLAY, "Initializing allocators");
+    LOG_DEBUG(DISPLAY, "Initializing allocators");
     // VMA
     VmaVulkanFunctions vkFunctions{};
     vkFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
@@ -292,17 +291,17 @@ void Display::initAllocators() {
                     {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4}};
 
     m_descriptorAllocator.init(m_ctx, 10, sizes);
-    LOG_INFO(DISPLAY, "Allocators initialized");
+    LOG_DEBUG(DISPLAY, "Allocators initialized");
 }
 
 void Display::initSwapchain() {
-    LOG_INFO(DISPLAY, "Initializing swapchain");
+    LOG_DEBUG(DISPLAY, "Initializing swapchain");
     m_swapchain.init(m_ctx, m_windowExtent.width, m_windowExtent.height);
-    LOG_INFO(DISPLAY, "Swapchain initialized");
+    LOG_DEBUG(DISPLAY, "Swapchain initialized");
 }
 
 void Display::initDrawImages() {
-    LOG_INFO(DISPLAY, "Initializing draw image");
+    LOG_DEBUG(DISPLAY, "Initializing draw image");
     // Draw image
     VkExtent3D drawExtent{};
     drawExtent.width  = m_windowExtent.width;
@@ -339,10 +338,11 @@ void Display::initDrawImages() {
 
     VkImageViewCreateInfo depthImageViewInfo = jvk::init::imageView(m_drawImage.depthStencilImage.imageFormat, m_drawImage.depthStencilImage.image, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
     CHECK_VK(vkCreateImageView(m_ctx, &depthImageViewInfo, nullptr, &m_drawImage.depthStencilImage.imageView));
-    LOG_INFO(DISPLAY, "Draw image initialized");
+    LOG_DEBUG(DISPLAY, "Draw image initialized");
 }
 
 void Display::initFrameData() {
+    LOG_DEBUG(DISPLAY, "Initializing frame data");
     constexpr VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     for (auto &frame: m_frameData) {
         // Command pools
@@ -354,17 +354,17 @@ void Display::initFrameData() {
         CHECK_VK(frame.swapchainSemaphore.init(m_ctx));
         CHECK_VK(frame.drawSemaphore.init(m_ctx));
     }
+    LOG_DEBUG(DISPLAY, "Frame data initialized");
 }
 
 void Display::initImmediateBuffer() {
-    LOG_INFO(DISPLAY, "Initializing immediate buffer");
+    LOG_DEBUG(DISPLAY, "Initializing immediate buffer");
     CHECK_VK(m_immBuffer.init(m_ctx, m_graphicsQueue.family, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT));
-    LOG_INFO(DISPLAY, "Immediate buffer initialized");
+    LOG_DEBUG(DISPLAY, "Immediate buffer initialized");
 }
-
 #pragma endregion
-#pragma region Cleanup
 
+#pragma region Cleanup
 void Display::destroy() {
     if (m_bIsInitialized) {
         LOG_INFO(DISPLAY, "Destroying engine resources...");
@@ -390,39 +390,39 @@ void Display::destroy() {
 }
 
 void Display::destroyWindow() const {
-    LOG_INFO(DISPLAY, "Destroying window");
+    LOG_DEBUG(DISPLAY, "Destroying window");
     SDL_DestroyWindow(m_pWindow);
-    LOG_INFO(DISPLAY, "Window destroyed");
+    LOG_DEBUG(DISPLAY, "Window destroyed");
 }
 
 void Display::destroyVulkan() {
-    LOG_INFO(DISPLAY, "Destroying Vulkan context");
+    LOG_DEBUG(DISPLAY, "Destroying Vulkan context");
     m_ctx.destroy();
-    LOG_INFO(DISPLAY, "Vulkan context destroyed");
+    LOG_DEBUG(DISPLAY, "Vulkan context destroyed");
 }
 
 void Display::destroyAllocators() {
-    LOG_INFO(DISPLAY, "Destroying allocators");
+    LOG_DEBUG(DISPLAY, "Destroying allocators");
     m_descriptorAllocator.destroyPools(m_ctx);
     vmaDestroyAllocator(m_allocator);
-    LOG_INFO(DISPLAY, "Allocators destroyed");
+    LOG_DEBUG(DISPLAY, "Allocators destroyed");
 }
 
 void Display::destroySwapchain() {
-    LOG_INFO(DISPLAY, "Destroying swapchain");
+    LOG_DEBUG(DISPLAY, "Destroying swapchain");
     m_swapchain.destroy(m_ctx);
-    LOG_INFO(DISPLAY, "Swapchain destroyed");
+    LOG_DEBUG(DISPLAY, "Swapchain destroyed");
 }
 
 void Display::destroyDrawImages() const {
-    LOG_INFO(DISPLAY, "Destroying draw images");
+    LOG_DEBUG(DISPLAY, "Destroying draw images");
     m_drawImage.image.destroy(m_ctx, m_allocator);
     m_drawImage.depthStencilImage.destroy(m_ctx, m_allocator);
-    LOG_INFO(DISPLAY, "Draw images destroyed");
+    LOG_DEBUG(DISPLAY, "Draw images destroyed");
 }
 
 void Display::destroyFrameData() {
-    LOG_INFO(DISPLAY, "Destroying frame data");
+    LOG_DEBUG(DISPLAY, "Destroying frame data");
     for (auto &frame: m_frameData) {
         frame.drawSemaphore.destroy();
         frame.swapchainSemaphore.destroy();
@@ -430,17 +430,17 @@ void Display::destroyFrameData() {
 
         frame.cmdPool.destroy();
     }
-    LOG_INFO(DISPLAY, "Frame data destroyed");
+    LOG_DEBUG(DISPLAY, "Frame data destroyed");
 }
 
 void Display::destroyImmediateBuffer() {
-    LOG_INFO(DISPLAY, "Destroying immediate buffer");
+    LOG_DEBUG(DISPLAY, "Destroying immediate buffer");
     m_immBuffer.destroy();
-    LOG_INFO(DISPLAY, "Immediate buffer destroyed");
+    LOG_DEBUG(DISPLAY, "Immediate buffer destroyed");
 }
 #pragma endregion
-#pragma region Utilities
 
+#pragma region Utilities
 jvk::Image Display::createImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool bMipmapped, VkSampleCountFlagBits sampleCount) const {
     jvk::Image image;
     image.imageFormat         = format;
@@ -531,12 +531,11 @@ jvk::Buffer Display::createBuffer(size_t allocSize, VkBufferUsageFlags usage, Vm
 void Display::destroyBuffer(const jvk::Buffer &buffer) const {
     buffer.destroy(m_allocator);
 }
-
 #pragma endregion
-#pragma region Default data
 
+#pragma region Default data
 void Display::initDefaultImages() {
-    LOG_INFO(DISPLAY, "Initializing default images");
+    LOG_DEBUG(DISPLAY, "Initializing default images");
     uint32_t white = jtx::packUnorm4x8({1.0f, 1.0f, 1.0f, 1.0f});
     m_whiteImage   = createImage((void *) &white, VkExtent3D{1, 1, 1}, 4, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
 
@@ -552,31 +551,30 @@ void Display::initDefaultImages() {
         }
     }
     m_errorCheckerboardImage = createImage(pixels, VkExtent3D{16, 16, 1}, 4, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
-    LOG_INFO(DISPLAY, "Default images initialized");
+    LOG_DEBUG(DISPLAY, "Default images initialized");
 }
 
 void Display::destroyDefaultImages() const {
-    LOG_INFO(DISPLAY, "Destroying default images");
+    LOG_DEBUG(DISPLAY, "Destroying default images");
     destroyImage(m_whiteImage);
     destroyImage(m_blackImage);
     destroyImage(m_errorCheckerboardImage);
-    LOG_INFO(DISPLAY, "Default images destroyed");
+    LOG_DEBUG(DISPLAY, "Default images destroyed");
 }
 
 void Display::initDefaultSamplers() {
-    LOG_INFO(DISPLAY, "Initializing default samplers");
+    LOG_DEBUG(DISPLAY, "Initializing default samplers");
     CHECK_VK(m_samplerLinear.init(m_ctx, VK_FILTER_LINEAR, VK_FILTER_LINEAR));
     CHECK_VK(m_samplerNearest.init(m_ctx, VK_FILTER_NEAREST, VK_FILTER_NEAREST));
-    LOG_INFO(DISPLAY, "Default samplers initialized");
+    LOG_DEBUG(DISPLAY, "Default samplers initialized");
 }
 
 void Display::destroyDefaultSamplers() const {
-    LOG_INFO(DISPLAY, "Destroying default samplers");
+    LOG_DEBUG(DISPLAY, "Destroying default samplers");
     m_samplerLinear.destroy();
     m_samplerNearest.destroy();
-    LOG_INFO(DISPLAY, "Default samplers destroyed");
+    LOG_DEBUG(DISPLAY, "Default samplers destroyed");
 }
-
 #pragma endregion
 
 }// namespace jtx

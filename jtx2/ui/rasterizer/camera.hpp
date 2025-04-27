@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SDL_events.h>
+#include <unordered_map>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
@@ -54,15 +55,59 @@ public:
     void processSDLEvent(const SDL_Event &e) {
         if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) {
             const bool bDown = e.type == SDL_KEYDOWN;
-            if (e.key.keysym.sym == SDLK_LSHIFT || e.key.keysym.sym == SDLK_RSHIFT) {
-                m_bShiftHeld  = bDown;
+            switch (e.key.keysym.sym) {
+                case SDLK_LSHIFT:
+                case SDLK_RSHIFT:
+                    m_bShiftHeld = bDown;
+                    break;
+                case SDLK_LALT:
+                case SDLK_RALT:
+                    m_bAltHeld = bDown;
+                    break;
+                default:
+                    return;
             }
-            if (e.key.keysym.sym == SDLK_LALT || e.key.keysym.sym == SDLK_RALT) {
-                m_bAltHeld    = bDown;
+        }
+
+        if (e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP) {
+            const bool bDown = e.type == SDL_MOUSEBUTTONDOWN;
+            if (e.button.button == SDL_BUTTON_MIDDLE) {
+                m_bMmbHeld = bDown;
+                if (bDown) {
+                    m_lastMousePos = {static_cast<float>(e.button.x), static_cast<float>(e.button.y)};
+                }
             }
             return;
         }
 
+        // Mouse input
+        if (e.type == SDL_MOUSEWHEEL) {
+            if (e.wheel.y != 0) {
+                const float zoomFactor = (e.wheel.y > 0) ? (1.0f / dollySpeed) : dollySpeed;
+                distance = std::max(0.01f, distance * std::powf(zoomFactor, std::abs(e.wheel.y)));
+            }
+            return;
+        }
+
+        if (e.type == SDL_MOUSEMOTION && m_bMmbHeld) {
+            const glm::vec2 curr{static_cast<float>(e.motion.x), static_cast<float>(e.motion.y)};
+            const glm::vec2 deltaPixel  = curr - m_lastMousePos;
+            m_lastMousePos            = curr;
+            const glm::vec2 delta     = deltaPixel * 0.002f;
+
+            if (m_bShiftHeld) {
+                m_gestureMode = GestureMode::Pan;
+                target += -delta.x * panSpeed * getRightVector();
+                target +=  delta.y * panSpeed * up;
+            } else {
+                m_gestureMode = GestureMode::Orbit;
+                yaw   -= delta.x * orbitSpeed * glm::two_pi<float>();
+                pitch += delta.y * orbitSpeed * glm::pi<float>();
+            }
+            return;
+        }
+
+        // Trackpad
         if (e.type == SDL_FINGERDOWN) {
             m_fingers[e.tfinger.fingerId] = {e.tfinger.x, e.tfinger.y};
 
@@ -124,9 +169,12 @@ public:
      */
     void resetInputState() {
         m_fingers.clear();
-        m_lastCenter  = glm::vec2(0.0f);
-        m_bShiftHeld  = false;
+        m_lastCenter = glm::vec2(0.0f);
+        m_lastMousePos = glm::vec2(0.0f);
         m_gestureMode = GestureMode::None;
+        m_bShiftHeld = false;
+        m_bAltHeld = false;
+        bool m_bMmbHeld = false;
     }
 
     /**
@@ -153,7 +201,8 @@ private:
                              Orbit,
                              Pan } m_gestureMode = GestureMode::None;
     glm::vec2 m_lastCenter{0.0f};
-    glm::vec2 m_startPinchDist{0.0f};
+    glm::vec2 m_lastMousePos{0.0f};
     bool m_bShiftHeld = false;
     bool m_bAltHeld = false;
+    bool m_bMmbHeld = false;
 };

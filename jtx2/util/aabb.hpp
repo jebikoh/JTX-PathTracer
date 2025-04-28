@@ -6,71 +6,123 @@
 
 namespace jtx {
 
-static constexpr JTX_FLOAT_MIN = std::numeric_limits<float>::lowest();
-static constexpr JTX_FLOAT_MAX = std::numeric_limits<float>::max();
-struct AABB {
-    enum Axis { X = 0,
-                Y = 1,
-                Z = 2 };
+static constexpr float JTX_FLOAT_MIN = std::numeric_limits<float>::lowest();
+static constexpr float JTX_FLOAT_MAX = std::numeric_limits<float>::max();
 
+enum Axis {
+    JTX_AXIS_X = 0,
+    JTX_AXIS_Y = 1,
+    JTX_AXIS_Z = 2,
+};
+
+struct AABB {
     vec3 pmin, pmax;
 
+    /**
+     * Constructs an empty AABB with maximum bounds
+     */
     AABB() {
         pmin = {JTX_FLOAT_MAX, JTX_FLOAT_MAX, JTX_FLOAT_MAX};
         pmax = {JTX_FLOAT_MAX, JTX_FLOAT_MAX, JTX_FLOAT_MAX};
     }
 
+    /**
+     * Constructs an AABB with the min/max of the given points
+     * @param a first point
+     * @param b second point
+     */
     AABB(const vec3 &a, const vec3 &b) {
         pmin = jtx::min(a, b);
         pmax = jtx::max(a, b);
     }
 
+    /**
+     * Constructs an AABB of the union of two AABBs
+     * @param a first AABB
+     * @param b second AABB
+     */
     AABB(const AABB &a, const AABB &b) {
         pmin = jtx::min(a.pmin, b.pmin);
         pmax = jtx::max(a.pmax, b.pmax);
     }
 
+    /**
+     * Expands this AABB to include the given AABB
+     * @param other AABB to include
+     */
     void expand(const AABB &other) {
         pmin = jtx::min(pmin, other.pmin);
         pmax = jtx::max(pmax, other.pmax);
     }
 
+    /**
+     * Expands this AABB to include the given point
+     * @param p point to include
+     */
     void expand(const vec3 &p) {
         pmin = jtx::min(pmin, p);
         pmax = jtx::max(pmax, p);
     }
 
+    /**
+     * Retrieves the min/max of the AABB on the given axis
+     * @param axis axis to retrieve
+     * @return vec2(min, max) of the AABB on the given axis
+     */
     vec2 axis(const Axis axis) const {
         switch (axis) {
-            case Axis::X:
+            case JTX_AXIS_X:
                 return {pmin.x, pmax.x};
-            case Axis::Y:
+            case JTX_AXIS_Y:
                 return {pmin.y, pmax.y};
-            case Axis::Z:
+            case JTX_AXIS_Z:
             default:
                 return {pmin.z, pmax.z};
         }
     }
 
+    /**
+     * Calculates the diagonal of the AABB (un-normalized)
+     * @return vec3 diagonal
+     */
     vec3 diagonal() const { return pmax - pmin; }
 
-    vec3 surfaceArea() const {
+    /**
+     * Calculates the surface area of this AABB
+     * @return surface area
+     */
+    float surfaceArea() const {
         const vec3 diag = diagonal();
         return 2 * (diag.x * diag.y + diag.x * diag.z + diag.y * diag.z);
     }
 
+    /**
+     * Calculates the volume of this AABB
+     * @return volume
+     */
     float volume() const {
         const vec3 diag = diagonal();
-        return d.x * d.y * d.z;
+        return diag.x * diag.y * diag.z;
     }
 
+    /**
+     * Calculates the longest axis of this AABB
+     * @return longest axis
+     */
     Axis longestAxis() const {
         const vec3 diag = diagonal();
-        if (d.x > d.y && d.x > d.z) return Axis::X;
-        if (d.y > d.z) return Axis::Y;
-        return Axis::Z;
+        if (diag.x > diag.y && diag.x > diag.z) return JTX_AXIS_X;
+        if (diag.y > diag.z) return JTX_AXIS_Y;
+        return JTX_AXIS_Z;
     }
 
+    /**
+     * Calculates the offset of a point relative to the corners of this AABB, where
+     * (0, 0, 0) is the minimum corner and (1, 1, 1) is the maximum corner
+     *
+     * @param p point to calculate offset
+     * @return relative offset
+     */
     vec3 offset(const vec3 &p) const {
         vec3 o = p - pmin;
         if (pmax.x > pmin.x) o.x /= pmax.x - pmin.x;
@@ -79,11 +131,19 @@ struct AABB {
         return o;
     }
 
-    bool hit(const vec3 &o, const vec3 &d, const float t0, const float t1) const {
+    /**
+     * Checks if a ray with origin o and direction d intersects this AABB between t0 and t1
+     * @param o ray origin
+     * @param d ray direction
+     * @param t0 minimum t value
+     * @param t1 maximum t value
+     * @return true if the ray intersects the AABB, false otherwise
+     */
+    bool hit(const vec3 &o, const vec3 &d, float t0, float t1) const {
         for (int i = 0; i < 3; ++i) {
             const auto invDir = 1 / d[i];
-            const auto tNear  = (pmin[i] - o[i]) * invDir;
-            const auto tFar   = (pmax[i] - o[i]) * invDir;
+            auto tNear        = (pmin[i] - o[i]) * invDir;
+            auto tFar         = (pmax[i] - o[i]) * invDir;
 
             if (tNear > tFar) std::swap(tNear, tFar);
             t0 = tNear > t0 ? tNear : t0;
@@ -92,6 +152,6 @@ struct AABB {
         }
         return true;
     }
-}
+};
 
 }// namespace jtx

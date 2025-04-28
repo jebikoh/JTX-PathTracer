@@ -145,6 +145,7 @@ set (JTX_SCENE
 set (JTX_UTIL
         jtx2/util/logger.hpp
         jtx2/util/color.hpp
+        jtx2/util/aabb.hpp
 )
 
 set (JTX_UI
@@ -175,7 +176,6 @@ add_executable(
         jtx2/material.h
         jtx2/image.hpp
         jtx2/image.cpp
-        jtx2/util/aabb.hpp
 )
 
 

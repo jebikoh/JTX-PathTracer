@@ -27,11 +27,11 @@ inline vec3 sRGBToLinear(const vec3 &srgb) {
 
 namespace color {
 
-static const auto WHITE = vec3(1.0f, 1.0f, 1.0f);
-static const auto BLACK = vec3(0.0f, 0.0f, 0.0f);
-static const auto RED   = vec3(1.0f, 0.0f, 0.0f);
-static const auto GREEN = vec3(0.0f, 1.0f, 0.0f);
-static const auto BLUE  = vec3(0.0f, 0.0f, 1.0f);
+    static const auto WHITE = vec3(1.0f, 1.0f, 1.0f);
+    static const auto BLACK = vec3(0.0f, 0.0f, 0.0f);
+    static const auto RED   = vec3(1.0f, 0.0f, 0.0f);
+    static const auto GREEN = vec3(0.0f, 1.0f, 0.0f);
+    static const auto BLUE  = vec3(0.0f, 0.0f, 1.0f);
 
 }// namespace color
 

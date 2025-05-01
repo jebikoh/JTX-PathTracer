@@ -144,7 +144,8 @@ void Display::resizeSwapchain() {
     m_swapchain.destroy(m_ctx);
 
     int w, h;
-    SDL_GetWindowSize(m_pWindow, &w, &h);
+    // SDL_GetWindowSize(m_pWindow, &w, &h);
+    SDL_Vulkan_GetDrawableSize(m_pWindow, &w, &h);
     m_windowExtent.width  = w;
     m_windowExtent.height = h;
 
@@ -181,8 +182,7 @@ void Display::initWindow() {
     LOG_DEBUG(DISPLAY, "Initializing window");
     SDL_Init(SDL_INIT_VIDEO);
     SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "1");
-    SDL_SetHint(SDL_HINT_TRACKPAD_IS_TOUCH_ONLY, "1");
-    constexpr auto windowFlags = static_cast<SDL_WindowFlags>(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+    constexpr auto windowFlags = static_cast<SDL_WindowFlags>(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     m_pWindow                  = SDL_CreateWindow(
             "JTX",
             SDL_WINDOWPOS_UNDEFINED,
@@ -190,6 +190,12 @@ void Display::initWindow() {
             static_cast<int>(m_windowExtent.width),
             static_cast<int>(m_windowExtent.height),
             windowFlags);
+
+    int w, h;
+    SDL_Vulkan_GetDrawableSize(m_pWindow, &w, &h);
+    m_windowExtent.width  = w;
+    m_windowExtent.height = h;
+
     LOG_DEBUG(DISPLAY, "Window initialized");
 }
 

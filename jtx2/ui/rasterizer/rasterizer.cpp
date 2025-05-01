@@ -424,8 +424,15 @@ void Rasterizer::populateContext() {
 void Rasterizer::updateSceneData() {
     m_camera.update();
 
+    float aspectRatio;
+    if (m_viewRectangle.w > 0 && m_viewRectangle.h > 0) {
+        aspectRatio = static_cast<float>(m_viewRectangle.w) / static_cast<float>(m_viewRectangle.h);
+    } else {
+        aspectRatio = static_cast<float>(m_pDisplay->m_windowExtent.width) / static_cast<float>(m_pDisplay->m_windowExtent.height);
+    }
+
     const glm::mat4 view = m_camera.getViewMatrix();
-    glm::mat4 proj       = glm::perspective(glm::radians(70.f), static_cast<float>(m_pDisplay->m_windowExtent.width) / static_cast<float>(m_pDisplay->m_windowExtent.height), 0.1f, 10000.0f);
+    glm::mat4 proj       = glm::perspective(glm::radians(70.f), aspectRatio, 0.1f, 10000.0f);
     proj[1][1] *= -1;
 
     m_gpuSceneUboData.view      = view;

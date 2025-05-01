@@ -84,8 +84,27 @@ public:
             return;
         }
 
-        // Mouse input
-        if (e.type == SDL_MOUSEWHEEL) {
+        if (e.type == SDL_FINGERDOWN) {
+            m_fingers[e.tfinger.fingerId] = {e.tfinger.x, e.tfinger.y};
+
+            if (m_fingers.size() == 2) {
+                auto it           = m_fingers.begin();
+                const glm::vec2 a = it->second;
+                ++it;
+                const glm::vec2 b = it->second;
+                m_lastCenter      = 0.5f * (a + b);
+            }
+            return;
+        }
+
+        if (e.type == SDL_FINGERUP) {
+            m_fingers.erase(e.tfinger.fingerId);
+            if (m_fingers.size() < 2) {
+            }
+            return;
+        }
+
+        if (e.type == SDL_MOUSEWHEEL && m_fingers.size() == 0) {
             if (e.wheel.y != 0) {
                 const float zoomFactor = (e.wheel.y > 0) ? (1.0f / dollySpeed) : dollySpeed;
                 distance               = std::max(0.01f, distance * std::powf(zoomFactor, std::abs(e.wheel.y)));
@@ -100,11 +119,9 @@ public:
             const glm::vec2 delta      = deltaPixel * 0.002f;
 
             if (m_bShiftHeld) {
-                m_gestureMode = GestureMode::Pan;
                 target += -delta.x * panSpeed * getRightVector();
                 target += delta.y * panSpeed * getUpVector();
             } else {
-                m_gestureMode      = GestureMode::Orbit;
                 const float dYaw   = -delta.x * orbitSpeed * glm::two_pi<float>();
                 const float dPitch = -delta.y * orbitSpeed * glm::pi<float>();
 
@@ -116,33 +133,10 @@ public:
         }
 
         // Trackpad
-        if (e.type == SDL_FINGERDOWN) {
-            m_fingers[e.tfinger.fingerId] = {e.tfinger.x, e.tfinger.y};
-
-            if (m_fingers.size() == 2) {
-                auto it           = m_fingers.begin();
-                const glm::vec2 a = it->second;
-                ++it;
-                const glm::vec2 b = it->second;
-                m_lastCenter      = 0.5f * (a + b);
-                m_gestureMode     = GestureMode::None;
-            }
-            return;
-        }
-
-        if (e.type == SDL_FINGERUP) {
-            m_fingers.erase(e.tfinger.fingerId);
-            if (m_fingers.size() < 2) {
-                m_gestureMode = GestureMode::None;
-            }
-            return;
-        }
-
         if (m_bAltHeld) {
             if (e.type == SDL_MULTIGESTURE && std::abs(e.mgesture.dDist) > 0.002f) {
                 const float zoomFactor = e.mgesture.dDist > 0.0f ? 1.0f / dollySpeed : dollySpeed;
                 distance               = std::max(0.01f, distance * zoomFactor);
-                m_gestureMode          = GestureMode::Dolly;
             }
             return;
         }
@@ -159,12 +153,9 @@ public:
             m_lastCenter           = center;
 
             if (m_bShiftHeld) {
-                // Pan
-                m_gestureMode = GestureMode::Pan;
                 target += -delta.x * panSpeed * getRightVector();
-                target += -delta.y * panSpeed * getUpVector();
+                target += delta.y * panSpeed * getUpVector();
             } else {
-                m_gestureMode = GestureMode::Orbit;
                 const float dYaw   = -delta.x * orbitSpeed * glm::two_pi<float>();
                 const float dPitch = delta.y * orbitSpeed * glm::pi<float>();
 
@@ -183,7 +174,6 @@ public:
         m_fingers.clear();
         m_lastCenter   = glm::vec2(0.0f);
         m_lastMousePos = glm::vec2(0.0f);
-        m_gestureMode  = GestureMode::None;
         m_bShiftHeld   = false;
         m_bAltHeld     = false;
         m_bMmbHeld     = false;
@@ -198,10 +188,6 @@ public:
 
 private:
     std::unordered_map<SDL_FingerID, glm::vec2> m_fingers;
-    enum class GestureMode { None,
-                             Dolly,
-                             Orbit,
-                             Pan } m_gestureMode = GestureMode::None;
     glm::vec2 m_lastCenter{0.0f};
     glm::vec2 m_lastMousePos{0.0f};
     bool m_bShiftHeld = false;

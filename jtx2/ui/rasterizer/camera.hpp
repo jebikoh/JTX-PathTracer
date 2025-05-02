@@ -125,9 +125,9 @@ public:
                 const float dYaw   = -delta.x * orbitSpeed * glm::two_pi<float>();
                 const float dPitch = -delta.y * orbitSpeed * glm::pi<float>();
 
-                glm::quat qYaw   = glm::angleAxis(dYaw, glm::vec3(0, 1, 0));
-                glm::quat qPitch = glm::angleAxis(dPitch, getRightVector());
-                orientation      = glm::normalize(qPitch * qYaw * orientation);
+                orientation = glm::angleAxis(dYaw, glm::vec3(0, 1, 0)) * orientation;
+                glm::vec3 right = orientation * glm::vec3(1, 0, 0);
+                orientation = glm::angleAxis(dPitch, right) * orientation;
             }
             return;
         }
@@ -159,9 +159,9 @@ public:
                 const float dYaw   = -delta.x * orbitSpeed * glm::two_pi<float>();
                 const float dPitch = -delta.y * orbitSpeed * glm::pi<float>();
 
-                glm::quat qYaw   = glm::angleAxis(dYaw, glm::vec3(0, 1, 0));
-                glm::quat qPitch = glm::angleAxis(dPitch, getRightVector());
-                orientation      = glm::normalize(qPitch * qYaw * orientation);
+                orientation = glm::angleAxis(dYaw, glm::vec3(0, 1, 0)) * orientation;
+                glm::vec3 right = orientation * glm::vec3(1, 0, 0);
+                orientation = glm::angleAxis(dPitch, right) * orientation;
             }
         }
     }

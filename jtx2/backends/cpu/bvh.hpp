@@ -4,15 +4,17 @@
 #include "util/aabb.hpp"
 
 namespace jtx {
+struct Triangle;
 
 struct alignas(32) LBVH2Node {
     AABB bbox;
     union {
         int primitivesOffset;
         int secondChildOffset;
-    } uint16_t numPrimitives;
+    };
+    uint16_t numPrimitives;
     uint8_t axis;
-}
+};
 
 struct BVH2Node {
     AABB bbox;
@@ -36,6 +38,26 @@ struct BVH2Node {
         splitAxis     = axis;
         numPrimitives = 0;
     }
-}
+
+    bool isLeaf() const {
+        return children[0] == nullptr && children[1] == nullptr;
+    }
+
+    bool isBranch() const {
+        return !isLeaf();
+    }
+
+    void destroy() const {
+        if (isBranch()) {
+            children[0]->destroy();
+            children[1]->destroy();
+
+            delete children[0];
+            delete children[1];
+        }
+    }
+};
+
+BVH2Node *buildTree(std::span<Triangle> triangles, int *totalNodes, int *orderedTriangleOffset, std::vector<Triangle> &orderedTriangles, int maxTrianglesInNode);
 
 }// namespace jtx

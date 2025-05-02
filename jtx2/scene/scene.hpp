@@ -1,11 +1,19 @@
 #pragma once
 
+#include "image.hpp"
 #include "jtx.hpp"
 #include "material.h"
-#include "image.hpp"
+#include "util/aabb.hpp"
 
 // TODO: add TRS transform and basic scene graph
 namespace jtx {
+
+struct Triangle {
+    int triangleIndex;
+    AABB bbox;
+
+    vec3 centroid() const { return 0.5f * (bbox.pmin + bbox.pmax); }
+};
 
 /**
  * A mesh consists of a group of triangles that share a single material.
@@ -49,6 +57,24 @@ struct Scene {
     std::vector<Material> materials;
     std::vector<Image8u> textures;
     std::vector<Mesh> meshes;
+
+    /**
+     * Generates an array of triangles in this scene
+     * @return triangles in this scene
+     */
+    std::vector<Triangle> getTriangles() const {
+        std::vector<Triangle> triangles;
+
+        for (int i = 0; i < indices.size(); ++i) {
+            Triangle tri;
+            const vec3u idx = indices[i];
+            tri.triangleIndex = i;
+            tri.bbox = AABB(positions[idx.x], positions[idx.y], positions[idx.z]);
+            triangles.emplace_back(tri);
+        }
+
+        return triangles;
+    }
 };
 
 }// namespace jtx

@@ -161,6 +161,7 @@ set (JTX_UI
 
 set (JTX_BACKEND_CPU
         jtx2/backends/cpu/bvh.hpp
+        jtx2/backends/cpu/bvh.cpp
 )
 
 add_executable(

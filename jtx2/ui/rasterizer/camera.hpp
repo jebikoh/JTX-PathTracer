@@ -157,7 +157,7 @@ public:
                 target += delta.y * panSpeed * getUpVector();
             } else {
                 const float dYaw   = -delta.x * orbitSpeed * glm::two_pi<float>();
-                const float dPitch = delta.y * orbitSpeed * glm::pi<float>();
+                const float dPitch = -delta.y * orbitSpeed * glm::pi<float>();
 
                 glm::quat qYaw   = glm::angleAxis(dYaw, glm::vec3(0, 1, 0));
                 glm::quat qPitch = glm::angleAxis(dPitch, getRightVector());

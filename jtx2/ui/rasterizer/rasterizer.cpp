@@ -58,7 +58,7 @@ void Rasterizer::draw(const VkCommandBuffer cmd) {
 
     // Begin render pass
     VkClearValue drawImageClearValue{};
-    drawImageClearValue.color = {0.0f, 0.0f, 0.0f, 1.0f};
+    drawImageClearValue.color = {0.255f, 0.247f, 0.255f, 1.0f};
 
     const Display::DrawImage *drawImage             = &m_pDisplay->m_drawImage;
     const VkRenderingAttachmentInfo colorAttachment = jvk::init::renderingAttachment(drawImage->image.imageView, &drawImageClearValue, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
@@ -147,10 +147,27 @@ void Rasterizer::loadScene() {
 
     const Scene *scene = m_pDisplay->m_pScene;
 
+    LOG_DEBUG(RASTERIZER, "Loading textures");
+    for (const auto &tex : scene->textures) {
+        auto format = VK_FORMAT_R8G8B8A8_SRGB;
+        const VkExtent3D extent = {static_cast<uint32_t>(tex.width), static_cast<uint32_t>(tex.height), 1};
+
+        jvk::Image gpuTex;
+        if (tex.channels < 4) {
+            Image8u tex32b = tex.as32b();
+            gpuTex = m_pDisplay->createImage(tex32b.data, extent, tex32b.channels, format, VK_IMAGE_USAGE_SAMPLED_BIT);
+            tex32b.destroy();
+        } else {
+            gpuTex = m_pDisplay->createImage(tex.data, extent, tex.channels, format, VK_IMAGE_USAGE_SAMPLED_BIT);
+        }
+        m_sceneTextures.push_back(gpuTex);
+    }
+    LOG_DEBUG(RASTERIZER, "Textures loaded");
+
     // Calculate non-interleaved buffer sizes
     const size_t positionBufferSize = scene->positions.size() * sizeof(vec3);
     const size_t normalBufferSize   = scene->normals.size() * sizeof(vec3);
-    const size_t uvBufferSize       = scene->uvs.size() * sizeof(vec2u);
+    const size_t uvBufferSize       = scene->uvs.size() * sizeof(vec2);
     const size_t colorBufferSize    = scene->colors.size() * sizeof(vec3);
     const size_t indexBufferSize    = scene->indices.size() * sizeof(vec3u);
     const size_t totalSize          = positionBufferSize + normalBufferSize + uvBufferSize + colorBufferSize + indexBufferSize;
@@ -269,8 +286,12 @@ void Rasterizer::loadScene() {
         static_cast<GPUMaterialUBOData *>(materialData)[uboOffset] = uboData;
 
         GPUMaterialResources resources{};
-        // For now, we are just going to use default textures/samplers
-        resources.images.diffuse    = m_pDisplay->m_whiteImage;
+        if (material.textureIndices.albedo != JTX_MATERIAL_TEXTURE_INDEX_NONE) {
+            // resources.images.diffuse    = m_pDisplay->m_whiteImage;
+            resources.images.diffuse = m_sceneTextures[material.textureIndices.albedo];
+        } else {
+            resources.images.diffuse    = m_pDisplay->m_whiteImage;
+        }
         resources.images.ambient    = m_pDisplay->m_whiteImage;
         resources.images.specular   = m_pDisplay->m_whiteImage;
         resources.samplers.diffuse  = m_pDisplay->m_samplerLinear;
@@ -379,6 +400,12 @@ void Rasterizer::destroyGPUSceneMaterials() const {
     m_pDisplay->destroyBuffer(m_materialBufferUBO);
 }
 
+void Rasterizer::destroyGPUSceneTextures() const {
+    for (const auto &img : m_sceneTextures) {
+        img.destroy(m_ctx, m_allocator);
+    }
+}
+
 GPUMaterialInstance Rasterizer::writeMaterial(GPUMaterialPass pass, const GPUMaterialResources &resources) {
     GPUMaterialInstance mat{};
     mat.mType = pass;
@@ -449,6 +476,7 @@ void Rasterizer::destroyGPUScene() {
     if (m_bSceneLoaded) {
         destroyGPUSceneMeshData();
         destroyGPUSceneMaterials();
+        destroyGPUSceneTextures();
     }
     m_bSceneLoaded = false;
 }

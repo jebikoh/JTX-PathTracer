@@ -3,7 +3,7 @@
 
 int main(int argc, char *argv[]) {
     jtx::Scene scene;
-    jtx::loadScene("assets/f22.obj", scene);
+    jtx::loadScene("assets/duck/Duck.obj", scene);
 
     jtx::Display display;
     display.init();

@@ -5,9 +5,8 @@ layout(buffer_reference, scalar) readonly buffer Vec3Buffer {
     vec3 data[];
 };
 
-// TODO: change this once we update UV coords to be floats
-layout(buffer_reference, std430) readonly buffer UVec2Buffer {
-    uvec2 data[];
+layout(buffer_reference, scalar) readonly buffer Vec2Buffer {
+    vec2 data[];
 };
 
 layout (set = 0, binding = 0) uniform SceneData {
@@ -17,7 +16,7 @@ layout (set = 0, binding = 0) uniform SceneData {
     vec4 cameraPos;
     Vec3Buffer positionBuffer;
     Vec3Buffer normalBuffer;
-    UVec2Buffer uvBuffer;
+    Vec2Buffer uvBuffer;
     Vec3Buffer colorBuffer;
 } sceneData;
 

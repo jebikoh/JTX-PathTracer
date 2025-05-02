@@ -144,7 +144,6 @@ void Display::resizeSwapchain() {
     m_swapchain.destroy(m_ctx);
 
     int w, h;
-    // SDL_GetWindowSize(m_pWindow, &w, &h);
     SDL_Vulkan_GetDrawableSize(m_pWindow, &w, &h);
     m_windowExtent.width  = w;
     m_windowExtent.height = h;

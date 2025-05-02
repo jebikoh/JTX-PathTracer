@@ -56,7 +56,7 @@ void jtx::Image8u::destroy() {
     }
 }
 
-JtxResult jtx::Image8u::load(const std::filesystem::path &path, Image8u &out) {
+JtxResult jtx::Image8u::load(const std::filesystem::path &path, Image8u &out, bool bApplyEOTF) {
     LOG_INFO(TEXTURE, "Loading 8-bit texture: {}", path.string());
 
     auto fileExt = path.extension().string();
@@ -68,7 +68,7 @@ JtxResult jtx::Image8u::load(const std::filesystem::path &path, Image8u &out) {
 
     uint8_t *data = stbi_load(reinterpret_cast<const char *>(path.c_str()), &out.width, &out.height, &out.channels, 0);
     if (!data) {
-        LOG_ERROR(TEXTURE, "Failed to load image or image was empty: {}", path.string());
+        LOG_ERROR(TEXTURE, "Failed to load image {}: {}", path.string(), stbi_failure_reason());
         return JTX_ERROR_FILE_LOADING;
     }
 
@@ -80,7 +80,7 @@ JtxResult jtx::Image8u::load(const std::filesystem::path &path, Image8u &out) {
     return JTX_SUCCESS;
 }
 
-JtxResult jtx::Image8u::load(const uint8_t *buffer, const size_t size, Image8u &out) {
+JtxResult jtx::Image8u::load(const uint8_t *buffer, const size_t size, Image8u &out, bool bApplyEOTF) {
     LOG_INFO(TEXTURE, "Loading 8-bit texture from memory");
 
     if (!buffer || size == 0) {
@@ -101,6 +101,28 @@ JtxResult jtx::Image8u::load(const uint8_t *buffer, const size_t size, Image8u &
     LOG_INFO(TEXTURE, "Loaded 8-bit texture from memory");
     return JTX_SUCCESS;
 }
+
+jtx::Image8u jtx::Image8u::as32b(const uint8_t alpha) const {
+    Image8u out(width, height, 4);
+    if (channels == 4) {
+        memcpy(out.data, data, width * height * 4);
+    }
+
+    for (int row = 0; row < height; ++row) {
+        for (int col = 0; col < width; ++col) {
+            auto srcPixel = data + ((row * width + col) * channels);
+            auto dstPixel = out.data + (row * out.width + col) * 4;
+            dstPixel[0] = srcPixel[0];
+            dstPixel[1] = srcPixel[1];
+            dstPixel[2] = srcPixel[2];
+            dstPixel[3] = alpha;
+        }
+    }
+
+    return out;
+}
+
+
 #pragma endregion
 
 #pragma region Image32f

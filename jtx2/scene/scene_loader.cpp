@@ -41,7 +41,7 @@ JtxResult jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &sc
         return JTX_ERROR_FILE_LOADING;
     }
 
-    std::string baseDir = path.parent_path().string();
+    std::string baseDir = path.parent_path().string() + '/';
 
     // We only support triangles
     const bool bTriangulateSuccess = rapidobj::Triangulate(result);
@@ -66,7 +66,7 @@ JtxResult jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &sc
                 mat.textureIndices.albedo = textureMap[texturePath];
             } else {
                 scene.textures.emplace_back();
-                Image8u::load(texturePath, scene.textures.back());
+                Image8u::load((baseDir + texturePath), scene.textures.back());
                 const size_t textureIndex = scene.textures.size() - 1;
                 textureMap[texturePath] = textureIndex;
                 mat.textureIndices.albedo = textureIndex;

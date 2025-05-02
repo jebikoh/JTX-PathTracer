@@ -63,7 +63,7 @@ public:
     }
 
     /**
-     * Creates a zeroed (black) image of the given size and channel count
+     * Creates a zeroed (black) image of the given size and channel count. Allocates memory.
      * @param w width
      * @param h height
      * @param c channels
@@ -71,8 +71,8 @@ public:
     Image8u(const int w, const int h, const int c)
         : width(w),
           height(h),
-          channels(c),
-          data(nullptr) {
+          channels(c) {
+        data = new uint8_t[w * h * c];
     }
 
     /**
@@ -91,23 +91,25 @@ public:
 
     /**
      * Loads an image from the given file. Accepts any format supported by stb. Note
-     * float images will be converted to an 8-bit range (HDR->LDR)
+     * float images will be converted to an 8-bit range (HDR->LDR).
      *
      * A failed load will return an empty image
      * @param path path to image file
      * @param out output image
+     * @param bApplyEOTF will apply sRGB EOTF function if true
      * @return JTX_SUCCESS if successful, failure otherwise
      */
-    static JtxResult load(const std::filesystem::path &path, Image8u &out);
+    static JtxResult load(const std::filesystem::path &path, Image8u &out, bool bApplyEOTF = true);
 
     /**
-     * Loads an image from a provided buffer
+     * Loads an image from a provided buffer.
      * @param buffer 8-bit data buffer
      * @param size buffer size
      * @param out output image
+     * @param bApplyEOTF will apply sRGB EOTF function if true
      * @return JTX_SUCCESS if successful, failure otherwise
      */
-    static JtxResult load(const uint8_t *buffer, size_t size, Image8u &out);
+    static JtxResult load(const uint8_t *buffer, size_t size, Image8u &out, bool bApplyEOTF = true);
 
     /**
      * Retrieves pixel value at given coordinates. If the requested format has more channels
@@ -129,6 +131,14 @@ public:
     uint8_t &operator[](const int index) { return data[index]; }
 
     bool isEmpty() const { return width == 0 || height == 0 || channels == 0; }
+
+    /**
+     * Returns a copy of the image as a 32-bit image, expanding the format if needed.
+     * @return
+     */
+    Image8u as32b(uint8_t alpha = 255) const;
+
+    Image8u copy() const;
 };
 
 template<typename T>

@@ -124,6 +124,9 @@ private:
     std::vector<GPUMaterialInstance> m_gpuMaterialInstances;
     jvk::Buffer m_materialBufferUBO;
 
+    // Scene's loaded textures
+    std::vector<jvk::Image> m_sceneTextures;
+
     /**
      * Builds material pipelines and descriptor set layouts
      */
@@ -138,6 +141,11 @@ private:
      * Destroys all material instances and the material UBO if a scene is loaded
      */
     void destroyGPUSceneMaterials() const;
+
+    /**
+     * Destroys all loaded textures on the GPU
+     */
+    void destroyGPUSceneTextures() const;
 
     /**
      * Utility function to write a single material instance given a pass type and resources.

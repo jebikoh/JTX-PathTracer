@@ -46,6 +46,11 @@ struct AABB {
         pmax = jtx::max(a.pmax, b.pmax);
     }
 
+    AABB(const vec3 &a, const vec3 &b, const vec3 &c) {
+        pmin = jtx::min(jtx::min(a, b), c);
+        pmax = jtx::max(jtx::max(a, b), c);
+    }
+
     /**
      * Expands this AABB to include the given AABB
      * @param other AABB to include

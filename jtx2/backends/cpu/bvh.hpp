@@ -3,6 +3,8 @@
 #include "jtx.hpp"
 #include "util/aabb.hpp"
 
+#include <scene/scene.hpp>
+
 namespace jtx {
 struct Triangle;
 
@@ -58,6 +60,18 @@ struct BVH2Node {
     }
 };
 
+class BVH2 {
+public:
+    void build(jtx::Scene &scene, int maxTrianglesInNode = 1);
+    void destroy();
+private:
+    int m_maxTrianglesInNode = 0;
+    std::vector<Triangle> m_triangles;
+    LBVH2Node *m_nodes = nullptr;
+};
+
 BVH2Node *buildTree(std::span<Triangle> triangles, int *totalNodes, int *orderedTriangleOffset, std::vector<Triangle> &orderedTriangles, int maxTrianglesInNode);
+
+int flattenBVH2(const BVH2Node *node, LBVH2Node *nodes, int *offset);
 
 }// namespace jtx

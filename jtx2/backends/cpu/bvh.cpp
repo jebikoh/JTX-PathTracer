@@ -9,13 +9,46 @@ struct BVHBucket {
     AABB bbox;
 };
 
+void BVH2::build(jtx::Scene &scene, int maxTrianglesInNode) {
+    LOG_INFO(GENERAL, "Building BVH2 for scene: {}", scene.name);
+    m_maxTrianglesInNode = maxTrianglesInNode;
+    m_triangles          = scene.getTriangles();
+
+    std::vector<Triangle> orderedTriangles(m_triangles.size());
+
+    int totalNodes            = 1;
+    int orderedTriangleOffset = 0;
+
+    LOG_DEBUG(GENERAL, "Building recursive BVH2 structure");
+    const BVH2Node *root = buildTree(m_triangles, &totalNodes, &orderedTriangleOffset, orderedTriangles, maxTrianglesInNode);
+    m_triangles.swap(orderedTriangles);
+
+    m_nodes    = new LBVH2Node[totalNodes];
+    int offset = 0;
+    LOG_INFO(GENERAL, "Flattening BVH2");
+    flattenBVH2(root, m_nodes, &offset);
+    LOG_INFO(GENERAL, "BVH2 constructed");
+
+    root->destroy();
+    delete root;
+}
+
+void BVH2::destroy() {
+    if (m_nodes != nullptr) {
+        delete[] m_nodes;
+        m_nodes = nullptr;
+    }
+
+    m_triangles.clear();
+}
+
 BVH2Node *buildTree(const std::span<Triangle> triangles, int *totalNodes, int *orderedTriangleOffset, std::vector<Triangle> &orderedTriangles, int maxTrianglesInNode) {
     const auto node = new BVH2Node();
     (*totalNodes)++;
 
     // Calculate bounding box for this node
     AABB bbox;
-    for (const auto &tri : triangles) {
+    for (const auto &tri: triangles) {
         bbox.expand(tri.bbox);
     }
 
@@ -31,7 +64,7 @@ BVH2Node *buildTree(const std::span<Triangle> triangles, int *totalNodes, int *o
     }
 
     AABB centroidBbox;
-    for (const auto &tri : triangles) {
+    for (const auto &tri: triangles) {
         centroidBbox.expand(tri.centroid());
     }
     const int dim = centroidBbox.longestAxis();
@@ -56,7 +89,7 @@ BVH2Node *buildTree(const std::span<Triangle> triangles, int *totalNodes, int *o
         constexpr int JTX_BVH2_NUM_BUCKETS = 12;
         BVHBucket buckets[JTX_BVH2_NUM_BUCKETS];
 
-        for (const auto &tri : triangles) {
+        for (const auto &tri: triangles) {
             int bucketOffset = JTX_BVH2_NUM_BUCKETS * centroidBbox.offset(tri.centroid())[dim];
             if (bucketOffset == JTX_BVH2_NUM_BUCKETS) --bucketOffset;
             buckets[bucketOffset].count++;
@@ -64,7 +97,7 @@ BVH2Node *buildTree(const std::span<Triangle> triangles, int *totalNodes, int *o
         }
 
         constexpr int JTX_BVH2_NUM_SPLITS = JTX_BVH2_NUM_BUCKETS - 1;
-        float costs[JTX_BVH2_NUM_SPLITS] = {};
+        float costs[JTX_BVH2_NUM_SPLITS]  = {};
 
         int count = 0;
         AABB below;
@@ -87,12 +120,12 @@ BVH2Node *buildTree(const std::span<Triangle> triangles, int *totalNodes, int *o
         for (int i = 0; i < JTX_BVH2_NUM_SPLITS; ++i) {
             if (costs[i] < minCost) {
                 minBucket = i;
-                minCost = costs[i];
+                minCost   = costs[i];
             }
         }
 
         const float leafCost = triangles.size();
-        minCost = 0.5f + minCost / bbox.surfaceArea();
+        minCost              = 0.5f + minCost / bbox.surfaceArea();
         if (triangles.size() > maxTrianglesInNode || minCost < leafCost) {
             // Interior node
             auto it = std::partition(triangles.begin(), triangles.end(), [=](const Triangle &p) {
@@ -100,7 +133,7 @@ BVH2Node *buildTree(const std::span<Triangle> triangles, int *totalNodes, int *o
                 if (b == JTX_BVH2_NUM_BUCKETS) --b;
                 return b <= minBucket;
             });
-            mid = it - triangles.begin();
+            mid     = it - triangles.begin();
         } else {
             const int firstOffset = *orderedTriangleOffset;
             *orderedTriangleOffset += triangles.size();
@@ -119,4 +152,22 @@ BVH2Node *buildTree(const std::span<Triangle> triangles, int *totalNodes, int *o
 
     return node;
 }
+
+int flattenBVH2(const BVH2Node *node, LBVH2Node *nodes, int *offset) {
+    LBVH2Node *linearNode = &nodes[*offset];
+    linearNode->bbox      = node->bbox;
+    const int nodeOffset  = (*offset)++;
+
+    if (node->numPrimitives > 0) {
+        linearNode->primitivesOffset = node->firstPrimitiveOffset;
+        linearNode->numPrimitives    = node->numPrimitives;
+    } else {
+        linearNode->axis          = node->splitAxis;
+        linearNode->numPrimitives = 0;
+        flattenBVH2(node->children[0], nodes, offset);
+        linearNode->secondChildOffset = flattenBVH2(node->children[1], nodes, offset);
+    }
+    return nodeOffset;
+}
+
 }// namespace jtx

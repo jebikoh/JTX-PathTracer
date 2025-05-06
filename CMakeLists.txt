@@ -7,6 +7,7 @@ option(JTX_ENABLE_PERF_FLAGS "Enable performance flags" ON)
 option(JTX_ENABLE_MULTI_THREADING "Enable multi-threading" ON)
 option(JTX_DISABLE_UI "Disable UI" OFF)
 option(JTX_ENABLE_DEBUG_TRACES "Enable debug traces" ON)
+option(JTX_USE_EMBREE "Enable embree acceleration structures" ON)
 
 if (JTX_ENABLE_CUDA_BACKEND)
     project(JTX VERSION 1.0.0 LANGUAGES CXX CUDA)
@@ -26,16 +27,31 @@ if (JTX_ENABLE_CUDA_BACKEND)
 
         add_compile_definitions(-DJTX_ENABLE_CUDA_BACKEND)
 
-        message(STATUS "CUDA compiler: ${CMAKE_CUDA_COMPILER}")
-        message(STATUS "CUDA compiler version: ${CMAKE_CUDA_COMPILER_VERSION}")
+        message(STATUS "[JTX] CUDA compiler: ${CMAKE_CUDA_COMPILER}")
+        message(STATUS "[JTX] CUDA compiler version: ${CMAKE_CUDA_COMPILER_VERSION}")
     else ()
         set(USE_CUDA OFF CACHE BOOL "Use CUDA backend" FORCE)
         set(JTX_ENABLE_CUDA_BACKEND OFF CACHE BOOL "Enable CUDA backend" FORCE)
-        message(STATUS "CUDA compiler not found, continuing without CUDA support")
+        message(STATUS "[JTX] CUDA compiler not found, continuing without CUDA support")
     endif ()
 else ()
-    message(STATUS "CUDA support disabled")
+    message(STATUS "[JTX] CUDA support disabled")
 endif ()
+
+if (JTX_USE_EMBREE)
+    add_compile_definitions(-DJTX_USE_EMBREE)
+
+    find_package(embree 4 QUIET)
+
+    if (embree_FOUND)
+        message(STATUS "[JTX] Embree ${embree_VERSION} found — building with Embree support")
+    else()
+        message(WARNING "[JTX] Embree not found; disabling Embree support")
+        set(JTX_USE_EMBREE OFF CACHE BOOL "Enable embree acceleration structures" FORCE)
+    endif()
+else()
+    message(STATUS "[JTX] Embree support is disabled")
+endif()
 
 if (JTX_ENABLE_PROFILING)
     add_compile_definitions(-DJTX_ENABLE_PROFILING)
@@ -55,13 +71,13 @@ endif ()
 
 if (JTX_ENABLE_PERF_FLAGS)
     if (MSVC)
-        message(STATUS "Using MSVC compiler")
+        message(STATUS "[JTX] Using MSVC compiler")
         add_compile_options(/O2 /fp:fast)
     elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        message(STATUS "Using GNU or Clang compiler")
+        message(STATUS "[JTX] Using GNU or Clang compiler")
         add_compile_options(-O3 -ffast-math)
     else ()
-        message(WARNING "Unknown compiler. No optimization flags added.")
+        message(WARNING "[JTX] Unknown compiler. No optimization flags added.")
     endif ()
 endif ()
 
@@ -146,6 +162,7 @@ set (JTX_UTIL
         jtx2/util/logger.hpp
         jtx2/util/color.hpp
         jtx2/util/aabb.hpp
+        jtx2/util/validation.hpp
 )
 
 set (JTX_UI
@@ -162,6 +179,8 @@ set (JTX_UI
 set (JTX_BACKEND_CPU
         jtx2/backends/cpu/bvh.hpp
         jtx2/backends/cpu/bvh.cpp
+        jtx2/backends/cpu/sampling.hpp
+        jtx2/rand.hpp
 )
 
 add_executable(
@@ -178,6 +197,7 @@ add_executable(
         jtx2/image.hpp
         jtx2/image.cpp
         jtx2/util/timer.hpp
+        jtx2/backends/cpu/isect.hpp
 )
 
 
@@ -195,6 +215,10 @@ target_link_libraries(JTX PRIVATE
         glm
 )
 
+if (JTX_USE_EMBREE)
+    target_link_libraries(JTX PRIVATE embree)
+endif()
+
 target_include_directories(JTX
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/jtx2/
@@ -211,7 +235,7 @@ add_custom_command(TARGET JTX POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/jtx2/assets
         $<TARGET_FILE_DIR:JTX>/assets
-        COMMENT "Copying assets directory to output folder"
+        COMMENT "[JTX] Copying assets directory to output folder"
 )
 
 find_program(GLSL_VALIDATOR glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
@@ -222,7 +246,7 @@ set(GLSL_SOURCE_FILES
 )
 
 foreach(GLSL ${GLSL_SOURCE_FILES})
-    message(STATUS "BUILDING SHADER")
+    message(STATUS "[JTX] Building shader")
     get_filename_component(FILE_NAME ${GLSL} NAME)
     set(SPIRV "${PROJECT_SOURCE_DIR}/shaders/${FILE_NAME}.spv")
     message(STATUS ${GLSL})

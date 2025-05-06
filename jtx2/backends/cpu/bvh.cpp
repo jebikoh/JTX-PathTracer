@@ -11,6 +11,7 @@ struct BVHBucket {
 
 void BVH2::build(jtx::Scene &scene, int maxTrianglesInNode) {
     LOG_INFO(GENERAL, "Building BVH2 for scene: {}", scene.name);
+    PROFILE_SCOPE("bvh::build");
     m_maxTrianglesInNode = maxTrianglesInNode;
     m_triangles          = scene.getTriangles();
 
@@ -34,15 +35,17 @@ void BVH2::build(jtx::Scene &scene, int maxTrianglesInNode) {
 }
 
 void BVH2::destroy() {
+    LOG_INFO(GENERAL, "Destroying BVH2");
     if (m_nodes != nullptr) {
         delete[] m_nodes;
         m_nodes = nullptr;
     }
 
     m_triangles.clear();
+    LOG_INFO(GENERAL, "Destroyed BVH2");
 }
 
-BVH2Node *buildTree(const std::span<Triangle> triangles, int *totalNodes, int *orderedTriangleOffset, std::vector<Triangle> &orderedTriangles, int maxTrianglesInNode) {
+BVH2Node *buildTree(std::span<Triangle> triangles, int *totalNodes, int *orderedTriangleOffset, std::vector<Triangle> &orderedTriangles, int maxTrianglesInNode) {
     const auto node = new BVH2Node();
     (*totalNodes)++;
 
@@ -82,7 +85,7 @@ BVH2Node *buildTree(const std::span<Triangle> triangles, int *totalNodes, int *o
 
     int mid = triangles.size() / 2;
     if (triangles.size() == 2) {
-        std::ranges::nth_element(triangles, triangles.begin() + mid, [dim](const Triangle &a, const Triangle &b) {
+        std::nth_element(triangles.begin(), triangles.begin() + mid, triangles.end(), [dim](const Triangle &a, const Triangle &b) {
             return a.centroid()[dim] < b.centroid()[dim];
         });
     } else {
@@ -104,7 +107,8 @@ BVH2Node *buildTree(const std::span<Triangle> triangles, int *totalNodes, int *o
         for (int i = 0; i < JTX_BVH2_NUM_SPLITS; ++i) {
             count += buckets[i].count;
             below.expand(buckets[i].bbox);
-            costs[i] += count * below.surfaceArea();
+            const float surfaceArea = below.surfaceArea();
+            costs[i] += count * surfaceArea;
         }
 
         count = 0;
@@ -158,12 +162,12 @@ int flattenBVH2(const BVH2Node *node, LBVH2Node *nodes, int *offset) {
     linearNode->bbox      = node->bbox;
     const int nodeOffset  = (*offset)++;
 
-    if (node->numPrimitives > 0) {
-        linearNode->primitivesOffset = node->firstPrimitiveOffset;
-        linearNode->numPrimitives    = node->numPrimitives;
+    if (node->numTriangles > 0) {
+        linearNode->trianglesOffset = node->firstTriangleOffset;
+        linearNode->numTriangles    = node->numTriangles;
     } else {
         linearNode->axis          = node->splitAxis;
-        linearNode->numPrimitives = 0;
+        linearNode->numTriangles = 0;
         flattenBVH2(node->children[0], nodes, offset);
         linearNode->secondChildOffset = flattenBVH2(node->children[1], nodes, offset);
     }

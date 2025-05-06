@@ -11,8 +11,7 @@ int main(int argc, char *argv[]) {
     bvh.build(scene);
     bvh.destroy();
 
-    return 0; 
-
+    return 0;
     // jtx::Display display;
     // display.init();
     // display.setScene(&scene);

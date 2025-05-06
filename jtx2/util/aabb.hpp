@@ -23,7 +23,7 @@ struct AABB {
      */
     AABB() {
         pmin = {JTX_FLOAT_MAX, JTX_FLOAT_MAX, JTX_FLOAT_MAX};
-        pmax = {JTX_FLOAT_MAX, JTX_FLOAT_MAX, JTX_FLOAT_MAX};
+        pmax = {JTX_FLOAT_MIN, JTX_FLOAT_MIN, JTX_FLOAT_MIN};
     }
 
     /**

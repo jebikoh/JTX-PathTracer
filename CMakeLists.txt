@@ -177,6 +177,7 @@ add_executable(
         jtx2/material.h
         jtx2/image.hpp
         jtx2/image.cpp
+        jtx2/util/timer.hpp
 )
 
 

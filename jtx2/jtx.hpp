@@ -3,6 +3,7 @@
 // Global includes
 #include <jtxlib/math.hpp>
 #include <util/logger.hpp>
+#include <util/timer.hpp>
 
 // Typedefs
 using vec2  = jtx::Vec2f;

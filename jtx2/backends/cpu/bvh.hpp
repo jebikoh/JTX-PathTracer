@@ -11,10 +11,10 @@ struct Triangle;
 struct alignas(32) LBVH2Node {
     AABB bbox;
     union {
-        int primitivesOffset;
+        int trianglesOffset;
         int secondChildOffset;
     };
-    uint16_t numPrimitives;
+    uint16_t numTriangles;
     uint8_t axis;
 };
 
@@ -23,12 +23,12 @@ struct BVH2Node {
     BVH2Node *children[2];
 
     int splitAxis;
-    int firstPrimitiveOffset;
-    int numPrimitives;
+    int firstTriangleOffset;
+    int numTriangles;
 
     void initLeaf(const int first, const int n, const AABB &bounds) {
-        firstPrimitiveOffset = first;
-        numPrimitives        = n;
+        firstTriangleOffset = first;
+        numTriangles        = n;
         bbox                 = bounds;
         children[0] = children[1] = nullptr;
     }
@@ -38,7 +38,7 @@ struct BVH2Node {
         children[1]   = right;
         bbox          = AABB(left->bbox, right->bbox);
         splitAxis     = axis;
-        numPrimitives = 0;
+        numTriangles = 0;
     }
 
     bool isLeaf() const {
@@ -71,7 +71,6 @@ private:
 };
 
 BVH2Node *buildTree(std::span<Triangle> triangles, int *totalNodes, int *orderedTriangleOffset, std::vector<Triangle> &orderedTriangles, int maxTrianglesInNode);
-
 int flattenBVH2(const BVH2Node *node, LBVH2Node *nodes, int *offset);
 
 }// namespace jtx

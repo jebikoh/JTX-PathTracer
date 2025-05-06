@@ -21,7 +21,7 @@ using vec4u = jtx::Vec4<uint32_t>;
 using mat4 = jtx::Mat4;
 using quat = jtx::Quaternion;
 
-using Ray       = jtx::Rayf;
+using ray       = jtx::Rayf;
 using Transform = jtx::Transform;
 
 // Constants

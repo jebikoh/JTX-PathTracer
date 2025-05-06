@@ -1,8 +1,12 @@
-//
-// Created by Jayden Edara on 5/6/25.
-//
+#pragma once
 
-#ifndef SAMPLING_HPP
-#define SAMPLING_HPP
+#include "jtx.hpp"
 
-#endif //SAMPLING_HPP
+constexpr float TWO_PI = jtx::JTX_PI_F * 2.0f;
+
+inline vec3 sampleUniformSphere(vec2 u) {
+  const float z = 1 - 2 * u[1];
+  const float a = jtx::safeSqrt(1 - z * z);
+  const float phi = TWO_PI * u[1];
+  return {jtx::cos(phi) * a, jtx::sin(phi) * a, z};
+}

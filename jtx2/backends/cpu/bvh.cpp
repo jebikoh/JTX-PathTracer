@@ -12,6 +12,7 @@ struct BVHBucket {
 void BVH2::build(jtx::Scene &scene, int maxTrianglesInNode) {
     LOG_INFO(GENERAL, "Building BVH2 for scene: {}", scene.name);
     PROFILE_SCOPE("bvh::build");
+    m_scene = &scene;
     m_maxTrianglesInNode = maxTrianglesInNode;
     m_triangles          = scene.getTriangles();
 
@@ -166,12 +167,59 @@ int flattenBVH2(const BVH2Node *node, LBVH2Node *nodes, int *offset) {
         linearNode->trianglesOffset = node->firstTriangleOffset;
         linearNode->numTriangles    = node->numTriangles;
     } else {
-        linearNode->axis          = node->splitAxis;
+        linearNode->axis         = node->splitAxis;
         linearNode->numTriangles = 0;
         flattenBVH2(node->children[0], nodes, offset);
         linearNode->secondChildOffset = flattenBVH2(node->children[1], nodes, offset);
     }
     return nodeOffset;
+}
+
+bool BVH2::closestHit(const ray &r, const float t0, float t1, SurfaceIntersection &isect) const {
+    // PROFILE_SCOPE("BVH2::closestHit");
+    const vec3 invDir     = 1 / r.dir;
+    const int dirIsNeg[3] = {
+        static_cast<int>(invDir.x < 0),
+        static_cast<int>(invDir.y < 0),
+        static_cast<int>(invDir.z < 0)};
+
+    int toVisitOffset = 0;
+    int currNodeIndex = 0;
+    int stack[64];
+    bool hitAnything = false;
+
+    while (true) {
+        const LBVH2Node *node = &m_nodes[currNodeIndex];
+        if (node->bbox.hit(r.origin, r.dir, t0, t1)) {
+            if (node->numTriangles > 0) {
+                // Leaf node
+                for (int i = 0; i < node->numTriangles; ++i) {
+                    const auto tri = m_triangles[node->trianglesOffset + i];
+                    if (jtx::tClosestHit(*m_scene, tri.triangleIndex, r, t0, t1, isect)) {
+                        hitAnything = true;
+                        t1 = isect.t;
+                    }
+                }
+
+                if (toVisitOffset == 0) break;
+                currNodeIndex = stack[--toVisitOffset];
+            } else {
+                // Interior node
+                if (dirIsNeg[node->axis]) {
+                    stack[toVisitOffset++] = currNodeIndex + 1;
+                    currNodeIndex = node->secondChildOffset;
+                } else {
+                    stack[toVisitOffset++] = node->secondChildOffset;
+                    currNodeIndex = currNodeIndex + 1;
+                }
+            }
+        } else {
+            if (toVisitOffset == 0) break;
+            currNodeIndex = stack[--toVisitOffset];
+        }
+    }
+
+    return hitAnything;
 }
 
 }// namespace jtx

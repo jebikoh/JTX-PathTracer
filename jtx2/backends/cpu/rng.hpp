@@ -4,15 +4,15 @@
 
 namespace jtx {
 
-class RNG {
+class rng {
 public:
-    RNG() = default;
+    rng() = default;
 
     /**
      * Initializes RNG with provided seed
      * @param seed
      */
-    explicit RNG(const uint32_t seed)
+    explicit rng(const uint32_t seed)
         : m_state(seed) {
         m_state = seed;
     }
@@ -25,7 +25,7 @@ public:
      * @param y Y strata
      * @param z Z strata
      */
-    RNG(const uint32_t x, const uint32_t y, const uint32_t z) {
+    rng(const uint32_t x, const uint32_t y, const uint32_t z) {
         m_state = xxhash32({x, y, z});
     }
 
@@ -84,65 +84,72 @@ public:
      * Generates a random unit vector
      * @return unit vector
      */
-    vec3 unitVector() {
-        const float z = uniform<float>() * 2.0f - 1.0f;
-        const float a = uniform<float>() * 2.0f * JTX_PI_F;
-        const float r = jtx::sqrt(1.0f - z * z);
-        return {r * jtx::cos(a), r * jtx::sin(a), z};
-    }
+    vec3 unitVector();
 
     /**
      * Samples a point on a unit hemisphere given a normal
      * @param n normal
      * @return point on unit hemisphere
      */
-    vec3 hemisphere(const vec3 &n) {
-        vec3 p = unitVector();
-        return jtx::dot(p, n) > 0 ? p : -p;
-    }
+    vec3 hemisphere(const vec3 &n);
 
     /**
      * Samples a point on a unit disc
      * @return point on unit disc
      */
-    vec3 unitDisc() {
-        while (true) {
-            auto p = vec3(range<float>(-1, 1), range<float>(-1, 1), 0);
-            if (p.lenSqr() < 1) return p;
-        }
-    }
+    vec3 unitDisc();
+
 private:
     uint32_t m_state = 0;
 };
 
 template<typename T>
-T uniform() {
-    return T::unimplemented;
+T rng::uniform() {
+    T::unimplemented;
 }
 
 template<>
-inline float RNG::uniform<float>() {
+inline float rng::uniform<float>() {
     return (sample() & 0xFFFFFF) / 16777216.0f;
 }
 
 template<>
-inline vec3 RNG::uniform<vec3>() {
+inline vec3 rng::uniform<vec3>() {
     return {uniform<float>(), uniform<float>(), uniform<float>()};
 }
 
 template<>
-inline vec2 RNG::uniform<vec2>() {
+inline vec2 rng::uniform<vec2>() {
     return {uniform<float>(), uniform<float>()};
 }
 
 template<typename T>
-T RNG::range(T min, T max) {
-    return T::unimplemented;
+T rng::range(T min, T max) {
+    T::unimplemented;
 }
 
 template<>
-inline float RNG::range(const float min, const float max) {
+inline float rng::range<float>(const float min, const float max) {
     return min + (max - min) * uniform<float>();
+}
+
+inline vec3 rng::unitVector() {
+    const float z = uniform<float>() * 2.0f - 1.0f;
+    const float a = uniform<float>() * 2.0f * JTX_PI_F;
+    const float r = jtx::sqrt(1.0f - z * z);
+    return {r * jtx::cos(a), r * jtx::sin(a), z};
+}
+
+inline vec3 rng::hemisphere(const vec3 &n) {
+    vec3 p = unitVector();
+    return jtx::dot(p, n) > 0 ? p : -p;
+}
+
+inline vec3 rng::unitDisc() {
+    while (true) {
+        auto p = vec3(range<float>(-1, 1), range<float>(-1, 1), 0);
+        if (p.lenSqr() < 1) return p;
+    }
 }
 
 }// namespace jtx

@@ -4,8 +4,8 @@
 #include <util/validation.hpp>
 #include <backends/cpu/sampling.hpp>
 
-#include <embree4/rtcore.h>
-#include "rand.hpp"
+// #include <embree4/rtcore.h>
+#include "util/rand.hpp"
 
 int main(int argc, char *argv[]) {
     // jtx::Scene scene;

@@ -163,6 +163,7 @@ set (JTX_UTIL
         jtx2/util/color.hpp
         jtx2/util/aabb.hpp
         jtx2/util/validation.hpp
+        jtx2/util/rand.hpp
 )
 
 set (JTX_UI
@@ -180,7 +181,7 @@ set (JTX_BACKEND_CPU
         jtx2/backends/cpu/bvh.hpp
         jtx2/backends/cpu/bvh.cpp
         jtx2/backends/cpu/sampling.hpp
-        jtx2/rand.hpp
+        jtx2/backends/cpu/rng.hpp
 )
 
 add_executable(

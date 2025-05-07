@@ -19,6 +19,8 @@ public:
 
     /**
      * Initializes RNG by hashing three 32-bit unsigned integers
+     *
+     * Utilizes xxhash32
      * @param x X strata
      * @param y Y strata
      * @param z Z strata
@@ -29,6 +31,8 @@ public:
 
     /**
      * Samples a 32-bit unsigned integer
+     *
+     * Uses a RXS-M-XS PCG
      * @return random 32-bit unsigned integer
      */
     uint32_t sample() {
@@ -66,6 +70,47 @@ public:
     template<typename T>
     T uniform();
 
+    /**
+     * Generates a random variable of type T within the provided range
+     * @tparam T random variable type
+     * @param min lower bound
+     * @param max upper bound
+     * @return
+     */
+    template<typename T>
+    T range(T min, T max);
+
+    /**
+     * Generates a random unit vector
+     * @return unit vector
+     */
+    vec3 unitVector() {
+        const float z = uniform<float>() * 2.0f - 1.0f;
+        const float a = uniform<float>() * 2.0f * JTX_PI_F;
+        const float r = jtx::sqrt(1.0f - z * z);
+        return {r * jtx::cos(a), r * jtx::sin(a), z};
+    }
+
+    /**
+     * Samples a point on a unit hemisphere given a normal
+     * @param n normal
+     * @return point on unit hemisphere
+     */
+    vec3 hemisphere(const vec3 &n) {
+        vec3 p = unitVector();
+        return jtx::dot(p, n) > 0 ? p : -p;
+    }
+
+    /**
+     * Samples a point on a unit disc
+     * @return point on unit disc
+     */
+    vec3 unitDisc() {
+        while (true) {
+            auto p = vec3(range<float>(-1, 1), range<float>(-1, 1), 0);
+            if (p.lenSqr() < 1) return p;
+        }
+    }
 private:
     uint32_t m_state = 0;
 };
@@ -88,6 +133,16 @@ inline vec3 RNG::uniform<vec3>() {
 template<>
 inline vec2 RNG::uniform<vec2>() {
     return {uniform<float>(), uniform<float>()};
+}
+
+template<typename T>
+T RNG::range(T min, T max) {
+    return T::unimplemented;
+}
+
+template<>
+inline float RNG::range(const float min, const float max) {
+    return min + (max - min) * uniform<float>();
 }
 
 }// namespace jtx

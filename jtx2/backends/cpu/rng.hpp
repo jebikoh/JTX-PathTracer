@@ -87,17 +87,23 @@ public:
     vec3 unitVector();
 
     /**
-     * Samples a point on a unit hemisphere given a normal
+     * Uniformly samples a point on a unit hemisphere given a normal
      * @param n normal
      * @return point on unit hemisphere
      */
     vec3 hemisphere(const vec3 &n);
 
     /**
-     * Samples a point on a unit disc
+     * Uniformly samples a point on a unit disc
      * @return point on unit disc
      */
     vec3 unitDisc();
+
+    /**
+     * Uniformly samples a point on a unit sphere
+     * @return point on unit sphere
+     */
+    vec3 unitSphere();
 
 private:
     uint32_t m_state = 0;
@@ -150,6 +156,14 @@ inline vec3 rng::unitDisc() {
         auto p = vec3(range<float>(-1, 1), range<float>(-1, 1), 0);
         if (p.lenSqr() < 1) return p;
     }
+}
+
+inline vec3 rng::unitSphere() {
+    const vec2 u = uniform<vec2>();
+    const float z = 1 - 2 * u[0];
+    const float a = jtx::safeSqrt(1 - z * z);
+    const float phi = TWO_PI * u[1];
+    return {jtx::cos(phi) * a, jtx::sin(phi) * a, z};
 }
 
 }// namespace jtx

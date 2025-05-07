@@ -1,116 +1,117 @@
-#include <ui/display.hpp>
-#include <scene/scene_loader.hpp>
 #include <backends/cpu/bvh.hpp>
+#include <scene/scene_loader.hpp>
+#include <ui/display.hpp>
 #include <util/validation.hpp>
-#include <backends/cpu/sampling.hpp>
 
-// #include <embree4/rtcore.h>
-#include "util/rand.hpp"
+#include <backends/cpu/rng.hpp>
+#include <backends/cpu/sampling.hpp>
+#include <embree4/rtcore.h>
 
 int main(int argc, char *argv[]) {
-    // jtx::Scene scene;
-    // jtx::loadScene("assets/f22.obj", scene);
+    constexpr int NUM_SAMPLES = 1000000;
+    jtx::rng rng{23, 17, 19};
+
+    // Load scene
+    jtx::Scene scene;
+    jtx::loadScene("assets/f22.obj", scene);
+
+    // Init embree
+    const RTCDevice rtDevice = rtcNewDevice(nullptr);
+    const RTCScene rtScene   = rtcNewScene(rtDevice);
+    const RTCGeometry rtGeom = rtcNewGeometry(rtDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
+
+    const auto vertexBuffer = static_cast<float *>(rtcSetNewGeometryBuffer(rtGeom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(vec3), scene.positions.size()));
+    memcpy(vertexBuffer, scene.positions.data(), sizeof(vec3) * scene.positions.size());
+
+    const auto indexBuffer = static_cast<unsigned *>(rtcSetNewGeometryBuffer(rtGeom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(vec3u), scene.indices.size()));
+    memcpy(indexBuffer, scene.indices.data(), sizeof(vec3u) * scene.indices.size());
+
+    rtcCommitGeometry(rtGeom);
+    rtcAttachGeometry(rtScene, rtGeom);
+    rtcReleaseGeometry(rtGeom);
+    rtcCommitScene(rtScene);
     //
-    // // Init embree
-    // const RTCDevice rtDevice = rtcNewDevice(nullptr);
-    // const RTCScene rtScene   = rtcNewScene(rtDevice);
-    // const RTCGeometry rtGeom = rtcNewGeometry(rtDevice, RTC_GEOMETRY_TYPE_TRIANGLE);
-    //
-    // const auto vertexBuffer = static_cast<float *>(rtcSetNewGeometryBuffer(rtGeom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(vec3), scene.positions.size()));
-    // memcpy(vertexBuffer, scene.positions.data(), sizeof(vec3) * scene.positions.size());
-    //
-    // const auto indexBuffer = static_cast<unsigned *>(rtcSetNewGeometryBuffer(rtGeom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(vec3u), scene.indices.size()));
-    // memcpy(indexBuffer, scene.indices.data(), sizeof(vec3u) * scene.indices.size());
-    //
-    // rtcCommitGeometry(rtGeom);
-    // rtcAttachGeometry(rtScene, rtGeom);
-    // rtcReleaseGeometry(rtGeom);
-    // rtcCommitScene(rtScene);
-    //
-    // // Init jtx
-    // jtx::BVH2 bvh;
+    // // Init custom BVH
+    // jtx::BVH2 bvh{};
     // bvh.build(scene);
     //
-    // constexpr int SAMPLE_GRID_WIDTH = 100;
-    // constexpr float SAMPLE_STEP = 1.0f / SAMPLE_GRID_WIDTH;
-    // constexpr float z = 10.0f;
-    // const vec3 dir = {0.0f, 0.0f, -1.0f};
+    // // Setup stats
+    // uint32_t bothMiss     = 0;
+    // uint32_t bothHit      = 0;
+    // uint32_t oneHitJtx    = 0;
+    // uint32_t oneHitEmbree = 0;
     //
-    // std::vector<float> embreeResult(SAMPLE_GRID_WIDTH);
-    // std::vector<float> jtxResult(SAMPLE_GRID_WIDTH);
+    // // For each iteration, we will...
+    // // 1. Generate a point p on unit sphere
+    // // 2. Scale p away from origin by set distance
+    // // 3. Perform intersection on ray from p to the origin
+    // const vec3 o{};
+    // for (int i = 0; i < NUM_SAMPLES; ++i) {
+    //     // Generate ray
+    //     vec3 p = rng.unitSphere();
+    //     p *= 5;
+    //     vec3 d = (o - p).normalize();
     //
-    // uint32_t hitMatchCounter = 0;
-    // uint32_t missMatchCounter = 0;
-    // uint32_t diffCounter = 0;
+    //     float tEmbree = -1.0f;
+    //     float tJtx = -1.0f;
     //
-    // for (int row = 0; row < SAMPLE_GRID_WIDTH; ++row) {
-    //     for (int col = 0; col < SAMPLE_GRID_WIDTH; ++col) {
-    //         float y = row * SAMPLE_STEP;
-    //         float x = col * SAMPLE_STEP;
-    //
-    //         // Embree
+    //     // Test embree
+    //     {
     //         RTCRayHit rayHit;
-    //         rayHit.ray.org_x = x;
-    //         rayHit.ray.org_y = y;
-    //         rayHit.ray.org_z = z;
-    //         rayHit.ray.dir_x = dir.x;
-    //         rayHit.ray.dir_y = dir.y;
-    //         rayHit.ray.dir_z = dir.z;
-    //         rayHit.ray.tnear = 0.0f;
-    //         rayHit.ray.tfar = jtx::JTX_INFINITY_F;
+    //         rayHit.ray.org_x  = p.x; rayHit.ray.org_y = p.y; rayHit.ray.org_z = p.z;
+    //         rayHit.ray.dir_x  = d.x; rayHit.ray.dir_y = d.y; rayHit.ray.dir_z = d.y;
+    //         rayHit.ray.tnear  = 0.f;
+    //         rayHit.ray.tfar   = jtx::JTX_INFINITY_F;
     //         rayHit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
     //
     //         RTCIntersectArguments ctx;
     //         rtcInitIntersectArguments(&ctx);
     //         rtcIntersect1(rtScene, &rayHit, &ctx);
     //
-    //         bool bEmbreeHit = rayHit.hit.geomID != RTC_INVALID_GEOMETRY_ID;
-    //
-    //         // JTX
-    //         jtx::SurfaceIntersection isect;
-    //         const auto r = ray({x, y, z}, dir, 0);
-    //         bool bJtxHit = bvh.closestHit(r, 0, jtx::JTX_INFINITY_F, isect);
-    //
-    //         if (bEmbreeHit == bJtxHit) {
-    //             if (bEmbreeHit && bJtxHit) {
-    //                 embreeResult.push_back(rayHit.ray.tfar);
-    //                 jtxResult.push_back(isect.t);
-    //                 hitMatchCounter++;
-    //             } else {
-    //                 embreeResult.push_back(0);
-    //                 jtxResult.push_back(0);
-    //                 missMatchCounter++;
-    //             }
-    //         } else {
-    //             float embreeHit = bEmbreeHit ? rayHit.ray.tfar : -1.0f;
-    //             float jtxHit = bJtxHit ? isect.t : -1.0f;
-    //             diffCounter++;
-    //             LOG_ERROR(GENERAL, "Delta detected: embree({}) | jtx({})", embreeHit, jtxHit);
+    //         if (rayHit.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
+    //             tEmbree = rayHit.ray.tfar;
     //         }
+    //     }
+    //
+    //     // Test JTX
+    //     {
+    //         jtx::SurfaceIntersection isect{};
+    //         ray r{p, d, 0};
+    //         if (bvh.closestHit(r, 0, jtx::JTX_INFINITY_F, isect)) {
+    //             tJtx = isect.t;
+    //         }
+    //     }
+    //
+    //     if (tEmbree > 0.0f && tJtx > 0.0f) {
+    //         bothHit++;
+    //         continue;
+    //     }
+    //
+    //     if (tEmbree < 0.0f && tJtx < 0.0f) {
+    //         bothMiss++;
+    //         continue;
+    //     }
+    //
+    //     if (tEmbree < 0.0f && tJtx > 0.0f) {
+    //         oneHitJtx++;
+    //         continue;
+    //     }
+    //
+    //     if (tEmbree > 0.0f && tJtx < 0.0f) {
+    //         oneHitEmbree++;
+    //         continue;
     //     }
     // }
     //
-    // float mse = jtx::calculateMSE(jtxResult, embreeResult);
-    // LOG_INFO(GENERAL, "MSE: {}", mse);
-    // if (mse >= jtx::JTX_EPSILON) {
-    //     LOG_INFO(GENERAL, "Failed epsilon test");
-    // } else {
-    //     LOG_INFO(GENERAL, "Passed epsilon test");
-    // }
+    // LOG_INFO(GENERAL, "Both hit: {}", bothHit);
+    // LOG_INFO(GENERAL, "Both miss: {}", bothMiss);
+    // LOG_INFO(GENERAL, "One hit (JTX): {}", oneHitJtx);
+    // LOG_INFO(GENERAL, "One hit (embree): {}", oneHitEmbree);
     //
-    // LOG_INFO(GENERAL, "Number of matching hits: {}", hitMatchCounter);
-    // LOG_INFO(GENERAL, "Number of matching misses: {}", missMatchCounter);
-    // LOG_INFO(GENERAL, "Number of diffs: {}", diffCounter);
-    //
-    // rtcReleaseScene(rtScene);
-    // rtcReleaseDevice(rtDevice);
+    // // Cleanup
+    rtcReleaseScene(rtScene);
+    rtcReleaseDevice(rtDevice);
     // bvh.destroy();
-
-    // jtx::Display display;
-    // display.init();
-    // display.setScene(&scene);
-    // display.run();
-    // display.destroy();
 
     return 0;
 }

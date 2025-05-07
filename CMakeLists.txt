@@ -41,6 +41,11 @@ endif ()
 if (JTX_USE_EMBREE)
     add_compile_definitions(-DJTX_USE_EMBREE)
 
+    if (WIN32)
+        message(STATUS "[JTX] Windows detected -- loading vendored Embree")
+        set(embree_DIR "ext/embree4/lib/cmake/embree-4.4.0" CACHE PATH "Embree CMake")
+    endif()
+
     find_package(embree 4 QUIET)
 
     if (embree_FOUND)

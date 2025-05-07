@@ -26,6 +26,7 @@ using Transform = jtx::Transform;
 
 // Constants
 constexpr int JTX_MAX_FRAMES_IN_FLIGHT = 2;
+constexpr float TWO_PI = jtx::JTX_PI_F * 2.0f;
 
 enum JtxResult {
     JTX_SUCCESS                      = 0, // Success

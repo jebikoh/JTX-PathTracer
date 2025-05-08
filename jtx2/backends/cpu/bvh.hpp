@@ -64,7 +64,7 @@ struct BVH2Node {
 
 class BVH2 {
 public:
-    void build(jtx::Scene &scene, int maxTrianglesInNode = 1);
+    void build(const jtx::Scene &scene, int maxTrianglesInNode = 1);
     void destroy();
 
     bool closestHit(const ray &r, float t0, float t1, SurfaceIntersection &isect) const;
@@ -73,7 +73,7 @@ private:
     int m_maxTrianglesInNode = 0;
     std::vector<Triangle> m_triangles;
     LBVH2Node *m_nodes = nullptr;
-    Scene *m_scene = nullptr;
+    const Scene *m_scene = nullptr;
 };
 
 BVH2Node *buildTree(std::span<Triangle> triangles, int *totalNodes, int *orderedTriangleOffset, std::vector<Triangle> &orderedTriangles, int maxTrianglesInNode);

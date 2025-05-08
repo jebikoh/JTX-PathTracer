@@ -9,7 +9,7 @@ struct BVHBucket {
     AABB bbox;
 };
 
-void BVH2::build(jtx::Scene &scene, int maxTrianglesInNode) {
+void BVH2::build(const jtx::Scene &scene, int maxTrianglesInNode) {
     LOG_INFO(GENERAL, "Building BVH2 for scene: {}", scene.name);
     PROFILE_SCOPE("bvh::build");
     m_scene = &scene;

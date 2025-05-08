@@ -28,6 +28,8 @@ using Transform = jtx::Transform;
 constexpr int JTX_MAX_FRAMES_IN_FLIGHT = 2;
 constexpr float TWO_PI = jtx::JTX_PI_F * 2.0f;
 
+const vec3 JTX_VEC3_ORIGIN = { 0.0f, 0.0f, 0.0f };
+
 enum JtxResult {
     JTX_SUCCESS                      = 0, // Success
     JTX_FAILURE                      = -1,// Generic failure

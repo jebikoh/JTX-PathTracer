@@ -4,15 +4,15 @@
 
 namespace jtx {
 
-class rng {
+class RNG {
 public:
-    rng() = default;
+    RNG() = default;
 
     /**
      * Initializes RNG with provided seed
      * @param seed
      */
-    explicit rng(const uint32_t seed)
+    explicit RNG(const uint32_t seed)
         : m_state(seed) {
         m_state = seed;
     }
@@ -25,7 +25,7 @@ public:
      * @param y Y strata
      * @param z Z strata
      */
-    rng(const uint32_t x, const uint32_t y, const uint32_t z) {
+    RNG(const uint32_t x, const uint32_t y, const uint32_t z) {
         m_state = xxhash32({x, y, z});
     }
 
@@ -110,55 +110,55 @@ private:
 };
 
 template<typename T>
-T rng::uniform() {
+T RNG::uniform() {
     T::unimplemented;
 }
 
 template<>
-inline float rng::uniform<float>() {
+inline float RNG::uniform<float>() {
     return (sample() & 0xFFFFFF) / 16777216.0f;
 }
 
 template<>
-inline vec3 rng::uniform<vec3>() {
+inline vec3 RNG::uniform<vec3>() {
     return {uniform<float>(), uniform<float>(), uniform<float>()};
 }
 
 template<>
-inline vec2 rng::uniform<vec2>() {
+inline vec2 RNG::uniform<vec2>() {
     return {uniform<float>(), uniform<float>()};
 }
 
 template<typename T>
-T rng::range(T min, T max) {
+T RNG::range(T min, T max) {
     T::unimplemented;
 }
 
 template<>
-inline float rng::range<float>(const float min, const float max) {
+inline float RNG::range<float>(const float min, const float max) {
     return min + (max - min) * uniform<float>();
 }
 
-inline vec3 rng::unitVector() {
+inline vec3 RNG::unitVector() {
     const float z = uniform<float>() * 2.0f - 1.0f;
     const float a = uniform<float>() * 2.0f * JTX_PI_F;
     const float r = jtx::sqrt(1.0f - z * z);
     return {r * jtx::cos(a), r * jtx::sin(a), z};
 }
 
-inline vec3 rng::hemisphere(const vec3 &n) {
+inline vec3 RNG::hemisphere(const vec3 &n) {
     vec3 p = unitVector();
     return jtx::dot(p, n) > 0 ? p : -p;
 }
 
-inline vec3 rng::unitDisc() {
+inline vec3 RNG::unitDisc() {
     while (true) {
         auto p = vec3(range<float>(-1, 1), range<float>(-1, 1), 0);
         if (p.lenSqr() < 1) return p;
     }
 }
 
-inline vec3 rng::unitSphere() {
+inline vec3 RNG::unitSphere() {
     const vec2 u = uniform<vec2>();
     const float z = 1 - 2 * u[0];
     const float a = jtx::safeSqrt(1 - z * z);

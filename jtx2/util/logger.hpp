@@ -1,7 +1,5 @@
 #pragma once
 
-#pragma once
-
 #include <chrono>
 #include <fmt/chrono.h>
 #include <fmt/color.h>
@@ -62,69 +60,84 @@ struct Logger {
         return logger;
     }
 
-    static void printTime() {
+    static void printTime(const fmt::text_style &color) {
         const std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
-        fmt::print("[JTX] [{:%M:%S}] ", end - Logger::get().start);
+        fmt::print(color, "[JTX] [{:%M:%S}] ", end - Logger::get().start);
     }
 
     template<typename... Args>
-    static void print(fmt::format_string<Args...> format, Args &&...args) {
-        fmt::print(format, std::forward<Args>(args)...);
+    static void print(const fmt::text_style &color, fmt::format_string<Args...> format, Args &&...args) {
+        fmt::print(color, static_cast<fmt::string_view>(format), std::forward<Args>(args)...);
         fmt::print("\n");
     }
 
     template<typename... Args>
     static void log(const LogContext ctx, fmt::format_string<Args...> format, Args &&...args) {
-        printTime();
+        fmt::text_style color;
+        switch (ctx.level) {
+            case LogLevel::ERR:
+                color = fg(fmt::terminal_color::yellow);
+                break;
+            case LogLevel::DEBUG:
+                color = fg(fmt::terminal_color::blue);
+                break;
+            case LogLevel::FATAL:
+                color = fg(fmt::terminal_color::bright_red);
+                break;
+            default:
+                break;
+        }
+        printTime(color);
 
         switch (ctx.category) {
             case LogCategory::GENERAL:
-                fmt::print("[GENERAL] ");
+                fmt::print(color, "[GNRL] ");
                 break;
             case LogCategory::DISPLAY:
-                fmt::print("[DISPLAY] ");
+                fmt::print(color, "[DISP] ");
                 break;
             case LogCategory::UI:
-                fmt::print("[UI] ");
+                fmt::print(color, "[UIUX] ");
                 break;
             case LogCategory::RASTERIZER:
-                fmt::print("[RASTERIZER] ");
+                fmt::print(color, "[RSTR] ");
                 break;
             case LogCategory::TRACER:
-                fmt::print("[TRACER] ");
+                fmt::print(color, "[TRCR] ");
                 break;
             case LogCategory::VULKAN:
-                fmt::print("[VULKAN] ");
+                fmt::print(color, "[VLKN] ");
                 break;
             case LogCategory::TEXTURE:
-                fmt::print("[TEXTURE] ");
+                fmt::print(color, "[TXTR] ");
                 break;
             case LogCategory::LOADER:
-                fmt::print("[LOADER] ");
+                fmt::print(color, "[LOAD] ");
                 break;
             case LogCategory::INPUT:
-                fmt::print("[INPUT] ");
+                fmt::print(color, "[INPT] ");
                 break;
         }
 
         switch (ctx.level) {
             case LogLevel::INFO:
-                fmt::print("[INFO] ");
+                fmt::print(color, "[INF] ");
                 break;
             case LogLevel::ERR:
-                fmt::print("[ERROR] ");
+                fmt::print(color, "[ERR] ");
+                fmt::print(color, "[{}:{}] ", ctx.function, ctx.line);
                 break;
             case LogLevel::DEBUG:
-                fmt::print("[DEBUG] ");
+                fmt::print(color, "[DBG] ");
+                fmt::print(color, "[{}:{}] ", ctx.function, ctx.line);
                 break;
             case LogLevel::FATAL:
-                fmt::print("[FATAL] ");
+                fmt::print(color, "[FTL] ");
+                fmt::print(color, "[{}:{}] ", ctx.function, ctx.line);
                 break;
         }
 
-        fmt::print("[{}:{}] ", ctx.function, ctx.line);
-
-        print(format, std::forward<Args>(args)...);
+        print(color, format, std::forward<Args>(args)...);
         if (ctx.level == LogLevel::FATAL) {
             abort();
         }

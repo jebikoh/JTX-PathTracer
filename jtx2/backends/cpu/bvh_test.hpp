@@ -4,6 +4,8 @@
 #include "embree4/rtcore.h"
 #include "rng.hpp"
 
+#include <functional>
+
 namespace jtx {
 
 constexpr int JTX_BVH_TEST_NUM_SAMPLES = 1000000;

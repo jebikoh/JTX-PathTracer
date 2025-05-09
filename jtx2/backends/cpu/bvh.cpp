@@ -43,6 +43,7 @@ void BVH2::destroy() {
     }
 
     m_triangles.clear();
+    m_triangles.shrink_to_fit();
     LOG_INFO(GENERAL, "Destroyed BVH2");
 }
 
@@ -412,8 +413,8 @@ int flattenBVH2toLBVH4(const BVH2BuildNode *node, BVH4Node *nodes, int *offset) 
 void BVH4::build(const jtx::Scene &scene) {
     LOG_INFO(GENERAL, "Building BVH4 for scene: {}", scene.name);
     PROFILE_SCOPE("bvh::build");
-    m_scene = &scene;
-    m_triangles          = scene.getTriangles();
+    m_scene     = &scene;
+    m_triangles = scene.getTriangles();
 
     // Since we added padding to make sure leafs store multiples of four, we need to allocate more memory than required
     // buildTreeForBHV4() will resize the array further if needed.
@@ -434,6 +435,18 @@ void BVH4::build(const jtx::Scene &scene) {
 
     root->destroy();
     delete root;
+}
+
+void BVH4::destroy() {
+    LOG_INFO(GENERAL, "Destroying BVH4");
+    if (m_nodes != nullptr) {
+        delete[] m_nodes;
+        m_nodes = nullptr;
+    }
+
+    m_triangles.clear();
+    m_triangles.shrink_to_fit();
+    LOG_INFO(GENERAL, "Destroyed BVH4");
 }
 
 }// namespace jtx

@@ -27,7 +27,7 @@ void BVH2::build(const jtx::Scene &scene, int maxTrianglesInNode) {
 
     m_nodes    = new BVH2Node[totalNodes];
     int offset = 0;
-    LOG_INFO(GENERAL, "Flattening BVH2");
+    LOG_DEBUG(GENERAL, "Flattening BVH2");
     flattenBVH2(root, m_nodes, &offset);
     LOG_INFO(GENERAL, "BVH2 constructed");
 
@@ -429,7 +429,7 @@ void BVH4::build(const jtx::Scene &scene) {
 
     m_nodes    = new BVH4Node[totalNodes];
     int offset = 0;
-    LOG_INFO(GENERAL, "Flattening BVH2 to LBVH4");
+    LOG_DEBUG(GENERAL, "Flattening BVH2 to LBVH4");
     flattenBVH2toLBVH4(root, m_nodes, &offset);
     LOG_INFO(GENERAL, "BVH4 constructed");
 

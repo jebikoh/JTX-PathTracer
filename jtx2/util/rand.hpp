@@ -21,9 +21,9 @@ inline uint32_t xxhash32(const vec3u &p) {
 
 // RXS-M-XS: https://www.reedbeta.com/blog/hash-functions-for-gpu-rendering/
 inline uint32_t pcg(uint32_t &state) {
-    const uint32_t s = state;
-    state = state * 747796405u + 2891336453u;
-    const uint32_t word  = (s >> (s >> 28u) + 4u ^ s) * 277803737u;
+    const uint32_t s    = state;
+    state               = state * 747796405u + 2891336453u;
+    const uint32_t word = (s >> (s >> 28u) + 4u ^ s) * 277803737u;
     return word >> 22u ^ word;
 }
 

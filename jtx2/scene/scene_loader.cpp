@@ -34,8 +34,7 @@ JtxResult jtx::loadScene(const std::filesystem::path &path, Scene &scene) {
  *    so we just grab the first material ID per mesh and use that for all faces
  */
 JtxResult jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &scene) {
-    LOG_INFO(LOADER,"Loading OBJ file: {}", path.string());
-
+    LOG_DEBUG(LOADER,"Loading OBJ file: {}", path.string());
     rapidobj::Result result = rapidobj::ParseFile(path.string());
     if (result.error) {
         LOG_ERROR(LOADER,"Error loading OBJ file: {}", result.error.code.message());
@@ -50,6 +49,8 @@ JtxResult jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &sc
         LOG_ERROR(LOADER,"Error triangulating OBJ file: {}", result.error.code.message());
         return JTX_ERROR_FILE_INVALID_DATA;
     }
+
+    scene.name = path.string();
 
     // Hashmap to keep track of textures we've already loaded
     std::unordered_map<std::string, int> textureMap;
@@ -80,7 +81,7 @@ JtxResult jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &sc
     }
 
     if (scene.materials.empty()) {
-        LOG_INFO(LOADER, "No materials found in OBJ file, adding default material");
+        LOG_DEBUG(LOADER, "No materials found in OBJ file, adding default material");
         Material mat{};
         mat.parameters.albedo = vec3(1.0f, 1.0f, 1.0f);
 
@@ -100,7 +101,7 @@ JtxResult jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &sc
         Mesh newMesh{};
 
         newMesh.name = shape.name.empty() ? std::string("mesh_") + std::to_string(scene.meshes.size()) : shape.name;
-        LOG_INFO(LOADER,"Loading mesh: {}", newMesh.name);
+        LOG_DEBUG(LOADER,"Loading mesh: {}", newMesh.name);
 
         const auto numVertices = mesh.indices.size();
         const auto numIndices = numVertices / 3;

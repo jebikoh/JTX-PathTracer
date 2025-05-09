@@ -48,14 +48,8 @@ if (JTX_USE_EMBREE)
         set(embree_DIR "ext/embree4/lib/cmake/embree-4.4.0" CACHE PATH "Embree CMake")
     endif()
 
-    find_package(embree 4 QUIET)
-
-    if (embree_FOUND)
-        message(STATUS "[JTX] Embree ${embree_VERSION} found — building with Embree support")
-    else()
-        message(WARNING "[JTX] Embree not found; disabling Embree support")
-        set(JTX_USE_EMBREE OFF CACHE BOOL "Enable embree acceleration structures" FORCE)
-    endif()
+    find_package(embree 4 REQUIRED)
+    message(STATUS "[JTX] Embree ${embree_VERSION} found — building with Embree support")
 else()
     message(STATUS "[JTX] Embree support is disabled")
 endif()
@@ -223,8 +217,33 @@ target_link_libraries(JTX PRIVATE
         glm
 )
 
-if (JTX_USE_EMBREE)
+if (JTX_USE_EMBREE AND embree_FOUND)
     target_link_libraries(JTX PRIVATE embree)
+
+    set(EMBREE_BIN_DIR "${CMAKE_SOURCE_DIR}/ext/embree4/bin")
+    if(EXISTS "${EMBREE_BIN_DIR}")
+        set(EMBREE_DLLS
+                embree4.dll
+                tbb12.dll
+                tbbmalloc.dll
+        )
+
+        foreach(DLL_NAME ${EMBREE_DLLS})
+            set(SOURCE_DLL "${EMBREE_BIN_DIR}/${DLL_NAME}")
+            if(EXISTS "${SOURCE_DLL}")
+                add_custom_command(TARGET JTX POST_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${SOURCE_DLL}"
+                        $<TARGET_FILE_DIR:JTX>
+                        COMMENT "Copying ${DLL_NAME} to output directory"
+                )
+            else()
+                message(WARNING "[JTX] DLL not found for copying: ${SOURCE_DLL}")
+            endif()
+        endforeach()
+    else()
+        message(WARNING "[JTX] Embree bin directory not found at ${EMBREE_BIN_DIR}. DLLs will not be copied.")
+    endif()
 endif()
 
 if (JTX_ENABLE_SIMD)

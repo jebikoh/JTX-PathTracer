@@ -18,7 +18,7 @@ struct Triangle {
 /**
  * A mesh consists of a group of triangles that share a single material.
  *
- * A mesh's geometry is defined by its starting position in it's parent
+ * A mesh's geometry is defined by its starting position in its parent
  * scene's index buffer and the number of triangles it contains.
  */
 struct Mesh {

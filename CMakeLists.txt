@@ -5,6 +5,7 @@ option(JTX_ENABLE_CUDA_BACKEND "Enable CUDA backend" OFF)
 option(JTX_ENABLE_PROFILING "Enable profiling" ON)
 option(JTX_ENABLE_PERF_FLAGS "Enable performance flags" ON)
 option(JTX_ENABLE_MULTI_THREADING "Enable multi-threading" ON)
+option(JTX_ENABLE_SIMD "Enable SIMD optimizations" ON)
 option(JTX_DISABLE_UI "Disable UI" OFF)
 option(JTX_ENABLE_DEBUG_TRACES "Enable debug traces" ON)
 option(JTX_USE_EMBREE "Enable embree acceleration structures" ON)
@@ -16,6 +17,7 @@ else ()
 endif ()
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # PROCESS CMAKE FLAGS
 if (JTX_ENABLE_CUDA_BACKEND)
@@ -168,6 +170,7 @@ set (JTX_UTIL
         jtx2/util/color.hpp
         jtx2/util/aabb.hpp
         jtx2/util/rand.hpp
+        jtx2/util/simd.hpp
 )
 
 set (JTX_UI
@@ -222,6 +225,32 @@ target_link_libraries(JTX PRIVATE
 
 if (JTX_USE_EMBREE)
     target_link_libraries(JTX PRIVATE embree)
+endif()
+
+if (JTX_ENABLE_SIMD)
+    message(STATUS "[JTX] SIMD optimizations requested -- querying intrinsics")
+
+    include(CheckCXXCompilerFlag)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86|i[3-6]86|amd64|X86_64)$")
+        check_cxx_compiler_flag("-msse4.1" HAVE_SSE4_1)
+        if(HAVE_SSE4_1)
+            message(STATUS "[JTX] Enabling SSE4.1 intrinsics")
+            target_compile_options(${PROJECT_NAME} PRIVATE -msse4.1)
+        else()
+            message(WARNING "[JTX] Compiler does not support -msse4.1, SIMD disabled on x86")
+        endif()
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm|aarch64|arm64)$")
+        check_cxx_compiler_flag("-mfpu=neon" HAVE_NEON)
+        if(HAVE_NEON)
+            message(STATUS "[JTX] Enabling NEON intrinsics")
+            target_compile_options(${PROJECT_NAME} PRIVATE -mfpu=neon)
+        else()
+            message(WARNING "[JTX] Compiler does not support NEON flags, SIMD disabled on ARM")
+        endif()
+
+    else()
+        message(WARNING "[JTX] Unknown architecture '${CMAKE_SYSTEM_PROCESSOR}', SIMD disabled")
+    endif()
 endif()
 
 target_include_directories(JTX

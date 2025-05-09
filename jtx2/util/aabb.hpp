@@ -3,6 +3,7 @@
 #include <limits>
 
 #include "jtx.hpp"
+#include "simd.hpp"
 
 namespace jtx {
 
@@ -157,6 +158,12 @@ struct AABB {
         }
         return true;
     }
+};
+
+struct AABB4 {
+    // X Y Z
+    vfloat4 pmin[3];
+    vfloat4 pmax[3];
 };
 
 }// namespace jtx

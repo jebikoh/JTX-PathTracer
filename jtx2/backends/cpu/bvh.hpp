@@ -123,6 +123,18 @@ struct alignas (128) BVH4Node {
     }
 
     /**
+     * Checks if child at given index is an empty leaf.
+     *
+     * Note, empty leaves are denoted differently than populated leaves,
+     * and thus, need to be checked prior to unpacking leaf data
+     * @param child child index [0, 4)
+     * @return true if leaf is empty, false otherwise
+     */
+    bool isEmptyLeaf(const size_t child) const {
+        return children[child] == JTX_INT_MIN;
+    }
+
+    /**
      * Checks if the child at the given index is an inner node.
      * @param child child index [0, 4)
      * @return true if inner node, false otherwise

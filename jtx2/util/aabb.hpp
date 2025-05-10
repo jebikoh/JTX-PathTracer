@@ -139,17 +139,16 @@ struct AABB {
 
     /**
      * Checks if a ray with origin o and direction d intersects this AABB between t0 and t1
-     * @param o ray origin
-     * @param d ray direction
+     * @param r ray
      * @param t0 minimum t value
      * @param t1 maximum t value
      * @return true if the ray intersects the AABB, false otherwise
      */
-    bool hit(const vec3 &o, const vec3 &d, float t0, float t1) const {
+    bool hit(const ray &r, float t0, float t1) const {
         for (int i = 0; i < 3; ++i) {
-            const auto invDir = 1 / d[i];
-            auto tNear        = (pmin[i] - o[i]) * invDir;
-            auto tFar         = (pmax[i] - o[i]) * invDir;
+            const float invDir = r.invDir[i];
+            auto tNear         = (pmin[i] - r.origin[i]) * invDir;
+            auto tFar          = (pmax[i] - r.origin[i]) * invDir;
 
             if (tNear > tFar) std::swap(tNear, tFar);
             t0 = tNear > t0 ? tNear : t0;
@@ -162,8 +161,55 @@ struct AABB {
 
 struct AABB4 {
     // X Y Z
-    vfloat4 pmin[3];
-    vfloat4 pmax[3];
+    union {
+        struct {
+            vfloat4 pmin[3];
+            vfloat4 pmax[3];
+        };
+        vfloat4 corners[2][3];
+    };
+
+    union HitResult {
+        bool bHit[4];
+        uint32_t val;
+    };
+
+    // https://people.csail.mit.edu/amy/papers/box-jgt.pdf
+    HitResult hit(const ray &r, const float t0, const float t1) const {
+        HitResult result;
+        // Scalar version
+        for (int i = 0; i < 4; ++i) {
+            vec3 bounds[2];
+            bounds[0] = {pmin[0].v[i], pmin[1].v[i], pmin[2].v[i]};
+            bounds[1] = {pmax[0].v[i], pmax[1].v[i], pmax[2].v[i]};
+
+            float tmin        = (bounds[r.sign[0]].x - r.origin.x) * r.invDir.x;
+            float tmax        = (bounds[1 - r.sign[0]].x - r.origin.x) * r.invDir.x;
+            const float tymin = (bounds[r.sign[1]].y - r.origin.y) * r.invDir.y;
+            const float tymax = (bounds[1 - r.sign[1]].y - r.origin.y) * r.invDir.y;
+
+            if ((tmin > tymax) || (tymin > tmax)) {
+                result.bHit[i] = false;
+                continue;
+            }
+            if (tymin > tmin) tmin = tymin;
+            if (tymax < tmax) tmax = tymax;
+
+            const float tzmin = (bounds[r.sign[2]].z - r.origin.z) * r.invDir.z;
+            const float tzmax = (bounds[1 - r.sign[2]].z - r.origin.z) * r.invDir.z;
+
+            if ((tmin > tzmax) || (tzmin > tmax)) {
+                result.bHit[i] = false;
+                continue;
+            }
+            if (tzmin > tmin) tmin = tzmin;
+            if (tzmax < tmax) tmax = tzmax;
+
+            result.bHit[i] = ((tmin < t1) && (tmax > t0));
+        }
+
+        return result;
+    }
 };
 
 }// namespace jtx

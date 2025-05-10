@@ -10,6 +10,8 @@ option(JTX_DISABLE_UI "Disable UI" OFF)
 option(JTX_ENABLE_DEBUG_TRACES "Enable debug traces" ON)
 option(JTX_USE_EMBREE "Enable embree acceleration structures" ON)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if (JTX_ENABLE_CUDA_BACKEND)
     project(JTX VERSION 1.0.0 LANGUAGES CXX CUDA)
 else ()
@@ -85,14 +87,19 @@ endif ()
 # DEPENDENCIES
 # Vulkan
 find_package(Vulkan REQUIRED)
+
 # volk
 add_subdirectory(ext/volk)
+
 # VkBootstrap
 add_subdirectory(ext/vkbootstrap)
+
 # VMA
 add_subdirectory(ext/vma)
+
 # SDL2
 add_subdirectory(ext/sdl EXCLUDE_FROM_ALL)
+
 # ImGUI
 add_library(imgui STATIC)
 target_include_directories(imgui PUBLIC ext/imgui)
@@ -110,8 +117,10 @@ target_compile_definitions(imgui
         PUBLIC IMGUI_IMPL_VULKAN_USE_VOLK
 )
 target_link_libraries(imgui PUBLIC volk Vulkan::Vulkan SDL2::SDL2)
+
 # JTXlib
 add_subdirectory(ext/jtxlib)
+
 # GLM (temporary)
 add_library(glm INTERFACE)
 target_include_directories(glm INTERFACE ext/glm)
@@ -221,7 +230,7 @@ if (JTX_USE_EMBREE AND embree_FOUND)
     target_link_libraries(JTX PRIVATE embree)
 
     set(EMBREE_BIN_DIR "${CMAKE_SOURCE_DIR}/ext/embree4/bin")
-    if(EXISTS "${EMBREE_BIN_DIR}")
+    if(EXISTS "${EMBREE_BIN_DIR}" AND WIN32)
         set(EMBREE_DLLS
                 embree4.dll
                 tbb12.dll
@@ -235,7 +244,7 @@ if (JTX_USE_EMBREE AND embree_FOUND)
                         COMMAND ${CMAKE_COMMAND} -E copy_if_different
                         "${SOURCE_DLL}"
                         $<TARGET_FILE_DIR:JTX>
-                        COMMENT "Copying ${DLL_NAME} to output directory"
+                        COMMENT "[JTX] Copying ${DLL_NAME} to output directory"
                 )
             else()
                 message(WARNING "[JTX] DLL not found for copying: ${SOURCE_DLL}")

@@ -11,11 +11,11 @@ constexpr uint32_t JTX_XXHASH32_PRIME32_5 = 374761393u;
 // Hashing functions taken from: https://www.jcgt.org/published/0009/03/02/
 inline uint32_t xxhash32(const vec3u &p) {
     uint32_t h32 = p.z + JTX_XXHASH32_PRIME32_5 + p.x * JTX_XXHASH32_PRIME32_3;
-    h32          = JTX_XXHASH32_PRIME32_4 * (h32 << 17 | h32 >> 32 - 17);
+    h32          = JTX_XXHASH32_PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
     h32 += p.y * JTX_XXHASH32_PRIME32_3;
-    h32 = JTX_XXHASH32_PRIME32_4 * (h32 << 17 | h32 >> 32 - 17);
-    h32 = JTX_XXHASH32_PRIME32_2 * (h32 ^ h32 >> 15);
-    h32 = JTX_XXHASH32_PRIME32_3 * (h32 ^ h32 >> 13);
+    h32 = JTX_XXHASH32_PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
+    h32 = JTX_XXHASH32_PRIME32_2 * (h32 ^ (h32 >> 15));
+    h32 = JTX_XXHASH32_PRIME32_3 * (h32 ^ (h32 >> 13));
     return h32 ^ (h32 >> 16);
 }
 
@@ -23,8 +23,8 @@ inline uint32_t xxhash32(const vec3u &p) {
 inline uint32_t pcg(uint32_t &state) {
     const uint32_t s    = state;
     state               = state * 747796405u + 2891336453u;
-    const uint32_t word = (s >> (s >> 28u) + 4u ^ s) * 277803737u;
-    return word >> 22u ^ word;
+    const uint32_t word = ((s >> ((s >> 28u) + 4u)) ^ s) * 277803737u;
+    return (word >> 22u) ^ word;
 }
 
 }// namespace jtx

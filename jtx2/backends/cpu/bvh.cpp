@@ -178,12 +178,6 @@ int flattenBVH2(const BVH2BuildNode *node, BVH2Node *nodes, int *offset) {
 
 bool BVH2::closestHit(const ray &r, const float t0, float t1, SurfaceIntersection &isect) const {
     // PROFILE_SCOPE("BVH2::closestHit");
-    const vec3 invDir     = 1 / r.dir;
-    const int dirIsNeg[3] = {
-        static_cast<int>(invDir.x < 0),
-        static_cast<int>(invDir.y < 0),
-        static_cast<int>(invDir.z < 0)};
-
     int toVisitOffset = 0;
     int currNodeIndex = 0;
     int stack[64];
@@ -191,7 +185,7 @@ bool BVH2::closestHit(const ray &r, const float t0, float t1, SurfaceIntersectio
 
     while (true) {
         const BVH2Node *node = &m_nodes[currNodeIndex];
-        if (node->bbox.hit(r.origin, r.dir, t0, t1)) {
+        if (node->bbox.hit(r, t0, t1)) {
             if (node->numTriangles > 0) {
                 // Leaf node
                 for (int i = 0; i < node->numTriangles; ++i) {
@@ -206,7 +200,7 @@ bool BVH2::closestHit(const ray &r, const float t0, float t1, SurfaceIntersectio
                 currNodeIndex = stack[--toVisitOffset];
             } else {
                 // Interior node
-                if (dirIsNeg[node->axis]) {
+                if (r.sign[node->axis]) {
                     stack[toVisitOffset++] = currNodeIndex + 1;
                     currNodeIndex = node->secondChildOffset;
                 } else {
@@ -416,8 +410,7 @@ void BVH4::build(const jtx::Scene &scene) {
     m_scene     = &scene;
     m_triangles = scene.getTriangles();
 
-    // Since we added padding to make sure leafs store multiples of four, we need to allocate more memory than required
-    // buildTreeForBHV4() will resize the array further if needed.
+    // TODO: optimize memory for BVH4
     std::vector<Triangle> orderedTriangles(m_triangles.size() * 1.75);
 
     int totalNodes            = 1;
@@ -427,7 +420,10 @@ void BVH4::build(const jtx::Scene &scene) {
     const BVH2BuildNode *root = buildTreeForBVH4(m_triangles, &totalNodes, &orderedTriangleOffset, orderedTriangles);
     m_triangles.swap(orderedTriangles);
 
+
+    // TODO: optimize memory for BVH4
     m_nodes    = new BVH4Node[totalNodes];
+
     int offset = 0;
     LOG_DEBUG(GENERAL, "Flattening BVH2 to LBVH4");
     flattenBVH2toLBVH4(root, m_nodes, &offset);
@@ -447,6 +443,31 @@ void BVH4::destroy() {
     m_triangles.clear();
     m_triangles.shrink_to_fit();
     LOG_INFO(GENERAL, "Destroyed BVH4");
+}
+
+bool BVH4::closestHit(const ray &r, float t0, float t1, SurfaceIntersection &isect) const {
+    int toVisitOffset = 0;
+    int currNodeIndex = 0;
+    int stack[64];
+    bool hitAnything = false;
+
+    while (true) {
+        const BVH4Node *node = &m_nodes[currNodeIndex];
+
+        const auto hitResult = node->bbox.hit(r, t0, t1);
+        if (hitResult.val > 0) {
+            // Now for the tough part, sorting the boxes
+            // We want to sort the boxes by the split axes
+            int childOrder[4];
+
+
+        } else {
+            if (toVisitOffset == 0) break;
+            currNodeIndex = stack[--toVisitOffset];
+        }
+    }
+
+    return hitAnything;
 }
 
 }// namespace jtx

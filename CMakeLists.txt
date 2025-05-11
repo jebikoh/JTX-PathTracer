@@ -1,14 +1,13 @@
 cmake_minimum_required(VERSION 3.28)
 
 # CMAKE FLAGS
-option(JTX_ENABLE_CUDA_BACKEND "Enable CUDA backend" OFF)
 option(JTX_ENABLE_PROFILING "Enable profiling" ON)
 option(JTX_ENABLE_PERF_FLAGS "Enable performance flags" ON)
 option(JTX_ENABLE_MULTI_THREADING "Enable multi-threading" ON)
 option(JTX_ENABLE_SIMD "Enable SIMD optimizations" ON)
-option(JTX_DISABLE_UI "Disable UI" OFF)
-option(JTX_ENABLE_DEBUG_TRACES "Enable debug traces" ON)
 option(JTX_USE_EMBREE "Enable embree acceleration structures" ON)
+option(JTX_BUILD_TESTS "Build tests" OFF)
+option(_JTX_SUPPRESS_DEPENDENCY_MESSAGES "Suppresses status message from dependencies" ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -84,6 +83,16 @@ if (JTX_ENABLE_PERF_FLAGS)
     endif ()
 endif ()
 
+function(message)
+    if (NOT MESSAGE_QUIET)
+        _message(${ARGN})
+    endif()
+endfunction()
+
+if (_JTX_SUPPRESS_DEPENDENCY_MESSAGES)
+    set(MESSAGE_QUIET ON)
+endif()
+
 # DEPENDENCIES
 # Vulkan
 find_package(Vulkan REQUIRED)
@@ -127,6 +136,7 @@ target_include_directories(glm INTERFACE ext/glm)
 
 # fastglTF
 add_subdirectory(ext/fastgltf)
+
 # fmt
 include(FetchContent)
 FetchContent_Declare(
@@ -134,6 +144,21 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/fmtlib/fmt
         GIT_TAG        e69e5f977d458f2650bb346dadf2ad30c5320281) # 10.2.1
 FetchContent_MakeAvailable(fmt)
+
+# gtest
+if(JTX_BUILD_TESTS)
+    add_compile_definitions(-DJTX_BUILD_TESTS)
+    FetchContent_Declare(
+            googletest
+            URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+    )
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
+endif()
+
+if (_JTX_SUPPRESS_DEPENDENCY_MESSAGES)
+    set(MESSAGE_QUIET OFF)
+endif()
 
 # JTX Executable
 SET (JVK_HEADERS
@@ -191,26 +216,47 @@ set (JTX_BACKEND_CPU
         jtx2/backends/cpu/bvh.hpp
         jtx2/backends/cpu/bvh.cpp
         jtx2/backends/cpu/rng.hpp
-        jtx2/backends/cpu/bvh_test.hpp
-)
-
-add_executable(
-        JTX
-        ${JVK_SOURCE}
-        ${JVK_HEADERS}
-        ${JTX_SCENE}
-        ${JTX_UTIL}
-        ${JTX_UI}
-        ${JTX_BACKEND_CPU}
-        jtx2/main.cpp
-        jtx2/jtx.hpp
-        jtx2/material.h
-        jtx2/image.hpp
-        jtx2/image.cpp
-        jtx2/util/timer.hpp
         jtx2/backends/cpu/isect.hpp
 )
 
+SET (JTX_TEST_SOURCES
+    jtx2/backends/cpu/bvh_test.cpp
+)
+
+if (JTX_BUILD_TESTS)
+    add_executable(
+            JTX
+            ${JVK_SOURCE}
+            ${JVK_HEADERS}
+            ${JTX_SCENE}
+            ${JTX_UTIL}
+            ${JTX_UI}
+            ${JTX_BACKEND_CPU}
+            ${JTX_TEST_SOURCES}
+            jtx2/jtx.hpp
+            jtx2/material.h
+            jtx2/image.hpp
+            jtx2/image.cpp
+            jtx2/util/timer.hpp
+    )
+    target_link_libraries(JTX PRIVATE GTest::gtest_main)
+else()
+    add_executable(
+            JTX
+            ${JVK_SOURCE}
+            ${JVK_HEADERS}
+            ${JTX_SCENE}
+            ${JTX_UTIL}
+            ${JTX_UI}
+            ${JTX_BACKEND_CPU}
+            jtx2/main.cpp
+            jtx2/jtx.hpp
+            jtx2/material.h
+            jtx2/image.hpp
+            jtx2/image.cpp
+            jtx2/util/timer.hpp
+    )
+endif()
 
 target_link_libraries(JTX PRIVATE
         Vulkan::Vulkan
@@ -299,6 +345,12 @@ target_include_directories(JTX
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/imfilebrowser
         ${OPENGL_LIBRARIES}
 )
+
+if (JTX_BUILD_TESTS)
+    message(STATUS "[JTX] Finding tests...")
+    include(GoogleTest)
+    gtest_discover_tests(JTX)
+endif()
 
 add_custom_command(TARGET JTX POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory

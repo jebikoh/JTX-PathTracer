@@ -6,7 +6,6 @@
 
 JtxResult jtx::loadScene(const std::filesystem::path &path, Scene &scene) {
     LOG_INFO(LOADER,"Loading scene: {}", path.string());
-    PROFILE_SCOPE("Load Scene");
     auto fileExt = path.extension().string();
     std::ranges::transform(fileExt, fileExt.begin(), [](const unsigned char c) { return std::tolower(c); });
     if (!JTX_SCENE_SUPPORTED_FORMATS.contains(fileExt)) {

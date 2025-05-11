@@ -31,10 +31,10 @@ constexpr float TWO_PI = jtx::JTX_PI_F * 2.0f;
 const vec3 JTX_VEC3_ORIGIN = { 0.0f, 0.0f, 0.0f };
 
 enum JtxResult {
-    JTX_SUCCESS                      = 0, // Success
-    JTX_FAILURE                      = -1,// Generic failure
-    JTX_ERROR_INVALID_FILE_EXTENSION = -2,// Invalid file extension
-    JTX_ERROR_INVALID_DATA           = -3,// Invalid data (empty or nullptr)
-    JTX_ERROR_FILE_LOADING           = -4,// Error while loading file
-    JTX_ERROR_FILE_INVALID_DATA      = -5,// File data is invalid
+    JTX_SUCCESS                      = 1, // Success
+    JTX_FAILURE                      = 0, // Generic failure
+    JTX_ERROR_INVALID_FILE_EXTENSION = -1,// Invalid file extension
+    JTX_ERROR_INVALID_DATA           = -2,// Invalid data (empty or nullptr)
+    JTX_ERROR_FILE_LOADING           = -3,// Error while loading file
+    JTX_ERROR_FILE_INVALID_DATA      = -4,// File data is invalid
 };

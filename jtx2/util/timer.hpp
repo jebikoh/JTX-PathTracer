@@ -19,10 +19,10 @@ struct ScopeTimer {
     }
 
     ~ScopeTimer() {
-        const auto end = std::chrono::high_resolution_clock::now();
-        double ms      = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end - m_start).count();
+        const auto end  = std::chrono::high_resolution_clock::now();
+        const double ms      = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end - m_start).count();
         Logger::printTime(fg(fmt::terminal_color::bright_green));
-        fmt::print(fg(fmt::terminal_color::bright_green), "[TIMER] {}: {:.3f} ms\n", m_name, ms);
+        fmt::print(fg(fmt::terminal_color::bright_green), "[TIMR] {}: {} ms\n", m_name, ms);
     }
 
 private:

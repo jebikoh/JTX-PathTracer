@@ -159,11 +159,28 @@ inline vec3 RNG::unitDisc() {
 }
 
 inline vec3 RNG::unitSphere() {
-    const vec2 u = uniform<vec2>();
-    const float z = 1 - 2 * u[0];
-    const float a = jtx::safeSqrt(1 - z * z);
+    const vec2 u    = uniform<vec2>();
+    const float z   = 1 - 2 * u[0];
+    const float a   = jtx::safeSqrt(1 - z * z);
     const float phi = TWO_PI * u[1];
     return {jtx::cos(phi) * a, jtx::sin(phi) * a, z};
 }
+
+namespace detail {
+    inline ray generateRayFromUnitSphere(RNG &rng, const float offsetScale) {
+        ray out{};
+        out.origin    = rng.unitSphere() * offsetScale;
+        const vec3 p1 = rng.unitSphere() * offsetScale;
+        out.dir       = (p1 - out.origin).normalize();
+        return out;
+    }
+
+    inline ray generateRayToOriginFromUnitSphere(RNG &rng, const float offsetScale) {
+        ray out{};
+        out.origin = rng.unitSphere() * offsetScale;
+        out.dir    = (JTX_VEC3_ORIGIN - out.origin).normalize();
+        return out;
+    }
+}// namespace detail
 
 }// namespace jtx

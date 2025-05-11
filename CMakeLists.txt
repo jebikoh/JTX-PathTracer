@@ -199,6 +199,7 @@ set (JTX_UTIL
         jtx2/util/aabb.hpp
         jtx2/util/rand.hpp
         jtx2/util/simd.hpp
+        jtx2/util/rng.hpp
 )
 
 set (JTX_UI
@@ -215,12 +216,12 @@ set (JTX_UI
 set (JTX_BACKEND_CPU
         jtx2/backends/cpu/bvh.hpp
         jtx2/backends/cpu/bvh.cpp
-        jtx2/backends/cpu/rng.hpp
         jtx2/backends/cpu/isect.hpp
 )
 
 SET (JTX_TEST_SOURCES
     jtx2/backends/cpu/bvh_test.cpp
+        jtx2/util/aabb_test.cpp
 )
 
 if (JTX_BUILD_TESTS)

@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
+#include "../../util/rng.hpp"
 #include "bvh.hpp"
 #include "embree4/rtcore.h"
-#include "rng.hpp"
 
 #include <functional>
 #include <scene/scene_loader.hpp>
@@ -16,21 +16,6 @@ constexpr int JTX_BVH_TEST_NUM_SAMPLES    = 1000;
 constexpr int JTX_BVH_TEST_RNG_SEED       = 1234567;
 constexpr float JTX_BVH_TEST_EPSILON      = 1e-5;
 constexpr float JTX_BVH_TEST_OFFSET_SCALE = 5.0f;
-
-ray generateRayToOrigin(RNG &rng, const float offsetScale) {
-    ray out{};
-    out.origin = rng.unitSphere() * offsetScale;
-    out.dir    = (JTX_VEC3_ORIGIN - out.origin).normalize();
-    return out;
-}
-
-ray generateRandomRay(RNG &rng, const float offsetScale) {
-    ray out{};
-    out.origin    = rng.unitSphere() * offsetScale;
-    const vec3 p1 = rng.unitSphere() * offsetScale;
-    out.dir       = (p1 - out.origin).normalize();
-    return out;
-}
 
 void buildEmbreeTree(const Scene &scene, RTCDevice &device, RTCScene &eScene) {
     device                    = rtcNewDevice(nullptr);
@@ -143,14 +128,14 @@ protected:
 
 TEST_F(BVH2Test, BVH2RaysToOrigin) {
     const auto rayGen = [](RNG &rng) {
-        return generateRayToOrigin(rng, JTX_BVH_TEST_OFFSET_SCALE);
+        return detail::generateRayToOriginFromUnitSphere(rng, JTX_BVH_TEST_OFFSET_SCALE);
     };
     validateBVH(m_rtcScene, m_isectFn, rayGen);
 }
 
 TEST_F(BVH2Test, BVH2RandomRays) {
     const auto rayGen = [](RNG &rng) {
-        return generateRandomRay(rng, JTX_BVH_TEST_OFFSET_SCALE);
+        return detail::generateRayFromUnitSphere(rng, JTX_BVH_TEST_OFFSET_SCALE);
     };
     validateBVH(m_rtcScene, m_isectFn, rayGen);
 }

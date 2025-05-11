@@ -176,6 +176,11 @@ struct AABB4 {
 
     // https://people.csail.mit.edu/amy/papers/box-jgt.pdf
     HitResult hit(const ray &r, const float t0, const float t1) const {
+// #ifdef JTX_SIMD_X86_SSE4_2
+//
+// #elifdef JTX_SIMD_ARM_NEON
+//
+// #else
         HitResult result;
         // Scalar version
         for (int i = 0; i < 4; ++i) {
@@ -205,10 +210,11 @@ struct AABB4 {
             if (tzmin > tmin) tmin = tzmin;
             if (tzmax < tmax) tmax = tzmax;
 
-            result.bHit[i] = ((tmin < t1) && (tmax > t0));
+            result.bHit[i] = ((tmin <= t1) && (tmax >= t0));
         }
 
         return result;
+// #endif
     }
 };
 

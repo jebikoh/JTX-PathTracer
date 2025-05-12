@@ -140,15 +140,16 @@ struct AABB {
     /**
      * Checks if a ray with origin o and direction d intersects this AABB between t0 and t1
      * @param r ray
+     * @param invDir inverse direction
      * @param t0 minimum t value
      * @param t1 maximum t value
      * @return true if the ray intersects the AABB, false otherwise
      */
-    bool hit(const ray &r, float t0, float t1) const {
+    bool hit(const ray &r, const vec3 &invDir, float t0, float t1) const {
         for (int i = 0; i < 3; ++i) {
-            const float invDir = r.invDir[i];
-            auto tNear         = (pmin[i] - r.origin[i]) * invDir;
-            auto tFar          = (pmax[i] - r.origin[i]) * invDir;
+            const float d = invDir[i];
+            auto tNear         = (pmin[i] - r.origin[i]) * d;
+            auto tFar          = (pmax[i] - r.origin[i]) * d;
 
             if (tNear > tFar) std::swap(tNear, tFar);
             t0 = tNear > t0 ? tNear : t0;
@@ -174,24 +175,50 @@ struct AABB4 {
         uint32_t val;
     };
 
+    struct RayHitInfo {
+        vec3 invDir;
+        int sign[3];
+    };
+
     // https://people.csail.mit.edu/amy/papers/box-jgt.pdf
-    HitResult hit(const ray &r, const float t0, const float t1) const {
-// #ifdef JTX_SIMD_X86_SSE4_2
-//
-// #elifdef JTX_SIMD_ARM_NEON
-//
-// #else
+    HitResult hit(const ray &r, const RayHitInfo &info, const float t0, const float t1) const {
         HitResult result;
+#ifdef JTX_SIMD_X86_SSE4_2
+
+#elif defined JTX_SIMD_ARM_NEON
+        float32x4_t tmin = vdupq_n_f32(t0);
+        float32x4_t tmax = vdupq_n_f32(t1);
+
+        const float32x4_t origin_x = vdupq_n_f32(r.origin.x);
+        const float32x4_t origin_y = vdupq_n_f32(r.origin.y);
+        const float32x4_t origin_z = vdupq_n_f32(r.origin.z);
+        const float32x4_t invDir_x = vdupq_n_f32(info.invDir.x);
+        const float32x4_t invDir_y = vdupq_n_f32(info.invDir.y);
+        const float32x4_t invDir_z = vdupq_n_f32(info.invDir.z);
+
+        tmin = vmaxq_f32(vmulq_f32(vsubq_f32(info.sign[0] ? pmax[0].v4 : pmin[0].v4, origin_x), invDir_x), tmin);
+        tmax = vminq_f32(vmulq_f32(vsubq_f32(info.sign[0] ? pmin[0].v4 : pmax[0].v4, origin_x), invDir_x), tmax);
+        tmin = vmaxq_f32(vmulq_f32(vsubq_f32(info.sign[1] ? pmax[1].v4 : pmin[1].v4, origin_y), invDir_y), tmin);
+        tmax = vminq_f32(vmulq_f32(vsubq_f32(info.sign[1] ? pmin[1].v4 : pmax[1].v4, origin_y), invDir_y), tmax);
+        tmin = vmaxq_f32(vmulq_f32(vsubq_f32(info.sign[2] ? pmax[2].v4 : pmin[2].v4, origin_z), invDir_z), tmin);
+        tmax = vminq_f32(vmulq_f32(vsubq_f32(info.sign[2] ? pmin[2].v4 : pmax[2].v4, origin_z), invDir_z), tmax);
+
+        const uint32x4_t hitMask = vcleq_f32(tmin, tmax);
+        result.bHit[0] = vgetq_lane_u32(hitMask, 0) != 0;
+        result.bHit[1] = vgetq_lane_u32(hitMask, 1) != 0;
+        result.bHit[2] = vgetq_lane_u32(hitMask, 2) != 0;
+        result.bHit[3] = vgetq_lane_u32(hitMask, 3) != 0;
+#else
         // Scalar version
         for (int i = 0; i < 4; ++i) {
             vec3 bounds[2];
             bounds[0] = {pmin[0].v[i], pmin[1].v[i], pmin[2].v[i]};
             bounds[1] = {pmax[0].v[i], pmax[1].v[i], pmax[2].v[i]};
 
-            float tmin        = (bounds[r.sign[0]].x - r.origin.x) * r.invDir.x;
-            float tmax        = (bounds[1 - r.sign[0]].x - r.origin.x) * r.invDir.x;
-            const float tymin = (bounds[r.sign[1]].y - r.origin.y) * r.invDir.y;
-            const float tymax = (bounds[1 - r.sign[1]].y - r.origin.y) * r.invDir.y;
+            float tmin        = (bounds[info.sign[0]].x - r.origin.x) * info.invDir.x;
+            float tmax        = (bounds[1 - info.sign[0]].x - r.origin.x) * info.invDir.x;
+            const float tymin = (bounds[info.sign[1]].y - r.origin.y) * info.invDir.y;
+            const float tymax = (bounds[1 - info.sign[1]].y - r.origin.y) * info.invDir.y;
 
             if ((tmin > tymax) || (tymin > tmax)) {
                 result.bHit[i] = false;
@@ -200,8 +227,8 @@ struct AABB4 {
             if (tymin > tmin) tmin = tymin;
             if (tymax < tmax) tmax = tymax;
 
-            const float tzmin = (bounds[r.sign[2]].z - r.origin.z) * r.invDir.z;
-            const float tzmax = (bounds[1 - r.sign[2]].z - r.origin.z) * r.invDir.z;
+            const float tzmin = (bounds[info.sign[2]].z - r.origin.z) * info.invDir.z;
+            const float tzmax = (bounds[1 - info.sign[2]].z - r.origin.z) * info.invDir.z;
 
             if ((tmin > tzmax) || (tzmin > tmax)) {
                 result.bHit[i] = false;
@@ -212,9 +239,8 @@ struct AABB4 {
 
             result.bHit[i] = ((tmin <= t1) && (tmax >= t0));
         }
-
+#endif
         return result;
-// #endif
     }
 };
 

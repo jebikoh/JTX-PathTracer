@@ -1,74 +1,32 @@
 cmake_minimum_required(VERSION 3.28)
 
-# CMAKE FLAGS
+# ──────────────────────────────────────────────────────────────────────────────
+#  Project‑wide options
+# ──────────────────────────────────────────────────────────────────────────────
 option(JTX_ENABLE_PROFILING "Enable profiling" ON)
 option(JTX_ENABLE_PERF_FLAGS "Enable performance flags" ON)
-option(JTX_ENABLE_MULTI_THREADING "Enable multi-threading" ON)
-option(JTX_ENABLE_SIMD "Enable SIMD optimizations" ON)
-option(JTX_USE_EMBREE "Enable embree acceleration structures" ON)
-option(JTX_BUILD_TESTS "Build tests" OFF)
-option(_JTX_SUPPRESS_DEPENDENCY_MESSAGES "Suppresses status message from dependencies" ON)
+option(JTX_ENABLE_MULTI_THREADING "Enable multi‑threading" ON)
+option(JTX_ENABLE_SIMD "Enable SIMD optimisations" ON)
+option(JTX_USE_EMBREE "Enable Embree acceleration structures" ON)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+option(JTX_BUILD_TESTS "Build unit tests" OFF)
+option(JTX_BUILD_BENCHMARKS "Build performance benches" OFF)
 
-if (JTX_ENABLE_CUDA_BACKEND)
-    project(JTX VERSION 1.0.0 LANGUAGES CXX CUDA)
-else ()
-    project(JTX VERSION 1.0.0 LANGUAGES CXX)
-endif ()
+option(_JTX_SUPPRESS_DEPENDENCY_MESSAGES "Suppress status messages from deps" ON)
 
+# ──────────────────────────────────────────────────────────────────────────────
+#  Project declaration
+# ──────────────────────────────────────────────────────────────────────────────
+project(JTX VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# PROCESS CMAKE FLAGS
-if (JTX_ENABLE_CUDA_BACKEND)
-    include(CheckLanguage)
-    check_language(CUDA)
-
-    if (CMAKE_CUDA_COMPILER)
-        set(USE_CUDA ON CACHE BOOL "Use CUDA backend" FORCE)
-
-        add_compile_definitions(-DJTX_ENABLE_CUDA_BACKEND)
-
-        message(STATUS "[JTX] CUDA compiler: ${CMAKE_CUDA_COMPILER}")
-        message(STATUS "[JTX] CUDA compiler version: ${CMAKE_CUDA_COMPILER_VERSION}")
-    else ()
-        set(USE_CUDA OFF CACHE BOOL "Use CUDA backend" FORCE)
-        set(JTX_ENABLE_CUDA_BACKEND OFF CACHE BOOL "Enable CUDA backend" FORCE)
-        message(STATUS "[JTX] CUDA compiler not found, continuing without CUDA support")
-    endif ()
-else ()
-    message(STATUS "[JTX] CUDA support disabled")
-endif ()
-
-if (JTX_USE_EMBREE)
-    add_compile_definitions(-DJTX_USE_EMBREE)
-
-    if (WIN32)
-        message(STATUS "[JTX] Windows detected -- loading vendored Embree")
-        set(embree_DIR "ext/embree4/lib/cmake/embree-4.4.0" CACHE PATH "Embree CMake")
-    endif()
-
-    find_package(embree 4 REQUIRED)
-    message(STATUS "[JTX] Embree ${embree_VERSION} found — building with Embree support")
-else()
-    message(STATUS "[JTX] Embree support is disabled")
-endif()
-
+# ──────────────────────────────────────────────────────────────────────────────
+#  Compiler definitions & options
+# ──────────────────────────────────────────────────────────────────────────────
 if (JTX_ENABLE_PROFILING)
     add_compile_definitions(-DJTX_ENABLE_PROFILING)
-endif ()
-
-if (JTX_ENABLE_MULTI_THREADING)
-    add_compile_definitions(-DJTX_ENABLE_MULTI_THREADING)
-endif ()
-
-if (JTX_DISABLE_UI)
-    add_compile_definitions(-DJTX_DISABLE_UI)
-endif ()
-
-if (JTX_ENABLE_DEBUG_TRACES)
-    add_compile_definitions(-DJTX_ENABLE_DEBUG_TRACES)
 endif ()
 
 if (JTX_ENABLE_PERF_FLAGS)
@@ -83,33 +41,37 @@ if (JTX_ENABLE_PERF_FLAGS)
     endif ()
 endif ()
 
+if (JTX_ENABLE_MULTI_THREADING)
+    add_compile_definitions(-DJTX_ENABLE_MULTI_THREADING)
+endif ()
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  Helpers
+# ──────────────────────────────────────────────────────────────────────────────
 function(message)
     if (NOT MESSAGE_QUIET)
         _message(${ARGN})
-    endif()
+    endif ()
 endfunction()
 
 if (_JTX_SUPPRESS_DEPENDENCY_MESSAGES)
     set(MESSAGE_QUIET ON)
-endif()
+endif ()
 
-# DEPENDENCIES
-# Vulkan
+# ──────────────────────────────────────────────────────────────────────────────
+#  Third‑party dependencies
+# ──────────────────────────────────────────────────────────────────────────────
 find_package(Vulkan REQUIRED)
 
-# volk
-add_subdirectory(ext/volk)
+# Vendored ─────────────────────────────────────────────────────────────────────
+add_subdirectory(ext/volk)                   # Volk
+add_subdirectory(ext/vkbootstrap)            # VkBootstrap
+add_subdirectory(ext/vma)                    # VMA
+add_subdirectory(ext/sdl EXCLUDE_FROM_ALL)   # SDL2
+add_subdirectory(ext/jtxlib)                 # JTXLib
+add_subdirectory(ext/fastgltf)               # fastglTF
 
-# VkBootstrap
-add_subdirectory(ext/vkbootstrap)
-
-# VMA
-add_subdirectory(ext/vma)
-
-# SDL2
-add_subdirectory(ext/sdl EXCLUDE_FROM_ALL)
-
-# ImGUI
+# ImGui
 add_library(imgui STATIC)
 target_include_directories(imgui PUBLIC ext/imgui)
 target_sources(imgui PRIVATE
@@ -127,26 +89,37 @@ target_compile_definitions(imgui
 )
 target_link_libraries(imgui PUBLIC volk Vulkan::Vulkan SDL2::SDL2)
 
-# JTXlib
-add_subdirectory(ext/jtxlib)
-
-# GLM (temporary)
+# GLM
 add_library(glm INTERFACE)
 target_include_directories(glm INTERFACE ext/glm)
 
-# fastglTF
-add_subdirectory(ext/fastgltf)
+# Embree
+# Only vendored for windows; for macOS/Linux, it is expected to be installed via PM
+if (JTX_USE_EMBREE)
+    add_compile_definitions(-DJTX_USE_EMBREE)
 
+    if (WIN32)
+        message(STATUS "[JTX] Windows detected -- loading vendored Embree")
+        set(embree_DIR "ext/embree4/lib/cmake/embree-4.4.0" CACHE PATH "Embree CMake")
+    endif ()
+
+    find_package(embree 4 REQUIRED)
+    message(STATUS "[JTX] Embree ${embree_VERSION} found — building with Embree support")
+else ()
+    message(STATUS "[JTX] Embree support is disabled")
+endif ()
+
+# Fetched ─────────────────────────────────────────────────────────────────────
 # fmt
 include(FetchContent)
 FetchContent_Declare(
         fmt
         GIT_REPOSITORY https://github.com/fmtlib/fmt
-        GIT_TAG        e69e5f977d458f2650bb346dadf2ad30c5320281) # 10.2.1
+        GIT_TAG e69e5f977d458f2650bb346dadf2ad30c5320281) # 10.2.1
 FetchContent_MakeAvailable(fmt)
 
-# gtest
-if(JTX_BUILD_TESTS)
+# gtest (optional)
+if (JTX_BUILD_TESTS)
     add_compile_definitions(-DJTX_BUILD_TESTS)
     FetchContent_Declare(
             googletest
@@ -154,14 +127,26 @@ if(JTX_BUILD_TESTS)
     )
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(googletest)
-endif()
+endif ()
+
+# Google benchmark (optional)
+if (JTX_BUILD_BENCHMARKS)
+    set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "" FORCE)
+    set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(googlebenchmark
+            GIT_REPOSITORY https://github.com/google/benchmark.git
+            GIT_TAG main)
+    FetchContent_MakeAvailable(benchmark)
+endif ()
 
 if (_JTX_SUPPRESS_DEPENDENCY_MESSAGES)
     set(MESSAGE_QUIET OFF)
-endif()
+endif ()
 
-# JTX Executable
-SET (JVK_HEADERS
+# ──────────────────────────────────────────────────────────────────────────────
+#  Source file groups
+# ──────────────────────────────────────────────────────────────────────────────
+SET(JVK_HEADERS
         jtx2/ui/jvk/buffer.hpp
         jtx2/ui/jvk/commands.hpp
         jtx2/ui/jvk/context.hpp
@@ -177,32 +162,33 @@ SET (JVK_HEADERS
         jtx2/ui/jvk/shaders.hpp
         jtx2/ui/jvk/swapchain.hpp
         jtx2/ui/jvk/util.hpp
-)
-
-set (JVK_SOURCE
-        jtx2/ui/jvk/descriptor.cpp
-        jtx2/ui/jvk/pipeline.cpp
-        jtx2/ui/jvk/util.cpp
         jtx2/ui/jvk/immediate_buffer.hpp
         jtx2/ui/rasterizer/render_data.hpp
 )
 
-set (JTX_SCENE
+set(JVK_SOURCE
+        jtx2/ui/jvk/descriptor.cpp
+        jtx2/ui/jvk/pipeline.cpp
+        jtx2/ui/jvk/util.cpp
+)
+
+set(JTX_SCENE
         jtx2/scene/scene.hpp
         jtx2/scene/scene_loader.hpp
         jtx2/scene/scene_loader.cpp
 )
 
-set (JTX_UTIL
+set(JTX_UTIL
         jtx2/util/logger.hpp
         jtx2/util/color.hpp
         jtx2/util/aabb.hpp
         jtx2/util/rand.hpp
         jtx2/util/simd.hpp
         jtx2/util/rng.hpp
+        jtx2/util/timer.hpp
 )
 
-set (JTX_UI
+set(JTX_UI
         jtx2/ui/display.hpp
         jtx2/ui/display.cpp
         jtx2/ui/ui_renderer.hpp
@@ -213,53 +199,38 @@ set (JTX_UI
         jtx2/ui/rasterizer/camera.cpp
 )
 
-set (JTX_BACKEND_CPU
+set(JTX_BACKEND_CPU
         jtx2/backends/cpu/bvh.hpp
         jtx2/backends/cpu/bvh.cpp
         jtx2/backends/cpu/isect.hpp
 )
 
-SET (JTX_TEST_SOURCES
-    jtx2/backends/cpu/bvh_test.cpp
-        jtx2/util/aabb_test.cpp
+# ──────────────────────────────────────────────────────────────────────────────
+#  Static library: JTXCore
+# ──────────────────────────────────────────────────────────────────────────────
+add_library(JTXCore STATIC
+        ${JVK_SOURCE}
+        ${JVK_HEADERS}
+        ${JTX_SCENE}
+        ${JTX_UTIL}
+        ${JTX_UI}
+        ${JTX_BACKEND_CPU}
+        jtx2/jtx.hpp
+        jtx2/material.h
+        jtx2/image.hpp
+        jtx2/image.cpp)
+
+target_include_directories(JTXCore PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/jtx2
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext/jtxlib/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext/stb
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext/rapidobj
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext/tinyexr
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext/IconsLucide
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext/imfilebrowser
 )
 
-if (JTX_BUILD_TESTS)
-    add_executable(
-            JTX
-            ${JVK_SOURCE}
-            ${JVK_HEADERS}
-            ${JTX_SCENE}
-            ${JTX_UTIL}
-            ${JTX_UI}
-            ${JTX_BACKEND_CPU}
-            ${JTX_TEST_SOURCES}
-            jtx2/jtx.hpp
-            jtx2/material.h
-            jtx2/image.hpp
-            jtx2/image.cpp
-            jtx2/util/timer.hpp
-    )
-    target_link_libraries(JTX PRIVATE GTest::gtest_main)
-else()
-    add_executable(
-            JTX
-            ${JVK_SOURCE}
-            ${JVK_HEADERS}
-            ${JTX_SCENE}
-            ${JTX_UTIL}
-            ${JTX_UI}
-            ${JTX_BACKEND_CPU}
-            jtx2/main.cpp
-            jtx2/jtx.hpp
-            jtx2/material.h
-            jtx2/image.hpp
-            jtx2/image.cpp
-            jtx2/util/timer.hpp
-    )
-endif()
-
-target_link_libraries(JTX PRIVATE
+target_link_libraries(JTXCore PUBLIC
         Vulkan::Vulkan
         GPUOpen::VulkanMemoryAllocator
         vk-bootstrap::vk-bootstrap
@@ -272,87 +243,79 @@ target_link_libraries(JTX PRIVATE
         fastgltf::fastgltf
         glm
 )
-
 if (JTX_USE_EMBREE AND embree_FOUND)
-    target_link_libraries(JTX PRIVATE embree)
+    target_link_libraries(JTXCore PUBLIC embree)
+endif ()
 
+# SIMD compile flags/macros ----------------------------------------------------
+if (JTX_ENABLE_SIMD)
+    message(STATUS "[JTX] SIMD optimizations requested -- querying intrinsics")
+
+    include(CheckCXXCompilerFlag)
+    if (CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86|i[3-6]86|amd64|X86_64|AMD64)$")
+        if (MSVC)
+            message(STATUS "[JTX] MSVC: SSE4.2 intrinsics enabled")
+            target_compile_definitions(JTXCore PUBLIC JTX_SIMD_X86_SSE4_2)
+        elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+            check_cxx_compiler_flag("-msse4.2" HAVE_SSE4_2)
+            if (HAVE_SSE4_2)
+                message(STATUS "[JTX] GCC/Clang: enabling SSE4.2 intrinsics")
+                target_compile_options(JTXCore PUBLIC -msse4.2)
+                target_compile_definitions(JTXCore PUBLIC JTX_SIMD_X86_SSE4_2)
+            else ()
+                message(WARNING "[JTX] GCC/Clang: compiler does not support -msse4.2, SIMD disabled on x86")
+            endif ()
+        endif ()
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm|aarch64|arm64)$")
+        check_cxx_compiler_flag("-mfpu=neon" HAVE_NEON)
+        if (HAVE_NEON)
+            message(STATUS "[JTX] Enabling NEON intrinsics")
+            target_compile_options(JTXCore PUBLIC -mfpu=neon)
+            target_compile_definitions(JTXCore PUBLIC JTX_SIMD_ARM_NEON)
+        else ()
+            message(WARNING "[JTX] Compiler does not support NEON flags, SIMD disabled on ARM")
+        endif ()
+
+    else ()
+        message(WARNING "[JTX] Unknown architecture '${CMAKE_SYSTEM_PROCESSOR}', SIMD disabled")
+    endif ()
+endif ()
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  Main executable
+# ──────────────────────────────────────────────────────────────────────────────
+add_executable(JTX jtx2/main.cpp)
+target_link_libraries(JTX PRIVATE JTXCore)
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  Post-build
+# ──────────────────────────────────────────────────────────────────────────────
+# Embree DLLs for Windows ──────────────────────────────────────────────────────
+if (JTX_USE_EMBREE AND embree_FOUND AND WIN32)
     set(EMBREE_BIN_DIR "${CMAKE_SOURCE_DIR}/ext/embree4/bin")
-    if(EXISTS "${EMBREE_BIN_DIR}" AND WIN32)
+    if (EXISTS "${EMBREE_BIN_DIR}" AND WIN32)
         set(EMBREE_DLLS
                 embree4.dll
                 tbb12.dll
                 tbbmalloc.dll
         )
 
-        foreach(DLL_NAME ${EMBREE_DLLS})
+        foreach (DLL_NAME ${EMBREE_DLLS})
             set(SOURCE_DLL "${EMBREE_BIN_DIR}/${DLL_NAME}")
-            if(EXISTS "${SOURCE_DLL}")
+            if (EXISTS "${SOURCE_DLL}")
                 add_custom_command(TARGET JTX POST_BUILD
                         COMMAND ${CMAKE_COMMAND} -E copy_if_different
                         "${SOURCE_DLL}"
                         $<TARGET_FILE_DIR:JTX>
                         COMMENT "[JTX] Copying ${DLL_NAME} to output directory"
                 )
-            else()
+            else ()
                 message(WARNING "[JTX] DLL not found for copying: ${SOURCE_DLL}")
-            endif()
-        endforeach()
-    else()
-        message(WARNING "[JTX] Embree bin directory not found at ${EMBREE_BIN_DIR}. DLLs will not be copied.")
-    endif()
-endif()
-
-if (JTX_ENABLE_SIMD)
-    message(STATUS "[JTX] SIMD optimizations requested -- querying intrinsics")
-
-    include(CheckCXXCompilerFlag)
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86|i[3-6]86|amd64|X86_64|AMD64)$")
-        if(MSVC)
-            message(STATUS "[JTX] MSVC: SSE4.2 intrinsics enabled")
-            target_compile_definitions(JTX PRIVATE JTX_SIMD_X86_SSE4_2)
-        elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-            check_cxx_compiler_flag("-msse4.2" HAVE_SSE4_2)
-            if(HAVE_SSE4_2)
-                message(STATUS "[JTX] GCC/Clang: enabling SSE4.2 intrinsics")
-                target_compile_options(${PROJECT_NAME} PRIVATE -msse4.2)
-                target_compile_definitions(JTX PRIVATE JTX_SIMD_X86_SSE4_2)
-            else()
-                message(WARNING "[JTX] GCC/Clang: compiler does not support -msse4.2, SIMD disabled on x86")
-            endif()
-        endif()
-    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm|aarch64|arm64)$")
-        check_cxx_compiler_flag("-mfpu=neon" HAVE_NEON)
-        if(HAVE_NEON)
-            message(STATUS "[JTX] Enabling NEON intrinsics")
-            target_compile_options(${PROJECT_NAME} PRIVATE -mfpu=neon)
-            target_compile_definitions(JTX PRIVATE JTX_SIMD_ARM_NEON)
-        else()
-            message(WARNING "[JTX] Compiler does not support NEON flags, SIMD disabled on ARM")
-        endif()
-
-    else()
-        message(WARNING "[JTX] Unknown architecture '${CMAKE_SYSTEM_PROCESSOR}', SIMD disabled")
-    endif()
-endif()
-
-target_include_directories(JTX
-        PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/jtx2/
-        ${CMAKE_CURRENT_SOURCE_DIR}/ext/jtxlib/src
-        ${CMAKE_CURRENT_SOURCE_DIR}/ext/stb
-        ${CMAKE_CURRENT_SOURCE_DIR}/ext/rapidobj
-        ${CMAKE_CURRENT_SOURCE_DIR}/ext/tinyexr
-        ${CMAKE_CURRENT_SOURCE_DIR}/ext/IconsLucide
-        ${CMAKE_CURRENT_SOURCE_DIR}/ext/imfilebrowser
-        ${OPENGL_LIBRARIES}
-)
-
-if (JTX_BUILD_TESTS)
-    message(STATUS "[JTX] Finding tests...")
-    include(GoogleTest)
-    gtest_discover_tests(JTX)
-endif()
-
+            endif ()
+        endforeach ()
+    endif ()
+endif ()
+# Copy assets post‑build ───────────────────────────────────────────────────────
 add_custom_command(TARGET JTX POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/jtx2/assets
@@ -360,6 +323,45 @@ add_custom_command(TARGET JTX POST_BUILD
         COMMENT "[JTX] Copying assets directory to output folder"
 )
 
+# ──────────────────────────────────────────────────────────────────────────────
+#  Unit tests
+# ──────────────────────────────────────────────────────────────────────────────
+if (JTX_BUILD_TESTS)
+    message(STATUS "[JTX] Building tests")
+    set(JTX_TEST_SOURCES
+            jtx2/backends/cpu/bvh_test.cpp
+            jtx2/util/aabb_test.cpp
+    )
+
+    add_executable(JTXTests ${JTX_TEST_SOURCES})
+    target_link_libraries(JTXTests PRIVATE JTXCore GTest::gtest_main)
+    include(GoogleTest)
+    gtest_discover_tests(JTXTests)
+endif()
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  Benchmarks
+# ──────────────────────────────────────────────────────────────────────────────
+if (JTX_BUILD_BENCHMARKS)
+    message(STATUS "[JTX] Building benchmarks")
+    function(add_benchmark BENCH_NAME)
+        add_executable(${BENCH_NAME} ${ARGN})
+        target_link_libraries(${BENCH_NAME} PRIVATE
+                JTXCore
+                benchmark::benchmark benchmark::benchmark_main)
+    endfunction()
+    set(BENCH_SRC
+            jtx2/util/aabb_bench.cpp
+    )
+    foreach(src ${BENCH_SRC})
+        get_filename_component(bname ${src} NAME_WE)
+        add_benchmark(${bname} ${src})
+    endforeach()
+endif()
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  Shader compilation
+# ──────────────────────────────────────────────────────────────────────────────
 find_program(GLSL_VALIDATOR glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
 
 set(GLSL_SOURCE_FILES
@@ -367,7 +369,7 @@ set(GLSL_SOURCE_FILES
         "${PROJECT_SOURCE_DIR}/shaders/mesh.vert"
 )
 
-foreach(GLSL ${GLSL_SOURCE_FILES})
+foreach (GLSL ${GLSL_SOURCE_FILES})
     message(STATUS "[JTX] Building shader")
     get_filename_component(FILE_NAME ${GLSL} NAME)
     set(SPIRV "${PROJECT_SOURCE_DIR}/shaders/${FILE_NAME}.spv")
@@ -378,7 +380,7 @@ foreach(GLSL ${GLSL_SOURCE_FILES})
             COMMAND ${GLSL_VALIDATOR} -V ${GLSL} -o ${SPIRV}
             DEPENDS ${GLSL})
     list(APPEND SPIRV_BINARY_FILES ${SPIRV})
-endforeach(GLSL)
+endforeach (GLSL)
 
 add_custom_target(
         Shaders

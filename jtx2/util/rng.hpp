@@ -80,6 +80,10 @@ public:
     template<typename T>
     T range(T min, T max);
 
+    void range(float min, float max, vec2 &out);
+    void range(float min, float max, vec3 &out);
+    void range(float min, float max, vec4 &out);
+
     /**
      * Generates a random unit vector
      * @return unit vector
@@ -91,19 +95,19 @@ public:
      * @param n normal
      * @return point on unit hemisphere
      */
-    vec3 hemisphere(const vec3 &n);
+    vec3 onHemisphere(const vec3 &n);
 
     /**
      * Uniformly samples a point on a unit disc
      * @return point on unit disc
      */
-    vec3 unitDisc();
+    vec3 onUnitDisc();
 
     /**
      * Uniformly samples a point on a unit sphere
      * @return point on unit sphere
      */
-    vec3 unitSphere();
+    vec3 onUnitSphere();
 
 private:
     uint32_t m_state = 0;
@@ -139,6 +143,18 @@ inline float RNG::range<float>(const float min, const float max) {
     return min + (max - min) * uniform<float>();
 }
 
+inline void RNG::range(const float min, const float max, vec2 &out) {
+    out = {range<float>(min, max), range<float>(min, max)};
+}
+
+inline void RNG::range(const float min, const float max, vec3 &out) {
+    out = {range<float>(min, max), range<float>(min, max), range<float>(min, max)};
+}
+
+inline void RNG::range(const float min, const float max, vec4 &out) {
+    out = {range<float>(min, max), range<float>(min, max), range<float>(min, max), range<float>(min, max)};
+}
+
 inline vec3 RNG::unitVector() {
     const float z = uniform<float>() * 2.0f - 1.0f;
     const float a = uniform<float>() * 2.0f * JTX_PI_F;
@@ -146,19 +162,19 @@ inline vec3 RNG::unitVector() {
     return {r * jtx::cos(a), r * jtx::sin(a), z};
 }
 
-inline vec3 RNG::hemisphere(const vec3 &n) {
+inline vec3 RNG::onHemisphere(const vec3 &n) {
     vec3 p = unitVector();
     return jtx::dot(p, n) > 0 ? p : -p;
 }
 
-inline vec3 RNG::unitDisc() {
+inline vec3 RNG::onUnitDisc() {
     while (true) {
         auto p = vec3(range<float>(-1, 1), range<float>(-1, 1), 0);
         if (p.lenSqr() < 1) return p;
     }
 }
 
-inline vec3 RNG::unitSphere() {
+inline vec3 RNG::onUnitSphere() {
     const vec2 u    = uniform<vec2>();
     const float z   = 1 - 2 * u[0];
     const float a   = jtx::safeSqrt(1 - z * z);
@@ -169,15 +185,15 @@ inline vec3 RNG::unitSphere() {
 namespace detail {
     inline ray generateRayFromUnitSphere(RNG &rng, const float offsetScale) {
         ray out{};
-        out.origin    = rng.unitSphere() * offsetScale;
-        const vec3 p1 = rng.unitSphere() * offsetScale;
+        out.origin    = rng.onUnitSphere() * offsetScale;
+        const vec3 p1 = rng.onUnitSphere() * offsetScale;
         out.dir       = (p1 - out.origin).normalize();
         return out;
     }
 
     inline ray generateRayToOriginFromUnitSphere(RNG &rng, const float offsetScale) {
         ray out{};
-        out.origin = rng.unitSphere() * offsetScale;
+        out.origin = rng.onUnitSphere() * offsetScale;
         out.dir    = (JTX_VEC3_ORIGIN - out.origin).normalize();
         return out;
     }

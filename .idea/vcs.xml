@@ -2,11 +2,13 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/build/_deps/fmt-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-debug/_deps/fmt-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-debugtest/_deps/fmt-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-release/_deps/fmt-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/cmake-build-tests_debug/_deps/fmt-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-releasetest/_deps/fmt-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-relwithdebinfo/_deps/fmt-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/fastgltf" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/ext/glm" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/jtxlib" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/jtxlib/lib/Catch2" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/sdl" vcs="Git" />

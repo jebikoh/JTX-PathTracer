@@ -4,31 +4,23 @@
 
 namespace jtx {
 
-constexpr uint32_t JTX_AABB4_TEST_NUM_SAMPLES = 1000;
-
-vec3 random_vec3(RNG &rng, float ) {
-    return {rng.range<float>(-1 , 1), rng.range<float>(-1 , 1), rng.range<float>(-1 , 1)};
-}
+constexpr uint32_t JTX_AABB4_TEST_NUM_SAMPLES = 10000;
 
 // Use CMake options to test various implementations
 TEST(AABB4, HitResultMatchesAABB) {
     RNG rng;
     // Generate 4 points for xyz in [-1, 1]
-    const auto randomVec3 = [&]() {
-        return vec3(rng.range<float>(-1 , 1), rng.range<float>(-1 , 1), rng.range<float>(-1 , 1));
-    };
-
     vec3 pmin[4];
-    pmin[0] = randomVec3();
-    pmin[1] = randomVec3();
-    pmin[2] = randomVec3();
-    pmin[3] = randomVec3();
+    rng.range(-1, 1, pmin[0]);
+    rng.range(-1, 1, pmin[1]);
+    rng.range(-1, 1, pmin[2]);
+    rng.range(-1, 1, pmin[3]);
 
     vec3 pmax[4];
-    pmax[0] = randomVec3();
-    pmax[1] = randomVec3();
-    pmax[2] = randomVec3();
-    pmax[3] = randomVec3();
+    rng.range(-1, 1, pmax[0]);
+    rng.range(-1, 1, pmax[1]);
+    rng.range(-1, 1, pmax[2]);
+    rng.range(-1, 1, pmax[3]);
 
     // Create generic single AABBs
     AABB ref[4];
@@ -73,29 +65,47 @@ TEST(AABB4, HitResultMatchesAABB) {
 
     ray rays[JTX_AABB4_TEST_NUM_SAMPLES];
     for (int i = 0; i < JTX_AABB4_TEST_NUM_SAMPLES; ++i) {
-        rays[i] = detail::generateRayFromUnitSphere(rng, 2.0f);
+        rng.range(-1.5, 1.5, rays[i].origin);
+        rays[i].dir = rng.unitVector();
+        rays[i].time = 0;
     }
 
     uint32_t numMatches = 0;
+    uint32_t numHits = 0;
+    uint32_t numMisses = 0;
 
     for (const auto &r : rays) {
+        AABB4::RayHitInfo rayHitInfo;
+        rayHitInfo.invDir = 1.0f / r.dir;
+        rayHitInfo.sign[0] = rayHitInfo.invDir[0] < 0;
+        rayHitInfo.sign[1] = rayHitInfo.invDir[1] < 0;
+        rayHitInfo.sign[2] = rayHitInfo.invDir[2] < 0;
+
         bool refHits[4];
         for (int i = 0; i < 4; ++i) {
-            refHits[i] = ref[i].hit(r, 0.0f, JTX_INFINITY_F);
+            refHits[i] = ref[i].hit(r, rayHitInfo.invDir,0.0f, JTX_INFINITY_F);
         }
 
-        const auto res = bbox4.hit(r, 0.0f, JTX_INFINITY_F);
+        const auto res = bbox4.hit(r, rayHitInfo,0.0f, JTX_INFINITY_F);
 
         for (int i = 0; i < 4; ++i) {
             EXPECT_EQ(refHits[i], res.bHit[i]);
             if (refHits[i] == res.bHit[i]) {
                 numMatches++;
+                if (refHits[i]) numHits++;
+                else numMisses++;
+            } else {
+                LOG_DEBUG(TEST, "Mismatch for ray: ({},{},{}) to ({},{},{})", r.origin.x, r.origin.y, r.origin.z, r.dir.x, r.dir.y, r.dir.z);
             }
         }
     }
 
-    LOG_INFO(GENERAL, "Num matches: {}", numMatches);
-    LOG_INFO(GENERAL, "Pct: {}", static_cast<float>(numMatches) / (JTX_AABB4_TEST_NUM_SAMPLES * 4));
+    EXPECT_GT(numMisses, 0u) << "Every ray resulted in a hit -- statistically unlikely";
+
+    LOG_DEBUG(GENERAL, "Num matches: {}", numMatches);
+    LOG_DEBUG(GENERAL, "Pct Match: {}%", static_cast<float>(numMatches) / (JTX_AABB4_TEST_NUM_SAMPLES * 4) * 100);
+    LOG_DEBUG(GENERAL, "Matching Hits: {}", numHits);
+    LOG_DEBUG(GENERAL, "Matching Misses: {}", numMisses);
 }
 
 }

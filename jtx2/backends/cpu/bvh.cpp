@@ -183,9 +183,15 @@ bool BVH2::closestHit(const ray &r, const float t0, float t1, SurfaceIntersectio
     int stack[64];
     bool hitAnything = false;
 
+    const auto invDir = 1.0f / r.dir;
+    int sign[3];
+    sign[0] = invDir[0] < 0;
+    sign[1] = invDir[1] < 0;
+    sign[2] = invDir[2] < 0;
+
     while (true) {
         const BVH2Node *node = &m_nodes[currNodeIndex];
-        if (node->bbox.hit(r, t0, t1)) {
+        if (node->bbox.hit(r, invDir, t0, t1)) {
             if (node->numTriangles > 0) {
                 // Leaf node
                 for (int i = 0; i < node->numTriangles; ++i) {
@@ -200,7 +206,7 @@ bool BVH2::closestHit(const ray &r, const float t0, float t1, SurfaceIntersectio
                 currNodeIndex = stack[--toVisitOffset];
             } else {
                 // Interior node
-                if (r.sign[node->axis]) {
+                if (sign[node->axis]) {
                     stack[toVisitOffset++] = currNodeIndex + 1;
                     currNodeIndex = node->secondChildOffset;
                 } else {
@@ -451,10 +457,16 @@ bool BVH4::closestHit(const ray &r, float t0, float t1, SurfaceIntersection &ise
     int stack[64];
     bool hitAnything = false;
 
+    AABB4::RayHitInfo rayHitInfo;
+    rayHitInfo.invDir = 1.0f / r.dir;
+    rayHitInfo.sign[0] = rayHitInfo.invDir[0] < 0;
+    rayHitInfo.sign[1] = rayHitInfo.invDir[1] < 0;
+    rayHitInfo.sign[2] = rayHitInfo.invDir[2] < 0;
+
     while (true) {
         const BVH4Node *node = &m_nodes[currNodeIndex];
 
-        const auto hitResult = node->bbox.hit(r, t0, t1);
+        const auto hitResult = node->bbox.hit(r, rayHitInfo, t0, t1);
         if (hitResult.val > 0) {
             // Now for the tough part, sorting the boxes
             // We want to sort the boxes by the split axes

@@ -12,7 +12,7 @@ namespace jtx {
 #ifdef JTX_BUILD_TESTS
 
 const std::string JTX_BVH_TEST_MESH_PATH  = "assets/f22.obj";
-constexpr int JTX_BVH_TEST_NUM_SAMPLES    = 1000;
+constexpr int JTX_BVH_TEST_NUM_SAMPLES    = 10000;
 constexpr int JTX_BVH_TEST_RNG_SEED       = 1234567;
 constexpr float JTX_BVH_TEST_EPSILON      = 1e-5;
 constexpr float JTX_BVH_TEST_OFFSET_SCALE = 5.0f;

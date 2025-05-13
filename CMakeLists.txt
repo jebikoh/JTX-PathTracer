@@ -204,7 +204,6 @@ set(JTX_BACKEND_CPU
         jtx2/backends/cpu/bvh.hpp
         jtx2/backends/cpu/bvh.cpp
         jtx2/backends/cpu/isect.hpp
-        jtx2/benchmarks/aabb_bm.cpp
 )
 
 # ──────────────────────────────────────────────────────────────────────────────

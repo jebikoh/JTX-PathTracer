@@ -184,7 +184,29 @@ struct AABB4 {
     HitResult hit(const ray &r, const RayHitInfo &info, const float t0, const float t1) const {
         HitResult result;
 #ifdef JTX_SIMD_X86_SSE4_2
+        __m128 tmin = _mm_set1_ps(t0);
+        __m128 tmax = _mm_set1_ps(t1);
 
+        __m128 origin_x = _mm_set1_ps(r.origin.x);
+        __m128 origin_y = _mm_set1_ps(r.origin.y);
+        __m128 origin_z = _mm_set1_ps(r.origin.z);
+
+        __m128 invDir_x = _mm_set1_ps(info.invDir.x);
+        __m128 invDir_y = _mm_set1_ps(info.invDir.y);
+        __m128 invDir_z = _mm_set1_ps(info.invDir.z);
+
+        tmin = _mm_max_ps(_mm_mul_ps(_mm_sub_ps(info.sign[0] ? pmax[0].v4 : pmin[0].v4, origin_x), invDir_x), tmin);
+        tmax = _mm_min_ps(_mm_mul_ps(_mm_sub_ps(info.sign[0] ? pmin[0].v4 : pmax[0].v4, origin_x), invDir_x), tmax);
+        tmin = _mm_max_ps(_mm_mul_ps(_mm_sub_ps(info.sign[1] ? pmax[1].v4 : pmin[1].v4, origin_y), invDir_y), tmin);
+        tmax = _mm_min_ps(_mm_mul_ps(_mm_sub_ps(info.sign[1] ? pmin[1].v4 : pmax[1].v4, origin_y), invDir_y), tmax);
+        tmin = _mm_max_ps(_mm_mul_ps(_mm_sub_ps(info.sign[2] ? pmax[2].v4 : pmin[2].v4, origin_z), invDir_z), tmin);
+        tmax = _mm_min_ps(_mm_mul_ps(_mm_sub_ps(info.sign[2] ? pmin[2].v4 : pmax[2].v4, origin_z), invDir_z), tmax);
+
+        const auto mask = _mm_movemask_ps(_mm_cmple_ps(tmin, tmax));
+        result.bHit[0] = (mask & 0b0001) != 0;
+        result.bHit[1] = (mask & 0b0010) != 0;
+        result.bHit[2] = (mask & 0b0100) != 0;
+        result.bHit[3] = (mask & 0b1000) != 0;
 #elif defined JTX_SIMD_ARM_NEON
         float32x4_t tmin = vdupq_n_f32(t0);
         float32x4_t tmax = vdupq_n_f32(t1);

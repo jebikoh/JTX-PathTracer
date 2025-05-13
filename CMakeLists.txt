@@ -120,6 +120,7 @@ FetchContent_MakeAvailable(fmt)
 
 # gtest (optional)
 if (JTX_BUILD_TESTS)
+    message(STATUS "[JTX] Fetching gtest")
     add_compile_definitions(-DJTX_BUILD_TESTS)
     FetchContent_Declare(
             googletest
@@ -133,7 +134,7 @@ endif ()
 if (JTX_BUILD_BENCHMARKS)
     set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "" FORCE)
     set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
-    FetchContent_Declare(googlebenchmark
+    FetchContent_Declare(benchmark
             GIT_REPOSITORY https://github.com/google/benchmark.git
             GIT_TAG main)
     FetchContent_MakeAvailable(benchmark)
@@ -203,6 +204,7 @@ set(JTX_BACKEND_CPU
         jtx2/backends/cpu/bvh.hpp
         jtx2/backends/cpu/bvh.cpp
         jtx2/backends/cpu/isect.hpp
+        jtx2/benchmarks/aabb_bm.cpp
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -351,7 +353,7 @@ if (JTX_BUILD_BENCHMARKS)
                 benchmark::benchmark benchmark::benchmark_main)
     endfunction()
     set(BENCH_SRC
-            jtx2/util/aabb_bench.cpp
+            jtx2/benchmarks/aabb_bm.cpp
     )
     foreach(src ${BENCH_SRC})
         get_filename_component(bname ${src} NAME_WE)

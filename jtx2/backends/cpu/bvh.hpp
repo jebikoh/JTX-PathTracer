@@ -87,6 +87,12 @@ static constexpr uint32_t JTX_BVH4_FIRST_INDEX_BIT_WIDTH = 27;
 static constexpr uint32_t JTX_BVH4_FIRST_INDEX_MASK      = 0b00000111111111111111111111111111;
 static constexpr uint32_t JTX_BVH4_TRI_COUNT_MASK        = 0b01111000000000000000000000000000;
 
+#define JTX_BVH4_LEAF_NUM_TRIANGLES(x) \
+    (((x & JTX_BVH4_TRI_COUNT_MASK) >> JTX_BVH4_FIRST_INDEX_BIT_WIDTH) + 1) * 4;
+
+#define JTX_BVH4_LEAF_FIRST_TRIANGLE_OFFSET(x) \
+    x & JTX_BVH4_FIRST_INDEX_MASK;
+
 struct alignas (128) BVH4Node {
     AABB4 bbox;
     /*
@@ -150,7 +156,7 @@ struct alignas (128) BVH4Node {
      * @return number of triangles in leaf
      */
     uint32_t getNumTriangles(const size_t child) const {
-        return (((children[child] & JTX_BVH4_TRI_COUNT_MASK) >> JTX_BVH4_FIRST_INDEX_BIT_WIDTH) + 1) * 4;
+        return JTX_BVH4_LEAF_NUM_TRIANGLES(children[child]);
     }
 
     /**
@@ -160,7 +166,7 @@ struct alignas (128) BVH4Node {
      * @return first triangle index
      */
     uint32_t getFirstTriangle(const size_t child) const {
-        return children[child] & JTX_BVH4_FIRST_INDEX_MASK;
+        return JTX_BVH4_LEAF_FIRST_TRIANGLE_OFFSET(children[child]);
     }
 };
 

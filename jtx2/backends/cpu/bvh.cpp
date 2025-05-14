@@ -12,7 +12,7 @@ struct BVHBucket {
 void BVH2::build(const jtx::Scene &scene, int maxTrianglesInNode) {
     LOG_INFO(GENERAL, "Building BVH2 for scene: {}", scene.name);
     PROFILE_SCOPE("bvh::build");
-    m_scene = &scene;
+    m_scene              = &scene;
     m_maxTrianglesInNode = maxTrianglesInNode;
     m_triangles          = scene.getTriangles();
 
@@ -161,8 +161,8 @@ BVH2BuildNode *buildTree(std::span<Triangle> triangles, int *totalNodes, int *or
 
 int flattenBVH2(const BVH2BuildNode *node, BVH2Node *nodes, int *offset) {
     BVH2Node *linearNode = &nodes[*offset];
-    linearNode->bbox      = node->bbox;
-    const int nodeOffset  = (*offset)++;
+    linearNode->bbox     = node->bbox;
+    const int nodeOffset = (*offset)++;
 
     if (node->numTriangles > 0) {
         linearNode->trianglesOffset = node->firstTriangleOffset;
@@ -198,7 +198,7 @@ bool BVH2::closestHit(const ray &r, const float t0, float t1, SurfaceIntersectio
                     const auto tri = m_triangles[node->trianglesOffset + i];
                     if (jtx::tClosestHit(*m_scene, tri.triangleIndex, r, t0, t1, isect)) {
                         hitAnything = true;
-                        t1 = isect.t;
+                        t1          = isect.t;
                     }
                 }
 
@@ -209,11 +209,11 @@ bool BVH2::closestHit(const ray &r, const float t0, float t1, SurfaceIntersectio
                 if (sign[node->axis]) {
                     // Process the second child first
                     stack[toVisitOffset++] = currNodeIndex + 1;
-                    currNodeIndex = node->secondChildOffset;
+                    currNodeIndex          = node->secondChildOffset;
                 } else {
                     // Process the first child first
                     stack[toVisitOffset++] = node->secondChildOffset;
-                    currNodeIndex = currNodeIndex + 1;
+                    currNodeIndex          = currNodeIndex + 1;
                 }
             }
         } else {
@@ -240,9 +240,9 @@ BVH2BuildNode *buildTreeForBVH4(std::span<Triangle> triangles, int *totalNodes, 
     const auto writeLeaf = [&] {
         const int firstOffset = *orderedTriangleOffset;
 
-        const int numTriangles = triangles.size();
-        const int remainder = numTriangles % 4;
-        const int padding = (remainder == 0) ? 0 : (4 - remainder);
+        const int numTriangles   = triangles.size();
+        const int remainder      = numTriangles % 4;
+        const int padding        = (remainder == 0) ? 0 : (4 - remainder);
         const int totalTriangles = numTriangles + padding;
 
         // Check if we are about run out of space
@@ -256,9 +256,10 @@ BVH2BuildNode *buildTreeForBVH4(std::span<Triangle> triangles, int *totalNodes, 
             orderedTriangles[firstOffset + i] = triangles[i];
         }
         for (size_t i = numTriangles; i < totalTriangles; i++) {
-            // Add a degenerate triangle
+            // Add a degenerate triangle -- the default constructor of AABB will create a
+            // degenerate bounding box which can't be intersected and won't expand.
             Triangle t{};
-            t.triangleIndex = -1;
+            t.triangleIndex                   = -1;
             orderedTriangles[firstOffset + i] = t;
         }
 
@@ -430,7 +431,7 @@ void BVH4::build(const jtx::Scene &scene) {
 
 
     // TODO: optimize memory for BVH4
-    m_nodes    = new BVH4Node[totalNodes];
+    m_nodes = new BVH4Node[totalNodes];
 
     int offset = 0;
     LOG_DEBUG(GENERAL, "Flattening BVH2 to LBVH4");
@@ -460,7 +461,7 @@ bool BVH4::closestHit(const ray &r, float t0, float t1, SurfaceIntersection &ise
     bool hitAnything = false;
 
     AABB4::RayHitInfo rayHitInfo;
-    rayHitInfo.invDir = 1.0f / r.dir;
+    rayHitInfo.invDir  = 1.0f / r.dir;
     rayHitInfo.sign[0] = rayHitInfo.invDir[0] < 0;
     rayHitInfo.sign[1] = rayHitInfo.invDir[1] < 0;
     rayHitInfo.sign[2] = rayHitInfo.invDir[2] < 0;
@@ -469,8 +470,35 @@ bool BVH4::closestHit(const ray &r, float t0, float t1, SurfaceIntersection &ise
         // Process leaf node
         if (currNodeIndex < 0) {
             if (currNodeIndex != JTX_INT_MIN) {
-                // Process triangles!
-                
+                // Process triangles in batches of 4 (naively)
+                const uint32_t numTriangles        = JTX_BVH4_LEAF_NUM_TRIANGLES(currNodeIndex);
+                const uint32_t firstTriangleOffset = JTX_BVH4_LEAF_FIRST_TRIANGLE_OFFSET(currNodeIndex);
+                for (size_t i = firstTriangleOffset; i < firstTriangleOffset + numTriangles; i += 4) {
+                    vfloat4 v0_x, v0_y, v0_z;
+                    vfloat4 v1_x, v1_y, v1_z;
+                    vfloat4 v2_x, v2_y, v2_z;
+
+                    // Load data into SIMD registers
+                    for (int j = i; j < i + 4; ++j) {
+                        const auto &tri = m_triangles[j];
+                        vec3 v0         = m_scene->positions[tri.triangleIndex];
+                        vec3 v1         = m_scene->positions[tri.triangleIndex + 1];
+                        vec3 v2         = m_scene->positions[tri.triangleIndex + 2];
+
+                        v0_x.v[j] = v0.x;
+                        v0_y.v[j] = v0.y;
+                        v0_z.v[j] = v0.z;
+                        v1_x.v[j] = v1.x;
+                        v1_y.v[j] = v1.y;
+                        v1_z.v[j] = v1.z;
+                        v2_x.v[j] = v2.x;
+                        v2_y.v[j] = v2.y;
+                        v2_z.v[j] = v2.z;
+                    }
+
+                    // Intersection test
+                    
+                }
             }
 
             if (toVisitOffset == 0) break;

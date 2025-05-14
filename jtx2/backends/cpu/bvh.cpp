@@ -207,9 +207,11 @@ bool BVH2::closestHit(const ray &r, const float t0, float t1, SurfaceIntersectio
             } else {
                 // Interior node
                 if (sign[node->axis]) {
+                    // Process the second child first
                     stack[toVisitOffset++] = currNodeIndex + 1;
                     currNodeIndex = node->secondChildOffset;
                 } else {
+                    // Process the first child first
                     stack[toVisitOffset++] = node->secondChildOffset;
                     currNodeIndex = currNodeIndex + 1;
                 }
@@ -464,15 +466,66 @@ bool BVH4::closestHit(const ray &r, float t0, float t1, SurfaceIntersection &ise
     rayHitInfo.sign[2] = rayHitInfo.invDir[2] < 0;
 
     while (true) {
+        // Process leaf node
+        if (currNodeIndex < 0) {
+            if (currNodeIndex != JTX_INT_MIN) {
+                // Process triangles!
+                
+            }
+
+            if (toVisitOffset == 0) break;
+            currNodeIndex = stack[--toVisitOffset];
+        }
+
         const BVH4Node *node = &m_nodes[currNodeIndex];
 
         const auto hitResult = node->bbox.hit(r, rayHitInfo, t0, t1);
         if (hitResult.val > 0) {
+            int order[4] = {0, 1, 2, 3};
             // Now for the tough part, sorting the boxes
             // We want to sort the boxes by the split axes
-            int childOrder[4];
+            if (rayHitInfo.sign[node->axis[0]]) {
+                // (0, 1, 2, 3) -> (2, 3, 0, 1)
+                std::swap(order[0], order[2]);
+                std::swap(order[1], order[3]);
 
+                if (node->axis[1] != -1) {
+                    if (rayHitInfo.sign[node->axis[1]]) {
+                        // (2, 3, 0, 1) -> (3, 2, _, _)
+                        std::swap(order[2], order[3]);
+                    }
+                }
 
+                if (node->axis[2] != -1) {
+                    if (rayHitInfo.sign[node->axis[2]]) {
+                        // (_, _, 0, 1) -> (_, _, 1, 0)
+                        std::swap(order[0], order[1]);
+                    }
+                }
+            } else {
+                if (node->axis[1] != -1) {
+                    // (0, 1, _, _) -> (1, 0, _, _)
+                    if (rayHitInfo.sign[node->axis[1]]) {
+                        std::swap(order[0], order[1]);
+                    }
+                }
+
+                if (node->axis[2] != -1) {
+                    // (_, _, 2, 3) -> (_, _, 3, 2)
+                    if (rayHitInfo.sign[node->axis[2]]) {
+                        std::swap(order[2], order[3]);
+                    }
+                }
+            }
+
+            // Push the children to the stack
+            for (int i = 0; i < 4; ++i) {
+                const int child = order[i];
+                if (hitResult.bHit[order[child]]) {
+                    stack[toVisitOffset++] = node->children[child];
+                }
+            }
+            currNodeIndex = stack[--toVisitOffset];
         } else {
             if (toVisitOffset == 0) break;
             currNodeIndex = stack[--toVisitOffset];

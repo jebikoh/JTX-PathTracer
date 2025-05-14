@@ -5,17 +5,17 @@
 using namespace jtx;
 
 static constexpr size_t NUM_RAYS  = 1 << 18;
-static constexpr size_t NUM_BOXES = 1 << 14; // This MUST be a multiple of 4
+static constexpr size_t NUM_BOXES = 1 << 14;// This MUST be a multiple of 4
 static constexpr uint32_t SEED    = 1234567;
 
 class AABBFixture : public benchmark::Fixture {
 public:
     void SetUp(::benchmark::State &state) override {
-        rays   = new ray[NUM_RAYS];
+        rays    = new ray[NUM_RAYS];
         rayInfo = new AABB4::RayHitInfo[NUM_RAYS];
-        boxes  = new AABB[NUM_BOXES];
-        boxes4 = new AABB4[NUM_BOXES / 4];
-        rng    = RNG(SEED);
+        boxes   = new AABB[NUM_BOXES];
+        boxes4  = new AABB4[NUM_BOXES / 4];
+        rng     = RNG(SEED);
 
         // Setup rays
         for (int i = 0; i < NUM_RAYS; ++i) {
@@ -23,7 +23,7 @@ public:
             rays[i].dir  = rng.unitVector();
             rays[i].time = 0.0f;
 
-            rayInfo[i].invDir = 1.0f / rays[i].dir;
+            rayInfo[i].invDir  = 1.0f / rays[i].dir;
             rayInfo[i].sign[0] = rayInfo[i].invDir[0] < 0;
             rayInfo[i].sign[1] = rayInfo[i].invDir[1] < 0;
             rayInfo[i].sign[2] = rayInfo[i].invDir[2] < 0;
@@ -41,7 +41,7 @@ public:
         for (int i = 0; i < NUM_BOXES / 4; i += 4) {
             const size_t j = i * 4;
 
-            AABB4 &bbox4 = boxes4[i];
+            AABB4 &bbox4       = boxes4[i];
             bbox4.pmin[0].v[0] = boxes[j + 0].pmin.x;
             bbox4.pmin[0].v[1] = boxes[j + 1].pmin.x;
             bbox4.pmin[0].v[2] = boxes[j + 2].pmin.x;
@@ -89,10 +89,10 @@ public:
 };
 
 BENCHMARK_DEFINE_F(AABBFixture, SingleAABB)(benchmark::State &st) {
-    for (auto _ : st) {
+    for (auto _: st) {
         size_t hits = 0;
         for (size_t i = 0; i < NUM_RAYS; ++i) {
-            const auto &r = rays[i];
+            const auto &r      = rays[i];
             const auto &invDir = rayInfo[i].invDir;
             for (size_t j = 0; j < NUM_BOXES; ++j) {
                 const auto res = boxes[j].hit(r, invDir, 0.0f, JTX_INFINITY_F);
@@ -106,10 +106,10 @@ BENCHMARK_DEFINE_F(AABBFixture, SingleAABB)(benchmark::State &st) {
 BENCHMARK_REGISTER_F(AABBFixture, SingleAABB)->Unit(benchmark::kMillisecond);
 
 BENCHMARK_DEFINE_F(AABBFixture, GroupAABB4)(benchmark::State &st) {
-    for (auto _ : st) {
+    for (auto _: st) {
         size_t hits = 0;
         for (size_t i = 0; i < NUM_RAYS; ++i) {
-            const auto &r = rays[i];
+            const auto &r    = rays[i];
             const auto &info = rayInfo[i];
             for (size_t j = 0; j < NUM_BOXES / 4; ++j) {
                 const auto res = boxes4[j].hit(r, info, 0.0f, JTX_INFINITY_F);

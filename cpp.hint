@@ -1,0 +1,6 @@
+// Hint files help the Visual Studio IDE interpret Visual C++ identifiers
+// such as names of functions and macros.
+// For more information see https://go.microsoft.com/fwlink/?linkid=865984
+#define JTX_FORCE_INLINE [[gnu::always_inline]] [[gnu::gnu_inline]] extern inline
+#define JTX_FORCE_INLINE [[gnu::always_inline]] inline
+#define JTX_FORCE_INLINE

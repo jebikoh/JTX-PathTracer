@@ -21,7 +21,7 @@ struct SurfaceIntersection {
  * @param isect intersection information, will be populated if ray intersects triangle
  * @return true if ray intersects triangle, false otherwise
  */
-inline bool tClosestHit(const Scene &scene, const int index, const ray &r, float t0, float t1, SurfaceIntersection &isect) {
+JTX_FORCE_INLINE bool tClosestHit(const Scene &scene, const int index, const ray &r, float t0, float t1, SurfaceIntersection &isect) {
     const vec3u tri = scene.indices[index];
     vec3 v0         = scene.positions[tri.x];
     vec3 v1         = scene.positions[tri.y];
@@ -40,7 +40,7 @@ inline bool tClosestHit(const Scene &scene, const int index, const ray &r, float
     const float b1 = tvec.dot(pvec) * invDet;
     if (b1 < 0 || b1 > 1) return false;
 
-    const vec3 qvec = tvec.cross(v0v1);
+    const vec3 qvec = jtx::cross(tvec, v0v1);
     const float b2               = r.dir.dot(qvec) * invDet;
     if (b2 < 0 || b1 + b2 > 1) return false;
 

@@ -103,7 +103,7 @@ BENCHMARK_DEFINE_F(AABBFixture, SingleAABB)(benchmark::State &st) {
     }
     st.SetItemsProcessed(st.iterations() * NUM_RAYS * NUM_BOXES);
 }
-BENCHMARK_REGISTER_F(AABBFixture, SingleAABB)->Unit(benchmark::kMillisecond);
+BENCHMARK_REGISTER_F(AABBFixture, SingleAABB)->Unit(benchmark::kMillisecond)->MinWarmUpTime(1);
 
 BENCHMARK_DEFINE_F(AABBFixture, GroupAABB4)(benchmark::State &st) {
     for (auto _: st) {
@@ -120,6 +120,6 @@ BENCHMARK_DEFINE_F(AABBFixture, GroupAABB4)(benchmark::State &st) {
     }
     st.SetItemsProcessed(st.iterations() * NUM_RAYS * NUM_BOXES);
 }
-BENCHMARK_REGISTER_F(AABBFixture, GroupAABB4)->Unit(benchmark::kMillisecond);
+BENCHMARK_REGISTER_F(AABBFixture, GroupAABB4)->Unit(benchmark::kMillisecond)->MinWarmUpTime(1);
 
 BENCHMARK_MAIN();

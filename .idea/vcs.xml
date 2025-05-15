@@ -2,6 +2,7 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/build/_deps/fmt-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-benchmark/_deps/benchmark-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-benchmark/_deps/fmt-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-debug/_deps/fmt-src" vcs="Git" />
@@ -16,5 +17,10 @@
     <mapping directory="$PROJECT_DIR$/ext/vkbootstrap" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/vma" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/volk" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/out/build/x64-Benchmark/_deps/benchmark-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/out/build/x64-Benchmark/_deps/fmt-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/out/build/x64-Debug/_deps/fmt-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/out/build/x64-Release/_deps/fmt-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/out/build/x64-Test/_deps/fmt-src" vcs="Git" />
   </component>
 </project>

@@ -291,38 +291,42 @@ target_link_libraries(JTX PRIVATE JTXCore)
 # ──────────────────────────────────────────────────────────────────────────────
 #  Post-build
 # ──────────────────────────────────────────────────────────────────────────────
-# Embree DLLs for Windows ──────────────────────────────────────────────────────
-if (JTX_USE_EMBREE AND embree_FOUND AND WIN32)
-    set(EMBREE_BIN_DIR "${CMAKE_SOURCE_DIR}/ext/embree4/bin")
-    if (EXISTS "${EMBREE_BIN_DIR}" AND WIN32)
-        set(EMBREE_DLLS
-                embree4.dll
-                tbb12.dll
-                tbbmalloc.dll
-        )
+function(jtx_post_build target)
+    # Embree DLLs for Windows ──────────────────────────────────────────────────────
+    if (JTX_USE_EMBREE AND embree_FOUND AND WIN32)
+        set(EMBREE_BIN_DIR "${CMAKE_SOURCE_DIR}/ext/embree4/bin")
+        if (EXISTS "${EMBREE_BIN_DIR}" AND WIN32)
+            set(EMBREE_DLLS
+                    embree4.dll
+                    tbb12.dll
+                    tbbmalloc.dll
+            )
 
-        foreach (DLL_NAME ${EMBREE_DLLS})
-            set(SOURCE_DLL "${EMBREE_BIN_DIR}/${DLL_NAME}")
-            if (EXISTS "${SOURCE_DLL}")
-                add_custom_command(TARGET JTX POST_BUILD
-                        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                        "${SOURCE_DLL}"
-                        $<TARGET_FILE_DIR:JTX>
-                        COMMENT "[JTX] Copying ${DLL_NAME} to output directory"
-                )
-            else ()
-                message(WARNING "[JTX] DLL not found for copying: ${SOURCE_DLL}")
-            endif ()
-        endforeach ()
+            foreach (DLL_NAME ${EMBREE_DLLS})
+                set(SOURCE_DLL "${EMBREE_BIN_DIR}/${DLL_NAME}")
+                if (EXISTS "${SOURCE_DLL}")
+                    add_custom_command(TARGET ${target} POST_BUILD
+                            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                            "${SOURCE_DLL}"
+                            $<TARGET_FILE_DIR:${target}>
+                            COMMENT "[JTX] Copying ${DLL_NAME} to output directory"
+                    )
+                else ()
+                    message(WARNING "[JTX] DLL not found for copying: ${SOURCE_DLL}")
+                endif ()
+            endforeach ()
+        endif ()
     endif ()
-endif ()
-# Copy assets post‑build ───────────────────────────────────────────────────────
-add_custom_command(TARGET JTX POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/jtx2/assets
-        $<TARGET_FILE_DIR:JTX>/assets
-        COMMENT "[JTX] Copying assets directory to output folder"
-)
+
+    # Copy assets post‑build ───────────────────────────────────────────────────────
+    add_custom_command(TARGET ${target} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/jtx2/assets
+            $<TARGET_FILE_DIR:${target}>/assets
+            COMMENT "[JTX] Copying assets directory to output folder"
+    )
+endfunction()
+jtx_post_build(JTX)
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  Unit tests
@@ -336,6 +340,7 @@ if (JTX_BUILD_TESTS)
 
     add_executable(JTXTests ${JTX_TEST_SOURCES})
     target_link_libraries(JTXTests PRIVATE JTXCore GTest::gtest_main)
+    jtx_post_build(JTXTests)
     include(GoogleTest)
     gtest_discover_tests(JTXTests)
 endif()
@@ -350,6 +355,7 @@ if (JTX_BUILD_BENCHMARKS)
         target_link_libraries(${BENCH_NAME} PRIVATE
                 JTXCore
                 benchmark::benchmark benchmark::benchmark_main)
+        jtx_post_build(${BENCH_NAME})
     endfunction()
     set(BENCH_SRC
             jtx2/benchmarks/aabb_bm.cpp

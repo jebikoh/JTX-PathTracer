@@ -74,6 +74,11 @@
           "name": "JTX_ENABLE_PERF_FLAGS",
           "value": "False",
           "type": "BOOL"
+        },
+        {
+          "name": "JTX_BUILD_TESTS",
+          "value": "True",
+          "type": "BOOL"
         }
       ]
     }

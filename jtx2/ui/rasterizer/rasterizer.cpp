@@ -167,7 +167,7 @@ void Rasterizer::loadScene() {
     // Calculate non-interleaved buffer sizes
     const size_t positionBufferSize = scene->positions.size() * sizeof(vec3);
     const size_t normalBufferSize   = scene->normals.size() * sizeof(vec3);
-    const size_t uvBufferSize       = scene->uvs.size() * sizeof(vec2);
+    const size_t uvBufferSize       = scene->texCoords.size() * sizeof(vec2);
     const size_t colorBufferSize    = scene->colors.size() * sizeof(vec3);
     const size_t indexBufferSize    = scene->indices.size() * sizeof(vec3u);
     const size_t totalSize          = positionBufferSize + normalBufferSize + uvBufferSize + colorBufferSize + indexBufferSize;
@@ -224,7 +224,7 @@ void Rasterizer::loadScene() {
     offset += positionBufferSize;
     memcpy(static_cast<char *>(data) + offset, scene->normals.data(), normalBufferSize);
     offset += normalBufferSize;
-    memcpy(static_cast<char *>(data) + offset, scene->uvs.data(), uvBufferSize);
+    memcpy(static_cast<char *>(data) + offset, scene->texCoords.data(), uvBufferSize);
     offset += uvBufferSize;
     if (bSceneHasVertexColors) {
         memcpy(static_cast<char *>(data) + offset, scene->colors.data(), colorBufferSize);

@@ -181,7 +181,9 @@ bool BVH2::closestHit(const ray &r, const float t0, float t1, SurfaceIntersectio
     int toVisitOffset = 0;
     int currNodeIndex = 0;
     int stack[64];
-    bool hitAnything = false;
+
+    bool bHitAnything = false;
+    //int closestHitIndex = -1; // V2
 
     const auto invDir = 1.0f / r.dir;
     int sign[3];
@@ -197,8 +199,9 @@ bool BVH2::closestHit(const ray &r, const float t0, float t1, SurfaceIntersectio
                 for (int i = 0; i < node->numTriangles; ++i) {
                     const auto tri = m_triangles[node->trianglesOffset + i];
                     if (jtx::tClosestHit(*m_scene, tri.triangleIndex, r, t0, t1, isect)) {
-                        hitAnything = true;
+                        bHitAnything = true;
                         t1          = isect.t;
+                        //closestHitIndex = tri.triangleIndex; // V2
                     }
                 }
 
@@ -222,8 +225,22 @@ bool BVH2::closestHit(const ray &r, const float t0, float t1, SurfaceIntersectio
         }
     }
 
-    return hitAnything;
+    // V2
+     //if (bHitAnything) {
+     //    // Interpolate vertex attributes
+     //     isect.point   = r.at(isect.t);
+     //     const float w = 1 - isect.uv.x - isect.uv.y;
+    
+     //     const vec3u tri = m_scene->indices[closestHitIndex];
+     //     const vec3 n    = w * m_scene->normals[tri.x] + isect.uv.x * m_scene->normals[tri.y] + isect.uv.y * m_scene->normals[tri.z];
+     //     isect.normal    = r.dir.dot(n) < 0 ? n : -n;
+     //     isect.texCoords = w * m_scene->texCoords[tri.x] + isect.uv.x * m_scene->texCoords[tri.y] + isect.uv.y * m_scene->texCoords[tri.z];
+     //}
+
+    return bHitAnything;
 }
+
+#pragma region BVH4
 
 BVH2BuildNode *buildTreeForBVH4(std::span<Triangle> triangles, int *totalNodes, int *orderedTriangleOffset, std::vector<Triangle> &orderedTriangles) {
     // This is a slightly modified version of buildTree() that adds padding to ensure that the number
@@ -655,5 +672,7 @@ bool BVH4::closestHit(const ray &r, float t0, float t1, SurfaceIntersection &ise
 
     return hitAnything;
 }
+
+#pragma endregion
 
 }// namespace jtx

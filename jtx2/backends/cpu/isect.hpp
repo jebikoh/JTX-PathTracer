@@ -7,6 +7,7 @@ namespace jtx {
 struct SurfaceIntersection {
     vec3 point;
     vec3 normal;
+    vec2 texCoords;
     vec2 uv;
     float t;
 };
@@ -21,7 +22,7 @@ struct SurfaceIntersection {
  * @param isect intersection information, will be populated if ray intersects triangle
  * @return true if ray intersects triangle, false otherwise
  */
-JTX_FORCE_INLINE bool tClosestHit(const Scene &scene, const int index, const ray &r, float t0, float t1, SurfaceIntersection &isect) {
+inline bool tClosestHit(const Scene &scene, const int index, const ray &r, float t0, float t1, SurfaceIntersection &isect) {
     const vec3u tri = scene.indices[index];
     vec3 v0         = scene.positions[tri.x];
     vec3 v1         = scene.positions[tri.y];
@@ -48,20 +49,19 @@ JTX_FORCE_INLINE bool tClosestHit(const Scene &scene, const int index, const ray
     if (!(t0 < root && root < t1)) return false;
 
     isect.t = root;
+
+    // Experiment
+     //isect.uv = vec2(b1, b2); // V2
+
+    // V1
     isect.point = r.at(root);
 
-    float b0 = (1 - b1 - b2);
+    float b0 = 1 - b1 - b2;
 
-    vec3 n0 = scene.normals[tri.x];
-    vec3 n1 = scene.normals[tri.y];
-    vec3 n2 = scene.normals[tri.z];
-    vec3 n = b0 * n0 + b1 * n1 + b2 * n2;
+    vec3 n = b0 * scene.normals[tri.x] + b1 * scene.normals[tri.y] + b2 * scene.normals[tri.z];
     isect.normal = r.dir.dot(n) < 0 ? n : -n;
 
-    vec2 uv0 = scene.uvs[tri.x];
-    vec2 uv1 = scene.uvs[tri.y];
-    vec2 uv2 = scene.uvs[tri.z];
-    isect.uv = uv0 * b0 + uv1 * b1 + uv2 * b2;
+    isect.texCoords = scene.texCoords[tri.x] * b0 + scene.texCoords[tri.y] * b1 + scene.texCoords[tri.z] * b2;
 
     return true;
 }

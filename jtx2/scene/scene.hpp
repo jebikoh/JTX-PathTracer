@@ -50,7 +50,7 @@ struct Scene {
     // Vertex data
     std::vector<vec3> positions;
     std::vector<vec3> normals;
-    std::vector<vec2> uvs;
+    std::vector<vec2> texCoords;
     std::vector<vec3> colors;
 
     // Materials & textures

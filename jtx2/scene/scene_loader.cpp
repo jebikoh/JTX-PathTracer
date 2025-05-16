@@ -146,14 +146,14 @@ JtxResult jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &sc
             // UVs
             {
                 if (i0.texcoord_index < 0 || i1.texcoord_index < 0 || i2.texcoord_index < 0) {
-                    scene.uvs.emplace_back(0, 0);
-                    scene.uvs.emplace_back(0, 0);
-                    scene.uvs.emplace_back(0, 0);
+                    scene.texCoords.emplace_back(0, 0);
+                    scene.texCoords.emplace_back(0, 0);
+                    scene.texCoords.emplace_back(0, 0);
                 } else {
                     // V coordinates are flipped in OBJ files
-                    scene.uvs.emplace_back(uvs[i0.texcoord_index * 2 + 0], 1-uvs[i0.texcoord_index * 2 + 1]);
-                    scene.uvs.emplace_back(uvs[i1.texcoord_index * 2 + 0], 1-uvs[i1.texcoord_index * 2 + 1]);
-                    scene.uvs.emplace_back(uvs[i2.texcoord_index * 2 + 0], 1-uvs[i2.texcoord_index * 2 + 1]);
+                    scene.texCoords.emplace_back(uvs[i0.texcoord_index * 2 + 0], 1-uvs[i0.texcoord_index * 2 + 1]);
+                    scene.texCoords.emplace_back(uvs[i1.texcoord_index * 2 + 0], 1-uvs[i1.texcoord_index * 2 + 1]);
+                    scene.texCoords.emplace_back(uvs[i2.texcoord_index * 2 + 0], 1-uvs[i2.texcoord_index * 2 + 1]);
                 }
             }
 

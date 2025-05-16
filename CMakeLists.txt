@@ -359,6 +359,7 @@ if (JTX_BUILD_BENCHMARKS)
     endfunction()
     set(BENCH_SRC
             jtx2/benchmarks/aabb_bm.cpp
+            jtx2/benchmarks/bvh_bm.cpp
     )
     foreach(src ${BENCH_SRC})
         get_filename_component(bname ${src} NAME_WE)

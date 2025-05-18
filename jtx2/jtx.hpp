@@ -50,3 +50,5 @@ enum JtxResult {
     JTX_ERROR_FILE_LOADING           = -3,// Error while loading file
     JTX_ERROR_FILE_INVALID_DATA      = -4,// File data is invalid
 };
+
+// #define JTX_BVH2_DEFER_INTERPOLATION

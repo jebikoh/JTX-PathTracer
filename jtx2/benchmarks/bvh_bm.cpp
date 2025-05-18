@@ -34,13 +34,18 @@ public:
 };
 
 BENCHMARK_DEFINE_F(BVHFixture, BVHTraversal)(benchmark::State& st) {
+#ifdef JTX_BVH2_DEFER_INTERPOLATION
+    LOG_INFO(GENERAL, "Using deferred shading mode");
+#else
+    LOG_INFO(GENERAL, "Using forward shading mode");
+#endif
     for (auto _ : st) {
         size_t x = 0;
         for (int i = 0; i < NUM_RAYS; ++i) {
             const auto &r = m_rays[i];
-            SurfaceIntersection isect;
+            TriangleIntersection isect;
             if (m_bvh.closestHit(r, 0, JTX_INFINITY_F, isect)) {
-                x += isect.texCoords.x;
+                x += isect.u;
             }
         }
         benchmark::DoNotOptimize(x);

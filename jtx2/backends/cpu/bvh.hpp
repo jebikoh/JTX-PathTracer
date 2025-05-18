@@ -68,7 +68,7 @@ public:
     void build(const jtx::Scene &scene, int maxTrianglesInNode = 1);
     void destroy();
 
-    bool closestHit(const ray &r, float t0, float t1, SurfaceIntersection &isect) const;
+    bool closestHit(const ray &r, float t0, float t1, TriangleIntersection &isect) const;
     bool anyHit(const ray &r, float t0, float t1);
 
 private:
@@ -177,7 +177,7 @@ public:
     void build(const jtx::Scene &scene);
     void destroy();
 
-    bool closestHit(const ray &r, float t0, float t1, SurfaceIntersection &isect) const;
+    bool closestHit(const ray &r, float t0, float t1, TriangleIntersection &isect) const;
     bool anyHit(const ray &r, float t0, float t1);
 
 private:

@@ -176,14 +176,12 @@ int flattenBVH2(const BVH2BuildNode *node, BVH2Node *nodes, int *offset) {
     return nodeOffset;
 }
 
-bool BVH2::closestHit(const ray &r, const float t0, float t1, SurfaceIntersection &isect) const {
+bool BVH2::closestHit(const ray &r, const float t0, float t1, TriangleIntersection &isect) const {
     // PROFILE_SCOPE("BVH2::closestHit");
     int toVisitOffset = 0;
     int currNodeIndex = 0;
     int stack[64];
-
     bool bHitAnything = false;
-    //int closestHitIndex = -1; // V2
 
     const auto invDir = 1.0f / r.dir;
     int sign[3];
@@ -198,10 +196,9 @@ bool BVH2::closestHit(const ray &r, const float t0, float t1, SurfaceIntersectio
                 // Leaf node
                 for (int i = 0; i < node->numTriangles; ++i) {
                     const auto tri = m_triangles[node->trianglesOffset + i];
-                    if (jtx::tClosestHit(*m_scene, tri.triangleIndex, r, t0, t1, isect)) {
+                    if (jtx::triangleHit(*m_scene, tri.triangleIndex, r, t0, t1, isect)) {
                         bHitAnything = true;
                         t1          = isect.t;
-                        //closestHitIndex = tri.triangleIndex; // V2
                     }
                 }
 
@@ -224,18 +221,6 @@ bool BVH2::closestHit(const ray &r, const float t0, float t1, SurfaceIntersectio
             currNodeIndex = stack[--toVisitOffset];
         }
     }
-
-    // V2
-     //if (bHitAnything) {
-     //    // Interpolate vertex attributes
-     //     isect.point   = r.at(isect.t);
-     //     const float w = 1 - isect.uv.x - isect.uv.y;
-    
-     //     const vec3u tri = m_scene->indices[closestHitIndex];
-     //     const vec3 n    = w * m_scene->normals[tri.x] + isect.uv.x * m_scene->normals[tri.y] + isect.uv.y * m_scene->normals[tri.z];
-     //     isect.normal    = r.dir.dot(n) < 0 ? n : -n;
-     //     isect.texCoords = w * m_scene->texCoords[tri.x] + isect.uv.x * m_scene->texCoords[tri.y] + isect.uv.y * m_scene->texCoords[tri.z];
-     //}
 
     return bHitAnything;
 }
@@ -471,7 +456,7 @@ void BVH4::destroy() {
     LOG_INFO(GENERAL, "Destroyed BVH4");
 }
 
-bool BVH4::closestHit(const ray &r, float t0, float t1, SurfaceIntersection &isect) const {
+bool BVH4::closestHit(const ray &r, float t0, float t1, TriangleIntersection &isect) const {
     int toVisitOffset = 0;
     int currNodeIndex = 0;
     int stack[64];

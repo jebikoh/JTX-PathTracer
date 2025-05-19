@@ -198,7 +198,7 @@ bool BVH2::closestHit(const ray &r, const float t0, float t1, TriangleIntersecti
                     const auto tri = m_triangles[node->trianglesOffset + i];
                     if (jtx::triangleHit(*m_scene, tri.triangleIndex, r, t0, t1, isect)) {
                         bHitAnything = true;
-                        t1          = isect.t;
+                        t1           = isect.t;
                     }
                 }
 
@@ -505,8 +505,10 @@ bool BVH4::closestHit(const ray &r, float t0, float t1, TriangleIntersection &is
 #ifdef JTX_SIMD_X86_SSE4_2
                     __m128 EPSILON     = _mm_set1_ps(1e-8);
                     __m128 NEG_EPSILON = _mm_set1_ps(-1e-8);
+                    __m128 NEG_ONE     = _mm_set1_ps(-1.0f);
                     __m128 ONE         = _mm_set1_ps(1.0f);
                     __m128 ZERO        = _mm_setzero_ps();
+                    __m128 INFINITY_4  = _mm_set1_ps(JTX_INFINITY_F);
 
                     __m128 v0x = _mm_load_ps(v0_x.v);
                     __m128 v0y = _mm_load_ps(v0_y.v);
@@ -546,7 +548,7 @@ bool BVH4::closestHit(const ray &r, float t0, float t1, TriangleIntersection &is
                     __m128 det = JTX_SIMD_DOT(crossX, crossY, crossZ, v0v1x, v0v1y, v0v1z);
                     // This should be inverse of the scalar early-out test
                     // If det <= -1e-8 || det >= 1e-8, we want to return 1
-                    __m128 detMask = _mm_or_ps(_mm_cmple_ps(det, _mm_set1_ps(-1e-8f)), _mm_cmpge_ps(det, _mm_set1_ps(1e-8f)));
+                    __m128 detMask = _mm_or_ps(_mm_cmple_ps(det, NEG_EPSILON), _mm_cmpge_ps(det, EPSILON));
                     __m128 invDet  = _mm_rcp_ps(det);
 
                     __m128 rx = _mm_sub_ps(ox, v0x);
@@ -555,7 +557,7 @@ bool BVH4::closestHit(const ray &r, float t0, float t1, TriangleIntersection &is
 
                     // Barycentric U
                     __m128 b1     = JTX_SIMD_DOT(rx, ry, rz, crossX, crossY, crossZ);
-                    __m128 b1Mask = _mm_and_ps(_mm_cmpge_ps(b1, _mm_setzero_ps()), _mm_cmple_ps(b1, _mm_set1_ps(1.0f)));
+                    __m128 b1Mask = _mm_and_ps(_mm_cmpge_ps(b1, ZERO), _mm_cmple_ps(b1, ONE));
 
                     __m128 qx = _mm_sub_ps(_mm_mul_ps(ry, v0v1z), _mm_mul_ps(rz, v0v1y));
                     __m128 qy = _mm_sub_ps(_mm_mul_ps(rz, v0v1x), _mm_mul_ps(rx, v0v1z));
@@ -563,7 +565,7 @@ bool BVH4::closestHit(const ray &r, float t0, float t1, TriangleIntersection &is
 
                     // Barycentric V
                     __m128 b2     = _mm_mul_ps(JTX_SIMD_DOT(dx, dy, dz, qx, qy, qz), invDet);
-                    __m128 b2Mask = _mm_and_ps(_mm_cmpge_ps(b2, _mm_setzero_ps()), _mm_cmple_ps(b2, _mm_set1_ps(1.0f)));
+                    __m128 b2Mask = _mm_and_ps(_mm_cmpge_ps(b2, ZERO), _mm_cmple_ps(b2, ONE));
 
                     // Calculate root
                     __m128 root     = _mm_mul_ps(JTX_SIMD_DOT(v0v2x, v0v2y, v0v2z, qx, qy, qz), invDet);
@@ -572,25 +574,12 @@ bool BVH4::closestHit(const ray &r, float t0, float t1, TriangleIntersection &is
                     __m128 mask = _mm_and_ps(_mm_and_ps(detMask, b1Mask), _mm_and_ps(b2Mask, rootMask));
 
                     // Get results for t, u, v
-                    __m128 t4 = _mm_set1_ps(-1.0f);
-                    __m128 u4 = _mm_set1_ps(-1.0f);
-                    __m128 v4 = _mm_set1_ps(-1.0f);
-
-                    t4 = _mm_blendv_ps(t4, root, mask);
-                    u4 = _mm_blendv_ps(u4, b1, mask);
-                    v4 = _mm_blendv_ps(v4, b2, mask);
-
-                    float t[4];
-                    _mm_store_ps(t, t4);
-
-                    // Find the closest hit (if any)
-                    int closestHitIndex = -1;
-                    float closestHit    = JTX_INFINITY_F;
-                    for (int k = 0; k < 4; ++k) {
-                        if (t[k] > 0.0f && t[k] < closestHit) {
-                            closestHit      = t[k];
-                            closestHitIndex = k;
-                        }
+                    if (_mm_movemask_ps(mask)) {
+                        __m128 t       = _mm_blendv_ps(INFINITY_4, root, mask);
+                        __m128 shuffle = _mm_shuffle_ps(t, t, _MM_SHUFFLE(2, 3, 0, 1));
+                        __m128 m1      = _mm_min_ps(t, shuffle);
+                        shuffle        = _mm_shuffle_ps(m1, m1, _MM_SHUFFLE(1, 0, 3, 2));
+                        m1             = _mm_min_ps(m1, shuffle);
                     }
 #endif
                 }
@@ -657,6 +646,81 @@ bool BVH4::closestHit(const ray &r, float t0, float t1, TriangleIntersection &is
 
     return hitAnything;
 }
+#pragma endregion
+
+#pragma region Embree
+
+void BVHEmbree::build(const jtx::Scene &scene) {
+    LOG_INFO(GENERAL, "Building Embree BVH for scene: {}", scene.name);
+    m_device = rtcNewDevice(nullptr);
+    m_scene  = rtcNewScene(m_device);
+
+    const RTCGeometry rtcGeom = rtcNewGeometry(m_device, RTC_GEOMETRY_TYPE_TRIANGLE);
+
+    const auto vertexBuffer = static_cast<float *>(rtcSetNewGeometryBuffer(rtcGeom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(vec3), scene.positions.size()));
+    memcpy(vertexBuffer, scene.positions.data(), sizeof(vec3) * scene.positions.size());
+
+    const auto indexBuffer = static_cast<unsigned *>(rtcSetNewGeometryBuffer(rtcGeom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(vec3u), scene.indices.size()));
+    memcpy(indexBuffer, scene.indices.data(), sizeof(vec3u) * scene.indices.size());
+
+    rtcCommitGeometry(rtcGeom);
+    rtcAttachGeometry(m_scene, rtcGeom);
+    rtcReleaseGeometry(rtcGeom);
+    rtcCommitScene(m_scene);
+    LOG_INFO(GENERAL, "Embree BVH constructed");
+}
+
+void BVHEmbree::destroy() const {
+    LOG_INFO(GENERAL, "Destroying Embree BVH");
+    rtcReleaseScene(m_scene);
+    rtcReleaseDevice(m_device);
+    LOG_INFO(GENERAL, "Destroyed Embree BVH");
+}
+
+bool BVHEmbree::closestHit(const ray &r, const float t0, const float t1, TriangleIntersection &isect) const {
+    RTCRayHit rayHit{};
+    rayHit.ray.org_x     = r.origin.x;
+    rayHit.ray.org_y     = r.origin.y;
+    rayHit.ray.org_z     = r.origin.z;
+    rayHit.ray.dir_x     = r.dir.x;
+    rayHit.ray.dir_y     = r.dir.y;
+    rayHit.ray.dir_z     = r.dir.z;
+    rayHit.ray.tnear     = t0;
+    rayHit.ray.tfar      = t1;
+    rayHit.ray.mask      = -1;
+    rayHit.ray.flags     = 0;
+    rayHit.hit.geomID    = RTC_INVALID_GEOMETRY_ID;
+    rayHit.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
+
+    rtcIntersect1(m_scene, &rayHit);
+
+    if (rayHit.hit.geomID == RTC_INVALID_GEOMETRY_ID) return false;
+
+    isect.t     = rayHit.ray.tfar;
+    isect.u     = rayHit.hit.u;
+    isect.v     = rayHit.hit.v;
+    isect.index = rayHit.hit.primID;
+
+    return true;
+}
+
+bool BVHEmbree::anyHit(const ray &r, const float t0, const float t1) const {
+    RTCRay ray{};
+    ray.org_x     = r.origin.x;
+    ray.org_y     = r.origin.y;
+    ray.org_z     = r.origin.z;
+    ray.dir_x     = r.dir.x;
+    ray.dir_y     = r.dir.y;
+    ray.dir_z     = r.dir.z;
+    ray.tnear     = t0;
+    ray.tfar      = t1;
+    ray.mask      = -1;
+    ray.flags     = 0;
+
+    rtcOccluded1(m_scene, &ray);
+    return ray.tfar < t1;
+}
+
 
 #pragma endregion
 

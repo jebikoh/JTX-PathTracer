@@ -7,6 +7,10 @@
 
 #include <scene/scene.hpp>
 
+#ifdef JTX_USE_EMBREE
+#include <embree4/rtcore.h>
+#endif
+
 namespace jtx {
 
 struct Triangle;
@@ -185,5 +189,20 @@ private:
     BVH4Node *m_nodes   = nullptr;
     const Scene *m_scene = nullptr;
 };
+
+#ifdef JTX_USE_EMBREE
+class BVHEmbree {
+public:
+    void build(const jtx::Scene &scene);
+    void destroy() const;
+
+    bool closestHit(const ray &r, float t0, float t1, TriangleIntersection &isect) const;
+    bool anyHit(const ray &r, float t0, float t1) const;
+
+private:
+    RTCDevice m_device{};
+    RTCScene m_scene{};
+};
+#endif
 
 }// namespace jtx

@@ -38,7 +38,6 @@ using Transform = jtx::Transform;
 
 // Constants
 constexpr int JTX_MAX_FRAMES_IN_FLIGHT = 2;
-constexpr float TWO_PI = jtx::JTX_PI_F * 2.0f;
 
 const vec3 JTX_VEC3_ORIGIN = { 0.0f, 0.0f, 0.0f };
 
@@ -50,3 +49,10 @@ enum JtxResult {
     JTX_ERROR_FILE_LOADING           = -3,// Error while loading file
     JTX_ERROR_FILE_INVALID_DATA      = -4,// File data is invalid
 };
+
+constexpr float PI_OVER_4 = jtx::JTX_PI_F / 4;
+constexpr float PI_OVER_2 = jtx::JTX_PI_F / 2;
+constexpr float INV_TWO_PI = 1.0f / (2.0f * jtx::JTX_PI_F);
+constexpr float TWO_PI = 2.0F * jtx::JTX_PI_F;
+constexpr float INV_PI = 1.0f / jtx::JTX_PI_F;
+constexpr float INV_4_PI = 1.0f / (4.0f * jtx::JTX_PI_F);

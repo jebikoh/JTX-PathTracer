@@ -1,5 +1,4 @@
 #pragma once
-
 #include <util/rand.hpp>
 
 namespace jtx {
@@ -98,10 +97,17 @@ public:
     vec3 onHemisphere(const vec3 &n);
 
     /**
-     * Uniformly samples a point on a unit disc
+     * Samples a point on a unit disc via rejection sampling
      * @return point on unit disc
      */
-    vec3 onUnitDisc();
+    vec2 onUnitDisc();
+
+    /**
+     * Uniformly samples a point on a unit disc via concentric mapping.
+     * Marginally slower than rejection sampling
+     * @return uniform point on unit disc
+     */
+    vec2 onUnitDiscConcentric();
 
     /**
      * Uniformly samples a point on a unit sphere
@@ -167,11 +173,28 @@ inline vec3 RNG::onHemisphere(const vec3 &n) {
     return jtx::dot(p, n) > 0 ? p : -p;
 }
 
-inline vec3 RNG::onUnitDisc() {
+inline vec2 RNG::onUnitDisc() {
     while (true) {
-        auto p = vec3(range<float>(-1, 1), range<float>(-1, 1), 0);
+        auto p = vec2(range<float>(-1, 1), range<float>(-1, 1));
         if (p.lenSqr() < 1) return p;
     }
+}
+
+// https://pbr-book.org/3ed-2018/Monte_Carlo_Integration/2D_Sampling_with_Multidimensional_Transformations#ConcentricSampleDisk
+inline vec2 RNG::onUnitDiscConcentric() {
+    const vec2 u = 2.0f * uniform<vec2>() - 1.0f;
+    if (u.x == 0 && u.y == 0) return {0, 0};
+
+    float theta;
+    float r;
+    if (jtx::abs(u.x) > jtx::abs(u.y)) {
+        r = u.x;
+        theta = PI_OVER_4 * (u.y / u.x);
+    } else {
+        r = u.y;
+        theta = PI_OVER_2 - PI_OVER_4 * (u.x / u.y);
+    }
+    return r * vec2(jtx::cos(theta), jtx::sin(theta));
 }
 
 inline vec3 RNG::onUnitSphere() {

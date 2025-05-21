@@ -204,6 +204,7 @@ set(JTX_BACKEND_CPU
         jtx2/backends/cpu/bvh.hpp
         jtx2/backends/cpu/bvh.cpp
         jtx2/backends/cpu/isect.hpp
+        jtx2/backends/cpu/camera.hpp
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -360,6 +361,7 @@ if (JTX_BUILD_BENCHMARKS)
     set(BENCH_SRC
             jtx2/benchmarks/aabb_bm.cpp
             jtx2/benchmarks/bvh_bm.cpp
+            jtx2/benchmarks/rng_bm.cpp
     )
     foreach(src ${BENCH_SRC})
         get_filename_component(bname ${src} NAME_WE)

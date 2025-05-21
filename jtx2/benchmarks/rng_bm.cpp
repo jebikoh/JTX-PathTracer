@@ -15,6 +15,9 @@ public:
 /**
  * BENCHMARK RESULTS: 1.5M samples/sec
  * Captured on: M3 Pro 32GB
+ *
+ * BENCHMARK RESULTS: 1.36957M samples/sec
+ * Captured on: Ryzen 7 5800X 3.80GHz 32GB
  */
 BENCHMARK_DEFINE_F(RNGFixture, UnitDiscRejectionSampling)(benchmark::State &st) {
     for (auto _ : st) {
@@ -31,6 +34,9 @@ BENCHMARK_REGISTER_F(RNGFixture, UnitDiscRejectionSampling)->Unit(benchmark::kMi
 /**
  * BENCHMARK RESULTS: 1.45M samples/sec
  * Captured on: M3 Pro 32GB
+ *
+ * BENCHMARK RESULTS: 1.56067M samples/sec
+ * Captured on: Ryzen 7 5800X 3.80GHz 32GB
  */
 BENCHMARK_DEFINE_F(RNGFixture, UnitDiscConcentricSampling)(benchmark::State &st) {
     for (auto _ : st) {

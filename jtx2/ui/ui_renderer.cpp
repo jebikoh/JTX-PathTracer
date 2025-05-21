@@ -5,6 +5,8 @@
 #include <imgui_impl_vulkan.h>
 #include <imgui_internal.h>
 
+#define JTX_UI_DRAW_DEMO_WINDOW
+
 namespace jtx {
 
 void UIRenderer::init() {
@@ -103,8 +105,8 @@ void UIRenderer::newFrame() {
 bool UIRenderer::processSDLEvents(const SDL_Event &event) {
     ImGui_ImplSDL2_ProcessEvent(&event);
 
-    const ImGuiIO &io = ImGui::GetIO();
-    const bool bWantsMouse = io.WantCaptureMouse;
+    const ImGuiIO &io         = ImGui::GetIO();
+    const bool bWantsMouse    = io.WantCaptureMouse;
     const bool bWantsKeyboard = io.WantCaptureKeyboard;
 
     return bWantsMouse || bWantsKeyboard;
@@ -118,60 +120,114 @@ void UIRenderer::destroy() const {
 }
 
 void UIRenderer::setupStyle() {
-    ImGuiStyle * style = &ImGui::GetStyle();
+    ImGuiStyle *style = &ImGui::GetStyle();
 
-	style->WindowPadding = ImVec2(15, 15);
-	style->WindowRounding = 5.0f;
-	style->FramePadding = ImVec2(5, 5);
-	style->FrameRounding = 4.0f;
-	style->ItemSpacing = ImVec2(12, 8);
-	style->ItemInnerSpacing = ImVec2(8, 6);
-	style->IndentSpacing = 25.0f;
-	style->ScrollbarSize = 15.0f;
-	style->ScrollbarRounding = 9.0f;
-	style->GrabMinSize = 5.0f;
-	style->GrabRounding = 3.0f;
+    style->WindowPadding     = ImVec2(12, 8);
+    style->FramePadding      = ImVec2(4, 3);
+    style->CellPadding       = ImVec2(4, 2);
+    style->ItemSpacing       = ImVec2(7, 3);
+    style->ItemInnerSpacing  = ImVec2(4, 4);
+    style->TouchExtraPadding = ImVec2(0, 0);
+    style->IndentSpacing     = 21.0f;
+    style->ScrollbarSize     = 14.0f;
+    style->GrabMinSize       = 20.0f;
 
-	style->Colors[ImGuiCol_Text] = ImVec4(0.80f, 0.80f, 0.83f, 1.00f);
-	style->Colors[ImGuiCol_TextDisabled] = ImVec4(0.24f, 0.23f, 0.29f, 1.00f);
-	style->Colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.05f, 0.07f, 1.00f);
-	style->Colors[ImGuiCol_ChildBg] = ImVec4(0.07f, 0.07f, 0.09f, 1.00f);
-	style->Colors[ImGuiCol_PopupBg] = ImVec4(0.07f, 0.07f, 0.09f, 1.00f);
-	style->Colors[ImGuiCol_BorderShadow] = ImVec4(0.92f, 0.91f, 0.88f, 0.00f);
-	style->Colors[ImGuiCol_FrameBg] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
-	style->Colors[ImGuiCol_FrameBgHovered] = ImVec4(0.24f, 0.23f, 0.29f, 1.00f);
-	style->Colors[ImGuiCol_FrameBgActive] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
-	style->Colors[ImGuiCol_TitleBg] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
-	style->Colors[ImGuiCol_TitleBgCollapsed] = ImVec4(1.00f, 0.98f, 0.95f, 0.75f);
-	style->Colors[ImGuiCol_TitleBgActive] = ImVec4(0.07f, 0.07f, 0.09f, 1.00f);
-	style->Colors[ImGuiCol_MenuBarBg] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
-	style->Colors[ImGuiCol_ScrollbarBg] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
-	style->Colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.80f, 0.80f, 0.83f, 0.31f);
-	style->Colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
-	style->Colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.06f, 0.05f, 0.07f, 1.00f);
-	style->Colors[ImGuiCol_CheckMark] = ImVec4(0.80f, 0.80f, 0.83f, 0.31f);
-	style->Colors[ImGuiCol_SliderGrab] = ImVec4(0.80f, 0.80f, 0.83f, 0.31f);
-	style->Colors[ImGuiCol_SliderGrabActive] = ImVec4(0.06f, 0.05f, 0.07f, 1.00f);
-	style->Colors[ImGuiCol_Button] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
-	style->Colors[ImGuiCol_ButtonHovered] = ImVec4(0.24f, 0.23f, 0.29f, 1.00f);
-	style->Colors[ImGuiCol_ButtonActive] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
-	style->Colors[ImGuiCol_Header] = ImVec4(0.10f, 0.09f, 0.12f, 1.00f);
-	style->Colors[ImGuiCol_HeaderHovered] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
-	style->Colors[ImGuiCol_HeaderActive] = ImVec4(0.06f, 0.05f, 0.07f, 1.00f);
-	style->Colors[ImGuiCol_ResizeGrip] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-	style->Colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.56f, 0.56f, 0.58f, 1.00f);
-	style->Colors[ImGuiCol_ResizeGripActive] = ImVec4(0.06f, 0.05f, 0.07f, 1.00f);
-	style->Colors[ImGuiCol_Button] = ImVec4(0.40f, 0.39f, 0.38f, 0.16f);
-	style->Colors[ImGuiCol_ButtonHovered] = ImVec4(0.40f, 0.39f, 0.38f, 0.39f);
-    style->Colors[ImGuiCol_ButtonActive] = ImVec4(0.40f, 0.39f, 0.38f, 1.00f);
-	style->Colors[ImGuiCol_PlotLines] = ImVec4(0.40f, 0.39f, 0.38f, 0.63f);
-	style->Colors[ImGuiCol_PlotLinesHovered] = ImVec4(0.25f, 1.00f, 0.00f, 1.00f);
-	style->Colors[ImGuiCol_PlotHistogram] = ImVec4(0.40f, 0.39f, 0.38f, 0.63f);
-	style->Colors[ImGuiCol_PlotHistogramHovered] = ImVec4(0.25f, 1.00f, 0.00f, 1.00f);
-	style->Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.25f, 1.00f, 0.00f, 0.43f);
-    style->Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(1.00f, 0.98f, 0.95f, 0.73f);
+    style->WindowBorderSize = 1.0f;
+    style->ChildBorderSize  = 1.0f;
+    style->PopupBorderSize  = 1.0f;
+    style->FrameBorderSize  = 0.0f;
+    style->TabBorderSize    = 0.0f;
 
-    style->WindowMenuButtonPosition = ImGuiDir_None;
+    style->WindowRounding    = 1.0f;
+    style->ChildRounding     = 0.0f;
+    style->FrameRounding     = 1.0f;
+    style->PopupRounding     = 0.0f;
+    style->ScrollbarRounding = 1.0f;
+    style->GrabRounding      = 1.0f;
+    style->LogSliderDeadzone = 4.0f;
+    style->TabRounding       = 2.0f;
+
+    // Color palette taken from: https://github.com/ocornut/imgui/issues/5886#issuecomment-1553902053
+    constexpr auto TRANSPARENT = ImVec4(0.0, 0.0, 0.0, 0.0);// #00000000
+    constexpr auto WHITE       = ImVec4(1.0, 1.0, 1.0, 1.0);// #FFFFFFFF
+    constexpr auto BLACK       = ImVec4(0.0, 0.0, 0.0, 1.0);// #000000FF
+
+    constexpr auto BRIGHT = ImVec4(1.0, 0.937, 0.831, 1.0);// #FFEED3
+
+    constexpr auto MEDIUM   = ImVec4(0.8, 0.718, 0.565, 1.0);// #CCB790
+    constexpr auto MEDIUM_A = ImVec4(0.8, 0.718, 0.565, 0.6);
+
+    constexpr auto LOW    = ImVec4(0.48, 0.449, 0.392, 1.0);// #7A7263
+    constexpr auto LOW_A1 = ImVec4(0.48, 0.449, 0.392, 0.8);
+
+    constexpr auto DARK    = ImVec4(0.298, 0.329, 0.349, 1.0);// #4B5358
+    constexpr auto DARK_A1 = ImVec4(0.298, 0.329, 0.349, 0.8);
+    constexpr auto DARK_A2 = ImVec4(0.298, 0.329, 0.349, 0.7);
+
+    constexpr auto DARKER    = ImVec4(0.178, 0.191, 0.199, 1.0);// #2D3032
+    constexpr auto DARKER_A1 = ImVec4(0.178, 0.191, 0.199, 0.8);
+    constexpr auto DARKER_A2 = ImVec4(0.178, 0.191, 0.199, 0.7);
+    constexpr auto DARKER_A3 = ImVec4(0.178, 0.191, 0.199, 0.4);
+
+    constexpr auto BACKGROUND = ImVec4(0.086, 0.086, 0.086, 1.0);// #151515
+
+    style->Colors[ImGuiCol_Text]         = BRIGHT;
+    style->Colors[ImGuiCol_TextDisabled] = LOW;
+
+    style->Colors[ImGuiCol_WindowBg] = BACKGROUND;
+    style->Colors[ImGuiCol_ChildBg]  = BACKGROUND;
+    style->Colors[ImGuiCol_PopupBg]  = BACKGROUND;
+
+    style->Colors[ImGuiCol_Border]       = DARK;
+    style->Colors[ImGuiCol_BorderShadow] = TRANSPARENT;
+
+    style->Colors[ImGuiCol_FrameBg]        = ImVec4(0, 0, 0, 0.85);
+    style->Colors[ImGuiCol_FrameBgHovered] = ImVec4(0, 0, 0, 0.95);
+    style->Colors[ImGuiCol_FrameBgActive]  = ImVec4(0, 0, 0, 1);
+
+    style->Colors[ImGuiCol_TitleBg]          = DARKER;
+    style->Colors[ImGuiCol_TitleBgActive]    = ImVec4(0.159, 0.170, 0.176, 1.0);
+    style->Colors[ImGuiCol_TitleBgCollapsed] = BACKGROUND;
+
+    style->Colors[ImGuiCol_MenuBarBg] = BACKGROUND;
+
+    style->Colors[ImGuiCol_ScrollbarBg]          = ImVec4(0, 0, 0, 0.8);
+    style->Colors[ImGuiCol_ScrollbarGrab]        = DARKER;
+    style->Colors[ImGuiCol_ScrollbarGrabHovered] = DARKER_A1;
+    style->Colors[ImGuiCol_ScrollbarGrabActive]  = DARKER_A2;
+
+    style->Colors[ImGuiCol_CheckMark] = BRIGHT;
+
+    style->Colors[ImGuiCol_SliderGrab]       = LOW;
+    style->Colors[ImGuiCol_SliderGrabActive] = LOW_A1;
+
+    style->Colors[ImGuiCol_Button]        = DARK;
+    style->Colors[ImGuiCol_ButtonHovered] = DARK_A1;
+    style->Colors[ImGuiCol_ButtonActive]  = DARK_A2;
+
+    style->Colors[ImGuiCol_Header]        = DARKER;
+    style->Colors[ImGuiCol_HeaderHovered] = DARKER_A1;
+    style->Colors[ImGuiCol_HeaderActive]  = DARKER_A2;
+
+    style->Colors[ImGuiCol_Separator]        = DARKER;
+    style->Colors[ImGuiCol_SeparatorHovered] = DARKER;
+    style->Colors[ImGuiCol_SeparatorActive]  = DARKER;
+
+    style->Colors[ImGuiCol_ResizeGrip]        = DARKER;
+    style->Colors[ImGuiCol_ResizeGripHovered] = DARKER_A1;
+    style->Colors[ImGuiCol_ResizeGripActive]  = DARKER_A2;
+
+    style->Colors[ImGuiCol_Tab]        = DARKER;
+    style->Colors[ImGuiCol_TabHovered] = DARKER_A1;
+    style->Colors[ImGuiCol_TabActive]  = DARKER_A3;
+
+    style->Colors[ImGuiCol_TextSelectedBg] = MEDIUM_A;
+
+    // style->WindowMenuButtonPosition = ImGuiDir_None;
+
+    // Font
+    // ImGuiIO &io = ImGui::GetIO();
+    // io.Fonts->AddFontFromFileTTF("assets/blex_medium.ttf", 13);
 }
 
 void UIRenderer::setupDockSpace() {
@@ -265,6 +321,12 @@ void UIRenderer::drawConsolePanel() {
 void UIRenderer::drawPropertiesPanel() {
     ImGui::Begin("Properties");
     ImGui::Text("Properties Panel");
+
+
+#ifdef JTX_UI_DRAW_DEMO_WINDOW
+    ImGui::ShowDemoWindow();
+#endif
+
     ImGui::End();
 }
 

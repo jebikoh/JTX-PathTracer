@@ -21,16 +21,22 @@ public:
         // Load test mesh and create BVH
         jtx::loadScene("assets/f22.obj", m_scene);
         m_bvh.build(m_scene);
+        m_bvhEmbree.build(m_scene);
     }
 
     void TearDown(::benchmark::State& state) override {
         m_bvh.destroy();
+        m_bvhEmbree.destroy();
         delete[] m_rays;
     }
 
     ray *m_rays;
     Scene m_scene;
     BVH2 m_bvh;
+
+#ifdef JTX_USE_EMBREE
+    BVHEmbree m_bvhEmbree;
+#endif
 };
 
 BENCHMARK_DEFINE_F(BVHFixture, BVHTraversal)(benchmark::State& st) {
@@ -38,9 +44,9 @@ BENCHMARK_DEFINE_F(BVHFixture, BVHTraversal)(benchmark::State& st) {
         size_t x = 0;
         for (int i = 0; i < NUM_RAYS; ++i) {
             const auto &r = m_rays[i];
-            SurfaceIntersection isect;
+            TriangleIntersection isect;
             if (m_bvh.closestHit(r, 0, JTX_INFINITY_F, isect)) {
-                x += isect.texCoords.x;
+                x += isect.u;
             }
         }
         benchmark::DoNotOptimize(x);
@@ -48,5 +54,25 @@ BENCHMARK_DEFINE_F(BVHFixture, BVHTraversal)(benchmark::State& st) {
     st.SetItemsProcessed(st.iterations() * NUM_RAYS);
 }
 BENCHMARK_REGISTER_F(BVHFixture, BVHTraversal)->Unit(benchmark::kMillisecond)->Iterations(1000)->MinWarmUpTime(1);
+
+#ifdef JTX_USE_EMBREE
+
+BENCHMARK_DEFINE_F(BVHFixture, BVHEmbreeTraversal)(benchmark::State &st) {
+    for (auto _ : st) {
+        size_t x = 0;
+        for (int i = 0; i < NUM_RAYS; ++i) {
+            const auto &r = m_rays[i];
+            TriangleIntersection isect;
+            if (m_bvhEmbree.closestHit(r, 0, JTX_INFINITY_F, isect)) {
+                x += isect.u;
+            }
+        }
+        benchmark::DoNotOptimize(x);
+    }
+    st.SetItemsProcessed(st.iterations() * NUM_RAYS);
+}
+BENCHMARK_REGISTER_F(BVHFixture, BVHEmbreeTraversal)->Unit(benchmark::kMillisecond)->Iterations(1000)->MinWarmUpTime(1);
+
+#endif
 
 BENCHMARK_MAIN();

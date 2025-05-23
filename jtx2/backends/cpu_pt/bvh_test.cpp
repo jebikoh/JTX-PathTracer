@@ -2,8 +2,8 @@
 
 #include <functional>
 
+#include <backends/cpu_pt/bvh.hpp>
 #include <scene/scene_loader.hpp>
-#include <backends/cpu/bvh.hpp>
 #include <util/rng.hpp>
 
 namespace jtx {

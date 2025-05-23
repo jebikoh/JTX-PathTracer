@@ -165,6 +165,7 @@ SET(JVK_HEADERS
         jtx2/ui/jvk/util.hpp
         jtx2/ui/jvk/immediate_buffer.hpp
         jtx2/ui/rasterizer/render_data.hpp
+        jtx2/backends/backends.hpp
 )
 
 set(JVK_SOURCE
@@ -201,10 +202,12 @@ set(JTX_UI
 )
 
 set(JTX_BACKEND_CPU
-        jtx2/backends/cpu/bvh.hpp
-        jtx2/backends/cpu/bvh.cpp
-        jtx2/backends/cpu/isect.hpp
-        jtx2/backends/cpu/camera.hpp
+        jtx2/backends/cpu_pt/bvh.hpp
+        jtx2/backends/cpu_pt/bvh.cpp
+        jtx2/backends/cpu_pt/isect.hpp
+        jtx2/backends/cpu_pt/camera.hpp
+        jtx2/backends/cpu_pt/integrator.hpp
+        jtx2/backends/cpu_pt/integrator.cpp
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -335,7 +338,7 @@ jtx_post_build(JTX)
 if (JTX_BUILD_TESTS)
     message(STATUS "[JTX] Building tests")
     set(JTX_TEST_SOURCES
-            jtx2/backends/cpu/bvh_test.cpp
+            jtx2/backends/cpu_pt/bvh_test.cpp
             jtx2/util/aabb_test.cpp
     )
 

@@ -1,8 +1,8 @@
+#include <backends/cpu_pt/bvh.hpp>
 #include <benchmark/benchmark.h>
-#include <backends/cpu/bvh.hpp>
 #include <jtx.hpp>
-#include <util/rng.hpp>
 #include <scene/scene_loader.hpp>
+#include <util/rng.hpp>
 
 using namespace jtx;
 

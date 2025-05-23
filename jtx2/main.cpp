@@ -1,6 +1,6 @@
+#include <backends/cpu_pt/bvh.hpp>
 #include <jtx.hpp>
 #include <scene/scene_loader.hpp>
-#include <backends/cpu/bvh.hpp>
 #include <ui/display.hpp>
 
 int main(int argc, char *argv[]) {

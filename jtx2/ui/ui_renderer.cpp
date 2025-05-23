@@ -53,13 +53,14 @@ void UIRenderer::init() {
     initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
     ImGui_ImplVulkan_Init(&initInfo);
+
+    setupStyle();
     ImGui_ImplVulkan_CreateFontsTexture();
 
     // Enable docking
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-    setupStyle();
 
     LOG_INFO(UI, "UI renderer initialized");
 }
@@ -226,8 +227,8 @@ void UIRenderer::setupStyle() {
     // style->WindowMenuButtonPosition = ImGuiDir_None;
 
     // Font
-    // ImGuiIO &io = ImGui::GetIO();
-    // io.Fonts->AddFontFromFileTTF("assets/blex_medium.ttf", 13);
+    ImGuiIO &io = ImGui::GetIO();
+    io.Fonts->AddFontFromFileTTF("assets/blex_medium.ttf", 13);
 }
 
 void UIRenderer::setupDockSpace() {

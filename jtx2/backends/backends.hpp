@@ -24,8 +24,7 @@ struct CameraSettings {
     vec3 target{};
     vec3 up{};
 
-    float yfov;
-    ;                 // FOV for reference
+    float yfov;       // FOV for reference
     float focalLength;// Focal length in mm
     float sensorWidth;// Sensor width in mm
     // Sensor height is derived from aspect ratio

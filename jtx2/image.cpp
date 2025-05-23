@@ -112,10 +112,10 @@ jtx::Image8u jtx::Image8u::as32b(const uint8_t alpha) const {
         for (int col = 0; col < width; ++col) {
             auto srcPixel = data + ((row * width + col) * channels);
             auto dstPixel = out.data + (row * out.width + col) * 4;
-            dstPixel[0] = srcPixel[0];
-            dstPixel[1] = srcPixel[1];
-            dstPixel[2] = srcPixel[2];
-            dstPixel[3] = alpha;
+            dstPixel[0]   = srcPixel[0];
+            dstPixel[1]   = srcPixel[1];
+            dstPixel[2]   = srcPixel[2];
+            dstPixel[3]   = alpha;
         }
     }
 
@@ -132,6 +132,28 @@ jtx::Image32f::Image32f(const float *buffer, const int w, const int h, const int
       channels(c) {
     data = new float[w * h * c];
     memcpy(data, buffer, w * h * c);
+}
+
+jtx::Image32f::Image32f(Image32f &other)
+    : width(other.width),
+      height(other.height),
+      channels(other.channels),
+      data(other.data) {
+    other.data = nullptr;
+    other.destroy();
+}
+jtx::Image32f &jtx::Image32f::operator=(Image32f &other) {
+    if (this != &other) {
+        destroy();
+        width    = other.width;
+        height   = other.height;
+        channels = other.channels;
+        data     = other.data;
+
+        other.data = nullptr;
+        other.destroy();
+    }
+    return *this;
 }
 
 void jtx::Image32f::destroy() {

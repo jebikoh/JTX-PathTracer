@@ -1,4 +1,4 @@
-#include "integrator.hpp"
+#include "backend_cpu.hpp"
 
 #include <barrier>
 #include <thread>
@@ -20,7 +20,10 @@ struct WorkQueue {
     bool workAvailable() const { return nextJobIndex < jobs.size(); }
 };
 
-void CpuPtIntegrator::startRendering() const {
+void BackendCPU::startRendering() {
+    // Updates camera every time; use dirty flag if needed later
+    m_camera.update();
+
     // Initialize work queue
     WorkQueue q;
     q.nextJobIndex = 0;

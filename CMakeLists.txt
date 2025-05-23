@@ -206,8 +206,8 @@ set(JTX_BACKEND_CPU
         jtx2/backends/cpu_pt/bvh.cpp
         jtx2/backends/cpu_pt/isect.hpp
         jtx2/backends/cpu_pt/camera.hpp
-        jtx2/backends/cpu_pt/integrator.hpp
-        jtx2/backends/cpu_pt/integrator.cpp
+        jtx2/backends/cpu_pt/backend_cpu.hpp
+        jtx2/backends/cpu_pt/backend_cpu.cpp
 )
 
 # ──────────────────────────────────────────────────────────────────────────────

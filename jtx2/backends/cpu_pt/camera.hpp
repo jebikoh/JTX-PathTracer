@@ -7,26 +7,23 @@
 
 namespace jtx {
 
-struct StaticCamera {
-    CameraSettings settings;
-    // TODO: think of a better way to parameterize these
-    uint32_t sppRow;
-    uint32_t sppCol;
-
-
-    void init(const uint32_t width, const uint32_t height, const uint32_t sppRow, const uint32_t sppCol) {
-        m_width  = width;
-        m_height = height;
-        this->sppRow = sppRow;
-        this->sppCol = sppCol;
-    }
+/**
+ * Thin lens camera class
+ *
+ * User is required to manually call update() after any changes to camera or relevant render settings
+ */
+struct ThinLensCamera {
+    CameraSettings settings{};
+    float width = 0;
+    float height = 0;
+    uint32_t sppRow = 1;
+    uint32_t sppCol = 1;
 
     /**
-     * Updates camera's viewport and focal lens.
-     * Must be called after any resize() operation or any updates to camera settings
+     * Updates camera's viewport and focal lens. Must be called after any changes to the camera settings.
      */
     void update() {
-        const float aspectRatio = m_width / m_height;
+        const float aspectRatio = width / height;
 
         const float height   = jtx::tan(jtx::radians(settings.yfov) / 2);
         const float vpHeight = 2 * height * settings.focalDistance;
@@ -38,8 +35,8 @@ struct StaticCamera {
 
         const vec3 vpU = vpWidth * u;
         const vec3 vpV = vpHeight * v;
-        m_du           = vpU / m_width;
-        m_dv           = vpV / m_height;
+        m_du           = vpU / width;
+        m_dv           = vpV / height;
 
         m_anchor = settings.position - (settings.focalDistance * w) - vpU / 2 - vpV / 2 + 0.5 * (m_du + m_dv);
     }
@@ -60,12 +57,7 @@ struct StaticCamera {
         const auto origin = settings.bEnableDof ? settings.position : settings.position;
         return {origin, sample - origin};
     }
-
-protected:
-    float m_width = 0;
-    float m_height = 0;
-    float m_channels = 3;
-
+private:
     vec3 m_du{};
     vec3 m_dv{};
     vec3 m_anchor{};

@@ -5,7 +5,7 @@
 #include <imgui_impl_vulkan.h>
 #include <imgui_internal.h>
 
-#define JTX_UI_DRAW_DEMO_WINDOW
+// #define JTX_UI_DRAW_DEMO_WINDOW
 
 namespace jtx {
 
@@ -224,11 +224,11 @@ void UIRenderer::setupStyle() {
 
     style->Colors[ImGuiCol_TextSelectedBg] = MEDIUM_A;
 
-    // style->WindowMenuButtonPosition = ImGuiDir_None;
+    style->WindowMenuButtonPosition = ImGuiDir_None;
 
     // Font
-    ImGuiIO &io = ImGui::GetIO();
-    io.Fonts->AddFontFromFileTTF("assets/blex_medium.ttf", 13);
+    const ImGuiIO &io = ImGui::GetIO();
+    io.Fonts->AddFontFromFileTTF("assets/blex_medium.ttf", 16);
 }
 
 void UIRenderer::setupDockSpace() {

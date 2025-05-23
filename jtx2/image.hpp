@@ -138,7 +138,18 @@ public:
      */
     Image8u as32b(uint8_t alpha = 255) const;
 
-    Image8u copy() const;
+    /**
+     * Resizes the current images -- data is not copied
+     * @param w new width
+     * @param h new height
+     */
+        void resize(const uint32_t w, const uint32_t h, const uint32_t c) {
+            this->destroy();
+            width = w;
+            height = h;
+            channels = c;
+            data = new uint8_t[w * h * c];
+        }
 };
 
 template<typename T>
@@ -216,8 +227,8 @@ public:
      */
     Image32f(const float *buffer, int w, int h, int c);
 
-    Image32f(Image32f &image)                  = delete;
-    Image32f &operator=(const Image32f &image) = delete;
+    Image32f(Image32f &other);
+    Image32f &operator=(Image32f &other);
 
     void destroy();
 
@@ -257,6 +268,19 @@ public:
     float &operator[](const int index) { return data[index]; }
 
     bool isEmpty() const { return width == 0 || height == 0 || channels == 0; }
+
+    /**
+     * Resizes the current images -- data is not copied
+     * @param w new width
+     * @param h new height
+     */
+    void resize(const uint32_t w, const uint32_t h, const uint32_t c) {
+        this->destroy();
+        width = w;
+        height = h;
+        channels = c;
+        data = new float[w * h * c];
+    }
 };
 
 template<typename T>

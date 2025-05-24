@@ -16,15 +16,15 @@
 #define JTX_UI_FULL_WIDTH \
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x)
 
-#define JTX_UI_TABLE_START_50(tableName)                                \
-    if (ImGui::BeginTable(tableName, 2, ImGuiTableFlags_SizingStretchSame)) {    \
+#define JTX_UI_TABLE_START(tableName)                                           \
+    if (ImGui::BeginTable(tableName, 2, ImGuiTableFlags_SizingStretchSame)) {      \
         ImGui::TableSetupColumn("COL1", ImGuiTableColumnFlags_WidthStretch, 1.0f); \
     ImGui::TableSetupColumn("COL2", ImGuiTableColumnFlags_WidthStretch, 1.0f)
 
-#define JTX_UI_TABLE_START(tableName, ratioC1, ratioC2)                                \
-if (ImGui::BeginTable(tableName, 2, ImGuiTableFlags_SizingStretchSame)) {    \
-ImGui::TableSetupColumn("COL1", ImGuiTableColumnFlags_WidthStretch, ratioC1); \
-ImGui::TableSetupColumn("COL2", ImGuiTableColumnFlags_WidthStretch, ratioC2)
+#define JTX_UI_TABLE_START_R(tableName, ratioC1, ratioC2)                               \
+    if (ImGui::BeginTable(tableName, 2, ImGuiTableFlags_SizingStretchSame)) {         \
+        ImGui::TableSetupColumn("COL1", ImGuiTableColumnFlags_WidthStretch, ratioC1); \
+    ImGui::TableSetupColumn("COL2", ImGuiTableColumnFlags_WidthStretch, ratioC2)
 
 #define JTX_UI_TABLE_END \
     ImGui::EndTable();   \
@@ -38,6 +38,35 @@ ImGui::TableSetupColumn("COL2", ImGuiTableColumnFlags_WidthStretch, ratioC2)
         ImGui::TableSetColumnIndex(1);  \
         JTX_UI_FULL_WIDTH;              \
     }
+
+// Only one of these per scope
+#define JTX_UI_SETUP_CHANNELS                                \
+    ImDrawList *__jtx_drawlist = ImGui::GetWindowDrawList(); \
+    __jtx_drawlist->ChannelsSplit(2)
+
+#define JTX_UI_CHANNEL_FOREGROUND \
+    __jtx_drawlist->ChannelsSetCurrent(1)
+
+#define JTX_UI_CHANNEL_BACKGROUND \
+    __jtx_drawlist->ChannelsSetCurrent(0)
+
+#define JTX_UI_CHANNELS_MERGE \
+    __jtx_drawlist->ChannelsMerge()
+
+#define JTX_UI_CHILD_BG_RECT_START                            \
+    ImGuiWindow *__jtx_win = ImGui::GetCurrentWindow();       \
+    float __jtx_rnd        = ImGui::GetStyle().FrameRounding; \
+    ImVec2 __jtx_hMin      = ImGui::GetItemRectMin();         \
+    ImVec2 __jtx_hMax      = ImGui::GetItemRectMax()
+
+#define JTX_UI_CHILD_BG_RECT_END                                   \
+    ImVec2 __jtx_tMax = ImGui::GetItemRectMax();                   \
+    __jtx_drawlist->AddRectFilled(                                 \
+            __jtx_hMin,                                            \
+            ImVec2(__jtx_hMax.x, __jtx_tMax.y),                    \
+            ImGui::GetColorU32(ImVec4(0.129, 0.137, 0.141, 1.0f)), \
+            __jtx_rnd,                                             \
+            ImDrawFlags_RoundCornersAll)
 
 namespace jtx {
 
@@ -189,8 +218,6 @@ void UIRenderer::newFrame() {
             }
         }
 
-        // ImGui::ShowDemoWindow();
-
         ImGui::End();
     }
 
@@ -198,6 +225,7 @@ void UIRenderer::newFrame() {
     {
         ImGui::Begin("Console");
         ImGui::Text("Console Output");
+        // ImGui::ShowDemoWindow();
         ImGui::End();
     }
 
@@ -212,24 +240,37 @@ void UIRenderer::newFrame() {
     {
         ImGui::Begin("Render Settings");
 
-        JTX_UI_TABLE_START_50("BackendTable");
-        JTX_UI_TABLE_NEW_ROW("Render Backend");
-        const char *renderBackends[] = {"CPU", "Vulkan", "CUDA"};
-        static int currentRenderBackend    = 0;
-        ImGui::Combo("##RenderBackend", &currentRenderBackend, renderBackends, IM_ARRAYSIZE(renderBackends));
+        JTX_UI_SETUP_CHANNELS;
 
-        JTX_UI_TABLE_NEW_ROW("Viewport Backend");
-        const char *viewportBackends[] = {"JVK", "CPU", "VULKAN", "CUDA"};
-        static int currentVpBackend    = 0;
-        ImGui::Combo("##ViewportBackend", &currentVpBackend, viewportBackends, IM_ARRAYSIZE(viewportBackends));
-        JTX_UI_TABLE_END;
+        // Backend table
+        JTX_UI_CHANNEL_FOREGROUND;
+        {
+            JTX_UI_TABLE_START("BackendTable");
+            JTX_UI_TABLE_NEW_ROW("Render Backend");
+            const char *renderBackends[]    = {"CPU", "Vulkan", "CUDA"};
+            static int currentRenderBackend = 0;
+            ImGui::Combo("##RenderBackend", &currentRenderBackend, renderBackends, IM_ARRAYSIZE(renderBackends));
 
+            JTX_UI_TABLE_NEW_ROW("Viewport Backend");
+            const char *viewportBackends[] = {"JVK", "CPU", "VULKAN", "CUDA"};
+            static int currentVpBackend    = 0;
+            ImGui::Combo("##ViewportBackend", &currentVpBackend, viewportBackends, IM_ARRAYSIZE(viewportBackends));
+            JTX_UI_TABLE_END;
+        }
+
+
+        ImGui::ShowDemoWindow();
+
+        // Sampling settings
+        JTX_UI_CHANNEL_FOREGROUND;
         if (ImGui::CollapsingHeader("Sampling")) {
+            JTX_UI_CHILD_BG_RECT_START;
+
             static int xPixelSamples = 16;
             static int yPixelSamples = 16;
-            static int maxDepth = 32;
+            static int maxDepth      = 32;
 
-            JTX_UI_TABLE_START_50("PTTable");
+            JTX_UI_TABLE_START("PTTable");
 
             JTX_UI_TABLE_NEW_ROW("SPP X");
             ImGui::DragInt("##XSamples", &xPixelSamples, 1);
@@ -241,14 +282,20 @@ void UIRenderer::newFrame() {
             ImGui::DragInt("##MaxDepth", &maxDepth, 1);
 
             JTX_UI_TABLE_END;
+
+            JTX_UI_CHANNEL_BACKGROUND;
+            JTX_UI_CHILD_BG_RECT_END;
         }
 
-        if (ImGui::CollapsingHeader("Performance")){
-            static int tileSize = 32;
-            static int numThreads = 32;
+        JTX_UI_CHANNEL_FOREGROUND;
+        if (ImGui::CollapsingHeader("Performance")) {
+            JTX_UI_CHILD_BG_RECT_START;
+
+            static int tileSize       = 32;
+            static int numThreads     = 32;
             static int samplesPerPass = 1;
 
-            JTX_UI_TABLE_START_50("Performance");
+            JTX_UI_TABLE_START("Performance");
 
             JTX_UI_TABLE_NEW_ROW("Tile Size");
             ImGui::DragInt("##TileSize", &tileSize, 0);
@@ -260,7 +307,11 @@ void UIRenderer::newFrame() {
             ImGui::DragInt("##SamplesPerPass", &samplesPerPass, 0);
 
             JTX_UI_TABLE_END;
+            JTX_UI_CHANNEL_BACKGROUND;
+            JTX_UI_CHILD_BG_RECT_END;
         }
+
+        JTX_UI_CHANNELS_MERGE;
 
         ImGui::CollapsingHeader("Debug");
 
@@ -415,7 +466,7 @@ void UIRenderer::setupStyle() const {
 
     ImGuiIO &io = ImGui::GetIO();
     io.Fonts->AddFontFromFileTTF(
-            "assets/jb_mono.ttf",
+            "assets/inter.ttf",
             16.0f * dpiScale);
     io.FontGlobalScale = 1.0f / dpiScale;
 }

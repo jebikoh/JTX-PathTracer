@@ -25,8 +25,7 @@ struct ThinLensCamera {
     void update() {
         const float aspectRatio = width / height;
 
-        const float height   = jtx::tan(jtx::radians(settings.yfov) / 2);
-        const float vpHeight = 2 * height * settings.focalDistance;
+        const float vpHeight = 2 * jtx::tan(jtx::radians(settings.yfov) / 2) * settings.focalDistance;
         const float vpWidth  = vpHeight * aspectRatio;
 
         const vec3 w = jtx::normalize(settings.position - settings.target);
@@ -43,7 +42,7 @@ struct ThinLensCamera {
 
     ray getRay(const uint32_t row, const uint32_t col, const uint32_t stratum, RNG &rng) const {
         const uint32_t sx = stratum % sppRow;
-        const uint32_t sy = stratum / sppCol;
+        const uint32_t sy = stratum / sppRow;
 
         const float dx = rng.uniform<float>();
         const float dy = rng.uniform<float>();

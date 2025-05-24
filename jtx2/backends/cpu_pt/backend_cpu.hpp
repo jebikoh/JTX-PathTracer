@@ -60,11 +60,7 @@ private:
     RenderSettings m_renderSettings{};
 
     Scene *m_scene = nullptr;
-#ifdef JTX_USE_EMBREE
-    BVHEmbree m_bvh;
-#else
-    BVH2 m_bvh;
-#endif
+    BVH m_bvh;
 
     ThinLensCamera m_camera{};
 

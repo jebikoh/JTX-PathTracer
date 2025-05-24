@@ -89,31 +89,38 @@ public:
      */
     vec3 unitVector();
 
+    // Sampling functions
+    // Taken from PBRTv4 with slight modifications
+
     /**
      * Uniformly samples a point on a unit hemisphere given a normal
      * @param n normal
      * @return point on unit hemisphere
      */
-    vec3 onHemisphere(const vec3 &n);
+    vec3 uniformUnitHemisphere(const vec3 &n);
 
     /**
      * Samples a point on a unit disc via rejection sampling
      * @return point on unit disc
      */
-    vec2 onUnitDisc();
+    vec2 uniformUnitDisc();
 
     /**
      * Uniformly samples a point on a unit disc via concentric mapping.
      * Marginally slower than rejection sampling
      * @return uniform point on unit disc
      */
-    vec2 onUnitDiscConcentric();
+    vec2 uniformUnitDiscConcentric();
 
     /**
      * Uniformly samples a point on a unit sphere
      * @return point on unit sphere
      */
-    vec3 onUnitSphere();
+    vec3 uniformUnitSphere();
+
+    static float uniformUnitSpherePDF() {
+        return INV_4_PI;
+    }
 
 private:
     uint32_t m_state = 0;
@@ -168,12 +175,12 @@ inline vec3 RNG::unitVector() {
     return {r * jtx::cos(a), r * jtx::sin(a), z};
 }
 
-inline vec3 RNG::onHemisphere(const vec3 &n) {
+inline vec3 RNG::uniformUnitHemisphere(const vec3 &n) {
     vec3 p = unitVector();
     return jtx::dot(p, n) > 0 ? p : -p;
 }
 
-inline vec2 RNG::onUnitDisc() {
+inline vec2 RNG::uniformUnitDisc() {
     while (true) {
         auto p = vec2(range<float>(-1, 1), range<float>(-1, 1));
         if (p.lenSqr() < 1) return p;
@@ -181,7 +188,7 @@ inline vec2 RNG::onUnitDisc() {
 }
 
 // https://pbr-book.org/3ed-2018/Monte_Carlo_Integration/2D_Sampling_with_Multidimensional_Transformations#ConcentricSampleDisk
-inline vec2 RNG::onUnitDiscConcentric() {
+inline vec2 RNG::uniformUnitDiscConcentric() {
     const vec2 u = 2.0f * uniform<vec2>() - 1.0f;
     if (u.x == 0 && u.y == 0) return {0, 0};
 
@@ -197,7 +204,7 @@ inline vec2 RNG::onUnitDiscConcentric() {
     return r * vec2(jtx::cos(theta), jtx::sin(theta));
 }
 
-inline vec3 RNG::onUnitSphere() {
+inline vec3 RNG::uniformUnitSphere() {
     const vec2 u    = uniform<vec2>();
     const float z   = 1 - 2 * u[0];
     const float a   = jtx::safeSqrt(1 - z * z);
@@ -208,15 +215,15 @@ inline vec3 RNG::onUnitSphere() {
 namespace detail {
     inline ray generateRayFromUnitSphere(RNG &rng, const float offsetScale) {
         ray out{};
-        out.origin    = rng.onUnitSphere() * offsetScale;
-        const vec3 p1 = rng.onUnitSphere() * offsetScale;
+        out.origin    = rng.uniformUnitSphere() * offsetScale;
+        const vec3 p1 = rng.uniformUnitSphere() * offsetScale;
         out.dir       = (p1 - out.origin).normalize();
         return out;
     }
 
     inline ray generateRayToOriginFromUnitSphere(RNG &rng, const float offsetScale) {
         ray out{};
-        out.origin = rng.onUnitSphere() * offsetScale;
+        out.origin = rng.uniformUnitSphere() * offsetScale;
         out.dir    = (JTX_VEC3_ORIGIN - out.origin).normalize();
         return out;
     }

@@ -44,6 +44,8 @@ class Display;
  */
 class Rasterizer {
 public:
+    friend class UIRenderer;
+
     explicit Rasterizer(Display *pDisplay)
         : m_pDisplay(pDisplay) {}
 

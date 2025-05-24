@@ -649,7 +649,7 @@ bool BVH4::closestHit(const ray &r, float t0, float t1, TriangleIntersection &is
 #pragma endregion
 
 #pragma region Embree
-
+#ifdef JTX_USE_EMBREE
 void BVHEmbree::build(const jtx::Scene &scene) {
     LOG_INFO(GENERAL, "Building Embree BVH for scene: {}", scene.name);
     m_device = rtcNewDevice(nullptr);
@@ -720,7 +720,7 @@ bool BVHEmbree::anyHit(const ray &r, const float t0, const float t1) const {
     rtcOccluded1(m_scene, &ray);
     return ray.tfar < t1;
 }
-
+#endif
 
 #pragma endregion
 

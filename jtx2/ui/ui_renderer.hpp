@@ -59,15 +59,10 @@ private:
     // We need to store the central node so we can easily retrieve its dimensions
     ImGuiDockNode *m_pCentralNode{};
 
-    static void setupStyle();
+    void setupStyle() const;
 
     // Docking setup
-    void setupDockSpace();
     static void setLayout(ImGuiID dockSpaceId, const ImGuiViewport *viewport, ImGuiDockNodeFlags dockSpaceFlags);
-    static void drawMenuBar(ImGuiID dockSpaceId, const ImGuiViewport *viewport, ImGuiDockNodeFlags dockSpaceFlags);
-
-    static void drawConsolePanel();
-    static void drawPropertiesPanel();
 };
 
 }// namespace jtx

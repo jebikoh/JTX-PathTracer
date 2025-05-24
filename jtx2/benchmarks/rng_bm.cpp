@@ -23,7 +23,7 @@ BENCHMARK_DEFINE_F(RNGFixture, UnitDiscRejectionSampling)(benchmark::State &st) 
     for (auto _ : st) {
         vec2 sum;
         for (size_t i = 0; i < NUM_SAMPLES; i++) {
-            sum += a.onUnitDisc();
+            sum += a.uniformUnitDisc();
         }
         benchmark::DoNotOptimize(sum);
     }
@@ -42,7 +42,7 @@ BENCHMARK_DEFINE_F(RNGFixture, UnitDiscConcentricSampling)(benchmark::State &st)
     for (auto _ : st) {
         vec2 sum;
         for (size_t i = 0; i < NUM_SAMPLES; i++) {
-            sum += a.onUnitDiscConcentric();
+            sum += a.uniformUnitDiscConcentric();
         }
         benchmark::DoNotOptimize(sum);
     }

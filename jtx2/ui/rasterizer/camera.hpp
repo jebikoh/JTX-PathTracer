@@ -184,6 +184,7 @@ public:
      */
     void update() {
         position = target - getFrontVector() * distance;
+        // LOG_DEBUG(RASTERIZER, "Camera Position: ({}, {}, {})", position.x, position.y, position.z);
     }
 
 private:

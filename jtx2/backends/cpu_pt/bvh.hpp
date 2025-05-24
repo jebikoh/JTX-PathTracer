@@ -205,4 +205,10 @@ private:
 };
 #endif
 
+#ifdef JTX_USE_EMBREE
+using BVH = BVHEmbree;
+#else
+using BVH = BVH2;
+#endif
+
 }// namespace jtx

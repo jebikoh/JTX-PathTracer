@@ -164,8 +164,6 @@ SET(JVK_HEADERS
         jtx2/ui/jvk/swapchain.hpp
         jtx2/ui/jvk/util.hpp
         jtx2/ui/jvk/immediate_buffer.hpp
-        jtx2/ui/rasterizer/render_data.hpp
-        jtx2/backends/backends.hpp
 )
 
 set(JVK_SOURCE
@@ -199,6 +197,7 @@ set(JTX_UI
         jtx2/ui/rasterizer/rasterizer.cpp
         jtx2/ui/rasterizer/camera.hpp
         jtx2/ui/rasterizer/camera.cpp
+        jtx2/ui/rasterizer/render_data.hpp
 )
 
 set(JTX_BACKEND_CPU
@@ -208,6 +207,12 @@ set(JTX_BACKEND_CPU
         jtx2/backends/cpu_pt/camera.hpp
         jtx2/backends/cpu_pt/backend_cpu.hpp
         jtx2/backends/cpu_pt/backend_cpu.cpp
+        jtx2/backends/cpu_pt/integrator.hpp
+        jtx2/backends/cpu_pt/integrator.cpp
+)
+
+set(JTX_BACKEND
+        jtx2/backends/backends.hpp
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -220,6 +225,7 @@ add_library(JTXCore STATIC
         ${JTX_UTIL}
         ${JTX_UI}
         ${JTX_BACKEND_CPU}
+        ${JTX_BACKEND}
         jtx2/jtx.hpp
         jtx2/material.h
         jtx2/image.hpp

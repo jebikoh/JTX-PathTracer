@@ -58,6 +58,9 @@ struct Scene {
     std::vector<Image8u> textures;
     std::vector<Mesh> meshes;
 
+    // Skybox color
+    vec3 skyColor;
+
     /**
      * Generates an array of triangles in this scene
      * @return triangles in this scene

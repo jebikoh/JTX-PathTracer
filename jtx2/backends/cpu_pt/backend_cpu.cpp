@@ -2,6 +2,7 @@
 
 #include <barrier>
 #include <thread>
+#include <backends/cpu_pt/integrator.hpp>
 
 namespace jtx {
 
@@ -21,14 +22,15 @@ struct WorkQueue {
 };
 
 void BackendCPU::startRendering() {
+    LOG_INFO(RENDER, "Starting rendering with CPU backend");
     // Updates camera every time; use dirty flag if needed later
     m_camera.update();
 
     // Initialize work queue
     WorkQueue q;
     q.nextJobIndex = 0;
-    for (int r = 0; r < m_width; r += m_renderSettings.tileSize) {
-        for (int c = 0; c < m_height; c += m_renderSettings.tileSize) {
+    for (uint32_t r = 0; r < m_height; r += m_renderSettings.tileSize) {
+        for (uint32_t c = 0; c < m_width; c += m_renderSettings.tileSize) {
             RayTraceJob job;
             job.startRow = r;
             job.startCol = c;
@@ -54,8 +56,9 @@ void BackendCPU::startRendering() {
     });
 
     // Launch threads
+    LOG_DEBUG(RENDER, "Launching {} threads", m_renderSettings.numThreads);
     for (uint32_t i = 0; i < m_renderSettings.numThreads; ++i) {
-        threads.emplace_back([this, bTerminate, &currentSample, &q, spp, &endBarrier] {
+        threads.emplace_back([this, &bTerminate, &currentSample, &q, spp, &endBarrier] {
             while (true) {
                 if (bTerminate) break;
 
@@ -92,21 +95,28 @@ void BackendCPU::startRendering() {
 
                                 // Store in image buffer (for progressive rendering)
                                 uint8_t *img = JTX_IMAGE_PIXEL_PTR(m_imgBuffer, row, col);
-                                img[0] += acc[0] / static_cast<float>(sample + 1);
-                                img[1] += acc[1] / static_cast<float>(sample + 1);
-                                img[2] += acc[2] / static_cast<float>(sample + 1);
+                                img[0] = static_cast<uint8_t>(acc[0] / static_cast<float>(sample + 1) * 255.999);
+                                img[1] = static_cast<uint8_t>(acc[1] / static_cast<float>(sample + 1) * 255.999);
+                                img[2] = static_cast<uint8_t>(acc[2] / static_cast<float>(sample + 1) * 255.999);
                             }
                         }
                     }
                 }
+                endBarrier.arrive_and_wait();
             }
-            endBarrier.arrive_and_wait();
         });
     }
 
     // Collect threads
-    for (auto &thread : threads) {
+    for (auto &thread: threads) {
         thread.join();
+    }
+    LOG_INFO(RENDER, "Rendering completed");
+    // TODO: remove this
+    if (m_imgBuffer.save("img.png")) {
+        LOG_DEBUG(RENDER, "Output saved");
+    } else {
+        LOG_DEBUG(RENDER, "Output not saved");
     }
 }
 

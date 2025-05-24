@@ -41,6 +41,7 @@ enum class LogCategory {
     LOADER     = 7,
     INPUT      = 8,
     TEST       = 9,
+    RENDER     = 10,
 };
 
 struct LogContext {
@@ -120,6 +121,9 @@ struct Logger {
                 break;
             case LogCategory::TEST:
                 fmt::print(color, "[TEST] ");
+                break;
+            case LogCategory::RENDER:
+                fmt::print(color, "[RNDR] ");
                 break;
         }
 

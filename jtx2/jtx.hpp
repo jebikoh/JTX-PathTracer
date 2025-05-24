@@ -48,6 +48,7 @@ enum JtxResult {
     JTX_ERROR_INVALID_DATA           = -2,// Invalid data (empty or nullptr)
     JTX_ERROR_FILE_LOADING           = -3,// Error while loading file
     JTX_ERROR_FILE_INVALID_DATA      = -4,// File data is invalid
+    JTX_ERROR_FILE_WRITE             = -5,// Error while writing file
 };
 
 constexpr float PI_OVER_4 = jtx::JTX_PI_F / 4;

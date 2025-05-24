@@ -111,6 +111,8 @@ public:
      */
     static JtxResult load(const uint8_t *buffer, size_t size, Image8u &out, bool bApplyEOTF = true);
 
+    JtxResult save(const std::filesystem::path &path) const;
+
     /**
      * Retrieves pixel value at given coordinates. If the requested format has more channels
      * than the image's format (RGB8u vs RGBA8u), the remaining channels will be set to 1.
@@ -143,13 +145,13 @@ public:
      * @param w new width
      * @param h new height
      */
-        void resize(const uint32_t w, const uint32_t h, const uint32_t c) {
-            this->destroy();
-            width = w;
-            height = h;
-            channels = c;
-            data = new uint8_t[w * h * c];
-        }
+    void resize(const uint32_t w, const uint32_t h, const uint32_t c) {
+        this->destroy();
+        width = w;
+        height = h;
+        channels = c;
+        data = new uint8_t[w * h * c];
+    }
 };
 
 template<typename T>

@@ -1,6 +1,6 @@
 #include <benchmark/benchmark.h>
 #include <util/aabb.hpp>
-#include <util/rng.hpp>
+#include <util/sampling.hpp>
 
 using namespace jtx;
 
@@ -19,8 +19,8 @@ public:
 
         // Setup rays
         for (int i = 0; i < NUM_RAYS; ++i) {
-            rng.range(-2.0f, 2.0f, rays[i].origin);
-            rays[i].dir  = rng.unitVector();
+            rays[i].origin = rng.uniform<vec3>(-2.0f, 2.0f);
+            rays[i].dir  = unitVector(rng.uniform<float>(), rng.uniform<float>());
             rays[i].time = 0.0f;
 
             rayInfo[i].invDir  = 1.0f / rays[i].dir;
@@ -31,9 +31,8 @@ public:
 
         // Setup AABBs
         for (int i = 0; i < NUM_BOXES; ++i) {
-            vec3 pmin, pmax;
-            rng.range(-1.0f, 1.0f, pmin);
-            rng.range(-1.0f, 1.0f, pmax);
+            auto pmin = rng.uniform<vec3>(-1.0f, 1.0f);
+            auto pmax = rng.uniform<vec3>(-1.0f, 1.0f);
             boxes[i] = AABB(pmin, pmax);
         }
 

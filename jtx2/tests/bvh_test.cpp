@@ -4,11 +4,9 @@
 
 #include <backends/cpu_pt/bvh.hpp>
 #include <scene/scene_loader.hpp>
-#include <util/rng.hpp>
+#include <util/sampling.hpp>
 
 namespace jtx {
-
-#ifdef JTX_BUILD_TESTS
 
 const std::string JTX_BVH_TEST_MESH_PATH  = "assets/f22.obj";
 constexpr int JTX_BVH_TEST_NUM_SAMPLES    = 10000;
@@ -97,7 +95,5 @@ TEST_F(BVH2Test, BVH2RandomRays) {
     };
     validateBVH(m_bvhEmbree, m_isectFn, rayGen);
 }
-
-#endif
 
 }// namespace jtx

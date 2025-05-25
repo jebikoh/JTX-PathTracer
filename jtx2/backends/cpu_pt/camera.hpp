@@ -1,6 +1,6 @@
 #pragma once
 #include <jtx.hpp>
-#include <util/rng.hpp>
+#include <util/sampling.hpp>
 #include <backends/backends.hpp>
 
 #include <cstdint>

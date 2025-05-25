@@ -184,7 +184,7 @@ set(JTX_UTIL
         jtx2/util/aabb.hpp
         jtx2/util/rand.hpp
         jtx2/util/simd.hpp
-        jtx2/util/rng.hpp
+        jtx2/util/sampling.hpp
         jtx2/util/timer.hpp
 )
 
@@ -344,8 +344,9 @@ jtx_post_build(JTX)
 if (JTX_BUILD_TESTS)
     message(STATUS "[JTX] Building tests")
     set(JTX_TEST_SOURCES
-            jtx2/backends/cpu_pt/bvh_test.cpp
-            jtx2/util/aabb_test.cpp
+            jtx2/tests/bvh_test.cpp
+            jtx2/tests/aabb_test.cpp
+            jtx2/tests/sampling_test.cpp
     )
 
     add_executable(JTXTests ${JTX_TEST_SOURCES})

@@ -80,7 +80,7 @@ public:
      * @return
      */
     template<typename T>
-    T range(float min, float max);
+    T uniform(float min, float max);
 private:
     uint32_t m_state = 0;
 };
@@ -109,28 +109,28 @@ inline vec3 Sampler::uniform<vec3>() {
 
 #pragma region Range
 template<typename T>
-T Sampler::range(float min, float max) {
+T Sampler::uniform(float min, float max) {
     return T::unimplemented;
 }
 
 template<>
-inline float Sampler::range<float>(const float min, const float max) {
+inline float Sampler::uniform<float>(const float min, const float max) {
     return min + (max - min) * uniform<float>();
 }
 
 template<>
-inline vec2 Sampler::range<vec2>(const float min, const float max) {
-    return {range<float>(min, max), range<float>(min, max)};
+inline vec2 Sampler::uniform<vec2>(const float min, const float max) {
+    return {uniform<float>(min, max), uniform<float>(min, max)};
 }
 
 template<>
-inline vec3 Sampler::range<vec3>(const float min, const float max) {
-    return {range<float>(min, max), range<float>(min, max), range<float>(min, max)};
+inline vec3 Sampler::uniform<vec3>(const float min, const float max) {
+    return {uniform<float>(min, max), uniform<float>(min, max), uniform<float>(min, max)};
 }
 
 template<>
-inline vec4 Sampler::range<vec4>(const float min, const float max) {
-    return {range<float>(min, max), range<float>(min, max), range<float>(min, max), range<float>(min, max)};
+inline vec4 Sampler::uniform<vec4>(const float min, const float max) {
+    return {uniform<float>(min, max), uniform<float>(min, max), uniform<float>(min, max), uniform<float>(min, max)};
 }
 
 #pragma endregion
@@ -140,6 +140,7 @@ inline vec4 Sampler::range<vec4>(const float min, const float max) {
 // and sampling patterns across different distributions.
 // Most of these are taken from PBR 4d
 
+// This is a pretty slow
 JTX_FORCE_INLINE vec3 unitVector(const float s0, const float s1) {
     const float z = s0 * 2.0f - 1.0f;
     const float a = s1 * 2.0f * JTX_PI_F;

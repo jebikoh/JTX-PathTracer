@@ -1,5 +1,5 @@
-#include "aabb.hpp"
-#include "rng.hpp"
+#include <util/aabb.hpp>
+#include <util/sampling.hpp>
 #include <gtest/gtest.h>
 
 namespace jtx {
@@ -11,16 +11,16 @@ TEST(AABB4, HitResultMatchesAABB) {
     Sampler rng;
     // Generate 4 points for xyz in [-1, 1]
     vec3 pmin[4];
-    rng.range(-1, 1, pmin[0]);
-    rng.range(-1, 1, pmin[1]);
-    rng.range(-1, 1, pmin[2]);
-    rng.range(-1, 1, pmin[3]);
+    pmin[0] = rng.uniform<vec3>(-1, 1);
+    pmin[1] = rng.uniform<vec3>(-1, 1);
+    pmin[2] = rng.uniform<vec3>(-1, 1);
+    pmin[3] = rng.uniform<vec3>(-1, 1);
 
     vec3 pmax[4];
-    rng.range(-1, 1, pmax[0]);
-    rng.range(-1, 1, pmax[1]);
-    rng.range(-1, 1, pmax[2]);
-    rng.range(-1, 1, pmax[3]);
+    pmax[0] = rng.uniform<vec3>(-1, 1);
+    pmax[1] = rng.uniform<vec3>(-1, 1);
+    pmax[2] = rng.uniform<vec3>(-1, 1);
+    pmax[3] = rng.uniform<vec3>(-1, 1);
 
     // Create generic single AABBs
     AABB ref[4];
@@ -65,8 +65,8 @@ TEST(AABB4, HitResultMatchesAABB) {
 
     ray rays[JTX_AABB4_TEST_NUM_SAMPLES];
     for (int i = 0; i < JTX_AABB4_TEST_NUM_SAMPLES; ++i) {
-        rng.range(-1.5, 1.5, rays[i].origin);
-        rays[i].dir = rng.unitVector();
+        rays[i].origin = rng.uniform<vec3>(-1.5, 1.5);
+        rays[i].dir = unitVector(rng.uniform<float>(), rng.uniform<float>());
         rays[i].time = 0;
     }
 

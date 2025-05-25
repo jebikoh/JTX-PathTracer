@@ -1,7 +1,7 @@
 #include <backends/cpu_pt/bvh.hpp>
 #include <backends/cpu_pt/isect.hpp>
 #include <backends/cpu_pt/integrator.hpp>
-#include <util/rng.hpp>
+#include <util/sampling.hpp>
 
 JTX_FORCE_INLINE vec3 jtx::integrate(ray r, const Scene &scene, const BVH &bvh, int maxDepth, Sampler &rng) {
     vec3 radiance = {};

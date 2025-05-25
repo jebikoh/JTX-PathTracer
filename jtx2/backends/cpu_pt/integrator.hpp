@@ -2,8 +2,8 @@
 #include <jtx.hpp>
 
 namespace jtx {
-class RNG;
+class Sampler;
 
-vec3 integrate(ray r, const Scene &scene, const BVH &bvh, int maxDepth, RNG &rng);
+vec3 integrate(ray r, const Scene &scene, const BVH &bvh, int maxDepth, Sampler &rng);
 
 }// namespace jtx

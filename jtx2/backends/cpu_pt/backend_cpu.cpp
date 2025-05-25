@@ -72,7 +72,7 @@ void BackendCPU::startRendering() {
                     for (auto sample = startingSample; sample < std::min(startingSample + m_renderSettings.samplesPerPass, spp); ++sample) {
                         for (auto row = job.startRow; row < job.endRow; ++row) {
                             for (auto col = job.startCol; col < job.endCol; ++col) {
-                                RNG sampler(row, col, sample + 1);
+                                Sampler sampler(row, col, sample + 1);
                                 const ray r = m_camera.getRay(row, col, sample, sampler);
 
                                 // Integrate ray

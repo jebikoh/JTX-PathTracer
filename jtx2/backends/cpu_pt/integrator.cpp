@@ -3,7 +3,7 @@
 #include <backends/cpu_pt/integrator.hpp>
 #include <util/rng.hpp>
 
-JTX_FORCE_INLINE vec3 jtx::integrate(ray r, const Scene &scene, const BVH &bvh, int maxDepth, RNG &rng) {
+JTX_FORCE_INLINE vec3 jtx::integrate(ray r, const Scene &scene, const BVH &bvh, int maxDepth, Sampler &rng) {
     vec3 radiance = {};
     vec3 beta = {};
     int depth = 0;

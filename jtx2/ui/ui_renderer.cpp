@@ -299,6 +299,7 @@ void UIRenderer::newFrame() {
 
             JTX_UI_TABLE_NEW_ROW("Tile Size");
             ImGui::DragInt("##TileSize", &tileSize, 0);
+            ImGui::DragInt("##TileSize", &tileSize, 0);
 
             JTX_UI_TABLE_NEW_ROW("Thread Count");
             ImGui::DragInt("##NumThreads", &numThreads, 0);

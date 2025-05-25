@@ -8,7 +8,7 @@ constexpr uint32_t JTX_AABB4_TEST_NUM_SAMPLES = 10000;
 
 // Use CMake options to test various implementations
 TEST(AABB4, HitResultMatchesAABB) {
-    RNG rng;
+    Sampler rng;
     // Generate 4 points for xyz in [-1, 1]
     vec3 pmin[4];
     rng.range(-1, 1, pmin[0]);

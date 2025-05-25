@@ -15,7 +15,7 @@ public:
         rayInfo = new AABB4::RayHitInfo[NUM_RAYS];
         boxes   = new AABB[NUM_BOXES];
         boxes4  = new AABB4[NUM_BOXES / 4];
-        rng     = RNG(SEED);
+        rng     = Sampler(SEED);
 
         // Setup rays
         for (int i = 0; i < NUM_RAYS; ++i) {
@@ -85,7 +85,7 @@ public:
     AABB4::RayHitInfo *rayInfo;
     AABB *boxes;
     AABB4 *boxes4;
-    RNG rng;
+    Sampler rng;
 };
 
 BENCHMARK_DEFINE_F(AABBFixture, SingleAABB)(benchmark::State &st) {

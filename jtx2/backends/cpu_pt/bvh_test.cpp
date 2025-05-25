@@ -19,11 +19,11 @@ constexpr float JTX_BVH_TEST_OFFSET_SCALE = 5.0f;
 void validateBVH(
         const BVHEmbree &bvhEmbree,
         const std::function<void(const ray &, float &)> &isectFn,
-        const std::function<ray(RNG &)> &rayGen,
+        const std::function<ray(Sampler &)> &rayGen,
         const uint32_t seed  = JTX_BVH_TEST_RNG_SEED,
         const int numSamples = JTX_BVH_TEST_NUM_SAMPLES,
         const float epsilon  = JTX_BVH_TEST_EPSILON) {
-    RNG sampler{seed};
+    Sampler sampler{seed};
     float mse        = 0.0f;
     uint32_t trueHit = 0;
 
@@ -85,14 +85,14 @@ protected:
 };
 
 TEST_F(BVH2Test, BVH2RaysToOrigin) {
-    const auto rayGen = [](RNG &rng) {
+    const auto rayGen = [](Sampler &rng) {
         return detail::generateRayToOriginFromUnitSphere(rng, JTX_BVH_TEST_OFFSET_SCALE);
     };
     validateBVH(m_bvhEmbree, m_isectFn, rayGen);
 }
 
 TEST_F(BVH2Test, BVH2RandomRays) {
-    const auto rayGen = [](RNG &rng) {
+    const auto rayGen = [](Sampler &rng) {
         return detail::generateRayFromUnitSphere(rng, JTX_BVH_TEST_OFFSET_SCALE);
     };
     validateBVH(m_bvhEmbree, m_isectFn, rayGen);

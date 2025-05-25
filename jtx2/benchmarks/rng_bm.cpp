@@ -8,8 +8,8 @@ static constexpr uint32_t SEED    = 1234567;
 
 class RNGFixture : public benchmark::Fixture {
 public:
-    RNG a{SEED};
-    RNG b{SEED};
+    Sampler a{SEED};
+    Sampler b{SEED};
 };
 
 /**

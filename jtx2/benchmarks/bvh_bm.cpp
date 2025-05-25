@@ -11,7 +11,7 @@ static constexpr size_t NUM_RAYS = 1 << 18;
 class BVHFixture : public benchmark::Fixture {
 public:
     void SetUp(::benchmark::State& state) override {
-        RNG rng(2002);
+        Sampler rng(2002);
         m_rays = new ray[NUM_RAYS];
 
         for (int i = 0; i < NUM_RAYS; ++i) {

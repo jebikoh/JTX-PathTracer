@@ -40,7 +40,7 @@ struct ThinLensCamera {
         m_anchor = settings.position - (settings.focalDistance * w) - vpU / 2 - vpV / 2 + 0.5 * (m_du + m_dv);
     }
 
-    ray getRay(const uint32_t row, const uint32_t col, const uint32_t stratum, RNG &rng) const {
+    ray getRay(const uint32_t row, const uint32_t col, const uint32_t stratum, Sampler &rng) const {
         const uint32_t sx = stratum % sppRow;
         const uint32_t sy = stratum / sppRow;
 

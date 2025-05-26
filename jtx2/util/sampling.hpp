@@ -139,15 +139,6 @@ inline vec4 Sampler::uniform<vec4>(const float min, const float max) {
 // These are kept separate to allow sampling routines to preserve stratification
 // and sampling patterns across different distributions.
 // Most of these are taken from PBR 4d
-
-// This is a pretty slow
-JTX_FORCE_INLINE vec3 unitVector(const float s0, const float s1) {
-    const float z = s0 * 2.0f - 1.0f;
-    const float a = s1 * 2.0f * JTX_PI_F;
-    const float r = jtx::sqrt(1.0f - z * z);
-    return {r * jtx::cos(a), r * jtx::sin(a), z};
-}
-
 JTX_FORCE_INLINE vec3 sampleUniformSphere(const vec2 &s) {
     const float z = 1 - 2 * s.x;
     const float a = jtx::safeSqrt(1.0f - z * z);

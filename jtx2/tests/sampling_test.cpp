@@ -1,11 +1,14 @@
 #include <gtest/gtest.h>
 #include <util/sampling.hpp>
+#include <vector>
 
 namespace jtx {
 
 // Global test settings
 constexpr uint32_t JTX_TEST_EPSILON = 1e-5;
-constexpr uint32_t JTX_TEST_SAMPLES = 2 << 10;
+constexpr uint32_t JTX_N = 2 << 16;
+constexpr float JTX_99_Z            = 2.576f; // Z-score for 99% confidence interval
+constexpr float JTX_95_Z            = 1.96f;   // Z-score for 95% confidence interval
 
 TEST(Sampler, SameSeedProducesSameDistribution) {
     Sampler sampler1{101};
@@ -36,15 +39,75 @@ TEST(Sampler, SeedHashChangesDistribution) {
     EXPECT_NE(sampler1.sample(), sampler2.sample());
 }
 
-// TEST(Sampler, SampleUint32Uniform) {
-//     // Test settings
-//     constexpr uint32_t SEED       = 101;
-//     constexpr uint32_t RANGE      = 32;
+// Below are statistical tests for the Sampler class
+// Each test will check two basic things:
+// 1. All values are within the correct range
+// 2. Test that first moment lies within a reasonable confidence band
 //
-//     constexpr float true_mean = (RANGE - 1) / 2.0f;
-//     constexpr float true_variance  = (RANGE * RANGE - 1) / 12.0f;
-//
-//     constexpr float epsMean =  3 * jtx::sqrt(true_variance / JTX_TEST_SAMPLES);
-// }
+// In the future, may add goodness-of-fit tests like X^2 or KS
+
+// Discrete uniform distribution
+TEST(Sampler, UniformU32) {
+    constexpr uint32_t range = 128; // Sample [0, RANGE)
+    Sampler sampler(20252505);
+
+    constexpr float mu = static_cast<float>(range - 1) / 2.0f;
+    constexpr float var = range * range / 12.0f;
+    const float epsMu = 2 * jtx::sqrt(var / JTX_N);
+
+    uint64_t sum = 0;
+    for (uint32_t i = 0; i < JTX_N; ++i) {
+        const uint32_t sample = sampler.sample(range);
+        EXPECT_GE(sample, 0);
+        EXPECT_LT(sample, range);
+        sum += sampler.sample(range);
+    }
+    const float sampleMean = static_cast<float>(sum) / static_cast<float>(JTX_N);
+
+    EXPECT_LT(jtx::abs(sampleMean - mu), epsMu);
+}
+
+// Continuous uniform distribution
+TEST(Sampler, UniformFP32) {
+    Sampler sampler(20252605);
+
+    constexpr float mu = 0.5f;
+    constexpr float var = 1.0f / 12.0f;
+    const float epsMu = 2 * jtx::sqrt(var / JTX_N);
+
+    float sum = 0;
+    for (uint32_t i = 0; i < JTX_N; ++i) {
+        const float sample = sampler.uniform<float>();
+        EXPECT_GE(sample, 0.0f);
+        EXPECT_LE(sample, 1.0f);
+        sum += sample;
+    }
+    const float sampleMean = sum / static_cast<float>(JTX_N);
+
+    EXPECT_LT(jtx::abs(sampleMean - mu), epsMu);
+}
+
+TEST(Sampler, UniformFP32Range) {
+    Sampler sampler(20252705);
+
+    constexpr float rmin = -3.77f;
+    constexpr float rmax = 23.32f;
+
+    constexpr float mu = (rmin + rmax) * 0.5f;
+    const float var = jtx::sqr((rmax - rmin)) * (1.0f / 12.0f);
+    const float epsMu   = 2 * jtx::sqrt(var / JTX_N);
+
+
+    float sum = 0;
+    for (uint32_t i = 0; i < JTX_N; ++i) {
+        const float sample = sampler.uniform<float>(rmin, rmax);
+        EXPECT_GE(sample, rmin);
+        EXPECT_LE(sample, rmax);
+        sum += sample;
+    }
+    const float sampleMean = sum / static_cast<float>(JTX_N);
+
+    EXPECT_LT(jtx::abs(sampleMean - mu), epsMu);
+}
 
 }// namespace jtx

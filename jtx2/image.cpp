@@ -103,7 +103,7 @@ JtxResult jtx::Image8u::load(const uint8_t *buffer, const size_t size, Image8u &
 }
 
 JtxResult jtx::Image8u::save(const std::filesystem::path &path) const {
-    if (stbi_write_png(path.c_str(), width, height, channels, data, width * channels)) {
+    if (stbi_write_png(path.string().c_str(), width, height, channels, data, width * channels)) {
         return JTX_SUCCESS;
     }
     LOG_ERROR(TEXTURE, "Failed to save image to file: {}", stbi_failure_reason());

@@ -3,6 +3,7 @@
 #include <barrier>
 #include <thread>
 #include <backends/cpu_pt/integrator.hpp>
+#include <filesystem>
 
 namespace jtx {
 

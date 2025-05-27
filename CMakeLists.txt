@@ -210,6 +210,7 @@ set(JTX_BACKEND_CPU
         jtx2/backends/cpu_pt/integrator.hpp
         jtx2/backends/cpu_pt/integrator.cpp
         jtx2/backends/cpu_pt/bxdf/diffuse.hpp
+        jtx2/backends/cpu_pt/bxdf/bxdf.hpp
 )
 
 set(JTX_BACKEND

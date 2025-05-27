@@ -91,4 +91,31 @@ JTX_FORCE_INLINE bool triangleOccluded(const Scene &scene, const int index, cons
     return true;
 }
 
+struct SurfaceIntersection {
+    vec3 point;
+    vec3 normal;
+    vec2 texCoords;
+    const Material *material;
+};
+
+
+JTX_FORCE_INLINE void interpolate(const Scene &scene, const ray &r, const TriangleIntersection &isect, SurfaceIntersection &surface) {
+    const vec3u tri = scene.indices[isect.index];
+    const vec3 n0 = scene.normals[tri.x];
+    const vec3 n1 = scene.normals[tri.y];
+    const vec3 n2 = scene.normals[tri.z];
+
+    const float w = 1 - isect.u - isect.v;
+
+    surface.point = r.at(isect.t);
+    surface.normal = n0 * w + n1 * isect.u + n2 * isect.v;
+
+    const vec2 tex0 = scene.texCoords[tri.x];
+    const vec2 tex1 = scene.texCoords[tri.y];
+    const vec2 tex2 = scene.texCoords[tri.z];
+
+    surface.texCoords = tex0 * w + tex1 * isect.u + tex2 * isect.v;
+    surface.material = &scene.materials[isect.index];
+}
+
 }// namespace jtx

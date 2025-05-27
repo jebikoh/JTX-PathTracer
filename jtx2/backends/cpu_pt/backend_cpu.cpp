@@ -77,6 +77,7 @@ void BackendCPU::startRendering() {
                                 const ray r = m_camera.getRay(row, col, sample, sampler);
 
                                 // Integrate ray
+
                                 // For now, we test with a simple line trace
                                 vec3 intensity{};
                                 TriangleIntersection isect;

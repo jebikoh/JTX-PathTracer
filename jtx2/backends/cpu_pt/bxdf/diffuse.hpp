@@ -14,6 +14,7 @@ public:
         return m_r * INV_PI;
     }
 
+    bool sample(const vec3 &wo, float s0, const vec2 &s1);
 private:
     vec3 m_r;
 };

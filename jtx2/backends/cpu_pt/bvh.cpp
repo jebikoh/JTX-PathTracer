@@ -1,6 +1,6 @@
 #include "bvh.hpp"
-
 #include "scene/scene.hpp"
+#include <util/simd.hpp>
 
 namespace jtx {
 
@@ -482,12 +482,13 @@ bool BVH4::closestHit(const ray &r, float t0, float t1, TriangleIntersection &is
 
                     // Load data into SIMD registers
                     for (int j = 0; j < 4; ++j) {
+                        // Consider changing the triangle storage to SOA to avoid the shuffling below
                         const auto &tri = m_triangles[i + j];
                         if (tri.triangleIndex < 0) continue;
 
-                        vec3 v0 = m_scene->positions[tri.triangleIndex];
-                        vec3 v1 = m_scene->positions[tri.triangleIndex + 1];
-                        vec3 v2 = m_scene->positions[tri.triangleIndex + 2];
+                        const vec3 v0 = m_scene->positions[tri.triangleIndex];
+                        const vec3 v1 = m_scene->positions[tri.triangleIndex + 1];
+                        const vec3 v2 = m_scene->positions[tri.triangleIndex + 2];
 
                         v0_x.v[j] = v0.x;
                         v0_y.v[j] = v0.y;
@@ -581,6 +582,66 @@ bool BVH4::closestHit(const ray &r, float t0, float t1, TriangleIntersection &is
                         shuffle        = _mm_shuffle_ps(m1, m1, _MM_SHUFFLE(1, 0, 3, 2));
                         m1             = _mm_min_ps(m1, shuffle);
                     }
+#elif defined(JTX_SIMD_ARM_NEON)
+                    float32x4_t EPSILON     = vdupq_n_f32(1e-8);
+                    float32x4_t NEG_EPSILON = vdupq_n_f32(-1e-8);
+                    float32x4_t NEG_ONE     = vdupq_n_f32(-1.0f);
+                    float32x4_t ONE         = vdupq_n_f32(1.0f);
+                    float32x4_t ZERO        = vdupq_n_f32(0.0f);
+                    float32x4_t INFINITY_4  = vdupq_n_f32(JTX_INFINITY_F);
+
+                    float32x4_t ox  = vdupq_n_f32(r.origin.x);
+                    float32x4_t oy  = vdupq_n_f32(r.origin.y);
+                    float32x4_t oz  = vdupq_n_f32(r.origin.z);
+                    float32x4_t dx  = vdupq_n_f32(r.dir.x);
+                    float32x4_t dy  = vdupq_n_f32(r.dir.y);
+                    float32x4_t dz  = vdupq_n_f32(r.dir.z);
+                    float32x4_t t0v = vdupq_n_f32(t0);
+                    float32x4_t t1v = vdupq_n_f32(t1);
+
+                    // Edge 1
+                    float32x4_t v0v1x = vsubq_f32(v1_x.v4, v0_x.v4);
+                    float32x4_t v0v1y = vsubq_f32(v1_y.v4, v0_y.v4);
+                    float32x4_t v0v1z = vsubq_f32(v1_z.v4, v0_z.v4);
+
+                    // Edge 2
+                    float32x4_t v0v2x = vsubq_f32(v2_x.v4, v0_x.v4);
+                    float32x4_t v0v2y = vsubq_f32(v2_y.v4, v0_y.v4);
+                    float32x4_t v0v2z = vsubq_f32(v2_z.v4, v0_z.v4);
+
+                    // Cross product
+                    float32x4_t crossX = vsubq_f32(vmulq_f32(dy, v0v2z), vmulq_f32(dz, v0v2y));
+                    float32x4_t crossY = vsubq_f32(vmulq_f32(dz, v0v2x), vmulq_f32(dx, v0v2z));
+                    float32x4_t crossZ = vsubq_f32(vmulq_f32(dx, v0v2y), vmulq_f32(dy, v0v2x));
+
+                    // Determinant
+                    float32x4_t det = JTX_SIMD_DOT(crossX, crossY, crossZ, v0v1x, v0v1y, v0v1z);
+                    // This should be inverse of the scalar early-out test
+                    // If det <= -1e-8 || det >= 1e-8, we want to return 1
+                    uint32x4_t detMask = vorrq_u32(vcleq_f32(det, NEG_EPSILON), vcgeq_f32(det, EPSILON));
+                    float32x4_t invDet = vrecpeq_f32(det);
+
+                    float32x4_t rx = vsubq_f32(ox, v0_x.v4);
+                    float32x4_t ry = vsubq_f32(oy, v0_y.v4);
+                    float32x4_t rz = vsubq_f32(oz, v0_z.v4);
+
+                    // Barycentric U
+                    float32x4_t b1 = vmulq_f32(JTX_SIMD_DOT(rx, ry, rz, crossX, crossY, crossZ), invDet);
+                    uint32x4_t b1Mask = vandq_u32(vcgeq_f32(b1, ZERO), vcleq_f32(b1, ONE));
+
+                    float32x4_t qx = vsubq_f32(vmulq_f32(ry, v0v1z), vmulq_f32(rz, v0v1y));
+                    float32x4_t qy = vsubq_f32(vmulq_f32(rz, v0v1x), vmulq_f32(rx, v0v1z));
+                    float32x4_t qz = vsubq_f32(vmulq_f32(rx, v0v1y), vmulq_f32(rz, v0v1x));
+
+                    // Barycentric V
+                    float32x4_t b2 = vmulq_f32(JTX_SIMD_DOT(dx, dy, dz, qx, qy, qz), invDet);
+                    uint32x4_t b2Mask = vandq_u32(vcgeq_f32(b2, ZERO), vcleq_f32(b2, ONE));
+
+                    // Calculate root
+                    float32x4_t root     = vmulq_f32(JTX_SIMD_DOT(v0v2x, v0v2y, v0v2z, qx, qy, qz), invDet);
+                    uint32x4_t rootMask = vandq_u32(vcltq_f32(t0v, root), vcltq_f32(root, t1v));
+
+                    uint32x4_t mask = vandq_u32(vandq_u32(detMask, b1Mask), vandq_u32(b2Mask, rootMask));
 #endif
                 }
             }

@@ -97,7 +97,6 @@ TEST(Sampler, UniformFP32Range) {
     const float var = jtx::sqr((rmax - rmin)) * (1.0f / 12.0f);
     const float epsMu   = 2 * jtx::sqrt(var / JTX_N);
 
-
     float sum = 0;
     for (uint32_t i = 0; i < JTX_N; ++i) {
         const float sample = sampler.uniform<float>(rmin, rmax);
@@ -108,6 +107,13 @@ TEST(Sampler, UniformFP32Range) {
     const float sampleMean = sum / static_cast<float>(JTX_N);
 
     EXPECT_LT(jtx::abs(sampleMean - mu), epsMu);
+}
+
+TEST(Sampler, UniformSphere) {
+    Sampler sampler(20252805);
+
+    const auto mu = vec3(0.0f, 0.0f, 0.0f);
+    const
 }
 
 }// namespace jtx

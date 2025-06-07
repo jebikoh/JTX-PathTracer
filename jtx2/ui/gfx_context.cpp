@@ -480,14 +480,14 @@ std::optional<RenderContext> GfxContext::StartFrame() {
 
     return RenderContext{
             .cmd       = frame.cmdBuffer,
+            .swapchainIndex    = swapchainIndex,
+            .frameIndex        = frameIndex,
             .swapchain = {
                     .image  = swapchain.images[swapchainIndex],
                     .view   = swapchain.views[swapchainIndex],
                     .extent = swapchain.extent},
             .drawImage         = drawImage.image,
             .depthStencilImage = drawImage.depthStencilImage,
-            .swapchainIndex    = swapchainIndex,
-            .frameIndex        = frameIndex,
             .layout            = {
                                .swapchain         = VK_IMAGE_LAYOUT_UNDEFINED,
                                .drawImage         = VK_IMAGE_LAYOUT_UNDEFINED,

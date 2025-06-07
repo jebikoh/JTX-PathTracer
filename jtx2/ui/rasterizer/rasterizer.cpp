@@ -37,7 +37,7 @@ void Rasterizer::Destroy() {
     LOG_INFO(RASTERIZER, "Rasterizer destroyed");
 }
 
-void Rasterizer::Draw(RenderContext &ctx) {
+void Rasterizer::Draw(RenderContext &ctx, ResolveRegion &region) {
     if (!m_bSceneLoaded) {
         return;
     }
@@ -50,6 +50,12 @@ void Rasterizer::Draw(RenderContext &ctx) {
         {m_viewRectangle.x, m_viewRectangle.y},
         {m_viewRectangle.w, m_viewRectangle.h}
     };
+
+    // Calculate resolve region
+    region.src[0].width = region.dst[0].width = m_viewRectangle.x;
+    region.src[0].height = region.dst[0].height = m_viewRectangle.y;
+    region.src[1].width = region.dst[1].width = m_viewRectangle.x + m_viewRectangle.w;
+    region.src[1].height = region.dst[1].height = m_viewRectangle.y + m_viewRectangle.h;
 
     // Draw sorting
     std::vector<uint32_t> opaqueDraws;

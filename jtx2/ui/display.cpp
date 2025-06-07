@@ -43,7 +43,10 @@ void Display::Draw() {
         m_rasterizer.SetViewportRectangle(rect);
     }
 
-    m_rasterizer.Draw(ctx);
+    ResolveRegion region;
+    m_rasterizer.Draw(ctx, region);
+    m_gfx.ResolveToSwapchain(ctx, region);
+
     m_uiRenderer.Draw(ctx);
 
     m_gfx.EndFrame(ctx);

@@ -6,7 +6,7 @@
 #include <imgui_impl_vulkan.h>
 #include <imgui_internal.h>
 
-#define JTX_UI_DRAW_DEMO_WINDOW
+// #define JTX_UI_DRAW_DEMO_WINDOW
 
 #define JTX_UI_RIGHT_ALIGN_TEXT(text)                                                                                                                                     \
     const auto __jtx_posX = (ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::CalcTextSize(text).x - ImGui::GetScrollX() - 2 * ImGui::GetStyle().ItemSpacing.x); \
@@ -253,8 +253,9 @@ void UIRenderer::NewFrame() {
             JTX_UI_TABLE_END;
         }
 
-
+#ifdef JTX_UI_DRAW_DEMO_WINDOW
         ImGui::ShowDemoWindow();
+#endif
 
         // Sampling settings
         JTX_UI_CHANNEL_FOREGROUND;
@@ -293,7 +294,6 @@ void UIRenderer::NewFrame() {
             JTX_UI_TABLE_START("Performance");
 
             JTX_UI_TABLE_NEW_ROW("Tile Size");
-            ImGui::DragInt("##TileSize", &tileSize, 0);
             ImGui::DragInt("##TileSize", &tileSize, 0);
 
             JTX_UI_TABLE_NEW_ROW("Thread Count");

@@ -50,7 +50,7 @@ public:
 
     void Destroy();
 
-    void Draw(RenderContext &ctx);
+    void Draw(RenderContext &ctx, ResolveRegion &region);
 
     void ProcessEvent(const SDL_Event &event);
 

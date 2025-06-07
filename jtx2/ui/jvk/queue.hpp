@@ -5,15 +5,15 @@
 namespace jvk {
 
 struct Queue {
-    VkQueue queue;
-    uint32_t family;
+    VkQueue queue   = VK_NULL_HANDLE;
+    uint32_t family = 0;
 
-    Queue() {};
+    Queue() = default;
 
     operator VkQueue() const { return queue; }
 
-    VkResult submit(VkCommandBufferSubmitInfoKHR *cmdInfo, VkSemaphoreSubmitInfoKHR *waitSemaphoreInfo, VkSemaphoreSubmitInfoKHR *signalSemaphoreInfo, VkFence fence) const {
-        VkSubmitInfo2KHR info            = {};
+    VkResult Submit(const VkCommandBufferSubmitInfoKHR *cmdInfo, const VkSemaphoreSubmitInfoKHR *waitSemaphoreInfo, const VkSemaphoreSubmitInfoKHR *signalSemaphoreInfo, const VkFence fence) const {
+        VkSubmitInfo2KHR info         = {};
         info.sType                    = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
         info.pNext                    = nullptr;
         info.waitSemaphoreInfoCount   = waitSemaphoreInfo == nullptr ? 0 : 1;
@@ -25,5 +25,6 @@ struct Queue {
         return vkQueueSubmit2KHR(queue, 1, &info, fence);
     }
 };
+
 
 }// namespace jvk

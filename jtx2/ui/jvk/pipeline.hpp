@@ -3,19 +3,18 @@
 #include "jvk.hpp"
 
 namespace jvk {
-
-bool loadShaderModule(const char *filePath, VkDevice device, VkShaderModule *outShaderModule);
+bool LoadShaderModule(const char *filePath, VkDevice device, VkShaderModule *outShaderModule);
 
 struct PipelineBuilder {
-    std::vector<VkPipelineShaderStageCreateInfo> _shaderStages;// Shader modules for different stages
-    VkPipelineInputAssemblyStateCreateInfo _inputAssembly;     // Triangle topology
-    VkPipelineRasterizationStateCreateInfo _rasterizer;        // Rasterization settings between vertex & frag shader
-    VkPipelineColorBlendAttachmentState _colorBlendAttachment; // Color blending & attachment information (transparency)
-    VkPipelineMultisampleStateCreateInfo _multisampling;       // MSAA
-    VkPipelineLayout _pipelineLayout;                          // Pipeline layout (descriptors, etc)
-    VkPipelineDepthStencilStateCreateInfo _depthStencil;       // Depth-testing & stencil configuration
-    VkPipelineRenderingCreateInfo _renderingInfo;              // Holds attachment info for pipeline, passed via pNext
-    VkFormat _colorAttachmentFormat;
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages{};// Shader modules for different stages
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};     // Triangle topology
+    VkPipelineRasterizationStateCreateInfo rasterization{};     // Rasterization settings between vertex & frag shader
+    VkPipelineColorBlendAttachmentState colorBlendAttachment{}; // Color blending & attachment information (transparency)
+    VkPipelineMultisampleStateCreateInfo multisampling{};       // MSAA
+    VkPipelineLayout pipelineLayout{};                          // Pipeline layout (descriptors, etc)
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};       // Depth-testing & stencil configuration
+    VkPipelineRenderingCreateInfo renderingInfo{};              // Holds attachment info for pipeline, passed via pNext
+    VkFormat colorAttachmentFormat{};
 
     // Pipeline parameters we don't configure:
     // - VkPipelineVertexInputStateCreateInfo: vertex attribute input configuration; we use "vertex pulling" so don't need it
@@ -25,45 +24,45 @@ struct PipelineBuilder {
 
     // We set up VkPipelineDynamicStateCreateInfo in the buildPipeline method for dynamic scissor and viewport
 
-    PipelineBuilder() { clear(); }
-    void clear();
-    void setShaders(VkShaderModule vertexShader, VkShaderModule fragmentShader);
-    void setInputTopology(VkPrimitiveTopology topology);
+    PipelineBuilder() { Clear(); }
+    void Clear();
+    void SetShaders(VkShaderModule vertexShader, VkShaderModule fragmentShader);
+    void SetInputTopology(VkPrimitiveTopology topology);
 
     // Rasterizer state
-    void setPolygonMode(VkPolygonMode mode);
-    void setCullMode(VkCullModeFlags cullMode, VkFrontFace frontFace);
+    void SetPolygonMode(VkPolygonMode mode);
+    void SetCullMode(VkCullModeFlags cullMode, VkFrontFace frontFace);
 
     // Multisampling
-    void setMultiSamplingNone();
-    void enableMultiSampling(VkSampleCountFlagBits sampleCount);
-    void enableSampleShading(VkSampleCountFlagBits sampleCount, float minSampleShading);
+    void SetMultiSamplingNone();
+    void EnableMultiSampling(VkSampleCountFlagBits sampleCount);
+    void EnableSampleShading(VkSampleCountFlagBits sampleCount, float minSampleShading);
 
     // Blending
-    void disableBlending();
-    void enableBlendingAdditive();
-    void enableBlendingAlphaBlend();
+    void DisableBlending();
+    void EnableBlendingAdditive();
+    void EnableBlendingAlphaBlend();
 
     // Attachments
-    void setColorAttachmentFormat(VkFormat format);
-    void setDepthAttachmentFormat(VkFormat format);
+    void SetColorAttachmentFormat(VkFormat format);
+    void SetDepthAttachmentFormat(VkFormat format);
 
     // Depth testing
-    void disableDepthTest();
-    void enableDepthTest(bool depthWriteEnable, VkCompareOp compareOp);
+    void DisableDepthTest();
+    void EnableDepthTest(bool depthWriteEnable, VkCompareOp compareOp);
 
     // Stencil
-    void disableStencilTest();
-    void enableStencilTest(const VkStencilOpState &front, const VkStencilOpState &back);
+    void DisableStencilTest();
+    void EnableStencilTest(const VkStencilOpState &front, const VkStencilOpState &back);
 
-    VkPipeline buildPipeline(VkDevice device) const;
+    VkPipeline BuildPipeline(VkDevice device) const;
 };
 
 struct Pipeline {
-    VkPipeline pipeline = VK_NULL_HANDLE;
+    VkPipeline pipeline             = VK_NULL_HANDLE;
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 
-    void destroy(const VkDevice device, const bool destroyLayout = false) const {
+    void Destroy(const VkDevice device, const bool destroyLayout = false) const {
         if (destroyLayout) {
             vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
         }

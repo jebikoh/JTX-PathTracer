@@ -6,25 +6,23 @@
 
 namespace jvk {
 
-struct Context;
-
 struct Swapchain {
-    VkSwapchainKHR swapchain;
-    VkFormat imageFormat;
-    std::vector<VkImage> images;
-    std::vector<VkImageView> imageViews;
-    VkExtent2D extent;
+    VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+    VkFormat format     = VK_FORMAT_UNDEFINED;
+    std::vector<VkImage> images{};
+    std::vector<VkImageView> views{};
+    VkExtent2D extent = {0, 0};
 
-    Swapchain() {};
+    Swapchain() = default;
 
-    void init(
-            Context &context,
-            uint32_t width,
-            uint32_t height,
-            VkFormat format              = VK_FORMAT_B8G8R8A8_UNORM,
-            VkColorSpaceKHR colorSpace   = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
-            VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR,
-            VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
+    void Init(
+            const VkContext &context,
+            const uint32_t width,
+            const uint32_t height,
+            const VkFormat format_              = VK_FORMAT_B8G8R8A8_UNORM,
+            const VkColorSpaceKHR colorSpace   = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
+            const VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR,
+            const VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
         vkb::SwapchainBuilder swapchainBuilder{context.physicalDevice, context.device, context.surface};
         vkb::Swapchain vkbSwapchain = swapchainBuilder
                                               .set_desired_format(
@@ -38,20 +36,20 @@ struct Swapchain {
                                               .value();
 
         swapchain   = vkbSwapchain.swapchain;
-        imageFormat = format;
+        format = format_;
         images      = vkbSwapchain.get_images().value();
-        imageViews  = vkbSwapchain.get_image_views().value();
+        views  = vkbSwapchain.get_image_views().value();
         extent      = vkbSwapchain.extent;
     }
 
-    void destroy(const Context &context) {
+    void Destroy(const VkContext &context) const {
         vkDestroySwapchainKHR(context, swapchain, nullptr);
-        for (int i = 0; i < imageViews.size(); ++i) {
-            vkDestroyImageView(context, imageViews[i], nullptr);
+        for (const auto imageView: views) {
+            vkDestroyImageView(context, imageView, nullptr);
         }
     }
 
-    VkResult acquireNextImage(const Context &context, VkSemaphore semaphore, uint32_t *imageIndex, const uint64_t timeout = JVK_TIMEOUT) {
+    VkResult AcquireNextImage(const VkContext &context, const VkSemaphore semaphore, uint32_t *imageIndex, const uint64_t timeout = JVK_TIMEOUT) const {
         return vkAcquireNextImageKHR(context, swapchain, timeout, semaphore, VK_NULL_HANDLE, imageIndex);
     }
 };

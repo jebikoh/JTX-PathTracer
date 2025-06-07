@@ -5,14 +5,14 @@
 namespace jvk {
 
 struct CommandBuffer {
-    VkCommandBuffer cmd;
+    VkCommandBuffer cmd = VK_NULL_HANDLE;
 
-    CommandBuffer() {};
+    CommandBuffer() = default;
     explicit CommandBuffer(const VkCommandBuffer cmd_) : cmd(cmd_) {};
 
     operator VkCommandBuffer() const { return cmd; }
 
-    VkResult begin(const VkCommandBufferUsageFlags flags = 0) const {
+    VkResult Begin(const VkCommandBufferUsageFlags flags = 0) const {
         VkCommandBufferBeginInfo info = {};
         info.sType                    = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         info.pNext                    = nullptr;
@@ -21,15 +21,15 @@ struct CommandBuffer {
         return vkBeginCommandBuffer(cmd, &info);
     }
 
-    VkResult end() const {
+    VkResult End() const {
         return vkEndCommandBuffer(cmd);
     }
 
-    VkResult reset(const VkCommandBufferResetFlags flags = 0) const {
+    VkResult Reset(const VkCommandBufferResetFlags flags = 0) const {
         return vkResetCommandBuffer(cmd, flags);
     }
 
-    VkCommandBufferSubmitInfoKHR submitInfo() const {
+    VkCommandBufferSubmitInfoKHR SubmitInfo() const {
         VkCommandBufferSubmitInfoKHR info = {};
         info.sType                     = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
         info.pNext                     = nullptr;
@@ -47,9 +47,9 @@ struct CommandPool {
     CommandPool(CommandPool const &)            = delete;
     CommandPool &operator=(CommandPool const &) = delete;
 
-    CommandPool() {}
+    CommandPool() = default;
 
-    VkResult init(const VkDevice device_, const uint32_t familyIndex_, const VkCommandPoolCreateFlags flags) {
+    VkResult Init(const VkDevice device_, const uint32_t familyIndex_, const VkCommandPoolCreateFlags flags) {
         device = device_;
         familyIndex = familyIndex_;
 
@@ -62,7 +62,7 @@ struct CommandPool {
     }
 
 
-    VkResult allocateCommandBuffer(VkCommandBuffer *cmd, const uint32_t count = 1, const VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY) const {
+    VkResult AllocateCommandBuffer(VkCommandBuffer *cmd, const uint32_t count = 1, const VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY) const {
         VkCommandBufferAllocateInfo info = {};
         info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         info.pNext                       = nullptr;
@@ -72,7 +72,7 @@ struct CommandPool {
         return vkAllocateCommandBuffers(device, &info, cmd);
     }
 
-    VkResult allocateCommandBuffer(CommandBuffer *cmd, const uint32_t count = 1, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY) const {
+    VkResult AllocateCommandBuffer(CommandBuffer *cmd, const uint32_t count = 1, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY) const {
         VkCommandBufferAllocateInfo info = {};
         info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         info.pNext                       = nullptr;
@@ -84,7 +84,7 @@ struct CommandPool {
 
     operator VkCommandPool() const { return pool; }
 
-    void destroy() const {
+    void Destroy() const {
         vkDestroyCommandPool(device, pool, nullptr);
     }
 };

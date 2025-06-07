@@ -198,6 +198,8 @@ set(JTX_UI
         jtx2/ui/rasterizer/camera.hpp
         jtx2/ui/rasterizer/camera.cpp
         jtx2/ui/rasterizer/render_data.hpp
+        jtx2/ui/gfx_context.cpp
+        jtx2/ui/gfx_context.hpp
 )
 
 set(JTX_BACKEND_CPU

@@ -4,17 +4,18 @@
 #include <fstream>
 
 namespace jvk {
-bool loadShaderModule(const char *filePath, VkDevice device, VkShaderModule *outShaderModule) {
+
+inline bool LoadShaderModule(const char *filePath, const VkDevice device, VkShaderModule *outShaderModule) {
     std::ifstream file(filePath, std::ios::ate | std::ios::binary);
     if (!file.is_open()) {
         return false;
     }
 
-    size_t fileSize = (size_t) file.tellg();
+    const auto fileSize = file.tellg();
     std::vector<uint32_t> buffer(fileSize / sizeof(uint32_t));
 
     file.seekg(0);
-    file.read((char *) buffer.data(), fileSize);
+    file.read(reinterpret_cast<char *>(buffer.data()), fileSize);
     file.close();
 
     VkShaderModuleCreateInfo createInfo{};
@@ -31,4 +32,5 @@ bool loadShaderModule(const char *filePath, VkDevice device, VkShaderModule *out
     *outShaderModule = shader;
     return true;
 }
-}
+
+}// namespace jvk

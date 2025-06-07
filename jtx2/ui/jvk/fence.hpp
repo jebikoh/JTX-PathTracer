@@ -5,12 +5,12 @@
 namespace jvk {
 
 struct Fence {
-    VkFence fence;
-    VkDevice device;
+    VkFence fence = VK_NULL_HANDLE;
+    VkDevice device = VK_NULL_HANDLE;
 
-    Fence() {};
+    Fence() = default;
 
-    VkResult init(VkDevice device_, VkFenceCreateFlags flags = 0) {
+    VkResult Init(VkDevice device_, VkFenceCreateFlags flags = 0) {
         device                 = device_;
         VkFenceCreateInfo info = {};
         info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -21,15 +21,15 @@ struct Fence {
 
     operator VkFence() const { return fence; }
 
-    VkResult reset() const {
+    VkResult Reset() const {
         return vkResetFences(device, 1, &fence);
     }
 
-    VkResult wait(const uint64_t timeout = JVK_TIMEOUT) const {
+    VkResult Wait(const uint64_t timeout = JVK_TIMEOUT) const {
         return vkWaitForFences(device, 1, &fence, VK_TRUE, timeout);
     }
 
-    void destroy() {
+    void Destroy() const {
         vkDestroyFence(device, fence, nullptr);
     }
 };

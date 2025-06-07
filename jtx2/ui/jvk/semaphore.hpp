@@ -8,9 +8,9 @@ struct Semaphore {
     VkSemaphore semaphore = VK_NULL_HANDLE;
     VkDevice device = VK_NULL_HANDLE;
 
-    Semaphore() {};
+    Semaphore() = default;
 
-    VkResult init(const VkDevice device_, const VkSemaphoreCreateFlags flags = 0) {
+    VkResult Init(const VkDevice device_, const VkSemaphoreCreateFlags flags = 0) {
         device = device_;
         VkSemaphoreCreateInfo info = {};
         info.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -22,7 +22,7 @@ struct Semaphore {
     operator VkSemaphore() const { return semaphore; }
 
     [[nodiscard]]
-    VkSemaphoreSubmitInfoKHR submitInfo(VkPipelineStageFlags2KHR stageMask) const {
+    VkSemaphoreSubmitInfoKHR SubmitInfo(const VkPipelineStageFlags2KHR stageMask) const {
         VkSemaphoreSubmitInfoKHR info = {};
         info.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
         info.pNext                 = nullptr;
@@ -33,7 +33,7 @@ struct Semaphore {
         return info;
     }
 
-    void destroy() {
+    void Destroy() const {
         vkDestroySemaphore(device, semaphore, nullptr);
     }
 };

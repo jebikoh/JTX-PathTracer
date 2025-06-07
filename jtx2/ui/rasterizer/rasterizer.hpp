@@ -2,6 +2,7 @@
 
 #include "camera.hpp"
 #include "fastgltf/types.hpp"
+#include "ui/gfx_context.hpp"
 #include "ui/jvk/buffer.hpp"
 #include "ui/jvk/descriptor.hpp"
 #include "ui/jvk/jvk.hpp"
@@ -12,8 +13,7 @@
 #include <ui/jvk/context.hpp>
 
 namespace jtx {
-
-class Display;
+struct Scene;
 
 /**
  * This class is responsible for rasterizing the scene, including managing
@@ -44,22 +44,19 @@ class Display;
  */
 class Rasterizer {
 public:
-    friend class UIRenderer;
+    explicit Rasterizer(const GfxContext &gfx) : m_gfx(gfx) {}
 
-    explicit Rasterizer(Display *pDisplay)
-        : m_pDisplay(pDisplay) {}
+    void Init();
 
-    void init();
+    void Destroy();
 
-    void destroy();
+    void Draw(RenderContext &ctx);
 
-    void draw(VkCommandBuffer cmd);
+    void ProcessEvent(const SDL_Event &event);
 
-    void processSDLEvent(const SDL_Event &event);
+    void SkipEvent();
 
-    void skipEvent();
-
-    void setViewportRectangle(const jvk::ViewRectangle &viewRectangle) { m_viewRectangle = viewRectangle; }
+    void SetViewportRectangle(const jvk::ViewRectangle &viewRectangle) { m_viewRectangle = viewRectangle; }
 
     /**
      * This will (re)load the scene from the display and setup GPU resources.
@@ -72,33 +69,31 @@ public:
      *  - A new UBO is created to hold material data
      *  - Material instances are written for each material and constants are written to UBO
      */
-    void loadScene();
+    void LoadScene(const Scene *pScene);
 
 private:
-    // It might be worth to store some commonly used members (as copies or pointers) within this class
-    // during initialization to avoid some pointer chasing
-    Display *m_pDisplay = nullptr;
-    jvk::Context m_ctx;
-    VmaAllocator m_allocator{};
+    const GfxContext &m_gfx;
+    jvk::DynamicDescriptorAllocator m_descriptorAllocator;
 
     jvk::ViewRectangle m_viewRectangle{};
 
     // Scene
     bool m_bSceneLoaded = false;
-    // FPSCamera m_camera{.position = {0.0f, 0.0f, 5.0f}, .speed = 0.1};
+    const Scene *m_scene = nullptr;
+
     OrbitCamera m_camera{};
 
     // Frame data (scene UBO buffers)
     struct FrameData {
         jvk::Buffer gpuSceneDataUBO;
-        GPUSceneUBOData *gpuSceneDataUBOMapping;
-        VkDescriptorSet gpuSceneDataUboDescriptorSet;
+        GPUSceneUBOData *gpuSceneDataUBOMapping = nullptr;
+        VkDescriptorSet gpuSceneDataUboDescriptorSet = VK_NULL_HANDLE;
     } m_frameData[JTX_MAX_FRAMES_IN_FLIGHT];
     VkDescriptorSetLayout m_gpuSceneDataUboDescriptorLayout = VK_NULL_HANDLE;
-    GPUSceneUBOData m_gpuSceneUboData;
+    GPUSceneUBOData m_gpuSceneUboData{};
 
-    void initFrameData();
-    void destroyFrameData() const;
+    void InitFrameData();
+    void DestroyFrameData() const;
 
     // GPU scene mesh data buffers
     struct GPUSceneMeshData {
@@ -108,18 +103,18 @@ private:
         jvk::Buffer uv{};
         jvk::Buffer color{};
 
-        VkDeviceAddress positionAddress;
-        VkDeviceAddress normalAddress;
-        VkDeviceAddress uvAddress;
-        VkDeviceAddress colorAddress;
+        VkDeviceAddress positionAddress = 0;
+        VkDeviceAddress normalAddress = 0;
+        VkDeviceAddress uvAddress = 0;
+        VkDeviceAddress colorAddress = 0;
     } m_gpuSceneMeshData;
-    void destroyGPUSceneMeshData();
+    void DestroyGPUSceneMeshData();
 
     // GPU material pipelines and descriptor layouts
     struct GPUMaterials {
         jvk::Pipeline opaquePipeline;
         jvk::Pipeline transparentPipeline;
-        VkDescriptorSetLayout descriptorSetLayout;
+        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
     } m_gpuMaterials;
 
     // A scene's specific material data
@@ -132,22 +127,22 @@ private:
     /**
      * Builds material pipelines and descriptor set layouts
      */
-    void initMaterialResources();
+    void InitMaterialResources();
 
     /**
      * Destroys material pipelines and descriptor layouts
      */
-    void destroyMaterialResources() const;
+    void DestroyMaterialResources() const;
 
     /**
      * Destroys all material instances and the material UBO if a scene is loaded
      */
-    void destroyGPUSceneMaterials() const;
+    void DestroyGPUSceneMaterials() const;
 
     /**
      * Destroys all loaded textures on the GPU
      */
-    void destroyGPUSceneTextures() const;
+    void DestroyGPUSceneTextures() const;
 
     /**
      * Utility function to write a single material instance given a pass type and resources.
@@ -155,17 +150,17 @@ private:
      * @param resources material resources
      * @return material instance
      */
-    GPUMaterialInstance writeMaterial(GPUMaterialPass pass, const GPUMaterialResources &resources);
+    GPUMaterialInstance WriteMaterial(GPUMaterialPass pass, const GPUMaterialResources &resources);
 
     // Draw
     GPUDrawContext m_drawContext;
 
-    void populateContext();
-    void updateSceneData();
+    void PopulateContext();
+    void UpdateSceneData();
 
     jvk::DescriptorWriter m_descriptorWriter;
 
-    void destroyGPUScene();
+    void DestroyGPUScene();
 };
 
 }// namespace jtx

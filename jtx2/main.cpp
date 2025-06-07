@@ -13,10 +13,10 @@ int main(int argc, char *argv[]) {
     jtx::loadScene("assets/f22.obj", scene);
 
     jtx::Display display;
-    display.init();
-    display.setScene(&scene);
-    display.run();
-    display.destroy();
+    display.Init();
+    display.SetScene(&scene);
+    display.Run();
+    display.Destroy();
 #else
     jtx::Scene scene;
     jtx::loadScene("assets/f22.obj", scene);

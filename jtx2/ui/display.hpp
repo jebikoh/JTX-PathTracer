@@ -1,23 +1,9 @@
 #pragma once
 
-#include "jvk/buffer.hpp"
-#include "jvk/commands.hpp"
-#include "jvk/context.hpp"
-#include "jvk/descriptor.hpp"
-#include "jvk/fence.hpp"
-#include "jvk/image.hpp"
-#include "jvk/immediate_buffer.hpp"
-#include "jvk/jvk.hpp"
-#include "jvk/queue.hpp"
-#include "jvk/sampler.hpp"
-#include "jvk/semaphore.hpp"
-#include "jvk/swapchain.hpp"
-
-#include "rasterizer/rasterizer.hpp"
-#include "ui_renderer.hpp"
-
-#include "scene/scene.hpp"
-#include "jtx.hpp"
+#include <ui/gfx_context.hpp>
+#include <ui/ui_renderer.hpp>
+#include <ui/rasterizer/rasterizer.hpp>
+#include <scene/scene.hpp>
 
 namespace jtx {
 
@@ -36,162 +22,26 @@ namespace jtx {
  */
 class Display {
 public:
-    // Needs access to createImage/createBuffer methods
-    friend class Rasterizer;
-    friend class GPUMaterial;
-    friend class UIRenderer;
+    Display() : m_gfx(), m_uiRenderer(m_gfx), m_rasterizer(m_gfx) {};
 
-    void init();
-    void draw();
-    void run();
-    void destroy();
+    void Init();
+    void Destroy();
 
-    void setScene(jtx::Scene *pScene) {
+    void Draw();
+    void Run();
+
+    void SetScene(jtx::Scene *pScene) {
         m_pScene = pScene;
-        m_rasterizer.loadScene();
+        m_rasterizer.LoadScene(pScene);
     }
-
-    static Display *get();
-
 private:
     bool m_bIsInitialized   = false;
     bool m_bStopRendering   = false;
-    bool m_bResizeRequested = false;
-    int m_frameNumber       = 0;
-    float m_deltaTime       = 1;
-
-    VkExtent2D m_windowExtent{1700, 900};
-    struct SDL_Window *m_pWindow = nullptr;
-
-    // Vulkan & allocators
-    jvk::Context m_ctx;
-    VmaAllocator m_allocator{};
-    jvk::DynamicDescriptorAllocator m_descriptorAllocator;
-
-    // Frames
-    jvk::Swapchain m_swapchain;
-    struct FrameData {
-        jvk::CommandPool cmdPool;
-        jvk::CommandBuffer cmdBuffer;
-
-        jvk::Semaphore swapchainSemaphore;
-        jvk::Semaphore drawSemaphore;
-        jvk::Fence drawFence;
-    } m_frameData[JTX_MAX_FRAMES_IN_FLIGHT];
-
-    // Queues
-    jvk::Queue m_graphicsQueue;
-    jvk::ImmediateBuffer m_immBuffer;
-
-    // Draw Images (Rasterization)
-    struct DrawImage {
-        jvk::Image image;
-        jvk::Image depthStencilImage;
-        VkExtent2D extent;
-        float renderScale = 1.0f;
-    } m_drawImage{};
-
-    // Default Textures & Samplers
-    jvk::Image m_whiteImage{};
-    jvk::Image m_blackImage{};
-    jvk::Image m_errorCheckerboardImage{};
-
-    jvk::Sampler m_samplerLinear;
-    jvk::Sampler m_samplerNearest;
-
-    // Secondary renderers
-    UIRenderer m_uiRenderer{this};
-    Rasterizer m_rasterizer{this};
-
-    // Scene
     jtx::Scene *m_pScene = nullptr;
 
-    // Functions
-    FrameData &getCurrentFrame() { return m_frameData[m_frameNumber % JTX_MAX_FRAMES_IN_FLIGHT]; }
-    size_t getCurrentFrameIndex() const { return m_frameNumber % JTX_MAX_FRAMES_IN_FLIGHT; }
-
-    // Initializer functions
-    void initWindow();
-    void initVulkan();
-    void initAllocators();
-    void initSwapchain();
-    void initDrawImages();
-    void initFrameData();
-    void initImmediateBuffer();
-
-    void destroyWindow() const;
-    void destroyVulkan();
-    void destroyAllocators();
-    void destroySwapchain();
-    void destroyDrawImages() const;
-    void destroyFrameData();
-    void destroyImmediateBuffer();
-
-    // Default data
-    void initDefaultImages();
-    void initDefaultSamplers();
-    void destroyDefaultImages() const;
-    void destroyDefaultSamplers() const;
-
-    // Image utilities
-    // The caller is responsible for keeping track of these and destroying them on cleanup
-
-    /**
-     * Creates an empty image with the given parameters using this engine's allocator.
-     *
-     * The user is responsible for keeping track of and destroying this image on destroy.
-     * @param extent image extent
-     * @param format image format
-     * @param usage memory usage
-     * @param bMipmapped true if the image should be mipmapped
-     * @param sampleCount sample count
-     * @return empty image
-     */
-    jvk::Image createImage(VkExtent3D extent, VkFormat format, VkImageUsageFlags usage, bool bMipmapped = false, VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT) const;
-
-    /**
-     * Creates an image with the given parameters using this engine's allocator.
-     * Copies the provided data to the image via a staging buffer
-     *
-     *
-     * The user is responsible for keeping track of and destroying this image on destroy.
-     * @param pData data pointer
-     * @param extent data extent
-     * @param nChannels data channel count (TODO: have this be auto-detected from the format)
-     * @param format image format
-     * @param usage image memory usage
-     * @param bMipmapped true if the image should be mipmapped
-     * @param sampleCount sample count
-     * @return image containing provided data
-     */
-    jvk::Image createImage(const void *pData, VkExtent3D extent, size_t nChannels, VkFormat format, VkImageUsageFlags usage, bool bMipmapped = false, VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT) const;
-
-    /**
-     * Destroys the image using this engine's context and allocator
-     * @param image image to destroy
-     */
-    void destroyImage(const jvk::Image &image) const;
-
-    // Buffer utilities
-
-    /**
-     * Creates an empty buffer with the given parameters using this engine's allocator.
-     * @param allocSize size of the buffer
-     * @param usage buffer usage
-     * @param memUsage memory usage
-     * @param memFlags memory flags
-     * @param memPropFlags vulkan memory flags
-     * @return empty buffer
-     */
-    jvk::Buffer createBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, VmaAllocationCreateFlags memFlags = 0, VkMemoryPropertyFlags memPropFlags = 0) const;
-
-    /**
-     * Destroys the buffer using this engine's allocator
-     * @param buffer buffer to destroy
-     */
-    void destroyBuffer(const jvk::Buffer &buffer) const;
-
-    void resizeSwapchain();
+    GfxContext m_gfx;
+    UIRenderer m_uiRenderer;
+    Rasterizer m_rasterizer;
 };
 
 }// namespace jtx

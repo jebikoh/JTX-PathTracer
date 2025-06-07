@@ -16,12 +16,12 @@
 #define JTX_UI_FULL_WIDTH \
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x)
 
-#define JTX_UI_TABLE_START(tableName)                                           \
+#define JTX_UI_TABLE_START(tableName)                                              \
     if (ImGui::BeginTable(tableName, 2, ImGuiTableFlags_SizingStretchSame)) {      \
         ImGui::TableSetupColumn("COL1", ImGuiTableColumnFlags_WidthStretch, 1.0f); \
     ImGui::TableSetupColumn("COL2", ImGuiTableColumnFlags_WidthStretch, 1.0f)
 
-#define JTX_UI_TABLE_START_R(tableName, ratioC1, ratioC2)                               \
+#define JTX_UI_TABLE_START_R(tableName, ratioC1, ratioC2)                             \
     if (ImGui::BeginTable(tableName, 2, ImGuiTableFlags_SizingStretchSame)) {         \
         ImGui::TableSetupColumn("COL1", ImGuiTableColumnFlags_WidthStretch, ratioC1); \
     ImGui::TableSetupColumn("COL2", ImGuiTableColumnFlags_WidthStretch, ratioC2)
@@ -70,20 +70,13 @@
 
 namespace jtx {
 
-void UIRenderer::init() {
+void UIRenderer::Init() {
     LOG_INFO(UI, "Initializing UI renderer");
 
-    const VkDescriptorPoolSize poolSizes[] = {{VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
-                                              {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
-                                              {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
-                                              {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
-                                              {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
-                                              {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
-                                              {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
-                                              {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
-                                              {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
-                                              {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
-                                              {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
+    constexpr VkDescriptorPoolSize poolSizes[] =
+            {
+                    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE},
+            };
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -92,16 +85,16 @@ void UIRenderer::init() {
     poolInfo.poolSizeCount = static_cast<uint32_t>(std::size(poolSizes));
     poolInfo.pPoolSizes    = poolSizes;
 
-    CHECK_VK(vkCreateDescriptorPool(m_pDisplay->m_ctx, &poolInfo, nullptr, &m_descriptorPool));
+    CHECK_VK(vkCreateDescriptorPool(m_gfx.ctx, &poolInfo, nullptr, &m_descriptorPool));
 
     ImGui::CreateContext();
-    ImGui_ImplSDL2_InitForVulkan(m_pDisplay->m_pWindow);
+    ImGui_ImplSDL2_InitForVulkan(m_gfx.window.pWindow);
 
     ImGui_ImplVulkan_InitInfo initInfo{};
-    initInfo.Instance            = m_pDisplay->m_ctx.instance;
-    initInfo.PhysicalDevice      = m_pDisplay->m_ctx.physicalDevice;
-    initInfo.Device              = m_pDisplay->m_ctx.device;
-    initInfo.Queue               = m_pDisplay->m_graphicsQueue.queue;
+    initInfo.Instance            = m_gfx.ctx;
+    initInfo.PhysicalDevice      = m_gfx.ctx;
+    initInfo.Device              = m_gfx.ctx;
+    initInfo.Queue               = m_gfx.graphicsQueue.queue;
     initInfo.DescriptorPool      = m_descriptorPool;
     initInfo.MinImageCount       = 3;
     initInfo.ImageCount          = 3;
@@ -109,33 +102,35 @@ void UIRenderer::init() {
 
     initInfo.PipelineRenderingCreateInfo                         = {.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR};
     initInfo.PipelineRenderingCreateInfo.colorAttachmentCount    = 1;
-    initInfo.PipelineRenderingCreateInfo.pColorAttachmentFormats = &m_pDisplay->m_swapchain.imageFormat;
+    initInfo.PipelineRenderingCreateInfo.pColorAttachmentFormats = &m_gfx.swapchain.format;
 
     initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
     ImGui_ImplVulkan_Init(&initInfo);
 
-    setupStyle();
+    SetupStyle();
     ImGui_ImplVulkan_CreateFontsTexture();
 
     // Enable docking
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-
     LOG_INFO(UI, "UI renderer initialized");
 }
 
-void UIRenderer::draw(const VkCommandBuffer cmd, const VkImageView targetImageView) const {
-    const VkRenderingAttachmentInfo attachment = jvk::init::renderingAttachment(targetImageView, nullptr, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-    const VkRenderingInfo renderInfo           = jvk::init::rendering(m_pDisplay->m_swapchain.extent, &attachment, nullptr);
+void UIRenderer::Draw(RenderContext &ctx, const VkClearValue *clearColor) const {
+    jvk::TransitionImageIfNeeded(ctx.cmd, ctx.swapchain.image, ctx.layout.swapchain, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    ctx.layout.swapchain = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    vkCmdBeginRenderingKHR(cmd, &renderInfo);
-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
-    vkCmdEndRenderingKHR(cmd);
+    const VkRenderingAttachmentInfo attachment = jvk::init::RenderingAttachment(ctx.swapchain.view, clearColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    const VkRenderingInfo renderInfo           = jvk::init::Rendering(ctx.swapchain.extent, &attachment, nullptr);
+
+    vkCmdBeginRenderingKHR(ctx.cmd, &renderInfo);
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), ctx.cmd);
+    vkCmdEndRenderingKHR(ctx.cmd);
 }
 
-bool UIRenderer::getViewportRectangle(jvk::ViewRectangle &out) const {
+bool UIRenderer::GetViewportRectangle(jvk::ViewRectangle &out) const {
     if (!m_pCentralNode) return false;
 
     const ImVec2 scale = ImGui::GetIO().DisplayFramebufferScale;
@@ -150,14 +145,14 @@ bool UIRenderer::getViewportRectangle(jvk::ViewRectangle &out) const {
     return true;
 }
 
-void UIRenderer::newFrame() {
+void UIRenderer::NewFrame() {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
     // Draw dockspace
     {
-        constexpr ImGuiWindowFlags window_flags =
+        constexpr ImGuiWindowFlags windowFlags =
                 ImGuiWindowFlags_MenuBar |
                 ImGuiWindowFlags_NoDocking |
                 ImGuiWindowFlags_NoTitleBar |
@@ -176,7 +171,7 @@ void UIRenderer::newFrame() {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 
-        ImGui::Begin("DockSpace", nullptr, window_flags);
+        ImGui::Begin("DockSpace", nullptr, windowFlags);
         ImGui::PopStyleVar(3);
         ImGui::PopStyleColor();
 
@@ -209,7 +204,7 @@ void UIRenderer::newFrame() {
 
                 if (ImGui::BeginMenu("View")) {
                     if (ImGui::MenuItem("Reset Layout")) {
-                        setLayout(dockSpaceId, viewport, dockSpaceFlags);
+                        SetLayout(dockSpaceId, viewport, dockSpaceFlags);
                     }
                     ImGui::EndMenu();
                 }
@@ -325,7 +320,7 @@ void UIRenderer::newFrame() {
     ImGui::Render();
 }
 
-bool UIRenderer::processSDLEvents(const SDL_Event &event) {
+bool UIRenderer::ProcessEvent(const SDL_Event &event) const {
     ImGui_ImplSDL2_ProcessEvent(&event);
 
     const ImGuiIO &io         = ImGui::GetIO();
@@ -335,14 +330,16 @@ bool UIRenderer::processSDLEvents(const SDL_Event &event) {
     return bWantsMouse || bWantsKeyboard;
 }
 
-void UIRenderer::destroy() const {
+void UIRenderer::Destroy() const {
     LOG_INFO(UI, "Cleaning up UI renderer");
+
     ImGui_ImplVulkan_Shutdown();
-    vkDestroyDescriptorPool(m_pDisplay->m_ctx.device, m_descriptorPool, nullptr);
+    vkDestroyDescriptorPool(m_gfx.ctx, m_descriptorPool, nullptr);
+
     LOG_INFO(UI, "UI renderer cleaned up");
 }
 
-void UIRenderer::setupStyle() const {
+void UIRenderer::SetupStyle() const {
     ImGuiStyle *style = &ImGui::GetStyle();
 
     style->WindowPadding     = ImVec2(12, 8);
@@ -459,11 +456,11 @@ void UIRenderer::setupStyle() const {
     style->WindowMenuButtonPosition = ImGuiDir_None;
 
     // Font
-    int window_w, window_h, drawable_w, drawable_h;
-    SDL_GetWindowSize(m_pDisplay->m_pWindow, &window_w, &window_h);
-    SDL_Vulkan_GetDrawableSize(m_pDisplay->m_pWindow, &drawable_w, &drawable_h);
+    int windowW, windowH, drawableW, drawableH;
+    SDL_GetWindowSize(m_gfx.window.pWindow, &windowW, &windowH);
+    SDL_Vulkan_GetDrawableSize(m_gfx.window.pWindow, &drawableW, &drawableH);
 
-    float dpiScale = static_cast<float>(drawable_w) / static_cast<float>(window_w);
+    float dpiScale = static_cast<float>(drawableW) / static_cast<float>(windowW);
 
     ImGuiIO &io = ImGui::GetIO();
     io.Fonts->AddFontFromFileTTF(
@@ -472,19 +469,20 @@ void UIRenderer::setupStyle() const {
     io.FontGlobalScale = 1.0f / dpiScale;
 }
 
-auto UIRenderer::setLayout(const ImGuiID dockSpaceId, const ImGuiViewport *viewport, const ImGuiDockNodeFlags dockSpaceFlags) -> void {
+auto UIRenderer::SetLayout(const ImGuiID dockSpaceId, const ImGuiViewport *viewport, const ImGuiDockNodeFlags dockSpaceFlags) -> void {
     ImGui::DockBuilderRemoveNode(dockSpaceId);
     ImGui::DockBuilderAddNode(dockSpaceId, dockSpaceFlags | ImGuiDockNodeFlags_DockSpace);
     ImGui::DockBuilderSetNodeSize(dockSpaceId, viewport->Size);
 
-    ImGuiID dock_main_id         = dockSpaceId;
-    const ImGuiID dock_right_id  = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.2f, nullptr, &dock_main_id);
-    const ImGuiID dock_bottom_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.25f, nullptr, &dock_main_id);
+    ImGuiID dockMainId         = dockSpaceId;
+    const ImGuiID dockRightId  = ImGui::DockBuilderSplitNode(dockMainId, ImGuiDir_Right, 0.2f, nullptr, &dockMainId);
+    const ImGuiID dockBottomId = ImGui::DockBuilderSplitNode(dockMainId, ImGuiDir_Down, 0.25f, nullptr, &dockMainId);
 
-    ImGui::DockBuilderDockWindow("Render Settings", dock_right_id);
-    ImGui::DockBuilderDockWindow("Scene Settings", dock_right_id);
-    ImGui::DockBuilderDockWindow("Console", dock_bottom_id);
+    ImGui::DockBuilderDockWindow("Render Settings", dockRightId);
+    ImGui::DockBuilderDockWindow("Scene Settings", dockRightId);
+    ImGui::DockBuilderDockWindow("Console", dockBottomId);
 
     ImGui::DockBuilderFinish(dockSpaceId);
 }
+
 }// namespace jtx

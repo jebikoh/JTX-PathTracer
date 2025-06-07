@@ -9,8 +9,10 @@
 struct ImGuiDockNode;
 
 namespace jtx {
+struct RenderContext;
 
 class Display;
+struct GfxContext;
 
 /**
  * This class is responsible for rendering the UI using ImGui, including initialization
@@ -18,51 +20,51 @@ class Display;
  */
 class UIRenderer {
 public:
-    UIRenderer(Display *pDisplay)
-        : m_pDisplay(pDisplay) {}
+    explicit UIRenderer(const GfxContext &gfx)
+        : m_gfx(gfx) {}
 
-    void init();
-    void destroy() const;
+    void Init();
+    void Destroy() const;
 
     /**
-     * Custom input handling for UI for custom behavior like mouse focus.
-     * This should ideally be called before passing the input elsewhere
+     * UI input handling for custom behavior like mouse focus.
+     * This should be called before passing the input elsewhere
      * @param event SDL event to process
      * @return true if UI wants to consume the event, false o/w
      */
-    static bool processSDLEvents(const SDL_Event &event);
+    bool ProcessEvent(const SDL_Event &event) const;
 
     /**
      * Creates a new draw frame and generates draw data for the UI.
      * Should be called prior to draw(), after input has been handled
      */
-    void newFrame();
+    void NewFrame();
 
     /**
      * Submits draw commands for the UI. Expects image to be in VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-     * @param cmd command buffer
-     * @param targetImageView image view to draw to
+     * @param ctx render context
+     * @param clearColor optional clear color for the swapchain image
      */
-    void draw(VkCommandBuffer cmd, VkImageView targetImageView) const;
+    void Draw(RenderContext &ctx, const VkClearValue *clearColor = nullptr) const;
 
     /**
      * Retrieves the position and size of the viewport window
      * @param out ViewRectangle containing top left coordinate of viewport window and width/height
      * @return true if position and size were retrieved, false if not (e.g. when central node is is not initialized yet)
      */
-    bool getViewportRectangle(jvk::ViewRectangle &out) const;
+    bool GetViewportRectangle(jvk::ViewRectangle &out) const;
 
 private:
-    Display *m_pDisplay = nullptr;
+    const GfxContext &m_gfx;
     VkDescriptorPool m_descriptorPool{};
 
     // We need to store the central node so we can easily retrieve its dimensions
     ImGuiDockNode *m_pCentralNode{};
 
-    void setupStyle() const;
+    void SetupStyle() const;
 
     // Docking setup
-    static void setLayout(ImGuiID dockSpaceId, const ImGuiViewport *viewport, ImGuiDockNodeFlags dockSpaceFlags);
+    static void SetLayout(ImGuiID dockSpaceId, const ImGuiViewport *viewport, ImGuiDockNodeFlags dockSpaceFlags);
 };
 
 }// namespace jtx

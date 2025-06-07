@@ -5,22 +5,22 @@
 namespace jvk {
 
 struct Sampler {
-    VkSampler sampler;
-    VkDevice device;
+    VkSampler sampler = VK_NULL_HANDLE;
+    VkDevice device   = VK_NULL_HANDLE;
 
-    Sampler() {};
+    Sampler() = default;
 
-    VkResult init(VkDevice device_, VkFilter minFilter, VkFilter magFilter) {
+    VkResult Init(const VkDevice device_, const VkFilter minFilter, const VkFilter magFilter) {
         device = device_;
 
         VkSamplerCreateInfo info{};
-        info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        info.sType     = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         info.minFilter = minFilter;
         info.magFilter = magFilter;
         return vkCreateSampler(device, &info, nullptr, &sampler);
     }
 
-    void destroy() const {
+    void Destroy() const {
         vkDestroySampler(device, sampler, nullptr);
     }
 

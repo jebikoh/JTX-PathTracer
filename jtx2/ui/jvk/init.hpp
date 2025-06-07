@@ -3,7 +3,7 @@
 
 namespace jvk::init {
 
-inline VkCommandPoolCreateInfo commandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags = 0) {
+inline VkCommandPoolCreateInfo CommandPool(const uint32_t queueFamilyIndex, const VkCommandPoolCreateFlags flags = 0) {
     VkCommandPoolCreateInfo info = {};
     info.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     info.pNext                   = nullptr;
@@ -12,7 +12,7 @@ inline VkCommandPoolCreateInfo commandPool(uint32_t queueFamilyIndex, VkCommandP
     return info;
 }
 
-inline VkCommandBufferAllocateInfo commandBuffer(VkCommandPool pool, uint32_t count = 1, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY) {
+inline VkCommandBufferAllocateInfo CommandBuffer(const VkCommandPool pool, const uint32_t count = 1, const VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY) {
     VkCommandBufferAllocateInfo info = {};
     info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     info.pNext                       = nullptr;
@@ -22,7 +22,7 @@ inline VkCommandBufferAllocateInfo commandBuffer(VkCommandPool pool, uint32_t co
     return info;
 }
 
-inline VkFenceCreateInfo fence(VkFenceCreateFlags flags = 0) {
+inline VkFenceCreateInfo Fence(const VkFenceCreateFlags flags = 0) {
     VkFenceCreateInfo info = {};
     info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     info.pNext             = nullptr;
@@ -30,7 +30,7 @@ inline VkFenceCreateInfo fence(VkFenceCreateFlags flags = 0) {
     return info;
 }
 
-inline VkSemaphoreCreateInfo semaphore(VkSemaphoreCreateFlags flags = 0) {
+inline VkSemaphoreCreateInfo Semaphore(const VkSemaphoreCreateFlags flags = 0) {
     VkSemaphoreCreateInfo info = {};
     info.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     info.pNext                 = nullptr;
@@ -38,7 +38,7 @@ inline VkSemaphoreCreateInfo semaphore(VkSemaphoreCreateFlags flags = 0) {
     return info;
 }
 
-inline VkCommandBufferBeginInfo commandBufferBegin(VkCommandBufferUsageFlags flags = 0) {
+inline VkCommandBufferBeginInfo CommandBufferBegin(const VkCommandBufferUsageFlags flags = 0) {
     VkCommandBufferBeginInfo info = {};
     info.sType                    = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     info.pNext                    = nullptr;
@@ -47,7 +47,7 @@ inline VkCommandBufferBeginInfo commandBufferBegin(VkCommandBufferUsageFlags fla
     return info;
 }
 
-inline VkImageSubresourceRange imageSubresourceRange(VkImageAspectFlags aspectMask) {
+inline VkImageSubresourceRange ImageSubresourceRange(const VkImageAspectFlags aspectMask) {
     VkImageSubresourceRange range = {};
     range.aspectMask              = aspectMask;
     range.baseMipLevel            = 0;
@@ -57,7 +57,7 @@ inline VkImageSubresourceRange imageSubresourceRange(VkImageAspectFlags aspectMa
     return range;
 }
 
-inline VkSemaphoreSubmitInfoKHR semaphoreSubmit(VkPipelineStageFlags2KHR stageMask, VkSemaphore semaphore) {
+inline VkSemaphoreSubmitInfoKHR SemaphoreSubmit(const VkPipelineStageFlags2KHR stageMask, const VkSemaphore semaphore) {
     VkSemaphoreSubmitInfoKHR info = {};
     info.sType                    = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
     info.pNext                    = nullptr;
@@ -68,7 +68,7 @@ inline VkSemaphoreSubmitInfoKHR semaphoreSubmit(VkPipelineStageFlags2KHR stageMa
     return info;
 }
 
-inline VkCommandBufferSubmitInfoKHR commandBufferSubmit(VkCommandBuffer cmd) {
+inline VkCommandBufferSubmitInfoKHR CommandBufferSubmit(const VkCommandBuffer cmd) {
     VkCommandBufferSubmitInfoKHR info = {};
     info.sType                        = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
     info.pNext                        = nullptr;
@@ -77,7 +77,7 @@ inline VkCommandBufferSubmitInfoKHR commandBufferSubmit(VkCommandBuffer cmd) {
     return info;
 }
 
-inline VkSubmitInfo2KHR submit(VkCommandBufferSubmitInfoKHR *cmdInfo, VkSemaphoreSubmitInfoKHR *signalSemaphoreInfo, VkSemaphoreSubmitInfoKHR *waitSemaphoreInfo) {
+inline VkSubmitInfo2KHR Submit(const VkCommandBufferSubmitInfoKHR *cmdInfo, const VkSemaphoreSubmitInfoKHR *signalSemaphoreInfo, const VkSemaphoreSubmitInfoKHR *waitSemaphoreInfo) {
     VkSubmitInfo2KHR info         = {};
     info.sType                    = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
     info.pNext                    = nullptr;
@@ -90,7 +90,7 @@ inline VkSubmitInfo2KHR submit(VkCommandBufferSubmitInfoKHR *cmdInfo, VkSemaphor
     return info;
 }
 
-inline VkImageCreateInfo image(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent, VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT) {
+inline VkImageCreateInfo Image(const VkFormat format, const VkImageUsageFlags usageFlags, const VkExtent3D extent, const VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT) {
     VkImageCreateInfo info = {};
     info.sType             = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     info.pNext             = nullptr;
@@ -105,7 +105,7 @@ inline VkImageCreateInfo image(VkFormat format, VkImageUsageFlags usageFlags, Vk
     return info;
 }
 
-inline VkImageViewCreateInfo imageView(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags) {
+inline VkImageViewCreateInfo ImageView(const VkFormat format, const VkImage image, const VkImageAspectFlags aspectFlags) {
     VkImageViewCreateInfo info           = {};
     info.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     info.pNext                           = nullptr;
@@ -120,7 +120,7 @@ inline VkImageViewCreateInfo imageView(VkFormat format, VkImage image, VkImageAs
     return info;
 }
 
-inline VkRenderingAttachmentInfo renderingAttachment(const VkImageView view, const VkClearValue *clear, const VkImageLayout layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+inline VkRenderingAttachmentInfo RenderingAttachment(const VkImageView view, const VkClearValue *clear, const VkImageLayout layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
     VkRenderingAttachmentInfo info{};
     info.sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
     info.pNext       = nullptr;
@@ -136,7 +136,7 @@ inline VkRenderingAttachmentInfo renderingAttachment(const VkImageView view, con
     return info;
 }
 
-inline VkRenderingAttachmentInfo depthRenderingAttachment(const VkImageView view, const VkClearValue *clear, const VkImageLayout layout) {
+inline VkRenderingAttachmentInfo DepthRenderingAttachment(const VkImageView view, const VkClearValue *clear, const VkImageLayout layout) {
     VkRenderingAttachmentInfo info{};
     info.sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
     info.pNext       = nullptr;
@@ -150,7 +150,7 @@ inline VkRenderingAttachmentInfo depthRenderingAttachment(const VkImageView view
     return info;
 }
 
-inline VkRenderingInfo rendering(const VkExtent2D renderExtent, const VkRenderingAttachmentInfo *colorAttachment, const VkRenderingAttachmentInfo *depthAttachment) {
+inline VkRenderingInfo Rendering(const VkExtent2D renderExtent, const VkRenderingAttachmentInfo *colorAttachment, const VkRenderingAttachmentInfo *depthAttachment) {
     VkRenderingInfo info{};
     info.sType                = VK_STRUCTURE_TYPE_RENDERING_INFO;
     info.pNext                = nullptr;
@@ -163,7 +163,7 @@ inline VkRenderingInfo rendering(const VkExtent2D renderExtent, const VkRenderin
     return info;
 }
 
-inline VkPipelineShaderStageCreateInfo pipelineShaderStage(VkShaderStageFlagBits stage, VkShaderModule shader) {
+inline VkPipelineShaderStageCreateInfo PipelineShaderStage(const VkShaderStageFlagBits stage, const VkShaderModule shader) {
     VkPipelineShaderStageCreateInfo info{};
     info.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     info.pNext  = nullptr;
@@ -173,7 +173,7 @@ inline VkPipelineShaderStageCreateInfo pipelineShaderStage(VkShaderStageFlagBits
     return info;
 }
 
-inline VkPipelineLayoutCreateInfo pipelineLayout() {
+inline VkPipelineLayoutCreateInfo PipelineLayout() {
     VkPipelineLayoutCreateInfo info{};
     info.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     info.pNext                  = nullptr;
@@ -185,7 +185,7 @@ inline VkPipelineLayoutCreateInfo pipelineLayout() {
     return info;
 }
 
-inline VkPipelineLayoutCreateInfo pipelineLayout(VkDescriptorSetLayout *descriptorSetLayout, VkPushConstantRange *pushConstantRange) {
+inline VkPipelineLayoutCreateInfo PipelineLayout(const VkDescriptorSetLayout *descriptorSetLayout, const VkPushConstantRange *pushConstantRange) {
     VkPipelineLayoutCreateInfo info{};
     info.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     info.pNext                  = nullptr;

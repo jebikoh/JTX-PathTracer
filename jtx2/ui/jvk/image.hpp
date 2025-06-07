@@ -5,16 +5,16 @@
 namespace jvk {
 
 struct Image {
-    VkImage image;
-    VkImageView imageView;
-    VmaAllocation allocation;
-    VkExtent3D imageExtent;
-    VkFormat imageFormat;
+    VkImage image = VK_NULL_HANDLE;
+    VkImageView imageView = VK_NULL_HANDLE;
+    VmaAllocation allocation = VK_NULL_HANDLE;
+    VkExtent3D imageExtent{};
+    VkFormat imageFormat = VK_FORMAT_UNDEFINED;
 
-    operator VkImage() { return image; }
-    operator VkImageView() { return imageView; }
+    operator VkImage() const { return image; }
+    operator VkImageView() const { return imageView; }
 
-    void destroy(VkDevice device, VmaAllocator allocator) const {
+    void Destroy(const VkDevice device, const VmaAllocator allocator) const {
         vkDestroyImageView(device, imageView, nullptr);
         vmaDestroyImage(allocator, image, allocation);
     }

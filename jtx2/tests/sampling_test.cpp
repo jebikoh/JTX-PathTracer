@@ -13,30 +13,30 @@ constexpr float JTX_95_Z            = 1.96f;   // Z-score for 95% confidence int
 TEST(Sampler, SameSeedProducesSameDistribution) {
     Sampler sampler1{101};
     Sampler sampler2{101};
-    EXPECT_EQ(sampler1.sample(), sampler2.sample());
+    EXPECT_EQ(sampler1.Sample(), sampler2.Sample());
 
     sampler1 = Sampler(101, 102, 0);
     sampler2 = Sampler(101, 102, 0);
-    EXPECT_EQ(sampler1.sample(), sampler2.sample());
+    EXPECT_EQ(sampler1.Sample(), sampler2.Sample());
 }
 
 TEST(Sampler, SeedHashChangesDistribution) {
     Sampler sampler1(0);
     Sampler sampler2(1);
-    EXPECT_NE(sampler1.sample(), sampler2.sample());
+    EXPECT_NE(sampler1.Sample(), sampler2.Sample());
 
     // Strata should be different
     sampler1 = Sampler(101, 102, 0);
     sampler2 = Sampler(101, 102, 1);
-    EXPECT_NE(sampler1.sample(), sampler2.sample());
+    EXPECT_NE(sampler1.Sample(), sampler2.Sample());
 
     sampler1 = Sampler(101, 102, 0);
     sampler2 = Sampler(101, 103, 0);
-    EXPECT_NE(sampler1.sample(), sampler2.sample());
+    EXPECT_NE(sampler1.Sample(), sampler2.Sample());
 
     sampler1 = Sampler(101, 102, 0);
     sampler2 = Sampler(2431, 102, 0);
-    EXPECT_NE(sampler1.sample(), sampler2.sample());
+    EXPECT_NE(sampler1.Sample(), sampler2.Sample());
 }
 
 // Below are statistical tests for the Sampler class
@@ -57,10 +57,10 @@ TEST(Sampler, UniformU32) {
 
     uint64_t sum = 0;
     for (uint32_t i = 0; i < JTX_N; ++i) {
-        const uint32_t sample = sampler.sample(range);
+        const uint32_t sample = sampler.Sample(range);
         EXPECT_GE(sample, 0);
         EXPECT_LT(sample, range);
-        sum += sampler.sample(range);
+        sum += sampler.Sample(range);
     }
     const float sampleMean = static_cast<float>(sum) / static_cast<float>(JTX_N);
 
@@ -77,7 +77,7 @@ TEST(Sampler, UniformFP32) {
 
     float sum = 0;
     for (uint32_t i = 0; i < JTX_N; ++i) {
-        const float sample = sampler.uniform<float>();
+        const float sample = sampler.Uniform<float>();
         EXPECT_GE(sample, 0.0f);
         EXPECT_LE(sample, 1.0f);
         sum += sample;
@@ -99,7 +99,7 @@ TEST(Sampler, UniformFP32Range) {
 
     float sum = 0;
     for (uint32_t i = 0; i < JTX_N; ++i) {
-        const float sample = sampler.uniform<float>(rmin, rmax);
+        const float sample = sampler.Uniform<float>(rmin, rmax);
         EXPECT_GE(sample, rmin);
         EXPECT_LE(sample, rmax);
         sum += sample;

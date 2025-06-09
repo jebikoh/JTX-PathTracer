@@ -11,9 +11,9 @@ static constexpr float JTX_FLOAT_MIN = std::numeric_limits<float>::lowest();
 static constexpr float JTX_FLOAT_MAX = std::numeric_limits<float>::max();
 
 enum Axis {
-    JTX_AXIS_X = 0,
-    JTX_AXIS_Y = 1,
-    JTX_AXIS_Z = 2,
+    AXIS_X = 0,
+    AXIS_Y = 1,
+    AXIS_Z = 2,
 };
 
 struct AABB {
@@ -56,7 +56,7 @@ struct AABB {
      * Expands this AABB to include the given AABB
      * @param other AABB to include
      */
-    void expand(const AABB &other) {
+    void Expand(const AABB &other) {
         pmin = jtx::min(pmin, other.pmin);
         pmax = jtx::max(pmax, other.pmax);
     }
@@ -65,7 +65,7 @@ struct AABB {
      * Expands this AABB to include the given point
      * @param p point to include
      */
-    void expand(const vec3 &p) {
+    void Expand(const vec3 &p) {
         pmin = jtx::min(pmin, p);
         pmax = jtx::max(pmax, p);
     }
@@ -75,13 +75,13 @@ struct AABB {
      * @param axis axis to retrieve
      * @return vec2(min, max) of the AABB on the given axis
      */
-    vec2 axis(const Axis axis) const {
+    vec2 GetAxis(const Axis axis) const {
         switch (axis) {
-            case JTX_AXIS_X:
+            case AXIS_X:
                 return {pmin.x, pmax.x};
-            case JTX_AXIS_Y:
+            case AXIS_Y:
                 return {pmin.y, pmax.y};
-            case JTX_AXIS_Z:
+            case AXIS_Z:
             default:
                 return {pmin.z, pmax.z};
         }
@@ -91,14 +91,14 @@ struct AABB {
      * Calculates the diagonal of the AABB (un-normalized)
      * @return vec3 diagonal
      */
-    vec3 diagonal() const { return pmax - pmin; }
+    vec3 Diagonal() const { return pmax - pmin; }
 
     /**
      * Calculates the surface area of this AABB
      * @return surface area
      */
-    float surfaceArea() const {
-        const vec3 diag = diagonal();
+    float SurfaceArea() const {
+        const vec3 diag = Diagonal();
         return 2 * (diag.x * diag.y + diag.x * diag.z + diag.y * diag.z);
     }
 
@@ -106,8 +106,8 @@ struct AABB {
      * Calculates the volume of this AABB
      * @return volume
      */
-    float volume() const {
-        const vec3 diag = diagonal();
+    float Volume() const {
+        const vec3 diag = Diagonal();
         return diag.x * diag.y * diag.z;
     }
 
@@ -115,11 +115,11 @@ struct AABB {
      * Calculates the longest axis of this AABB
      * @return longest axis
      */
-    Axis longestAxis() const {
-        const vec3 diag = diagonal();
-        if (diag.x > diag.y && diag.x > diag.z) return JTX_AXIS_X;
-        if (diag.y > diag.z) return JTX_AXIS_Y;
-        return JTX_AXIS_Z;
+    Axis LongestAxis() const {
+        const vec3 diag = Diagonal();
+        if (diag.x > diag.y && diag.x > diag.z) return AXIS_X;
+        if (diag.y > diag.z) return AXIS_Y;
+        return AXIS_Z;
     }
 
     /**
@@ -129,7 +129,7 @@ struct AABB {
      * @param p point to calculate offset
      * @return relative offset
      */
-    vec3 offset(const vec3 &p) const {
+    vec3 Offset(const vec3 &p) const {
         vec3 o = p - pmin;
         if (pmax.x > pmin.x) o.x /= pmax.x - pmin.x;
         if (pmax.y > pmin.y) o.y /= pmax.y - pmin.y;
@@ -145,7 +145,7 @@ struct AABB {
      * @param t1 maximum t value
      * @return true if the ray intersects the AABB, false otherwise
      */
-    bool hit(const ray &r, const vec3 &invDir, float t0, float t1) const {
+    bool Hit(const ray &r, const vec3 &invDir, float t0, float t1) const {
         for (int i = 0; i < 3; ++i) {
             const float d = invDir[i];
             auto tNear         = (pmin[i] - r.origin[i]) * d;
@@ -181,7 +181,7 @@ struct AABB4 {
     };
 
     // https://people.csail.mit.edu/amy/papers/box-jgt.pdf
-    HitResult hit(const ray &r, const RayHitInfo &info, const float t0, const float t1) const {
+    HitResult Hit(const ray &r, const RayHitInfo &info, const float t0, const float t1) const {
         HitResult result;
 #ifdef JTX_SIMD_X86_SSE4_2
         __m128 tmin = _mm_set1_ps(t0);

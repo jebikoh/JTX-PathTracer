@@ -11,16 +11,16 @@ TEST(AABB4, HitResultMatchesAABB) {
     Sampler rng;
     // Generate 4 points for xyz in [-1, 1]
     vec3 pmin[4];
-    pmin[0] = rng.uniform<vec3>(-1, 1);
-    pmin[1] = rng.uniform<vec3>(-1, 1);
-    pmin[2] = rng.uniform<vec3>(-1, 1);
-    pmin[3] = rng.uniform<vec3>(-1, 1);
+    pmin[0] = rng.Uniform<vec3>(-1, 1);
+    pmin[1] = rng.Uniform<vec3>(-1, 1);
+    pmin[2] = rng.Uniform<vec3>(-1, 1);
+    pmin[3] = rng.Uniform<vec3>(-1, 1);
 
     vec3 pmax[4];
-    pmax[0] = rng.uniform<vec3>(-1, 1);
-    pmax[1] = rng.uniform<vec3>(-1, 1);
-    pmax[2] = rng.uniform<vec3>(-1, 1);
-    pmax[3] = rng.uniform<vec3>(-1, 1);
+    pmax[0] = rng.Uniform<vec3>(-1, 1);
+    pmax[1] = rng.Uniform<vec3>(-1, 1);
+    pmax[2] = rng.Uniform<vec3>(-1, 1);
+    pmax[3] = rng.Uniform<vec3>(-1, 1);
 
     // Create generic single AABBs
     AABB ref[4];
@@ -65,8 +65,8 @@ TEST(AABB4, HitResultMatchesAABB) {
 
     ray rays[JTX_AABB4_TEST_NUM_SAMPLES];
     for (int i = 0; i < JTX_AABB4_TEST_NUM_SAMPLES; ++i) {
-        rays[i].origin = rng.uniform<vec3>(-1.5, 1.5);
-        rays[i].dir = unitVector(rng.uniform<float>(), rng.uniform<float>());
+        rays[i].origin = rng.Uniform<vec3>(-1.5, 1.5);
+        rays[i].dir = unitVector(rng.Uniform<float>(), rng.Uniform<float>());
         rays[i].time = 0;
     }
 
@@ -83,10 +83,10 @@ TEST(AABB4, HitResultMatchesAABB) {
 
         bool refHits[4];
         for (int i = 0; i < 4; ++i) {
-            refHits[i] = ref[i].hit(r, rayHitInfo.invDir,0.0f, JTX_INFINITY_F);
+            refHits[i] = ref[i].Hit(r, rayHitInfo.invDir,0.0f, JTX_INFINITY_F);
         }
 
-        const auto res = bbox4.hit(r, rayHitInfo,0.0f, JTX_INFINITY_F);
+        const auto res = bbox4.Hit(r, rayHitInfo,0.0f, JTX_INFINITY_F);
 
         for (int i = 0; i < 4; ++i) {
             EXPECT_EQ(refHits[i], res.bHit[i]);

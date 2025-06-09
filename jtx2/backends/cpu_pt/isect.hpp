@@ -19,7 +19,7 @@ struct TriangleIntersection {
  * @param isect triangle intersection data. Will be populated if intersection occurs
  * @return true if intersection occurs, false otherwise
  */
-JTX_FORCE_INLINE bool triangleHit(const Scene &scene, const int index, const ray &r, float t0, float t1, TriangleIntersection &isect) {
+JTX_FORCE_INLINE bool TriangleHit(const Scene &scene, const int index, const ray &r, float t0, float t1, TriangleIntersection &isect) {
     const vec3u tri = scene.indices[index];
     vec3 v0         = scene.positions[tri.x];
     vec3 v1         = scene.positions[tri.y];
@@ -62,7 +62,7 @@ JTX_FORCE_INLINE bool triangleHit(const Scene &scene, const int index, const ray
  * @param t1 upper bound of t
  * @return true if intersection occurs, false otherwise
  */
-JTX_FORCE_INLINE bool triangleOccluded(const Scene &scene, const int index, const ray &r, float t0, float t1) {
+JTX_FORCE_INLINE bool TriangleOccluded(const Scene &scene, const int index, const ray &r, float t0, float t1) {
     const vec3u tri = scene.indices[index];
     vec3 v0         = scene.positions[tri.x];
     vec3 v1         = scene.positions[tri.y];
@@ -99,7 +99,7 @@ struct SurfaceIntersection {
 };
 
 
-JTX_FORCE_INLINE void interpolate(const Scene &scene, const ray &r, const TriangleIntersection &isect, SurfaceIntersection &surface) {
+JTX_FORCE_INLINE void Interpolate(const Scene &scene, const ray &r, const TriangleIntersection &isect, SurfaceIntersection &surface) {
     const vec3u tri = scene.indices[isect.index];
     const vec3 n0 = scene.normals[tri.x];
     const vec3 n1 = scene.normals[tri.y];

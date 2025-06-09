@@ -11,17 +11,17 @@
     } while (0)
 #else
 #define LOG_DEBUG(category, msg, ...) \
-    Logger::get().log({__LINE__, __func__, LogLevel::DEBUG, LogCategory::category}, msg, ##__VA_ARGS__)
+    Logger::Get().log({__LINE__, __func__, LogLevel::DEBUG, LogCategory::category}, msg, ##__VA_ARGS__)
 #endif
 
 #define LOG_INFO(category, msg, ...) \
-    Logger::get().log({__LINE__, __func__, LogLevel::INFO, LogCategory::category}, msg, ##__VA_ARGS__)
+    Logger::Get().Log({__LINE__, __func__, LogLevel::INFO, LogCategory::category}, msg, ##__VA_ARGS__)
 
 #define LOG_ERROR(category, msg, ...) \
-    Logger::get().log({__LINE__, __func__, LogLevel::ERR, LogCategory::category}, msg, ##__VA_ARGS__)
+    Logger::Get().Log({__LINE__, __func__, LogLevel::ERR, LogCategory::category}, msg, ##__VA_ARGS__)
 
 #define LOG_FATAL(category, msg, ...) \
-    Logger::get().log({__LINE__, __func__, LogLevel::FATAL, LogCategory::category}, msg, ##__VA_ARGS__)
+    Logger::Get().Log({__LINE__, __func__, LogLevel::FATAL, LogCategory::category}, msg, ##__VA_ARGS__)
 
 enum class LogLevel {
     INFO  = 0,
@@ -57,24 +57,24 @@ struct Logger {
     Logger()
         : start(std::chrono::system_clock::now()) {}
 
-    static Logger &get() {
+    static Logger &Get() {
         static Logger logger;
         return logger;
     }
 
-    static void printTime(const fmt::text_style &color) {
+    static void PrintTime(const fmt::text_style &color) {
         const std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
-        fmt::print(color, "[JTX] [{:%M:%S}] ", end - Logger::get().start);
+        fmt::print(color, "[JTX] [{:%M:%S}] ", end - Logger::Get().start);
     }
 
     template<typename... Args>
-    static void print(const fmt::text_style &color, fmt::format_string<Args...> format, Args &&...args) {
+    static void Print(const fmt::text_style &color, fmt::format_string<Args...> format, Args &&...args) {
         fmt::print(color, static_cast<fmt::string_view>(format), std::forward<Args>(args)...);
         fmt::print("\n");
     }
 
     template<typename... Args>
-    static void log(const LogContext ctx, fmt::format_string<Args...> format, Args &&...args) {
+    static void Log(const LogContext ctx, fmt::format_string<Args...> format, Args &&...args) {
         fmt::text_style color;
         switch (ctx.level) {
             case LogLevel::ERR:
@@ -89,7 +89,7 @@ struct Logger {
             default:
                 break;
         }
-        printTime(color);
+        PrintTime(color);
 
         switch (ctx.category) {
             case LogCategory::GENERAL:
@@ -145,7 +145,7 @@ struct Logger {
                 break;
         }
 
-        print(color, format, std::forward<Args>(args)...);
+        Print(color, format, std::forward<Args>(args)...);
         if (ctx.level == LogLevel::FATAL) {
             abort();
         }

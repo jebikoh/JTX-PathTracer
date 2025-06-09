@@ -4,16 +4,16 @@
 
 namespace jtx {
 
-inline float linearToGamma(const float x) {
+inline float ApplyGamma(const float x) {
     if (x > 0) return jtx::sqrt(x);
     return 0;
 }
 
-inline float clampIntensity(float i) {
+inline float ClampIntensity(float i) {
     return jtx::clamp(i, 0.0f, 0.999f);
 }
 
-inline vec3 sRGBToLinear(const vec3 &srgb) {
+inline vec3 SRGBToLinear(const vec3 &srgb) {
     vec3 linear;
     for (int i = 0; i < 3; ++i) {
         if (srgb[i] <= 0.04045f) {

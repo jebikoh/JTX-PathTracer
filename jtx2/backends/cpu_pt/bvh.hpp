@@ -33,14 +33,14 @@ struct BVH2BuildNode {
     int firstTriangleOffset;
     int numTriangles;
 
-    void initLeaf(const int first, const int n, const AABB &bounds) {
+    void InitLeaf(const int first, const int n, const AABB &bounds) {
         firstTriangleOffset = first;
         numTriangles        = n;
         bbox                = bounds;
         children[0] = children[1] = nullptr;
     }
 
-    void initBranch(const int axis, BVH2BuildNode *left, BVH2BuildNode *right) {
+    void InitBranch(const int axis, BVH2BuildNode *left, BVH2BuildNode *right) {
         children[0]  = left;
         children[1]  = right;
         bbox         = AABB(left->bbox, right->bbox);
@@ -48,18 +48,18 @@ struct BVH2BuildNode {
         numTriangles = 0;
     }
 
-    bool isLeaf() const {
+    bool IsLeaf() const {
         return children[0] == nullptr && children[1] == nullptr;
     }
 
-    bool isBranch() const {
-        return !isLeaf();
+    bool IsBranch() const {
+        return !IsLeaf();
     }
 
-    void destroy() const {
-        if (isBranch()) {
-            children[0]->destroy();
-            children[1]->destroy();
+    void Destroy() const {
+        if (IsBranch()) {
+            children[0]->Destroy();
+            children[1]->Destroy();
 
             delete children[0];
             delete children[1];
@@ -69,11 +69,11 @@ struct BVH2BuildNode {
 
 class BVH2 {
 public:
-    void build(const jtx::Scene &scene, int maxTrianglesInNode = 1);
-    void destroy();
+    void Build(const jtx::Scene &scene, int maxTrianglesInNode = 1);
+    void Destroy();
 
-    bool closestHit(const ray &r, float t0, float t1, TriangleIntersection &isect) const;
-    bool anyHit(const ray &r, float t0, float t1);
+    bool ClosestHit(const ray &r, float t0, float t1, TriangleIntersection &isect) const;
+    bool AnyHit(const ray &r, float t0, float t1);
 
 private:
     int m_maxTrianglesInNode = 0;
@@ -82,8 +82,8 @@ private:
     const Scene *m_scene = nullptr;
 };
 
-BVH2BuildNode *buildTree(std::span<Triangle> triangles, int *totalNodes, int *orderedTriangleOffset, std::vector<Triangle> &orderedTriangles, int maxTrianglesInNode);
-int flattenBVH2(const BVH2BuildNode *node, BVH2Node *nodes, int *offset);
+BVH2BuildNode *BuildTree(std::span<Triangle> triangles, int *totalNodes, int *orderedTriangleOffset, std::vector<Triangle> &orderedTriangles, int maxTrianglesInNode);
+int FlattenBVH2(const BVH2BuildNode *node, BVH2Node *nodes, int *offset);
 
 // BVH4/QBVH
 static constexpr int32_t JTX_INT_MIN                     = 0x80000000;
@@ -128,7 +128,7 @@ struct alignas (128) BVH4Node {
      * @param child child index [0, 4)
      * @return true if leaf, false otherwise
      */
-    bool isLeaf(const size_t child) const {
+    bool IsLeaf(const size_t child) const {
         return children[child] < 0;
     }
 
@@ -140,7 +140,7 @@ struct alignas (128) BVH4Node {
      * @param child child index [0, 4)
      * @return true if leaf is empty, false otherwise
      */
-    bool isEmptyLeaf(const size_t child) const {
+    bool IsEmptyLeaf(const size_t child) const {
         return children[child] == JTX_INT_MIN;
     }
 
@@ -149,7 +149,7 @@ struct alignas (128) BVH4Node {
      * @param child child index [0, 4)
      * @return true if inner node, false otherwise
      */
-    bool isInner(const size_t child) const {
+    bool IsInner(const size_t child) const {
         return children[child] >= 0;
     }
 
@@ -159,7 +159,7 @@ struct alignas (128) BVH4Node {
      * @param child child index [0, 4)
      * @return number of triangles in leaf
      */
-    uint32_t getNumTriangles(const size_t child) const {
+    uint32_t GetNumTriangles(const size_t child) const {
         return JTX_BVH4_LEAF_NUM_TRIANGLES(children[child]);
     }
 
@@ -169,20 +169,20 @@ struct alignas (128) BVH4Node {
      * @param child child index [0, 4)
      * @return first triangle index
      */
-    uint32_t getFirstTriangle(const size_t child) const {
+    uint32_t GetFirstTriangle(const size_t child) const {
         return JTX_BVH4_LEAF_FIRST_TRIANGLE_OFFSET(children[child]);
     }
 };
 
-BVH2BuildNode *buildTreeForBVH4(std::span<Triangle> triangles, int *totalNodes, int *orderedTriangleOffset, std::vector<Triangle> &orderedTriangles);
+BVH2BuildNode *BuildTreeForBVH4(std::span<Triangle> triangles, int *totalNodes, int *orderedTriangleOffset, std::vector<Triangle> &orderedTriangles);
 
 class BVH4 {
 public:
-    void build(const jtx::Scene &scene);
-    void destroy();
+    void Build(const jtx::Scene &scene);
+    void Destroy();
 
-    bool closestHit(const ray &r, float t0, float t1, TriangleIntersection &isect) const;
-    bool anyHit(const ray &r, float t0, float t1);
+    bool ClosestHit(const ray &r, float t0, float t1, TriangleIntersection &isect) const;
+    bool AnyHit(const ray &r, float t0, float t1);
 
 private:
     std::vector<Triangle> m_triangles;
@@ -193,11 +193,11 @@ private:
 #ifdef JTX_USE_EMBREE
 class BVHEmbree {
 public:
-    void build(const jtx::Scene &scene);
-    void destroy() const;
+    void Build(const jtx::Scene &scene);
+    void Destroy() const;
 
-    bool closestHit(const ray &r, float t0, float t1, TriangleIntersection &isect) const;
-    bool anyHit(const ray &r, float t0, float t1) const;
+    bool ClosestHit(const ray &r, float t0, float t1, TriangleIntersection &isect) const;
+    bool AnyHit(const ray &r, float t0, float t1) const;
 
 private:
     RTCDevice m_device{};

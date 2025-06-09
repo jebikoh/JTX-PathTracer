@@ -7,7 +7,7 @@ namespace jtx {
 
 class BackendCPU {
 public:
-    void init(const uint32_t width, const uint32_t height, const RenderSettings &settings, const CameraSettings &cameraSettings) {
+    void Init(const uint32_t width, const uint32_t height, const RenderSettings &settings, const CameraSettings &cameraSettings) {
         m_width = width;
         m_height = height;
         m_renderSettings = settings;
@@ -19,34 +19,34 @@ public:
         m_camera.sppCol = settings.sppCol;
         m_camera.settings = cameraSettings;
 
-        m_accBuffer.resize(width, height, 3);
-        m_imgBuffer.resize(width, height, 3);
+        m_accBuffer.Resize(width, height, 3);
+        m_imgBuffer.Resize(width, height, 3);
     }
 
-    void destroy() {
-        m_bvh.destroy();
-        m_accBuffer.destroy();
-        m_imgBuffer.destroy();
+    void Destroy() {
+        m_bvh.Destroy();
+        m_accBuffer.Destroy();
+        m_imgBuffer.Destroy();
     }
 
-    void setScene(Scene *scene) {
+    void SetScene(Scene *scene) {
         m_scene = scene;
-        m_bvh.build(*m_scene);
+        m_bvh.Build(*m_scene);
     }
 
-    void startRendering();
+    void StartRendering();
 
-    void updateRenderSettings(const RenderSettings &settings) {
+    void UpdateRenderSettings(const RenderSettings &settings) {
         m_renderSettings = settings;
         m_renderSettings.sppRow = settings.sppRow;
         m_renderSettings.sppCol = settings.sppCol;
     }
 
-    void updateCameraSettings(const CameraSettings &settings) {
+    void UpdateCameraSettings(const CameraSettings &settings) {
         m_camera.settings = settings;
     }
 
-    void resize(const int width, const int height) {
+    void Resize(const int width, const int height) {
         m_width = width;
         m_height = height;
 

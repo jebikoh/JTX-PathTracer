@@ -22,7 +22,7 @@ struct ThinLensCamera {
     /**
      * Updates camera's viewport and focal lens. Must be called after any changes to the camera settings.
      */
-    void update() {
+    void Update() {
         const float aspectRatio = width / height;
 
         const float vpHeight = 2 * jtx::tan(jtx::radians(settings.yfov) / 2) * settings.focalDistance;
@@ -40,12 +40,12 @@ struct ThinLensCamera {
         m_anchor = settings.position - (settings.focalDistance * w) - vpU / 2 - vpV / 2 + 0.5 * (m_du + m_dv);
     }
 
-    ray getRay(const uint32_t row, const uint32_t col, const uint32_t stratum, Sampler &rng) const {
+    ray GetRay(const uint32_t row, const uint32_t col, const uint32_t stratum, Sampler &rng) const {
         const uint32_t sx = stratum % sppRow;
         const uint32_t sy = stratum / sppRow;
 
-        const float dx = rng.uniform<float>();
-        const float dy = rng.uniform<float>();
+        const float dx = rng.Uniform<float>();
+        const float dy = rng.Uniform<float>();
 
         const float ox = (static_cast<float>(sx) + dx) / static_cast<float>(sppRow);
         const float oy = (static_cast<float>(sy) + dy) / static_cast<float>(sppCol);

@@ -9,12 +9,12 @@ struct BVHBucket {
     AABB bbox;
 };
 
-void BVH2::build(const jtx::Scene &scene, int maxTrianglesInNode) {
+void BVH2::Build(const jtx::Scene &scene, int maxTrianglesInNode) {
     LOG_INFO(GENERAL, "Building BVH2 for scene: {}", scene.name);
     PROFILE_SCOPE("bvh::build");
     m_scene              = &scene;
     m_maxTrianglesInNode = maxTrianglesInNode;
-    m_triangles          = scene.getTriangles();
+    m_triangles          = scene.GetTriangles();
 
     std::vector<Triangle> orderedTriangles(m_triangles.size());
 
@@ -22,20 +22,20 @@ void BVH2::build(const jtx::Scene &scene, int maxTrianglesInNode) {
     int orderedTriangleOffset = 0;
 
     LOG_DEBUG(GENERAL, "Building recursive BVH2 structure");
-    const BVH2BuildNode *root = buildTree(m_triangles, &totalNodes, &orderedTriangleOffset, orderedTriangles, maxTrianglesInNode);
+    const BVH2BuildNode *root = BuildTree(m_triangles, &totalNodes, &orderedTriangleOffset, orderedTriangles, maxTrianglesInNode);
     m_triangles.swap(orderedTriangles);
 
     m_nodes    = new BVH2Node[totalNodes];
     int offset = 0;
     LOG_DEBUG(GENERAL, "Flattening BVH2");
-    flattenBVH2(root, m_nodes, &offset);
+    FlattenBVH2(root, m_nodes, &offset);
     LOG_INFO(GENERAL, "BVH2 constructed");
 
-    root->destroy();
+    root->Destroy();
     delete root;
 }
 
-void BVH2::destroy() {
+void BVH2::Destroy() {
     LOG_INFO(GENERAL, "Destroying BVH2");
     if (m_nodes != nullptr) {
         delete[] m_nodes;
@@ -47,32 +47,32 @@ void BVH2::destroy() {
     LOG_INFO(GENERAL, "Destroyed BVH2");
 }
 
-BVH2BuildNode *buildTree(std::span<Triangle> triangles, int *totalNodes, int *orderedTriangleOffset, std::vector<Triangle> &orderedTriangles, int maxTrianglesInNode) {
+BVH2BuildNode *BuildTree(std::span<Triangle> triangles, int *totalNodes, int *orderedTriangleOffset, std::vector<Triangle> &orderedTriangles, int maxTrianglesInNode) {
     const auto node = new BVH2BuildNode();
     (*totalNodes)++;
 
     // Calculate bounding box for this node
     AABB bbox;
     for (const auto &tri: triangles) {
-        bbox.expand(tri.bbox);
+        bbox.Expand(tri.bbox);
     }
 
     // Initialize leaf
-    if (bbox.surfaceArea() == 0 || triangles.size() == 1) {
+    if (bbox.SurfaceArea() == 0 || triangles.size() == 1) {
         const int firstOffset = *orderedTriangleOffset;
         *orderedTriangleOffset += triangles.size();
         for (size_t i = 0; i < triangles.size(); i++) {
             orderedTriangles[firstOffset + i] = triangles[i];
         }
-        node->initLeaf(firstOffset, triangles.size(), bbox);
+        node->InitLeaf(firstOffset, triangles.size(), bbox);
         return node;
     }
 
     AABB centroidBbox;
     for (const auto &tri: triangles) {
-        centroidBbox.expand(tri.centroid());
+        centroidBbox.Expand(tri.Centroid());
     }
-    const int dim = centroidBbox.longestAxis();
+    const int dim = centroidBbox.LongestAxis();
 
     // Initialize leaf
     if (centroidBbox.pmin[dim] == centroidBbox.pmax[dim]) {
@@ -81,24 +81,24 @@ BVH2BuildNode *buildTree(std::span<Triangle> triangles, int *totalNodes, int *or
         for (size_t i = 0; i < triangles.size(); i++) {
             orderedTriangles[firstOffset + i] = triangles[i];
         }
-        node->initLeaf(firstOffset, triangles.size(), bbox);
+        node->InitLeaf(firstOffset, triangles.size(), bbox);
         return node;
     }
 
     int mid = triangles.size() / 2;
     if (triangles.size() == 2) {
         std::nth_element(triangles.begin(), triangles.begin() + mid, triangles.end(), [dim](const Triangle &a, const Triangle &b) {
-            return a.centroid()[dim] < b.centroid()[dim];
+            return a.Centroid()[dim] < b.Centroid()[dim];
         });
     } else {
         constexpr int JTX_BVH2_NUM_BUCKETS = 12;
         BVHBucket buckets[JTX_BVH2_NUM_BUCKETS];
 
         for (const auto &tri: triangles) {
-            int bucketOffset = JTX_BVH2_NUM_BUCKETS * centroidBbox.offset(tri.centroid())[dim];
+            int bucketOffset = JTX_BVH2_NUM_BUCKETS * centroidBbox.Offset(tri.Centroid())[dim];
             if (bucketOffset == JTX_BVH2_NUM_BUCKETS) --bucketOffset;
             buckets[bucketOffset].count++;
-            buckets[bucketOffset].bbox.expand(tri.bbox);
+            buckets[bucketOffset].bbox.Expand(tri.bbox);
         }
 
         constexpr int JTX_BVH2_NUM_SPLITS = JTX_BVH2_NUM_BUCKETS - 1;
@@ -108,8 +108,8 @@ BVH2BuildNode *buildTree(std::span<Triangle> triangles, int *totalNodes, int *or
         AABB below;
         for (int i = 0; i < JTX_BVH2_NUM_SPLITS; ++i) {
             count += buckets[i].count;
-            below.expand(buckets[i].bbox);
-            const float surfaceArea = below.surfaceArea();
+            below.Expand(buckets[i].bbox);
+            const float surfaceArea = below.SurfaceArea();
             costs[i] += count * surfaceArea;
         }
 
@@ -117,8 +117,8 @@ BVH2BuildNode *buildTree(std::span<Triangle> triangles, int *totalNodes, int *or
         AABB above;
         for (int i = JTX_BVH2_NUM_BUCKETS - 1; i > 0; --i) {
             count += buckets[i].count;
-            above.expand(buckets[i].bbox);
-            costs[i - 1] += count * above.surfaceArea();
+            above.Expand(buckets[i].bbox);
+            costs[i - 1] += count * above.SurfaceArea();
         }
 
         int minBucket = -1;
@@ -131,11 +131,11 @@ BVH2BuildNode *buildTree(std::span<Triangle> triangles, int *totalNodes, int *or
         }
 
         const float leafCost = triangles.size();
-        minCost              = 0.5f + minCost / bbox.surfaceArea();
+        minCost              = 0.5f + minCost / bbox.SurfaceArea();
         if (triangles.size() > maxTrianglesInNode || minCost < leafCost) {
             // Interior node
             auto it = std::partition(triangles.begin(), triangles.end(), [=](const Triangle &p) {
-                int b = JTX_BVH2_NUM_BUCKETS * centroidBbox.offset(p.centroid())[dim];
+                int b = JTX_BVH2_NUM_BUCKETS * centroidBbox.Offset(p.Centroid())[dim];
                 if (b == JTX_BVH2_NUM_BUCKETS) --b;
                 return b <= minBucket;
             });
@@ -146,20 +146,20 @@ BVH2BuildNode *buildTree(std::span<Triangle> triangles, int *totalNodes, int *or
             for (size_t i = 0; i < triangles.size(); i++) {
                 orderedTriangles[firstOffset + i] = triangles[i];
             }
-            node->initLeaf(firstOffset, triangles.size(), bbox);
+            node->InitLeaf(firstOffset, triangles.size(), bbox);
             return node;
         }
     }
 
     BVH2BuildNode *children[2];
-    children[0] = buildTree(triangles.subspan(0, mid), totalNodes, orderedTriangleOffset, orderedTriangles, maxTrianglesInNode);
-    children[1] = buildTree(triangles.subspan(mid), totalNodes, orderedTriangleOffset, orderedTriangles, maxTrianglesInNode);
-    node->initBranch(dim, children[0], children[1]);
+    children[0] = BuildTree(triangles.subspan(0, mid), totalNodes, orderedTriangleOffset, orderedTriangles, maxTrianglesInNode);
+    children[1] = BuildTree(triangles.subspan(mid), totalNodes, orderedTriangleOffset, orderedTriangles, maxTrianglesInNode);
+    node->InitBranch(dim, children[0], children[1]);
 
     return node;
 }
 
-int flattenBVH2(const BVH2BuildNode *node, BVH2Node *nodes, int *offset) {
+int FlattenBVH2(const BVH2BuildNode *node, BVH2Node *nodes, int *offset) {
     BVH2Node *linearNode = &nodes[*offset];
     linearNode->bbox     = node->bbox;
     const int nodeOffset = (*offset)++;
@@ -170,13 +170,13 @@ int flattenBVH2(const BVH2BuildNode *node, BVH2Node *nodes, int *offset) {
     } else {
         linearNode->axis         = node->splitAxis;
         linearNode->numTriangles = 0;
-        flattenBVH2(node->children[0], nodes, offset);
-        linearNode->secondChildOffset = flattenBVH2(node->children[1], nodes, offset);
+        FlattenBVH2(node->children[0], nodes, offset);
+        linearNode->secondChildOffset = FlattenBVH2(node->children[1], nodes, offset);
     }
     return nodeOffset;
 }
 
-bool BVH2::closestHit(const ray &r, const float t0, float t1, TriangleIntersection &isect) const {
+bool BVH2::ClosestHit(const ray &r, const float t0, float t1, TriangleIntersection &isect) const {
     // PROFILE_SCOPE("BVH2::closestHit");
     int toVisitOffset = 0;
     int currNodeIndex = 0;
@@ -191,12 +191,12 @@ bool BVH2::closestHit(const ray &r, const float t0, float t1, TriangleIntersecti
 
     while (true) {
         const BVH2Node *node = &m_nodes[currNodeIndex];
-        if (node->bbox.hit(r, invDir, t0, t1)) {
+        if (node->bbox.Hit(r, invDir, t0, t1)) {
             if (node->numTriangles > 0) {
                 // Leaf node
                 for (int i = 0; i < node->numTriangles; ++i) {
                     const auto tri = m_triangles[node->trianglesOffset + i];
-                    if (jtx::triangleHit(*m_scene, tri.triangleIndex, r, t0, t1, isect)) {
+                    if (jtx::TriangleHit(*m_scene, tri.triangleIndex, r, t0, t1, isect)) {
                         bHitAnything = true;
                         t1           = isect.t;
                     }
@@ -227,7 +227,7 @@ bool BVH2::closestHit(const ray &r, const float t0, float t1, TriangleIntersecti
 
 #pragma region BVH4
 
-BVH2BuildNode *buildTreeForBVH4(std::span<Triangle> triangles, int *totalNodes, int *orderedTriangleOffset, std::vector<Triangle> &orderedTriangles) {
+BVH2BuildNode *BuildTreeForBVH4(std::span<Triangle> triangles, int *totalNodes, int *orderedTriangleOffset, std::vector<Triangle> &orderedTriangles) {
     // This is a slightly modified version of buildTree() that adds padding to ensure that the number
     // of triangles in leaf nodes will be a multiple of 4
     const auto node = new BVH2BuildNode();
@@ -236,7 +236,7 @@ BVH2BuildNode *buildTreeForBVH4(std::span<Triangle> triangles, int *totalNodes, 
     // Calculate bounding box for this node
     AABB bbox;
     for (const auto &tri: triangles) {
-        bbox.expand(tri.bbox);
+        bbox.Expand(tri.bbox);
     }
 
     const auto writeLeaf = [&] {
@@ -265,20 +265,20 @@ BVH2BuildNode *buildTreeForBVH4(std::span<Triangle> triangles, int *totalNodes, 
             orderedTriangles[firstOffset + i] = t;
         }
 
-        node->initLeaf(firstOffset, totalTriangles, bbox);
+        node->InitLeaf(firstOffset, totalTriangles, bbox);
         return node;
     };
 
     // Initialize leaf
-    if (bbox.surfaceArea() == 0 || triangles.size() == 1) {
+    if (bbox.SurfaceArea() == 0 || triangles.size() == 1) {
         return writeLeaf();
     }
 
     AABB centroidBbox;
     for (const auto &tri: triangles) {
-        centroidBbox.expand(tri.centroid());
+        centroidBbox.Expand(tri.Centroid());
     }
-    const int dim = centroidBbox.longestAxis();
+    const int dim = centroidBbox.LongestAxis();
 
     // Initialize leaf
     if (centroidBbox.pmin[dim] == centroidBbox.pmax[dim]) {
@@ -288,17 +288,17 @@ BVH2BuildNode *buildTreeForBVH4(std::span<Triangle> triangles, int *totalNodes, 
     int mid = triangles.size() / 2;
     if (triangles.size() == 2) {
         std::nth_element(triangles.begin(), triangles.begin() + mid, triangles.end(), [dim](const Triangle &a, const Triangle &b) {
-            return a.centroid()[dim] < b.centroid()[dim];
+            return a.Centroid()[dim] < b.Centroid()[dim];
         });
     } else {
         constexpr int JTX_BVH2_NUM_BUCKETS = 12;
         BVHBucket buckets[JTX_BVH2_NUM_BUCKETS];
 
         for (const auto &tri: triangles) {
-            int bucketOffset = JTX_BVH2_NUM_BUCKETS * centroidBbox.offset(tri.centroid())[dim];
+            int bucketOffset = JTX_BVH2_NUM_BUCKETS * centroidBbox.Offset(tri.Centroid())[dim];
             if (bucketOffset == JTX_BVH2_NUM_BUCKETS) --bucketOffset;
             buckets[bucketOffset].count++;
-            buckets[bucketOffset].bbox.expand(tri.bbox);
+            buckets[bucketOffset].bbox.Expand(tri.bbox);
         }
 
         constexpr int JTX_BVH2_NUM_SPLITS = JTX_BVH2_NUM_BUCKETS - 1;
@@ -308,8 +308,8 @@ BVH2BuildNode *buildTreeForBVH4(std::span<Triangle> triangles, int *totalNodes, 
         AABB below;
         for (int i = 0; i < JTX_BVH2_NUM_SPLITS; ++i) {
             count += buckets[i].count;
-            below.expand(buckets[i].bbox);
-            const float surfaceArea = below.surfaceArea();
+            below.Expand(buckets[i].bbox);
+            const float surfaceArea = below.SurfaceArea();
             costs[i] += count * surfaceArea;
         }
 
@@ -317,8 +317,8 @@ BVH2BuildNode *buildTreeForBVH4(std::span<Triangle> triangles, int *totalNodes, 
         AABB above;
         for (int i = JTX_BVH2_NUM_BUCKETS - 1; i > 0; --i) {
             count += buckets[i].count;
-            above.expand(buckets[i].bbox);
-            costs[i - 1] += count * above.surfaceArea();
+            above.Expand(buckets[i].bbox);
+            costs[i - 1] += count * above.SurfaceArea();
         }
 
         int minBucket = -1;
@@ -331,11 +331,11 @@ BVH2BuildNode *buildTreeForBVH4(std::span<Triangle> triangles, int *totalNodes, 
         }
 
         const float leafCost = triangles.size();
-        minCost              = 0.5f + minCost / bbox.surfaceArea();
+        minCost              = 0.5f + minCost / bbox.SurfaceArea();
         if (triangles.size() > 64 || minCost < leafCost) {
             // Interior node
             auto it = std::partition(triangles.begin(), triangles.end(), [=](const Triangle &p) {
-                int b = JTX_BVH2_NUM_BUCKETS * centroidBbox.offset(p.centroid())[dim];
+                int b = JTX_BVH2_NUM_BUCKETS * centroidBbox.Offset(p.Centroid())[dim];
                 if (b == JTX_BVH2_NUM_BUCKETS) --b;
                 return b <= minBucket;
             });
@@ -347,9 +347,9 @@ BVH2BuildNode *buildTreeForBVH4(std::span<Triangle> triangles, int *totalNodes, 
     }
 
     BVH2BuildNode *children[2];
-    children[0] = buildTreeForBVH4(triangles.subspan(0, mid), totalNodes, orderedTriangleOffset, orderedTriangles);
-    children[1] = buildTreeForBVH4(triangles.subspan(mid), totalNodes, orderedTriangleOffset, orderedTriangles);
-    node->initBranch(dim, children[0], children[1]);
+    children[0] = BuildTreeForBVH4(triangles.subspan(0, mid), totalNodes, orderedTriangleOffset, orderedTriangles);
+    children[1] = BuildTreeForBVH4(triangles.subspan(mid), totalNodes, orderedTriangleOffset, orderedTriangles);
+    node->InitBranch(dim, children[0], children[1]);
 
     return node;
 }
@@ -364,7 +364,7 @@ inline int32_t encodeBVH4Leaf(const BVH2BuildNode *node) {
 
 int flattenBVH2toLBVH4(const BVH2BuildNode *node, BVH4Node *nodes, int *offset) {
     // If the node is a leaf, we need to avoid incrementing the offset
-    if (node->isLeaf()) return encodeBVH4Leaf(node);
+    if (node->IsLeaf()) return encodeBVH4Leaf(node);
 
     const int nodeOffset = (*offset)++;
     BVH4Node *ln         = &nodes[nodeOffset];
@@ -373,8 +373,8 @@ int flattenBVH2toLBVH4(const BVH2BuildNode *node, BVH4Node *nodes, int *offset) 
     const BVH2BuildNode *left  = node->children[0];
     const BVH2BuildNode *right = node->children[1];
 
-    const bool bLeftIsLeaf  = left->isLeaf();
-    const bool bRightIsLeaf = right->isLeaf();
+    const bool bLeftIsLeaf  = left->IsLeaf();
+    const bool bRightIsLeaf = right->IsLeaf();
 
     const BVH2BuildNode *n[4];
     n[0] = bLeftIsLeaf ? left : left->children[0];
@@ -415,11 +415,11 @@ int flattenBVH2toLBVH4(const BVH2BuildNode *node, BVH4Node *nodes, int *offset) 
     return nodeOffset;
 }
 
-void BVH4::build(const jtx::Scene &scene) {
+void BVH4::Build(const jtx::Scene &scene) {
     LOG_INFO(GENERAL, "Building BVH4 for scene: {}", scene.name);
     PROFILE_SCOPE("bvh::build");
     m_scene     = &scene;
-    m_triangles = scene.getTriangles();
+    m_triangles = scene.GetTriangles();
 
     // TODO: optimize memory for BVH4
     std::vector<Triangle> orderedTriangles(m_triangles.size() * 1.75);
@@ -428,7 +428,7 @@ void BVH4::build(const jtx::Scene &scene) {
     int orderedTriangleOffset = 0;
 
     LOG_DEBUG(GENERAL, "Building recursive BVH2 structure");
-    const BVH2BuildNode *root = buildTreeForBVH4(m_triangles, &totalNodes, &orderedTriangleOffset, orderedTriangles);
+    const BVH2BuildNode *root = BuildTreeForBVH4(m_triangles, &totalNodes, &orderedTriangleOffset, orderedTriangles);
     m_triangles.swap(orderedTriangles);
 
 
@@ -440,11 +440,11 @@ void BVH4::build(const jtx::Scene &scene) {
     flattenBVH2toLBVH4(root, m_nodes, &offset);
     LOG_INFO(GENERAL, "BVH4 constructed");
 
-    root->destroy();
+    root->Destroy();
     delete root;
 }
 
-void BVH4::destroy() {
+void BVH4::Destroy() {
     LOG_INFO(GENERAL, "Destroying BVH4");
     if (m_nodes != nullptr) {
         delete[] m_nodes;
@@ -456,7 +456,7 @@ void BVH4::destroy() {
     LOG_INFO(GENERAL, "Destroyed BVH4");
 }
 
-bool BVH4::closestHit(const ray &r, float t0, float t1, TriangleIntersection &isect) const {
+bool BVH4::ClosestHit(const ray &r, float t0, float t1, TriangleIntersection &isect) const {
     int toVisitOffset = 0;
     int currNodeIndex = 0;
     int stack[64];
@@ -652,7 +652,7 @@ bool BVH4::closestHit(const ray &r, float t0, float t1, TriangleIntersection &is
 
         const BVH4Node *node = &m_nodes[currNodeIndex];
 
-        const auto hitResult = node->bbox.hit(r, rayHitInfo, t0, t1);
+        const auto hitResult = node->bbox.Hit(r, rayHitInfo, t0, t1);
         if (hitResult.val > 0) {
             int order[4] = {0, 1, 2, 3};
             // Now for the tough part, sorting the boxes
@@ -711,7 +711,7 @@ bool BVH4::closestHit(const ray &r, float t0, float t1, TriangleIntersection &is
 
 #pragma region Embree
 #ifdef JTX_USE_EMBREE
-void BVHEmbree::build(const jtx::Scene &scene) {
+void BVHEmbree::Build(const jtx::Scene &scene) {
     LOG_INFO(GENERAL, "Building Embree BVH for scene: {}", scene.name);
     m_device = rtcNewDevice(nullptr);
     m_scene  = rtcNewScene(m_device);
@@ -731,14 +731,14 @@ void BVHEmbree::build(const jtx::Scene &scene) {
     LOG_INFO(GENERAL, "Embree BVH constructed");
 }
 
-void BVHEmbree::destroy() const {
+void BVHEmbree::Destroy() const {
     LOG_INFO(GENERAL, "Destroying Embree BVH");
     rtcReleaseScene(m_scene);
     rtcReleaseDevice(m_device);
     LOG_INFO(GENERAL, "Destroyed Embree BVH");
 }
 
-bool BVHEmbree::closestHit(const ray &r, const float t0, const float t1, TriangleIntersection &isect) const {
+bool BVHEmbree::ClosestHit(const ray &r, const float t0, const float t1, TriangleIntersection &isect) const {
     RTCRayHit rayHit{};
     rayHit.ray.org_x     = r.origin.x;
     rayHit.ray.org_y     = r.origin.y;
@@ -765,7 +765,7 @@ bool BVHEmbree::closestHit(const ray &r, const float t0, const float t1, Triangl
     return true;
 }
 
-bool BVHEmbree::anyHit(const ray &r, const float t0, const float t1) const {
+bool BVHEmbree::AnyHit(const ray &r, const float t0, const float t1) const {
     RTCRay ray{};
     ray.org_x     = r.origin.x;
     ray.org_y     = r.origin.y;

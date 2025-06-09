@@ -12,7 +12,7 @@ struct Triangle {
     int triangleIndex;
     AABB bbox;
 
-    vec3 centroid() const { return 0.5f * (bbox.pmin + bbox.pmax); }
+    vec3 Centroid() const { return 0.5f * (bbox.pmin + bbox.pmax); }
 };
 
 /**
@@ -65,7 +65,7 @@ struct Scene {
      * Generates an array of triangles in this scene
      * @return triangles in this scene
      */
-    std::vector<Triangle> getTriangles() const {
+    std::vector<Triangle> GetTriangles() const {
         std::vector<Triangle> triangles;
 
         for (int i = 0; i < indices.size(); ++i) {

@@ -22,10 +22,10 @@ struct WorkQueue {
     bool workAvailable() const { return nextJobIndex < jobs.size(); }
 };
 
-void BackendCPU::startRendering() {
+void BackendCPU::StartRendering() {
     LOG_INFO(RENDER, "Starting rendering with CPU backend");
     // Updates camera every time; use dirty flag if needed later
-    m_camera.update();
+    m_camera.Update();
 
     // Initialize work queue
     WorkQueue q;
@@ -74,14 +74,14 @@ void BackendCPU::startRendering() {
                         for (auto row = job.startRow; row < job.endRow; ++row) {
                             for (auto col = job.startCol; col < job.endCol; ++col) {
                                 Sampler sampler(row, col, sample + 1);
-                                const ray r = m_camera.getRay(row, col, sample, sampler);
+                                const ray r = m_camera.GetRay(row, col, sample, sampler);
 
                                 // Integrate ray
 
                                 // For now, we test with a simple line trace
                                 vec3 intensity{};
                                 TriangleIntersection isect;
-                                if (m_bvh.closestHit(r, 0, JTX_INFINITY_F, isect)) {
+                                if (m_bvh.ClosestHit(r, 0, JTX_INFINITY_F, isect)) {
                                     intensity = vec3(1.0f);
                                 }
 
@@ -115,7 +115,7 @@ void BackendCPU::startRendering() {
     }
     LOG_INFO(RENDER, "Rendering completed");
     // TODO: remove this
-    if (m_imgBuffer.save("img.png")) {
+    if (m_imgBuffer.Save("img.png")) {
         LOG_DEBUG(RENDER, "Output saved");
     } else {
         LOG_DEBUG(RENDER, "Output not saved");

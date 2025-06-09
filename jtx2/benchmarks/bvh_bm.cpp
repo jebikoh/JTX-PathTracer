@@ -19,14 +19,14 @@ public:
         }
 
         // Load test mesh and create BVH
-        jtx::loadScene("assets/f22.obj", m_scene);
-        m_bvh.build(m_scene);
-        m_bvhEmbree.build(m_scene);
+        jtx::LoadScene("assets/f22.obj", m_scene);
+        m_bvh.Build(m_scene);
+        m_bvhEmbree.Build(m_scene);
     }
 
     void TearDown(::benchmark::State& state) override {
-        m_bvh.destroy();
-        m_bvhEmbree.destroy();
+        m_bvh.Destroy();
+        m_bvhEmbree.Destroy();
         delete[] m_rays;
     }
 
@@ -45,7 +45,7 @@ BENCHMARK_DEFINE_F(BVHFixture, BVHTraversal)(benchmark::State& st) {
         for (int i = 0; i < NUM_RAYS; ++i) {
             const auto &r = m_rays[i];
             TriangleIntersection isect;
-            if (m_bvh.closestHit(r, 0, JTX_INFINITY_F, isect)) {
+            if (m_bvh.ClosestHit(r, 0, JTX_INFINITY_F, isect)) {
                 x += isect.u;
             }
         }
@@ -63,7 +63,7 @@ BENCHMARK_DEFINE_F(BVHFixture, BVHEmbreeTraversal)(benchmark::State &st) {
         for (int i = 0; i < NUM_RAYS; ++i) {
             const auto &r = m_rays[i];
             TriangleIntersection isect;
-            if (m_bvhEmbree.closestHit(r, 0, JTX_INFINITY_F, isect)) {
+            if (m_bvhEmbree.ClosestHit(r, 0, JTX_INFINITY_F, isect)) {
                 x += isect.u;
             }
         }

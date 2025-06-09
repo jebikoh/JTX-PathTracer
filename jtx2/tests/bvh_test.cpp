@@ -33,7 +33,7 @@ void validateBVH(
         // Test embree
         float tEmbree = -1.0f;
         TriangleIntersection isect;
-        if (bvhEmbree.closestHit(r, 0.0f, JTX_INFINITY_F, isect)) {
+        if (bvhEmbree.ClosestHit(r, 0.0f, JTX_INFINITY_F, isect)) {
             tEmbree = isect.t;
         }
 
@@ -60,13 +60,13 @@ class BVH2Test : public testing::Test {
 protected:
     BVH2Test() {
         ASSERT(jtx::loadScene(JTX_BVH_TEST_MESH_PATH, m_scene));
-        m_bvh.build(m_scene);
-        m_bvhEmbree.build(m_scene);
+        m_bvh.Build(m_scene);
+        m_bvhEmbree.Build(m_scene);
     }
 
     ~BVH2Test() override {
-        m_bvhEmbree.destroy();
-        m_bvh.destroy();
+        m_bvhEmbree.Destroy();
+        m_bvh.Destroy();
     }
 
     Scene m_scene;
@@ -76,7 +76,7 @@ protected:
 
     const std::function<void(const ray &, float &)> m_isectFn = [&](const ray &r, float &t) {
         TriangleIntersection isect;
-        if (m_bvh.closestHit(r, 0, JTX_INFINITY_F, isect)) {
+        if (m_bvh.ClosestHit(r, 0, JTX_INFINITY_F, isect)) {
             t = isect.t;
         }
     };
@@ -84,14 +84,14 @@ protected:
 
 TEST_F(BVH2Test, BVH2RaysToOrigin) {
     const auto rayGen = [](Sampler &rng) {
-        return detail::generateRayToOriginFromUnitSphere(rng, JTX_BVH_TEST_OFFSET_SCALE);
+        return detail::GenerateRayToOriginFromUnitSphere(rng, JTX_BVH_TEST_OFFSET_SCALE);
     };
     validateBVH(m_bvhEmbree, m_isectFn, rayGen);
 }
 
 TEST_F(BVH2Test, BVH2RandomRays) {
     const auto rayGen = [](Sampler &rng) {
-        return detail::generateRayFromUnitSphere(rng, JTX_BVH_TEST_OFFSET_SCALE);
+        return detail::GenerateRayFromUnitSphere(rng, JTX_BVH_TEST_OFFSET_SCALE);
     };
     validateBVH(m_bvhEmbree, m_isectFn, rayGen);
 }

@@ -176,9 +176,9 @@ void Rasterizer::LoadScene(const Scene *pScene) {
 
         jvk::Image gpuTex;
         if (tex.channels < 4) {
-            Image8u tex32b = tex.as32b();
+            Image8u tex32b = tex.As32b();
             gpuTex = m_gfx.CreateImage(tex32b.data, extent, tex32b.channels, format, VK_IMAGE_USAGE_SAMPLED_BIT);
-            tex32b.destroy();
+            tex32b.Destroy();
         } else {
             gpuTex = m_gfx.CreateImage(tex.data, extent, tex.channels, format, VK_IMAGE_USAGE_SAMPLED_BIT);
         }

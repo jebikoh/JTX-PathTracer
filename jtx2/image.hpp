@@ -87,7 +87,7 @@ public:
     Image8u(Image8u &&other) noexcept;
     Image8u &operator=(Image8u &&other) noexcept;
 
-    void destroy();
+    void Destroy();
 
     /**
      * Loads an image from the given file. Accepts any format supported by stb. Note
@@ -99,7 +99,7 @@ public:
      * @param bApplyEOTF will apply sRGB EOTF function if true
      * @return JTX_SUCCESS if successful, failure otherwise
      */
-    static JtxResult load(const std::filesystem::path &path, Image8u &out, bool bApplyEOTF = true);
+    static JtxResult Load(const std::filesystem::path &path, Image8u &out, bool bApplyEOTF = true);
 
     /**
      * Loads an image from a provided buffer.
@@ -109,9 +109,9 @@ public:
      * @param bApplyEOTF will apply sRGB EOTF function if true
      * @return JTX_SUCCESS if successful, failure otherwise
      */
-    static JtxResult load(const uint8_t *buffer, size_t size, Image8u &out, bool bApplyEOTF = true);
+    static JtxResult Load(const uint8_t *buffer, size_t size, Image8u &out, bool bApplyEOTF = true);
 
-    JtxResult save(const std::filesystem::path &path) const;
+    JtxResult Save(const std::filesystem::path &path) const;
 
     /**
      * Retrieves pixel value at given coordinates. If the requested format has more channels
@@ -127,26 +127,26 @@ public:
      * @return pixel value at given coordinates in given format
      */
     template<typename T>
-    T getPixel(int row, int col);
+    T GetPixel(int row, int col);
 
     const uint8_t &operator[](const int index) const { return data[index]; }
     uint8_t &operator[](const int index) { return data[index]; }
 
-    bool isEmpty() const { return width == 0 || height == 0 || channels == 0; }
+    bool IsEmpty() const { return width == 0 || height == 0 || channels == 0; }
 
     /**
      * Returns a copy of the image as a 32-bit image, expanding the format if needed.
      * @return
      */
-    Image8u as32b(uint8_t alpha = 255) const;
+    Image8u As32b(uint8_t alpha = 255) const;
 
     /**
      * Resizes the current images -- data is not copied
      * @param w new width
      * @param h new height
      */
-    void resize(const uint32_t w, const uint32_t h, const uint32_t c) {
-        this->destroy();
+    void Resize(const uint32_t w, const uint32_t h, const uint32_t c) {
+        this->Destroy();
         width = w;
         height = h;
         channels = c;
@@ -155,19 +155,19 @@ public:
 };
 
 template<typename T>
-T Image8u::getPixel(int row, int col) {
+T Image8u::GetPixel(int row, int col) {
     LOG_ERROR(TEXTURE, "Attempted to retrieve pixel in unsupported format");
     return T::unimplemented;
 }
 
 template<>
-inline RGB8u Image8u::getPixel<RGB8u>(const int row, const int col) {
+inline RGB8u Image8u::GetPixel<RGB8u>(const int row, const int col) {
     const int i = (row * width + col) * channels;
     return {data[i], data[i + 1], data[i + 2]};
 }
 
 template<>
-inline RGBA8u Image8u::getPixel<RGBA8u>(const int row, const int col) {
+inline RGBA8u Image8u::GetPixel<RGBA8u>(const int row, const int col) {
     const int i   = (row * width + col) * channels;
     RGBA8u result = {data[i], data[i + 1], data[i + 2], 1};
     if (channels == 4) { result.a = data[i + 3]; }
@@ -175,13 +175,13 @@ inline RGBA8u Image8u::getPixel<RGBA8u>(const int row, const int col) {
 }
 
 template<>
-inline RGB32f Image8u::getPixel<RGB32f>(const int row, const int col) {
+inline RGB32f Image8u::GetPixel<RGB32f>(const int row, const int col) {
     const int i = (row * width + col) * channels;
     return {static_cast<float>(data[i]), static_cast<float>(data[i + 1]), static_cast<float>(data[i + 2])};
 }
 
 template<>
-inline RGBA32f Image8u::getPixel<RGBA32f>(const int row, const int col) {
+inline RGBA32f Image8u::GetPixel<RGBA32f>(const int row, const int col) {
     const int i    = (row * width + col) * channels;
     RGBA32f result = {
             static_cast<float>(data[i]), static_cast<float>(data[i + 1]), static_cast<float>(data[i + 2]), 1.0f};
@@ -232,7 +232,7 @@ public:
     Image32f(Image32f &other);
     Image32f &operator=(Image32f &other);
 
-    void destroy();
+    void Destroy();
 
     /**
      * Loads an image from the given file. Accepts any format supported by stb as well
@@ -241,7 +241,7 @@ public:
      * @param out output image
      * @return JTX_SUCCESS if successful, failure otherwise
      */
-    static JtxResult load(const std::filesystem::path &path, Image32f &out);
+    static JtxResult Load(const std::filesystem::path &path, Image32f &out);
 
     /**
      * Loads an image from a provided buffer
@@ -250,7 +250,7 @@ public:
      * @param out output image
      * @return JTX_SUCCESS if successful, failure otherwise
      */
-    static JtxResult load(const uint8_t *buffer, size_t size, Image32f &out);
+    static JtxResult Load(const uint8_t *buffer, size_t size, Image32f &out);
 
     /**
      * Retrieves pixel value at given coordinate. If the requested format has more channels
@@ -264,20 +264,20 @@ public:
      * @return pixel value at given coordinates in given format
      */
     template<typename T>
-    T getPixel(int row, int col);
+    T GetPixel(int row, int col);
 
     const float &operator[](const int index) const { return data[index]; }
     float &operator[](const int index) { return data[index]; }
 
-    bool isEmpty() const { return width == 0 || height == 0 || channels == 0; }
+    bool IsEmpty() const { return width == 0 || height == 0 || channels == 0; }
 
     /**
      * Resizes the current images -- data is not copied
      * @param w new width
      * @param h new height
      */
-    void resize(const uint32_t w, const uint32_t h, const uint32_t c) {
-        this->destroy();
+    void Resize(const uint32_t w, const uint32_t h, const uint32_t c) {
+        this->Destroy();
         width = w;
         height = h;
         channels = c;
@@ -286,19 +286,19 @@ public:
 };
 
 template<typename T>
-T Image32f::getPixel(int row, int col) {
+T Image32f::GetPixel(int row, int col) {
     LOG_ERROR(TEXTURE, "Attempted to retrieve pixel in unsupported format");
     return T::unimplemented;
 }
 
 template<>
-inline RGB32f Image32f::getPixel<RGB32f>(const int row, const int col) {
+inline RGB32f Image32f::GetPixel<RGB32f>(const int row, const int col) {
     const int i = (row * width + col) * channels;
     return {data[i], data[i + 1], data[i + 2]};
 }
 
 template<>
-inline RGBA32f Image32f::getPixel<RGBA32f>(const int row, const int col) {
+inline RGBA32f Image32f::GetPixel<RGBA32f>(const int row, const int col) {
     const int i    = (row * width + col) * channels;
     RGBA32f result = {data[i], data[i + 1], data[i + 2], 1.0f};
     if (channels == 4) { result.a = data[i + 3]; }

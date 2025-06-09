@@ -32,7 +32,7 @@ struct Material {
         int32_t metallicRoughness = JTX_MATERIAL_TEXTURE_INDEX_NONE;
     } textureIndices;
 
-    bool isEmissive() const { return parameters.emission.lenSqr() > 0.0f; }
+    bool IsEmissive() const { return parameters.emission.lenSqr() > 0.0f; }
 };
 
 }

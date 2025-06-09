@@ -28,24 +28,24 @@ jtx::Image8u::Image8u(Image8u &&other) noexcept
       channels(other.channels),
       data(other.data) {
     other.data = nullptr;
-    other.destroy();
+    other.Destroy();
 }
 
 jtx::Image8u &jtx::Image8u::operator=(Image8u &&other) noexcept {
     if (this != &other) {
-        destroy();
+        Destroy();
         width    = other.width;
         height   = other.height;
         channels = other.channels;
         data     = other.data;
 
         other.data = nullptr;
-        other.destroy();
+        other.Destroy();
     }
     return *this;
 }
 
-void jtx::Image8u::destroy() {
+void jtx::Image8u::Destroy() {
     width    = 0;
     height   = 0;
     channels = 0;
@@ -56,7 +56,7 @@ void jtx::Image8u::destroy() {
     }
 }
 
-JtxResult jtx::Image8u::load(const std::filesystem::path &path, Image8u &out, bool bApplyEOTF) {
+JtxResult jtx::Image8u::Load(const std::filesystem::path &path, Image8u &out, bool bApplyEOTF) {
     LOG_INFO(TEXTURE, "Loading 8-bit texture: {}", path.string());
 
     auto fileExt = path.extension().string();
@@ -80,7 +80,7 @@ JtxResult jtx::Image8u::load(const std::filesystem::path &path, Image8u &out, bo
     return JTX_SUCCESS;
 }
 
-JtxResult jtx::Image8u::load(const uint8_t *buffer, const size_t size, Image8u &out, bool bApplyEOTF) {
+JtxResult jtx::Image8u::Load(const uint8_t *buffer, const size_t size, Image8u &out, bool bApplyEOTF) {
     LOG_INFO(TEXTURE, "Loading 8-bit texture from memory");
 
     if (!buffer || size == 0) {
@@ -102,7 +102,7 @@ JtxResult jtx::Image8u::load(const uint8_t *buffer, const size_t size, Image8u &
     return JTX_SUCCESS;
 }
 
-JtxResult jtx::Image8u::save(const std::filesystem::path &path) const {
+JtxResult jtx::Image8u::Save(const std::filesystem::path &path) const {
     if (stbi_write_png(path.string().c_str(), width, height, channels, data, width * channels)) {
         return JTX_SUCCESS;
     }
@@ -110,7 +110,7 @@ JtxResult jtx::Image8u::save(const std::filesystem::path &path) const {
     return JTX_ERROR_FILE_WRITE;
 }
 
-jtx::Image8u jtx::Image8u::as32b(const uint8_t alpha) const {
+jtx::Image8u jtx::Image8u::As32b(const uint8_t alpha) const {
     Image8u out(width, height, 4);
     if (channels == 4) {
         memcpy(out.data, data, width * height * 4);
@@ -148,23 +148,23 @@ jtx::Image32f::Image32f(Image32f &other)
       channels(other.channels),
       data(other.data) {
     other.data = nullptr;
-    other.destroy();
+    other.Destroy();
 }
 jtx::Image32f &jtx::Image32f::operator=(Image32f &other) {
     if (this != &other) {
-        destroy();
+        Destroy();
         width    = other.width;
         height   = other.height;
         channels = other.channels;
         data     = other.data;
 
         other.data = nullptr;
-        other.destroy();
+        other.Destroy();
     }
     return *this;
 }
 
-void jtx::Image32f::destroy() {
+void jtx::Image32f::Destroy() {
     width    = 0;
     height   = 0;
     channels = 0;
@@ -174,7 +174,7 @@ void jtx::Image32f::destroy() {
     }
 }
 
-JtxResult jtx::Image32f::load(const std::filesystem::path &path, Image32f &out) {
+JtxResult jtx::Image32f::Load(const std::filesystem::path &path, Image32f &out) {
     LOG_INFO(TEXTURE, "Loading 32-bit float texture: {}", path.string());
 
     auto fileExt = path.extension().string();
@@ -198,7 +198,7 @@ JtxResult jtx::Image32f::load(const std::filesystem::path &path, Image32f &out) 
     return JTX_SUCCESS;
 }
 
-JtxResult jtx::Image32f::load(const uint8_t *buffer, const size_t size, Image32f &out) {
+JtxResult jtx::Image32f::Load(const uint8_t *buffer, const size_t size, Image32f &out) {
     LOG_INFO(TEXTURE, "Loading 32-bit float texture from memory");
 
     if (!buffer || size == 0) {

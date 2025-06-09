@@ -28,7 +28,7 @@ public:
      * @param z Z strata
      */
     Sampler(const uint32_t x, const uint32_t y, const uint32_t z) {
-        m_state = xxhash32({x, y, z});
+        m_state = xxHash32({x, y, z});
     }
 
     /**
@@ -37,8 +37,8 @@ public:
      * Uses a RXS-M-XS PCG
      * @return random 32-bit unsigned integer
      */
-    uint32_t sample() {
-        return pcg(m_state);
+    uint32_t Sample() {
+        return PCG(m_state);
     }
 
     /**
@@ -51,13 +51,13 @@ public:
      * @param range upper bound
      * @return random 32-bit unsigned integer on [0, range)
      */
-    uint32_t sample(const int range) {
+    uint32_t Sample(const int range) {
         const uint32_t t = -range % range;
 
         uint64_t m;
         uint32_t l;
         do {
-            const uint32_t x = sample();
+            const uint32_t x = Sample();
             m                = static_cast<uint64_t>(x) * static_cast<uint64_t>(range);
             l                = static_cast<uint32_t>(m);
         } while (l < t);
@@ -70,7 +70,7 @@ public:
      * @return random variable on [0, 1)
      */
     template<typename T>
-    T uniform();
+    T Uniform();
 
     /**
      * Generates a random variable of type T within the provided range
@@ -80,57 +80,57 @@ public:
      * @return
      */
     template<typename T>
-    T uniform(float min, float max);
+    T Uniform(float min, float max);
 private:
     uint32_t m_state = 0;
 };
 
 #pragma region Uniform
 template<typename T>
-T Sampler::uniform() {
+T Sampler::Uniform() {
     return T::unimplemented;
 }
 
 template<>
-inline float Sampler::uniform<float>() {
-    return (sample() & 0xFFFFFF) / 16777216.0f;
+inline float Sampler::Uniform<float>() {
+    return (Sample() & 0xFFFFFF) / 16777216.0f;
 }
 
 template<>
-inline vec2 Sampler::uniform<vec2>() {
-    return {uniform<float>(), uniform<float>()};
+inline vec2 Sampler::Uniform<vec2>() {
+    return {Uniform<float>(), Uniform<float>()};
 }
 
 template<>
-inline vec3 Sampler::uniform<vec3>() {
-    return {uniform<float>(), uniform<float>(), uniform<float>()};
+inline vec3 Sampler::Uniform<vec3>() {
+    return {Uniform<float>(), Uniform<float>(), Uniform<float>()};
 }
 #pragma endregion
 
 #pragma region Range
 template<typename T>
-T Sampler::uniform(float min, float max) {
+T Sampler::Uniform(float min, float max) {
     return T::unimplemented;
 }
 
 template<>
-inline float Sampler::uniform<float>(const float min, const float max) {
-    return min + (max - min) * uniform<float>();
+inline float Sampler::Uniform<float>(const float min, const float max) {
+    return min + (max - min) * Uniform<float>();
 }
 
 template<>
-inline vec2 Sampler::uniform<vec2>(const float min, const float max) {
-    return {uniform<float>(min, max), uniform<float>(min, max)};
+inline vec2 Sampler::Uniform<vec2>(const float min, const float max) {
+    return {Uniform<float>(min, max), Uniform<float>(min, max)};
 }
 
 template<>
-inline vec3 Sampler::uniform<vec3>(const float min, const float max) {
-    return {uniform<float>(min, max), uniform<float>(min, max), uniform<float>(min, max)};
+inline vec3 Sampler::Uniform<vec3>(const float min, const float max) {
+    return {Uniform<float>(min, max), Uniform<float>(min, max), Uniform<float>(min, max)};
 }
 
 template<>
-inline vec4 Sampler::uniform<vec4>(const float min, const float max) {
-    return {uniform<float>(min, max), uniform<float>(min, max), uniform<float>(min, max), uniform<float>(min, max)};
+inline vec4 Sampler::Uniform<vec4>(const float min, const float max) {
+    return {Uniform<float>(min, max), Uniform<float>(min, max), Uniform<float>(min, max), Uniform<float>(min, max)};
 }
 
 #pragma endregion
@@ -139,18 +139,18 @@ inline vec4 Sampler::uniform<vec4>(const float min, const float max) {
 // These are kept separate to allow sampling routines to preserve stratification
 // and sampling patterns across different distributions.
 // Most of these are taken from PBR 4d
-JTX_FORCE_INLINE vec3 sampleUniformSphere(const vec2 &s) {
+JTX_FORCE_INLINE vec3 SampleUniformSphere(const vec2 &s) {
     const float z = 1 - 2 * s.x;
     const float a = jtx::safeSqrt(1.0f - z * z);
     const float phi = TWO_PI * s.y;
     return {jtx::cos(phi) * a, jtx::sin(phi) * a, z};
 }
 
-JTX_FORCE_INLINE float uniformUniformSpherePDF() {
+JTX_FORCE_INLINE float UniformSpherePDF() {
     return INV_4_PI;
 }
 
-JTX_FORCE_INLINE vec2 sampleUniformDiskConcentric(const vec2 &s) {
+JTX_FORCE_INLINE vec2 SampleUniformDiskConcentric(const vec2 &s) {
     const vec2 offset = 2.0f * s - vec2(1.0f, 1.0f);
     if (offset.x == 0 && offset.y == 0) return {0.0f, 0.0f};
 
@@ -168,38 +168,38 @@ JTX_FORCE_INLINE vec2 sampleUniformDiskConcentric(const vec2 &s) {
     return {r * jtx::cos(theta), r * jtx::sin(theta)};
 }
 
-JTX_FORCE_INLINE vec3 sampleUniformHemisphere(const vec2 &s) {
+JTX_FORCE_INLINE vec3 SampleUniformHemisphere(const vec2 &s) {
     const float sinTheta = jtx::safeSqrt(1 - s.x * s.x);
     const float phi = 2 * JTX_PI_F * s.y;
     return {jtx::cos(phi) * sinTheta, jtx::sin(phi) * sinTheta, s.x};
 }
 
-JTX_FORCE_INLINE float uniformHemispherePDF() {
+JTX_FORCE_INLINE float UniformHemispherePDF() {
     return INV_TWO_PI;
 }
 
-JTX_FORCE_INLINE vec3 sampleCosineHemisphere(const vec2 &s) {
-    const auto disk = sampleUniformDiskConcentric(s);
+JTX_FORCE_INLINE vec3 SampleCosineHemisphere(const vec2 &s) {
+    const auto disk = SampleUniformDiskConcentric(s);
     return {disk.x, disk.y, jtx::safeSqrt(1 - disk.x * disk.x - disk.y * disk.y)};
 }
 
-JTX_FORCE_INLINE float cosineHemispherePDF(const float cosTheta) {
+JTX_FORCE_INLINE float CosineHemispherePDF(const float cosTheta) {
     return cosTheta * INV_PI;
 }
 
 namespace detail {
-    inline ray generateRayFromUnitSphere(Sampler &rng, const float offsetScale) {
+    inline ray GenerateRayFromUnitSphere(Sampler &rng, const float offsetScale) {
         ray out{};
 
-        out.origin    = sampleUniformSphere(rng.uniform<vec2>()) * offsetScale;
-        const vec3 p1 = sampleUniformSphere(rng.uniform<vec2>()) * offsetScale;
+        out.origin    = SampleUniformSphere(rng.Uniform<vec2>()) * offsetScale;
+        const vec3 p1 = SampleUniformSphere(rng.Uniform<vec2>()) * offsetScale;
         out.dir       = (p1 - out.origin).normalize();
         return out;
     }
 
-    inline ray generateRayToOriginFromUnitSphere(Sampler &rng, const float offsetScale) {
+    inline ray GenerateRayToOriginFromUnitSphere(Sampler &rng, const float offsetScale) {
         ray out{};
-        out.origin = sampleUniformSphere(rng.uniform<vec2>()) * offsetScale;
+        out.origin = SampleUniformSphere(rng.Uniform<vec2>()) * offsetScale;
         out.dir    = (JTX_VEC3_ORIGIN - out.origin).normalize();
         return out;
     }

@@ -4,7 +4,7 @@
 
 #include <rapidobj.hpp>
 
-JtxResult jtx::loadScene(const std::filesystem::path &path, Scene &scene) {
+JtxResult jtx::LoadScene(const std::filesystem::path &path, Scene &scene) {
     LOG_INFO(LOADER,"Loading scene: {}", path.string());
     auto fileExt = path.extension().string();
     std::ranges::transform(fileExt, fileExt.begin(), [](const unsigned char c) { return std::tolower(c); });
@@ -14,11 +14,11 @@ JtxResult jtx::loadScene(const std::filesystem::path &path, Scene &scene) {
     }
 
     if (fileExt == ".obj") {
-        return detail::loadObj(path, scene);
+        return detail::LoadObj(path, scene);
     }
 
     if (fileExt == ".gltf") {
-        return detail::loadGltf(path, scene);
+        return detail::LoadGltf(path, scene);
     }
 
     // This should ideally never be called
@@ -32,7 +32,7 @@ JtxResult jtx::loadScene(const std::filesystem::path &path, Scene &scene) {
  *  - OBJ files allow different materials per face, but we only support one material per mesh;
  *    so we just grab the first material ID per mesh and use that for all faces
  */
-JtxResult jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &scene) {
+JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &scene) {
     LOG_DEBUG(LOADER,"Loading OBJ file: {}", path.string());
     rapidobj::Result result = rapidobj::ParseFile(path.string());
     if (result.error) {
@@ -67,7 +67,7 @@ JtxResult jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &sc
                 mat.textureIndices.albedo = textureMap[texturePath];
             } else {
                 scene.textures.emplace_back();
-                Image8u::load((baseDir + texturePath), scene.textures.back());
+                Image8u::Load((baseDir + texturePath), scene.textures.back());
                 const size_t textureIndex = scene.textures.size() - 1;
                 textureMap[texturePath] = textureIndex;
                 mat.textureIndices.albedo = textureIndex;
@@ -165,7 +165,7 @@ JtxResult jtx::detail::loadObj(const std::filesystem::path &path, jtx::Scene &sc
     return JTX_SUCCESS;
 }
 
-JtxResult jtx::detail::loadGltf(const std::filesystem::path &path, jtx::Scene &scene) {
+JtxResult jtx::detail::LoadGltf(const std::filesystem::path &path, jtx::Scene &scene) {
     LOG_ERROR(LOADER,"GLTF loading not implemented yet");
     return JTX_FAILURE;
 }

@@ -4,6 +4,7 @@
 #include <fmt/chrono.h>
 #include <fmt/color.h>
 #include <fmt/core.h>
+#include <fmt/format.h>
 
 #if defined(NDEBUG)
 #define LOG_DEBUG(category, msg, ...) \
@@ -11,17 +12,17 @@
     } while (0)
 #else
 #define LOG_DEBUG(category, msg, ...) \
-    Logger::Get().log({__LINE__, __func__, LogLevel::DEBUG, LogCategory::category}, msg, ##__VA_ARGS__)
+    Logger::Get().Log({__LINE__, __func__, LogLevel::DEBUG, LogCategory::category}, msg, ## __VA_ARGS__)
 #endif
 
 #define LOG_INFO(category, msg, ...) \
-    Logger::Get().Log({__LINE__, __func__, LogLevel::INFO, LogCategory::category}, msg, ##__VA_ARGS__)
+    Logger::Get().Log({__LINE__, __func__, LogLevel::INFO, LogCategory::category}, msg, ## __VA_ARGS__)
 
 #define LOG_ERROR(category, msg, ...) \
-    Logger::Get().Log({__LINE__, __func__, LogLevel::ERR, LogCategory::category}, msg, ##__VA_ARGS__)
+    Logger::Get().Log({__LINE__, __func__, LogLevel::ERR, LogCategory::category}, msg, ## __VA_ARGS__)
 
 #define LOG_FATAL(category, msg, ...) \
-    Logger::Get().Log({__LINE__, __func__, LogLevel::FATAL, LogCategory::category}, msg, ##__VA_ARGS__)
+    Logger::Get().Log({__LINE__, __func__, LogLevel::FATAL, LogCategory::category}, msg, ## __VA_ARGS__)
 
 enum class LogLevel {
     INFO  = 0,
@@ -51,103 +52,155 @@ struct LogContext {
     LogCategory category;
 };
 
-struct Logger {
-    std::chrono::time_point<std::chrono::system_clock> start;
+enum class LogColor {
+    WHITE,
+    YELLOW,
+    BLUE,
+    RED,
+};
 
-    Logger()
-        : start(std::chrono::system_clock::now()) {}
+struct LogEntry {
+    LogColor color;
+    std::string message;
+};
+
+struct Logger {
+    using Sink = std::function<void(const LogEntry&)>;
+
+    void AddSink(const Sink &fn) { m_sinks.push_back(fn); }
+    void ClearSinks() { m_sinks.clear(); }
 
     static Logger &Get() {
         static Logger logger;
         return logger;
     }
 
-    static void PrintTime(const fmt::text_style &color) {
+    template<typename... Args>
+    void Log(const LogContext ctx, fmt::format_string<Args...> format, Args &&...args) {
+        const auto entry = FormatMessage(ctx, format, std::forward<Args>(args)...);
+        for (auto &sink : m_sinks) {
+            sink(entry);
+        }
+
+        if (ctx.level == LogLevel::FATAL) abort();
+    }
+
+    auto GetTime() const {
         const std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
-        fmt::print(color, "[JTX] [{:%M:%S}] ", end - Logger::Get().start);
+        return end - m_start;
     }
 
-    template<typename... Args>
-    static void Print(const fmt::text_style &color, fmt::format_string<Args...> format, Args &&...args) {
-        fmt::print(color, static_cast<fmt::string_view>(format), std::forward<Args>(args)...);
-        fmt::print("\n");
+    /**
+     * Adds a default sink that prints log messages to stdout.
+     */
+    static void AddDefaultSink() {
+        Logger::Get().AddSink([](LogEntry const &entry) {
+            fmt::text_style color;
+            switch (entry.color) {
+                case LogColor::YELLOW:
+                    color = fg(fmt::terminal_color::yellow);
+                    break;
+                case LogColor::BLUE:
+                    color = fg(fmt::terminal_color::blue);
+                    break;
+                case LogColor::RED:
+                    color = fg(fmt::terminal_color::bright_red);
+                    break;
+                default:
+                    break;
+            }
+            fmt::print(color, "{}\n", entry.message);
+        });
     }
+private:
+    std::chrono::time_point<std::chrono::system_clock> m_start;
+    std::vector<Sink> m_sinks{};
+
+    Logger()
+        : m_start(std::chrono::system_clock::now()) {}
 
     template<typename... Args>
-    static void Log(const LogContext ctx, fmt::format_string<Args...> format, Args &&...args) {
-        fmt::text_style color;
+    static auto FormatMessage(const LogContext ctx, fmt::format_string<Args ...> format, Args &&...args) {
+        auto buf = fmt::memory_buffer();
+
+        auto color = LogColor::WHITE;
         switch (ctx.level) {
             case LogLevel::ERR:
-                color = fg(fmt::terminal_color::yellow);
+                color = LogColor::YELLOW;
                 break;
             case LogLevel::DEBUG:
-                color = fg(fmt::terminal_color::blue);
+                color = LogColor::BLUE;
                 break;
             case LogLevel::FATAL:
-                color = fg(fmt::terminal_color::bright_red);
+                color = LogColor::RED;
                 break;
             default:
                 break;
         }
-        PrintTime(color);
 
+        // Time
+        const std::chrono::time_point<std::chrono::system_clock> end = std::chrono::system_clock::now();
+        fmt::format_to(std::back_inserter(buf), "[JTX] [{:%M:%S}] ", end - Logger::Get().m_start);
+
+        // Category
         switch (ctx.category) {
             case LogCategory::GENERAL:
-                fmt::print(color, "[GNRL] ");
+                fmt::format_to(std::back_inserter(buf), "[GNRL] ");
                 break;
             case LogCategory::DISPLAY:
-                fmt::print(color, "[DISP] ");
+                fmt::format_to(std::back_inserter(buf), "[DISP] ");
                 break;
             case LogCategory::UI:
-                fmt::print(color, "[UIUX] ");
+                fmt::format_to(std::back_inserter(buf), "[UIUX] ");
                 break;
             case LogCategory::RASTERIZER:
-                fmt::print(color, "[RSTR] ");
+                fmt::format_to(std::back_inserter(buf), "[RSTR] ");
                 break;
             case LogCategory::TRACER:
-                fmt::print(color, "[TRCR] ");
+                fmt::format_to(std::back_inserter(buf), "[TRCR] ");
                 break;
             case LogCategory::VULKAN:
-                fmt::print(color, "[VLKN] ");
+                fmt::format_to(std::back_inserter(buf), "[VLKN] ");
                 break;
             case LogCategory::TEXTURE:
-                fmt::print(color, "[TXTR] ");
+                fmt::format_to(std::back_inserter(buf), "[TXTR] ");
                 break;
             case LogCategory::LOADER:
-                fmt::print(color, "[LOAD] ");
+                fmt::format_to(std::back_inserter(buf), "[LOAD] ");
                 break;
             case LogCategory::INPUT:
-                fmt::print(color, "[INPT] ");
+                fmt::format_to(std::back_inserter(buf), "[INPT] ");
                 break;
             case LogCategory::TEST:
-                fmt::print(color, "[TEST] ");
+                fmt::format_to(std::back_inserter(buf), "[TEST] ");
                 break;
             case LogCategory::RENDER:
-                fmt::print(color, "[RNDR] ");
+                fmt::format_to(std::back_inserter(buf), "[RNDR] ");
                 break;
         }
 
+        // Level
         switch (ctx.level) {
             case LogLevel::INFO:
-                fmt::print(color, "[INF] ");
+                fmt::format_to(std::back_inserter(buf), "[INF] ");
                 break;
             case LogLevel::ERR:
-                fmt::print(color, "[ERR] ");
-                fmt::print(color, "[{}:{}] ", ctx.function, ctx.line);
+                fmt::format_to(std::back_inserter(buf), "[ERR] [{}:{}]", ctx.function, ctx.line);
                 break;
             case LogLevel::DEBUG:
-                fmt::print(color, "[DBG] ");
-                fmt::print(color, "[{}:{}] ", ctx.function, ctx.line);
+                fmt::format_to(std::back_inserter(buf), "[DBG] [{}:{}] ", ctx.function, ctx.line);
                 break;
             case LogLevel::FATAL:
-                fmt::print(color, "[FTL] ");
-                fmt::print(color, "[{}:{}] ", ctx.function, ctx.line);
+                fmt::format_to(std::back_inserter(buf), "[FTL] [{}:{}] ", ctx.function, ctx.line);
                 break;
         }
 
-        Print(color, format, std::forward<Args>(args)...);
-        if (ctx.level == LogLevel::FATAL) {
-            abort();
-        }
+        // Message
+        fmt::format_to(std::back_inserter(buf), format, std::forward<Args>(args)...);
+
+        return LogEntry{
+            .color = color,
+            .message = to_string(buf)
+        };
     }
 };

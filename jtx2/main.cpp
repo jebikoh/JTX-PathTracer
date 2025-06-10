@@ -8,15 +8,16 @@
 #define JTX_ENABLE_UI
 
 int main(int argc, char *argv[]) {
+    Logger::AddDefaultSink();
 #ifdef JTX_ENABLE_UI
     jtx::Scene scene;
-    // jtx::LoadScene("assets/f22.obj", scene);
+    jtx::LoadScene("assets/duck/duck.obj", scene);
 
-    // jtx::Display display;
-    // display.Init();
-    // display.SetScene(&scene);
-    // display.Run();
-    // display.Destroy();
+    jtx::Display display;
+    display.Init();
+    display.SetScene(&scene);
+    display.Run();
+    display.Destroy();
 #else
     jtx::Scene scene;
     jtx::loadScene("assets/f22.obj", scene);

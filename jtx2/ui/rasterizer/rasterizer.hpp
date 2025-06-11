@@ -172,6 +172,8 @@ private:
     bool m_bDrawBillboards = false;
     void InitBillboardPipeline();
     void DestroyBillboardPipeline();
+
+    void DrawSettingsPanel();
 };
 
 }// namespace jtx

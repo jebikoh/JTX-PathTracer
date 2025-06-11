@@ -501,7 +501,7 @@ void Rasterizer::UpdateSceneData() {
     m_gpuSceneUboData.view                = view;
     m_gpuSceneUboData.proj                = proj;
     m_gpuSceneUboData.viewProj            = proj * view;
-    m_gpuSceneUboData.cameraPos           = glm::vec4(m_camera.position, 5.0f);
+    m_gpuSceneUboData.cameraPos           = glm::vec4(m_camera.position, 0.0f);
     m_gpuSceneUboData.vertexBufferAddress = m_gpuSceneMeshData.positionAddress;
     m_gpuSceneUboData.normalBufferAddress = m_gpuSceneMeshData.normalAddress;
     m_gpuSceneUboData.uvBufferAddress     = m_gpuSceneMeshData.uvAddress;

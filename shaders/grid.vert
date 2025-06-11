@@ -1,3 +1,4 @@
+// Based on: https://asliceofrendering.com/scene%20helper/2020/01/05/InfiniteGrid/
 #version 450
 
 #extension GL_EXT_buffer_reference : require
@@ -29,7 +30,8 @@ vec3 gridVertices[6] = vec3[](
 
 layout(location = 0) out vec3 outNearPoint;
 layout(location = 1) out vec3 outFarPoint;
-layout(location = 2) out mat4 outViewProj;
+layout(location = 2) out vec3 outCameraPos;
+layout(location = 3) out mat4 outViewProj;
 
 vec3 Unproject(vec3 p, mat4 viweProjInv) {
     vec4 p2 = viweProjInv * vec4(p, 1.0);
@@ -41,16 +43,16 @@ void main() {
     vec3 p = gridVertices[gl_VertexIndex].xyz;
 
     // For shading calculations, we need to know the near and far point for each fragment.
-    // This is simply done by appliying the inverse view-projection transform and NDC division
-    //
-    // These points are used to calculate the time t in which a ray from the near point
-    // to the far point intersects the plane y = 0.
+    // This is simply done by appliying the inverse view-projection transform and persp. division
     mat4 invViewProj = inverse(sceneData.viewProj); // TODO: calculate on CPU
     outNearPoint = Unproject(vec3(p.xy, 0.0), invViewProj);
     outFarPoint = Unproject(vec3(p.xy, 1.0), invViewProj);
 
     // We need to pass this so we can calculate depth in the fragment shader
     outViewProj = sceneData.viewProj;
+
+    // And we pass this so we can apply a distance-based fade effect in the fragment shader
+    outCameraPos = sceneData.cameraPos.xyz;
 
     gl_Position = vec4(p, 1.0);
 }

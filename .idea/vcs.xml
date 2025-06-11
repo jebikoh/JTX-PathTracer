@@ -5,8 +5,10 @@
     <mapping directory="$PROJECT_DIR$/cmake-build-benchmark/_deps/benchmark-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-benchmark/_deps/fmt-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-debug/_deps/fmt-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-debugnoembree/_deps/fmt-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-debugtest/_deps/fmt-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-release/_deps/fmt-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-releasetest/_deps/fmt-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-relwithdebinfo/_deps/fmt-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/fastgltf" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/glm" vcs="Git" />

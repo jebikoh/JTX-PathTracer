@@ -50,7 +50,7 @@ public:
     /**
      * Retrieves the position and size of the viewport window
      * @param out ViewRectangle containing top left coordinate of viewport window and width/height
-     * @return true if position and size were retrieved, false if not (e.g. when central node is is not initialized yet)
+     * @return true if position and size were retrieved, false if not (e.g. when central node is not initialized yet)
      */
     bool GetViewportRectangle(jvk::ViewRectangle &out) const;
 

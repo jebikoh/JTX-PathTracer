@@ -161,6 +161,17 @@ private:
     jvk::DescriptorWriter m_descriptorWriter;
 
     void DestroyGPUScene();
+
+    // Grid
+    bool m_bDrawGrid = true;
+    void InitGridPipeline();
+    void DestroyGridPipeline() const;
+    jvk::Pipeline m_gridPipeline;
+
+    // Billboards
+    bool m_bDrawBillboards = false;
+    void InitBillboardPipeline();
+    void DestroyBillboardPipeline();
 };
 
 }// namespace jtx

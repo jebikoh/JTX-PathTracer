@@ -59,15 +59,15 @@ struct PipelineBuilder {
 };
 
 struct Pipeline {
-    VkPipeline pipeline             = VK_NULL_HANDLE;
-    VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+    VkPipeline pipeline     = VK_NULL_HANDLE;
+    VkPipelineLayout layout = VK_NULL_HANDLE;
 
     void Destroy(const VkDevice device, const bool destroyLayout = false) const {
         if (destroyLayout) {
-            vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+            vkDestroyPipelineLayout(device, layout, nullptr);
         }
         vkDestroyPipeline(device, pipeline, nullptr);
     }
 };
 
-}// namespace VkUtil
+}// namespace jvk

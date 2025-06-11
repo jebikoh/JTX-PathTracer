@@ -22,6 +22,7 @@ void Rasterizer::Init() {
 
     InitFrameData();
     InitMaterialResources();
+    InitGridPipeline();
 
     LOG_INFO(RASTERIZER, "Rasterizer initialized");
 }
@@ -29,7 +30,9 @@ void Rasterizer::Init() {
 void Rasterizer::Destroy() {
     LOG_INFO(RASTERIZER, "Destroying Rasterizer");
 
+
     DestroyGPUScene();
+    DestroyGridPipeline();
     DestroyMaterialResources();
     DestroyFrameData();
     m_descriptorAllocator.DestroyPools(m_gfx.ctx);
@@ -115,7 +118,7 @@ void Rasterizer::Draw(RenderContext &ctx, ResolveRegion &region) {
                 lastPipeline = r.material->pipeline;
 
                 vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->pipeline);
-                vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->pipelineLayout, 0, 1, &frame.gpuSceneDataUboDescriptorSet, 0, nullptr);
+                vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->layout, 0, 1, &frame.gpuSceneDataUboDescriptorSet, 0, nullptr);
 
                 VkViewport viewport{};
                 viewport.x        = static_cast<float>(m_viewRectangle.x);
@@ -135,13 +138,13 @@ void Rasterizer::Draw(RenderContext &ctx, ResolveRegion &region) {
                 vkCmdSetScissor(ctx.cmd, 0, 1, &scissor);
             }
 
-            vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->pipelineLayout, 1, 1, &r.material->descriptorSet, 0, nullptr);
+            vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->layout, 1, 1, &r.material->descriptorSet, 0, nullptr);
         }
 
         GPUDrawPushConstants pushConstants{};
         pushConstants.world  = glm::mat4(1.0f);
         pushConstants.normal = glm::mat4(1.0f);
-        vkCmdPushConstants(ctx.cmd, r.material->pipeline->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT,   0, sizeof(pushConstants), &pushConstants);
+        vkCmdPushConstants(ctx.cmd, r.material->pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT,   0, sizeof(pushConstants), &pushConstants);
 
         // Need to multiply by 3 because r.count and r.start are relative to vec3u
         vkCmdDrawIndexed(ctx.cmd, r.count * 3, 1, r.start * 3, 0, 0);
@@ -149,6 +152,14 @@ void Rasterizer::Draw(RenderContext &ctx, ResolveRegion &region) {
 
     for (const auto &r: opaqueDraws) {
         draw(m_drawContext.opaque[r]);
+    }
+
+    if (m_bDrawGrid) {
+        vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gridPipeline.pipeline);
+        vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gridPipeline.layout, 0, 1, &frame.gpuSceneDataUboDescriptorSet, 0, nullptr);
+        // Scene data descriptor should already be bound.
+        // NOTE: UPDATE THIS IF THAT IS NO LONGER THE CASE
+        vkCmdDrawIndexed(ctx.cmd, 6, 1, 0, 0, 0);
     }
 
     vkCmdEndRenderingKHR(ctx.cmd);
@@ -391,8 +402,8 @@ void Rasterizer::InitMaterialResources() {
     VkPipelineLayout layout;
     CHECK_VK(vkCreatePipelineLayout(m_gfx.ctx, &layoutInfo, nullptr, &layout));
 
-    m_gpuMaterials.opaquePipeline.pipelineLayout      = layout;
-    m_gpuMaterials.transparentPipeline.pipelineLayout = layout;
+    m_gpuMaterials.opaquePipeline.layout      = layout;
+    m_gpuMaterials.transparentPipeline.layout = layout;
 
     jvk::PipelineBuilder pipelineBuilder;
     pipelineBuilder.SetShaders(vertShader, fragShader);
@@ -534,6 +545,46 @@ void Rasterizer::DestroyFrameData() const {
         frame.gpuSceneDataUBO.Unmap(m_gfx.allocator);
         m_gfx.DestroyBuffer(frame.gpuSceneDataUBO);
     }
+}
+
+void Rasterizer::InitGridPipeline() {
+    VkShaderModule vertShader;
+    if (!jvk::LoadShaderModule("../shaders/grid.vert.spv", m_gfx.ctx, &vertShader)) {
+        LOG_FATAL(RASTERIZER, "Failed to load grid vertex shader");
+    }
+
+    VkShaderModule fragShader;
+    if (!jvk::LoadShaderModule("../shaders/grid.frag.spv", m_gfx.ctx, &fragShader)) {
+        LOG_FATAL(RASTERIZER, "Failed to load grid fragment shader");
+    }
+
+    VkPipelineLayoutCreateInfo layoutInfo = jvk::init::PipelineLayout();
+    layoutInfo.setLayoutCount = 1;
+    layoutInfo.pSetLayouts = &m_gpuSceneDataUboDescriptorLayout;
+
+    CHECK_VK(vkCreatePipelineLayout(m_gfx.ctx, &layoutInfo, nullptr, &m_gridPipeline.layout));
+
+    jvk::PipelineBuilder builder;
+    builder.SetShaders(vertShader, fragShader);
+    builder.SetInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    builder.SetPolygonMode(VK_POLYGON_MODE_FILL);
+    builder.SetCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    builder.SetMultiSamplingNone();
+    builder.EnableBlendingAdditive();
+    builder.EnableDepthTest(true, VK_COMPARE_OP_LESS_OR_EQUAL);
+    builder.DisableStencilTest();
+    builder.SetColorAttachmentFormat(m_gfx.drawImage.image.imageFormat);
+    builder.SetDepthAttachmentFormat(m_gfx.drawImage.depthStencilImage.imageFormat);
+    builder.pipelineLayout = m_gridPipeline.layout;
+
+    m_gridPipeline.pipeline = builder.BuildPipeline(m_gfx.ctx);
+
+    vkDestroyShaderModule(m_gfx.ctx, vertShader, nullptr);
+    vkDestroyShaderModule(m_gfx.ctx, fragShader, nullptr);
+}
+
+void Rasterizer::DestroyGridPipeline() const {
+    m_gridPipeline.Destroy(m_gfx.ctx, true);
 }
 
 }// namespace jtx

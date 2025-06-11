@@ -216,14 +216,6 @@ void UIRenderer::NewFrame() {
         ImGui::End();
     }
 
-    // Draw console window
-    {
-        ImGui::Begin("Console");
-        ImGui::Text("Console Output");
-        // ImGui::ShowDemoWindow();
-        ImGui::End();
-    }
-
     // Draw scene settings window
     {
         ImGui::Begin("Scene Settings");
@@ -242,12 +234,12 @@ void UIRenderer::NewFrame() {
         {
             JTX_UI_TABLE_START("BackendTable");
             JTX_UI_TABLE_NEW_ROW("Render Backend");
-            const char *renderBackends[]    = {"CPU", "Vulkan", "CUDA"};
+            const char *renderBackends[]    = {"JTX"};
             static int currentRenderBackend = 0;
             ImGui::Combo("##RenderBackend", &currentRenderBackend, renderBackends, IM_ARRAYSIZE(renderBackends));
 
             JTX_UI_TABLE_NEW_ROW("Viewport Backend");
-            const char *viewportBackends[] = {"JVK", "CPU", "VULKAN", "CUDA"};
+            const char *viewportBackends[] = {"JVK"};
             static int currentVpBackend    = 0;
             ImGui::Combo("##ViewportBackend", &currentVpBackend, viewportBackends, IM_ARRAYSIZE(viewportBackends));
             JTX_UI_TABLE_END;
@@ -480,7 +472,6 @@ auto UIRenderer::SetLayout(const ImGuiID dockSpaceId, const ImGuiViewport *viewp
 
     ImGui::DockBuilderDockWindow("Render Settings", dockRightId);
     ImGui::DockBuilderDockWindow("Scene Settings", dockRightId);
-    ImGui::DockBuilderDockWindow("Console", dockBottomId);
 
     ImGui::DockBuilderFinish(dockSpaceId);
 }

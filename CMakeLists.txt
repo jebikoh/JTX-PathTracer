@@ -391,6 +391,8 @@ find_program(GLSL_VALIDATOR glslangValidator HINTS /usr/bin /usr/local/bin $ENV{
 set(GLSL_SOURCE_FILES
         "${PROJECT_SOURCE_DIR}/shaders/mesh.frag"
         "${PROJECT_SOURCE_DIR}/shaders/mesh.vert"
+        "${PROJECT_SOURCE_DIR}/shaders/grid.frag"
+        "${PROJECT_SOURCE_DIR}/shaders/grid.vert"
 )
 
 foreach (GLSL ${GLSL_SOURCE_FILES})

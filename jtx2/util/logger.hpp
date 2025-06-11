@@ -5,6 +5,7 @@
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <fmt/format.h>
+#include <functional>
 
 #if defined(NDEBUG)
 #define LOG_DEBUG(category, msg, ...) \

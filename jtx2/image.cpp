@@ -66,9 +66,9 @@ JtxResult jtx::Image8u::Load(const std::filesystem::path &path, Image8u &out, bo
         return JTX_ERROR_INVALID_FILE_EXTENSION;
     }
 
-    uint8_t *data = stbi_load(reinterpret_cast<const char *>(path.c_str()), &out.width, &out.height, &out.channels, 0);
+    uint8_t *data = stbi_load(path.string().c_str(), &out.width, &out.height, &out.channels, 0);
     if (!data) {
-        LOG_ERROR(TEXTURE, "Failed to load image {}: {}", path.string(), stbi_failure_reason());
+        LOG_FATAL(TEXTURE, "Failed to load image {}: {}", path.string(), stbi_failure_reason());
         return JTX_ERROR_FILE_LOADING;
     }
 

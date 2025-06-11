@@ -27,6 +27,30 @@ vec3 gridVertices[6] = vec3[](
     vec3(-1, -1, 0), vec3(1, 1, 0), vec3(1, -1, 0)
 );
 
+layout(location = 0) out vec3 outNearPoint;
+layout(location = 1) out vec3 outFarPoint;
+layout(location = 2) out mat4 outViewProj;
+
+vec3 Unproject(vec3 p, mat4 viweProjInv) {
+    vec4 p2 = viweProjInv * vec4(p, 1.0);
+    return p2.xyz / p2.w;
+}
+
 void main() {
-    gl_Position = sceneData.viewProj * vec4(gridVertices[gl_VertexIndex].xyz, 1.0);
+    // Grid coordinates are written given in NDC
+    vec3 p = gridVertices[gl_VertexIndex].xyz;
+
+    // For shading calculations, we need to know the near and far point for each fragment.
+    // This is simply done by appliying the inverse view-projection transform and NDC division
+    //
+    // These points are used to calculate the time t in which a ray from the near point
+    // to the far point intersects the plane y = 0.
+    mat4 invViewProj = inverse(sceneData.viewProj); // TODO: calculate on CPU
+    outNearPoint = Unproject(vec3(p.xy, 0.0), invViewProj);
+    outFarPoint = Unproject(vec3(p.xy, 1.0), invViewProj);
+
+    // We need to pass this so we can calculate depth in the fragment shader
+    outViewProj = sceneData.viewProj;
+
+    gl_Position = vec4(p, 1.0);
 }

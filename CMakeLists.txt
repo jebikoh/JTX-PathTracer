@@ -148,28 +148,28 @@ endif ()
 #  Source file groups
 # ──────────────────────────────────────────────────────────────────────────────
 SET(JVK_HEADERS
-        jtx2/ui/jvk/buffer.hpp
-        jtx2/ui/jvk/commands.hpp
-        jtx2/ui/jvk/context.hpp
-        jtx2/ui/jvk/descriptor.hpp
-        jtx2/ui/jvk/fence.hpp
-        jtx2/ui/jvk/image.hpp
-        jtx2/ui/jvk/init.hpp
-        jtx2/ui/jvk/jvk.hpp
-        jtx2/ui/jvk/pipeline.hpp
-        jtx2/ui/jvk/queue.hpp
-        jtx2/ui/jvk/sampler.hpp
-        jtx2/ui/jvk/semaphore.hpp
-        jtx2/ui/jvk/shaders.hpp
-        jtx2/ui/jvk/swapchain.hpp
-        jtx2/ui/jvk/util.hpp
-        jtx2/ui/jvk/immediate_buffer.hpp
+        jtx2/jvk/buffer.hpp
+        jtx2/jvk/commands.hpp
+        jtx2/jvk/context.hpp
+        jtx2/jvk/descriptor.hpp
+        jtx2/jvk/fence.hpp
+        jtx2/jvk/image.hpp
+        jtx2/jvk/init.hpp
+        jtx2/jvk/jvk.hpp
+        jtx2/jvk/pipeline.hpp
+        jtx2/jvk/queue.hpp
+        jtx2/jvk/sampler.hpp
+        jtx2/jvk/semaphore.hpp
+        jtx2/jvk/shaders.hpp
+        jtx2/jvk/swapchain.hpp
+        jtx2/jvk/util.hpp
+        jtx2/jvk/immediate_buffer.hpp
 )
 
 set(JVK_SOURCE
-        jtx2/ui/jvk/descriptor.cpp
-        jtx2/ui/jvk/pipeline.cpp
-        jtx2/ui/jvk/util.cpp
+        jtx2/jvk/descriptor.cpp
+        jtx2/jvk/pipeline.cpp
+        jtx2/jvk/util.cpp
 )
 
 set(JTX_SCENE
@@ -188,35 +188,41 @@ set(JTX_UTIL
         jtx2/util/timer.hpp
 )
 
-set(JTX_UI
-        jtx2/ui/display.hpp
-        jtx2/ui/display.cpp
-        jtx2/ui/ui_renderer.hpp
-        jtx2/ui/ui_renderer.cpp
-        jtx2/ui/rasterizer/rasterizer.hpp
-        jtx2/ui/rasterizer/rasterizer.cpp
-        jtx2/ui/rasterizer/camera.hpp
-        jtx2/ui/rasterizer/camera.cpp
-        jtx2/ui/rasterizer/render_data.hpp
-        jtx2/ui/gfx_context.cpp
-        jtx2/ui/gfx_context.hpp
+set(JTX_INTERFACE
+        jtx2/interface/display.hpp
+        jtx2/interface/display.cpp
+        jtx2/interface/ui_renderer.hpp
+        jtx2/interface/ui_renderer.cpp
+        jtx2/interface/gfx_context.cpp
+        jtx2/interface/gfx_context.hpp
+)
+
+set(JTX_BVH
+        jtx2/bvh/bvh.hpp
+        jtx2/bvh/bvh.cpp
+        jtx2/bvh/isect.hpp
 )
 
 set(JTX_BACKEND_CPU
-        jtx2/backends/cpu_pt/bvh.hpp
-        jtx2/backends/cpu_pt/bvh.cpp
-        jtx2/backends/cpu_pt/isect.hpp
-        jtx2/backends/cpu_pt/camera.hpp
-        jtx2/backends/cpu_pt/backend_cpu.hpp
-        jtx2/backends/cpu_pt/backend_cpu.cpp
-        jtx2/backends/cpu_pt/integrator.hpp
-        jtx2/backends/cpu_pt/integrator.cpp
-        jtx2/backends/cpu_pt/bxdf/diffuse.hpp
-        jtx2/backends/cpu_pt/bxdf/bxdf.hpp
+        jtx2/engine/cpu/camera.hpp
+        jtx2/engine/cpu/backend_cpu.hpp
+        jtx2/engine/cpu/backend_cpu.cpp
+        jtx2/engine/cpu/integrator.hpp
+        jtx2/engine/cpu/integrator.cpp
+        jtx2/engine/cpu/bxdf/diffuse.hpp
+        jtx2/engine/cpu/bxdf/bxdf.hpp
 )
 
 set(JTX_BACKEND
-        jtx2/backends/backends.hpp
+        jtx2/engine/backends.hpp
+)
+
+set(JTX_WING
+        jtx2/engine/wing/wing.hpp
+        jtx2/engine/wing/wing.cpp
+    jtx2/engine/wing/camera.hpp
+    jtx2/engine/wing/camera.cpp
+    jtx2/engine/wing/render_data.hpp
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -227,9 +233,11 @@ add_library(JTXCore STATIC
         ${JVK_HEADERS}
         ${JTX_SCENE}
         ${JTX_UTIL}
-        ${JTX_UI}
+        ${JTX_INTERFACE}
+        ${JTX_BVH}
         ${JTX_BACKEND_CPU}
         ${JTX_BACKEND}
+        ${JTX_WING}
         jtx2/jtx.hpp
         jtx2/material.h
         jtx2/image.hpp

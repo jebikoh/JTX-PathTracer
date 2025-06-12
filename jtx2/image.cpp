@@ -8,8 +8,8 @@
 #define TINYEXR_USE_MINIZ 0
 #define TINYEXR_USE_STB_ZLIB 1
 #define TINYEXR_IMPLEMENTATION
+#include "jvk/init.hpp"
 #include "tinyexr.h"
-#include "ui/jvk/init.hpp"
 
 #include <filesystem>
 

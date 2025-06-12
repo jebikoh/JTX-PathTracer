@@ -1,4 +1,4 @@
-#include <backends/cpu_pt/bvh.hpp>
+#include <../engine/jtx/cpu/bvh.hpp>
 #include <benchmark/benchmark.h>
 #include <jtx.hpp>
 #include <scene/scene_loader.hpp>

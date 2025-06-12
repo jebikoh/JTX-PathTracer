@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include <backends/cpu_pt/bvh.hpp>
+#include <../engine/jtx/cpu/bvh.hpp>
 #include <scene/scene_loader.hpp>
 #include <util/sampling.hpp>
 

@@ -1,9 +1,6 @@
-#include <backends/cpu_pt/bvh.hpp>
-#include <jtx.hpp>
+#include <bvh/bvh.hpp>
+#include <interface/display.hpp>
 #include <scene/scene_loader.hpp>
-#include <ui/display.hpp>
-#include <backends/cpu_pt/backend_cpu.hpp>
-#include <backends/backends.hpp>
 
 #define JTX_ENABLE_UI
 

@@ -16,6 +16,11 @@ void Display::Init() {
     m_uiRenderer.Init();
     m_wing.Init();
 
+    m_uiRenderer.RegisterViewportBackend(JTX_VIEWPORT_BACKEND_WING, "Wing",
+                                         [this](UiDrawContext &ctx) {
+                                             m_wing.DrawSettingsPanel(ctx);
+                                         });
+
     LOG_INFO(DISPLAY, "Display initialized");
 }
 

@@ -7,16 +7,6 @@
 
 namespace jtx {
 
-constexpr uint32_t JTX_NUM_PT_BACKENDS = 1;
-enum class PTBackend {
-    JTX = 0
-};
-
-constexpr uint32_t JTX_NUM_VIEWPORT_BACKENDS = 1;
-enum class ViewportBackend {
-    MACH = 0
-};
-
 /**
  * This class is responsible for the UI and handling high-level rendering
  * and state-management

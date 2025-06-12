@@ -15,6 +15,7 @@
 
 
 namespace jtx {
+struct UiDrawContext;
 struct Scene;
 
 /**
@@ -73,6 +74,7 @@ public:
      */
     void LoadScene(const Scene *pScene);
 
+    void DrawSettingsPanel(UiDrawContext &ctx);
 private:
     const GfxContext &m_gfx;
     jvk::DynamicDescriptorAllocator m_descriptorAllocator;

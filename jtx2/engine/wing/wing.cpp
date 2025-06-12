@@ -181,14 +181,14 @@ void WingEngine::LoadScene(const Scene *pScene) {
     m_scene = pScene;
 
     LOG_DEBUG(RASTERIZER, "Loading textures");
-    for (const auto &tex : pScene->textures) {
-        auto format = VK_FORMAT_R8G8B8A8_SRGB;
+    for (const auto &tex: pScene->textures) {
+        auto format             = VK_FORMAT_R8G8B8A8_SRGB;
         const VkExtent3D extent = {static_cast<uint32_t>(tex.width), static_cast<uint32_t>(tex.height), 1};
 
         jvk::Image gpuTex;
         if (tex.channels < 4) {
             Image8u tex32b = tex.As32b();
-            gpuTex = m_gfx.CreateImage(tex32b.data, extent, tex32b.channels, format, VK_IMAGE_USAGE_SAMPLED_BIT);
+            gpuTex         = m_gfx.CreateImage(tex32b.data, extent, tex32b.channels, format, VK_IMAGE_USAGE_SAMPLED_BIT);
             tex32b.Destroy();
         } else {
             gpuTex = m_gfx.CreateImage(tex.data, extent, tex.channels, format, VK_IMAGE_USAGE_SAMPLED_BIT);
@@ -249,7 +249,7 @@ void WingEngine::LoadScene(const Scene *pScene) {
     LOG_DEBUG(RASTERIZER, "Created staging buffer");
 
     void *data    = staging.Map(m_gfx.allocator);
-    auto dataPtr = static_cast<char *>(data);
+    auto dataPtr  = static_cast<char *>(data);
     size_t offset = 0;
 
     std::ranges::copy(pScene->indices, reinterpret_cast<vec3u *>(dataPtr));
@@ -327,7 +327,7 @@ void WingEngine::LoadScene(const Scene *pScene) {
         if (material.textureIndices.albedo != JTX_MATERIAL_TEXTURE_INDEX_NONE) {
             resources.images.diffuse = m_sceneTextures[material.textureIndices.albedo];
         } else {
-            resources.images.diffuse    = m_gfx.defaultImages.white;
+            resources.images.diffuse = m_gfx.defaultImages.white;
         }
         resources.images.ambient    = m_gfx.defaultImages.white;
         resources.images.specular   = m_gfx.defaultImages.white;
@@ -347,6 +347,17 @@ void WingEngine::LoadScene(const Scene *pScene) {
 
     m_bSceneLoaded = true;
     LOG_INFO(RASTERIZER, "Scene loaded");
+}
+
+void WingEngine::DrawSettingsPanel(UiDrawContext &ctx) {
+    ctx.StartRectangleBackground();
+    if (ctx.StartTable("WingViewportTable")) {
+        ctx.NewRow("Draw grid");
+        ImGui::Checkbox("##Grid", &m_bDrawGrid);
+
+        ctx.EndTable();
+    }
+    ctx.EndRectangleBackground();
 }
 
 void WingEngine::DestroyGPUSceneMeshData() {

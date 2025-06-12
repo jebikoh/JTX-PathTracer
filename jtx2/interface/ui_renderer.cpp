@@ -1,5 +1,7 @@
-#include "ui_renderer.hpp"
-#include "display.hpp"
+#include <interface/display.hpp>
+#include <interface/ui_renderer.hpp>
+
+#include <jvk/init.hpp>
 
 #include <SDL.h>
 #include <SDL_vulkan.h>
@@ -148,6 +150,10 @@ bool UIRenderer::GetViewportRectangle(jvk::ViewRectangle &out) const {
     out.h = size.y * scale.y;
     return true;
 }
+void UIRenderer::RegisterViewportBackend(const ViewportBackend id, const char *name, const std::function<void(UiDrawContext &)> &settings) {
+    m_viewportBackendSettings[id] = settings;
+    m_viewportBackendNames[id] = name;
+}
 
 void UIRenderer::NewFrame() {
     ImGui_ImplVulkan_NewFrame();
@@ -241,10 +247,8 @@ void UIRenderer::NewFrame() {
             ctx.NewRow("Render Backend");
             ImGui::Combo("##RenderBackend", &currentRenderBackend, renderBackends, IM_ARRAYSIZE(renderBackends));
 
-            const char *viewportBackends[] = {"JVK"};
-            static int currentVpBackend    = 0;
             ctx.NewRow("Viewport Backend");
-            ImGui::Combo("##ViewportBackend", &currentVpBackend, viewportBackends, IM_ARRAYSIZE(viewportBackends));
+            ImGui::Combo("##ViewportBackend", &m_currentViewportBackend, m_viewportBackendNames, IM_ARRAYSIZE(m_viewportBackendNames));
 
             ctx.EndTable();
         }
@@ -296,12 +300,11 @@ void UIRenderer::NewFrame() {
             ctx.EndRectangleBackground();
         }
 
+        if (ImGui::CollapsingHeader("Viewport")) {
+            m_viewportBackendSettings[m_currentViewportBackend](ctx);
+        }
+
         ctx.Destroy();
-
-        ImGui::CollapsingHeader("Debug");
-
-        // const auto cameraPosition = m_pDisplay->m_rasterizer.m_camera.;
-        // ImGui::Text("Current camera pos: (%d, %d, %d)", cameraPosition.x, cameraPosition.y, cameraPosition.z);
 
         ImGui::End();
     }

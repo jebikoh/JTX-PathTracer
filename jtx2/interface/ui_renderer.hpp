@@ -1,8 +1,9 @@
 #pragma once
 
-#include "../jvk/jvk.hpp"
-#include "../jvk/util.hpp"
+#include <jvk/jvk.hpp>
+#include <jvk/util.hpp>
 
+#include <engine/backends.hpp>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
 
@@ -80,7 +81,7 @@ public:
      */
     bool GetViewportRectangle(jvk::ViewRectangle &out) const;
 
-    void RegisterViewportBackend(const char *name, std::function<void()> settings);
+    void RegisterViewportBackend(ViewportBackend id, const char *name, const std::function<void(UiDrawContext &)> &settings);
 private:
     const GfxContext &m_gfx;
     VkDescriptorPool m_descriptorPool{};
@@ -94,6 +95,11 @@ private:
     static void SetLayout(ImGuiID dockSpaceId, const ImGuiViewport *viewport, ImGuiDockNodeFlags dockSpaceFlags);
 
     // Backend Registry
+    // These are indexed by their ID (enum value)
+    const char *m_viewportBackendNames[JTX_NUM_VIEWPORT_BACKENDS]{};
+    std::function<void(UiDrawContext &)> m_viewportBackendSettings[JTX_NUM_VIEWPORT_BACKENDS]{};
+
+    int m_currentViewportBackend = 0;
 };
 
 }// namespace jtx

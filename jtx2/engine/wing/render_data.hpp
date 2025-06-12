@@ -102,4 +102,14 @@ struct alignas(256) GPUMaterialUBOData {
 };
 #pragma endregion
 
+#pragma region Other
+
+struct GridPushConstants {
+    glm::mat4 viewProj;
+    glm::mat4 invViewProj;
+    glm::vec4 cameraPos;
+};
+
+#pragma endregion
+
 }

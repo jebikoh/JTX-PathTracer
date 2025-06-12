@@ -87,7 +87,7 @@ private:
 
     OrbitCamera m_camera{};
 
-    // Frame data (scene UBO buffers)
+    // Frame data
     struct FrameData {
         jvk::Buffer gpuSceneDataUBO;
         GPUSceneUBOData *gpuSceneDataUBOMapping = nullptr;
@@ -96,8 +96,8 @@ private:
     VkDescriptorSetLayout m_gpuSceneDataUboDescriptorLayout = VK_NULL_HANDLE;
     GPUSceneUBOData m_gpuSceneUboData{};
 
-    void InitFrameData();
-    void DestroyFrameData() const;
+    void InitFrameSceneData();
+    void DestroyFrameSceneData() const;
 
     // GPU scene mesh data buffers
     struct GPUSceneMeshData {

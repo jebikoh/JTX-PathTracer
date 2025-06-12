@@ -1,11 +1,15 @@
 #version 450
 
+
+layout(push_constant) uniform PushConstants {
+    mat4 viewProj;
+    mat4 invViewProj;
+    vec4 cameraPos;
+} pushConstants;
+
 layout(location = 0) out vec4 outColor;
 
 layout(location = 0) in vec2 inUV;
-layout(location = 1) in vec3 inCameraPos;
-layout(location = 2) in mat4 inInvViewProj;
-layout(location = 6) in mat4 inViewProj;
 
 vec4 grid(vec3 fragPos, float scale) {
     // Isolate XZ coordinates and apply scale
@@ -52,17 +56,19 @@ vec4 grid(vec3 fragPos, float scale) {
 void main() {
     vec2 ndc = inUV * 2.0 - 1.0;
     vec4 clipSpacePos = vec4(ndc, 1.0, 1.0);
-    vec4 worldPos = inInvViewProj * clipSpacePos;
+    vec4 worldPos = pushConstants.invViewProj * clipSpacePos;
     worldPos /= worldPos.w;
 
-    vec3 rayDir = normalize(worldPos.xyz - inCameraPos);
-    float t = -inCameraPos.y / rayDir.y;
+    vec3 cameraPos = pushConstants.cameraPos.xyz;
+
+    vec3 rayDir = normalize(worldPos.xyz - cameraPos);
+    float t = -cameraPos.y / rayDir.y;
     if (t < 0.0) discard;
 
-    vec3 fragPosWorld = inCameraPos + t * rayDir;
+    vec3 fragPosWorld = cameraPos + t * rayDir;
 
     // Compute depth
-    vec4 fragPosClip = inViewProj * vec4(fragPosWorld, 1.0);
+    vec4 fragPosClip = pushConstants.viewProj * vec4(fragPosWorld, 1.0);
     gl_FragDepth = fragPosClip.z / fragPosClip.w;
 
     vec4 color = grid(fragPosWorld, 1);
@@ -70,7 +76,7 @@ void main() {
     // Apply distance based fade
     const float fadeStartDistance = 25.0;
     const float fadeEndDistance   = 75.0;
-    float dist = distance(inCameraPos, fragPosWorld);
+    float dist = distance(cameraPos, fragPosWorld);
     float fade = 1.0 - smoothstep(fadeStartDistance, fadeEndDistance, dist);
     color *= fade;
 

@@ -21,7 +21,7 @@ void WingEngine::Init() {
                     {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4}};
     m_descriptorAllocator.Init(m_gfx.ctx, 10, sizes);
 
-    InitFrameData();
+    InitFrameSceneData();
     InitMaterialResources();
     InitGridPipeline();
 
@@ -35,7 +35,7 @@ void WingEngine::Destroy() {
     DestroyGPUScene();
     DestroyGridPipeline();
     DestroyMaterialResources();
-    DestroyFrameData();
+    DestroyFrameSceneData();
     m_descriptorAllocator.DestroyPools(m_gfx.ctx);
 
     LOG_INFO(RASTERIZER, "Rasterizer destroyed");
@@ -157,10 +157,14 @@ void WingEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
 
     if (m_bDrawGrid) {
         vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gridPipeline.pipeline);
-        vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gridPipeline.layout, 0, 1, &frame.gpuSceneDataUboDescriptorSet, 0, nullptr);
-        // Scene data descriptor should already be bound.
-        // NOTE: UPDATE THIS IF THAT IS NO LONGER THE CASE
-        vkCmdDrawIndexed(ctx.cmd, 6, 1, 0, 0, 0);
+
+        GridPushConstants pushConstants{};
+        pushConstants.viewProj  = m_gpuSceneUboData.viewProj;
+        pushConstants.cameraPos = m_gpuSceneUboData.cameraPos;
+        pushConstants.invViewProj = glm::inverse(m_gpuSceneUboData.viewProj);
+        vkCmdPushConstants(ctx.cmd, m_gridPipeline.layout, VK_SHADER_STAGE_FRAGMENT_BIT,   0, sizeof(pushConstants), &pushConstants);
+
+        vkCmdDrawIndexed(ctx.cmd, 3, 1, 0, 0, 0);
     }
 
     vkCmdEndRenderingKHR(ctx.cmd);
@@ -170,6 +174,7 @@ void WingEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
 void WingEngine::ProcessEvent(const SDL_Event &event) {
     m_camera.processSDLEvent(event);
 }
+
 void WingEngine::SkipEvent() {
     m_camera.resetInputState();
 }
@@ -530,7 +535,7 @@ void WingEngine::DestroyGPUScene() {
     m_bSceneLoaded = false;
 }
 
-void WingEngine::InitFrameData() {
+void WingEngine::InitFrameSceneData() {
     jvk::DescriptorLayoutBuilder builder;
     builder.AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     m_gpuSceneDataUboDescriptorLayout = builder.Build(m_gfx.ctx, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -550,7 +555,7 @@ void WingEngine::InitFrameData() {
     }
 }
 
-void WingEngine::DestroyFrameData() const {
+void WingEngine::DestroyFrameSceneData() const {
     vkDestroyDescriptorSetLayout(m_gfx.ctx, m_gpuSceneDataUboDescriptorLayout, nullptr);
 
     for (auto &frame: m_frameData) {
@@ -560,6 +565,7 @@ void WingEngine::DestroyFrameData() const {
 }
 
 void WingEngine::InitGridPipeline() {
+    // Shaders
     VkShaderModule vertShader;
     if (!jvk::LoadShaderModule("../shaders/grid.vert.spv", m_gfx.ctx, &vertShader)) {
         LOG_FATAL(RASTERIZER, "Failed to load grid vertex shader");
@@ -570,9 +576,17 @@ void WingEngine::InitGridPipeline() {
         LOG_FATAL(RASTERIZER, "Failed to load grid fragment shader");
     }
 
+    // Pipeline
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.offset     = 0;
+    pushConstantRange.size       = sizeof(GridPushConstants);
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
     VkPipelineLayoutCreateInfo layoutInfo = jvk::init::PipelineLayout();
-    layoutInfo.setLayoutCount = 1;
-    layoutInfo.pSetLayouts = &m_gpuSceneDataUboDescriptorLayout;
+    layoutInfo.setLayoutCount             = 0;
+    layoutInfo.pSetLayouts                = nullptr;
+    layoutInfo.pushConstantRangeCount     = 1;
+    layoutInfo.pPushConstantRanges        = &pushConstantRange;
 
     CHECK_VK(vkCreatePipelineLayout(m_gfx.ctx, &layoutInfo, nullptr, &m_gridPipeline.layout));
 

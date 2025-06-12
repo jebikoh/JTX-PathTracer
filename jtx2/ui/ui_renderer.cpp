@@ -13,6 +13,7 @@ namespace jtx {
 void UiDrawContext::Init() {
     m_drawList = ImGui::GetWindowDrawList();
     m_drawList->ChannelsSplit(2);
+    SetChannelForeground();
 }
 
 void UiDrawContext::Destroy() const {
@@ -28,12 +29,13 @@ void UiDrawContext::SetChannelBackground() const {
 }
 
 void UiDrawContext::StartRectangleBackground() {
-    m_bgState.rnd    = ImGui::GetStyle().FrameRounding;
-    m_bgState.hMin   = ImGui::GetItemRectMin();
-    m_bgState.hMax   = ImGui::GetItemRectMax();
+    m_bgState.rnd  = ImGui::GetStyle().FrameRounding;
+    m_bgState.hMin = ImGui::GetItemRectMin();
+    m_bgState.hMax = ImGui::GetItemRectMax();
 }
 
 void UiDrawContext::EndRectangleBackground() const {
+    SetChannelBackground();
     const ImVec2 tMax = ImGui::GetItemRectMax();
     m_drawList->AddRectFilled(
             m_bgState.hMin,
@@ -41,45 +43,31 @@ void UiDrawContext::EndRectangleBackground() const {
             ImGui::GetColorU32(ImVec4(0.129, 0.137, 0.141, 1.0f)),
             m_bgState.rnd,
             ImDrawFlags_RoundCornersAll);
+    SetChannelForeground();
 }
 
-inline void UiDrawContext::StartTable(const char *id, const float col0, const float col1) {
-    StartRectangleBackground();
-    m_bTableActive = ImGui::BeginTable(id, 2, ImGuiTableFlags_SizingStretchSame);
-    ImGui::TableSetupColumn("COL1", ImGuiTableColumnFlags_WidthStretch, col0);
-    ImGui::TableSetupColumn("COL2", ImGuiTableColumnFlags_WidthStretch, col1);
-}
-
-inline void UiDrawContext::EndTable() {
-    if (m_bTableActive) {
-        ImGui::EndTable();
-        m_bTableActive = false;
-        SetChannelBackground();
-        EndRectangleBackground();
-        SetChannelForeground();
+inline bool UiDrawContext::StartTable(const char *id, const float col0, const float col1) const {
+    if (ImGui::BeginTable(id, 2, ImGuiTableFlags_SizingStretchSame)) {
+        ImGui::TableSetupColumn("COL1", ImGuiTableColumnFlags_WidthStretch, col0);
+        ImGui::TableSetupColumn("COL2", ImGuiTableColumnFlags_WidthStretch, col1);
+        return true;
     }
-}
-inline void UiDrawContext::StartTableNoBackground(const char *id, float col0, float col1) {
-    m_bTableActive = ImGui::BeginTable(id, 2, ImGuiTableFlags_SizingStretchSame);
-    ImGui::TableSetupColumn("COL1", ImGuiTableColumnFlags_WidthStretch, col0);
-    ImGui::TableSetupColumn("COL2", ImGuiTableColumnFlags_WidthStretch, col1);
-}
-inline void UiDrawContext::EndTableNoBackground() {
-    if (m_bTableActive) {
-        ImGui::EndTable();
-        m_bTableActive = false;
-        SetChannelBackground();
-        EndRectangleBackground();
-        SetChannelForeground();
-    }
+    return false;
 }
 
-inline void UiDrawContext::NewRow(const char *label) const {
+inline void UiDrawContext::EndTable() const {
+    ImGui::EndTable();
+    SetChannelBackground();
+    EndRectangleBackground();
+    SetChannelForeground();
+}
+
+inline void UiDrawContext::NewRow(const char *label) {
     ImGui::TableNextRow();
     ImGui::TableSetColumnIndex(0);
 
-    const float posX = (ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::CalcTextSize(label).x - ImGui::GetScrollX() - 2 * ImGui::GetStyle().ItemSpacing.x); \
-    ImGui::SetCursorPosX(posX);                                                                                                                                     \
+    const float posX = (ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::CalcTextSize(label).x - ImGui::GetScrollX() - 2 * ImGui::GetStyle().ItemSpacing.x);
+    ImGui::SetCursorPosX(posX);
     ImGui::Text("%s", label);
 
     ImGui::TableSetColumnIndex(1);
@@ -245,22 +233,22 @@ void UIRenderer::NewFrame() {
 
         UiDrawContext ctx;
         ctx.Init();
-        ctx.SetChannelForeground();
 
         // Backend table
-        {
-            ctx.StartTableNoBackground("BackendTable");
-            ctx.NewRow("Render Backend");
+        if (ctx.StartTable("BackendTable")) {
             const char *renderBackends[]    = {"JTX"};
             static int currentRenderBackend = 0;
+            ctx.NewRow("Render Backend");
             ImGui::Combo("##RenderBackend", &currentRenderBackend, renderBackends, IM_ARRAYSIZE(renderBackends));
 
-            ctx.NewRow("Viewport Backend");
             const char *viewportBackends[] = {"JVK"};
             static int currentVpBackend    = 0;
+            ctx.NewRow("Viewport Backend");
             ImGui::Combo("##ViewportBackend", &currentVpBackend, viewportBackends, IM_ARRAYSIZE(viewportBackends));
-            ctx.EndTableNoBackground();
+
+            ctx.EndTable();
         }
+
 
 #ifdef JTX_UI_DRAW_DEMO_WINDOW
         ImGui::ShowDemoWindow();
@@ -272,18 +260,19 @@ void UIRenderer::NewFrame() {
             static int yPixelSamples = 16;
             static int maxDepth      = 32;
 
-            ctx.StartTable("SamplingTable");
+            ctx.StartRectangleBackground();
+            if (ctx.StartTable("SamplingTable")) {
+                ctx.NewRow("SPP X");
+                ImGui::DragInt("##XSamples", &xPixelSamples, 1);
 
-            ctx.NewRow("SPP X");
-            ImGui::DragInt("##XSamples", &xPixelSamples, 1);
+                ctx.NewRow("SPP Y");
+                ImGui::DragInt("##YSamples", &yPixelSamples, 1);
 
-            ctx.NewRow("SPP Y");
-            ImGui::DragInt("##YSamples", &yPixelSamples, 1);
-
-            ctx.NewRow("Max Depth");
-            ImGui::DragInt("##MaxDepth", &maxDepth, 1);
-
-            ctx.EndTable();
+                ctx.NewRow("Max Depth");
+                ImGui::DragInt("##MaxDepth", &maxDepth, 1);
+                ctx.EndTable();
+            }
+            ctx.EndRectangleBackground();
         }
 
         if (ImGui::CollapsingHeader("Performance")) {
@@ -291,18 +280,20 @@ void UIRenderer::NewFrame() {
             static int numThreads     = 32;
             static int samplesPerPass = 1;
 
-            ctx.StartTable("Performance");
+            ctx.StartRectangleBackground();
+            if (ctx.StartTable("Performance")) {
+                ctx.NewRow("Tile Size");
+                ImGui::DragInt("##TileSize", &tileSize, 0);
 
-            ctx.NewRow("Tile Size");
-            ImGui::DragInt("##TileSize", &tileSize, 0);
+                ctx.NewRow("Thread Count");
+                ImGui::DragInt("##NumThreads", &numThreads, 0);
 
-            ctx.NewRow("Thread Count");
-            ImGui::DragInt("##NumThreads", &numThreads, 0);
+                ctx.NewRow("Samples Per Pass");
+                ImGui::DragInt("##SamplesPerPass", &samplesPerPass, 0);
 
-            ctx.NewRow("Samples Per Pass");
-            ImGui::DragInt("##SamplesPerPass", &samplesPerPass, 0);
-
-            ctx.EndTable();
+                ctx.EndTable();
+            }
+            ctx.EndRectangleBackground();
         }
 
         ctx.Destroy();
@@ -467,7 +458,7 @@ void UIRenderer::SetupStyle() const {
     io.FontGlobalScale = 1.0f / dpiScale;
 }
 
-auto UIRenderer::SetLayout(const ImGuiID dockSpaceId, const ImGuiViewport *viewport, const ImGuiDockNodeFlags dockSpaceFlags) -> void {
+void UIRenderer::SetLayout(const ImGuiID dockSpaceId, const ImGuiViewport *viewport, const ImGuiDockNodeFlags dockSpaceFlags) {
     ImGui::DockBuilderRemoveNode(dockSpaceId);
     ImGui::DockBuilderAddNode(dockSpaceId, dockSpaceFlags | ImGuiDockNodeFlags_DockSpace);
     ImGui::DockBuilderSetNodeSize(dockSpaceId, viewport->Size);

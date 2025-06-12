@@ -18,22 +18,20 @@ struct UiDrawContext {
     void Init();
     void Destroy() const;
 
-    void SetChannelForeground() const;
-    void SetChannelBackground() const;
+    bool StartTable(const char *id, float col0 = 1.0f, float col1 = 1.0f) const;
+    void EndTable() const;
 
-    void StartTable(const char *id, float col0 = 1.0f, float col1 = 1.0f);
-    void EndTable();
+    static void NewRow(const char *label);
 
-    void StartTableNoBackground(const char *id, float col0 = 1.0f, float col1 = 1.0f);
-    void EndTableNoBackground();
+    void StartRectangleBackground();
+    void EndRectangleBackground() const;
 
-    void NewRow(const char *label) const;
 private:
     ImDrawList *m_drawList = nullptr;
     bool m_bTableActive = false;
 
-    void StartRectangleBackground();
-    void EndRectangleBackground() const;
+    void SetChannelForeground() const;
+    void SetChannelBackground() const;
 
     struct BgState {
         ImVec2 hMin{};

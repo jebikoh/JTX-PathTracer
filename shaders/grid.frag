@@ -1,12 +1,11 @@
-// Based on: https://asliceofrendering.com/scene%20helper/2020/01/05/InfiniteGrid/
 #version 450
 
 layout(location = 0) out vec4 outColor;
 
-layout(location = 0) in vec3 inNearPoint;
-layout(location = 1) in vec3 inFarPoint;
-layout(location = 2) in vec3 inCameraPos;
-layout(location = 3) in mat4 inViewProj;
+layout(location = 0) in vec2 inUV;
+layout(location = 1) in vec3 inCameraPos;
+layout(location = 2) in mat4 inInvViewProj;
+layout(location = 6) in mat4 inViewProj;
 
 vec4 grid(vec3 fragPos, float scale) {
     // Isolate XZ coordinates and apply scale
@@ -51,23 +50,27 @@ vec4 grid(vec3 fragPos, float scale) {
 }
 
 void main() {
-    // Calculate the time at which a ray from inNearPoint to inFarPoint intersects the plane y=0
-    float t = -inNearPoint.y / (inFarPoint.y - inNearPoint.y);
-    // If the t <= 0 or t >= 1.0, the ray intersects the plane outside the near and far planes.
-    if (!(t > 0.0 && t < 1.0)) discard;
+    vec2 ndc = inUV * 2.0 - 1.0;
+    vec4 clipSpacePos = vec4(ndc, 1.0, 1.0);
+    vec4 worldPos = inInvViewProj * clipSpacePos;
+    worldPos /= worldPos.w;
 
-    vec3 fragPos  = inNearPoint + t * (inFarPoint - inNearPoint);
+    vec3 rayDir = normalize(worldPos.xyz - inCameraPos);
+    float t = -inCameraPos.y / rayDir.y;
+    if (t < 0.0) discard;
+
+    vec3 fragPosWorld = inCameraPos + t * rayDir;
 
     // Compute depth
-    vec4 clipSpacePos = inViewProj * vec4(fragPos, 1.0);
-    gl_FragDepth = clipSpacePos.z / clipSpacePos.w;
+    vec4 fragPosClip = inViewProj * vec4(fragPosWorld, 1.0);
+    gl_FragDepth = fragPosClip.z / fragPosClip.w;
 
-    vec4 color = grid(fragPos, 1);
+    vec4 color = grid(fragPosWorld, 1);
 
     // Apply distance based fade
     const float fadeStartDistance = 25.0;
     const float fadeEndDistance   = 75.0;
-    float dist = distance(inCameraPos, fragPos);
+    float dist = distance(inCameraPos, fragPosWorld);
     float fade = 1.0 - smoothstep(fadeStartDistance, fadeEndDistance, dist);
     color *= fade;
 

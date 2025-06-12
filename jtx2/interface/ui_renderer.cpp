@@ -48,7 +48,7 @@ void UiDrawContext::EndRectangleBackground() const {
     SetChannelForeground();
 }
 
-inline bool UiDrawContext::StartTable(const char *id, const float col0, const float col1) const {
+bool UiDrawContext::StartTable(const char *id, const float col0, const float col1) const {
     if (ImGui::BeginTable(id, 2, ImGuiTableFlags_SizingStretchSame)) {
         ImGui::TableSetupColumn("COL1", ImGuiTableColumnFlags_WidthStretch, col0);
         ImGui::TableSetupColumn("COL2", ImGuiTableColumnFlags_WidthStretch, col1);
@@ -57,14 +57,14 @@ inline bool UiDrawContext::StartTable(const char *id, const float col0, const fl
     return false;
 }
 
-inline void UiDrawContext::EndTable() const {
+void UiDrawContext::EndTable() const {
     ImGui::EndTable();
     SetChannelBackground();
     EndRectangleBackground();
     SetChannelForeground();
 }
 
-inline void UiDrawContext::NewRow(const char *label) {
+void UiDrawContext::NewRow(const char *label) {
     ImGui::TableNextRow();
     ImGui::TableSetColumnIndex(0);
 

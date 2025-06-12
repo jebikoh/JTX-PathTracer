@@ -1,4 +1,3 @@
-// Based on: https://asliceofrendering.com/scene%20helper/2020/01/05/InfiniteGrid/
 #version 450
 
 #extension GL_EXT_buffer_reference : require
@@ -23,36 +22,23 @@ layout (set = 0, binding = 0) uniform SceneData {
     Vec3Buffer colorBuffer;
 } sceneData;
 
-vec3 gridVertices[6] = vec3[](
-    vec3(1, 1, 0), vec3(-1, -1, 0), vec3(-1, 1, 0),
-    vec3(-1, -1, 0), vec3(1, 1, 0), vec3(1, -1, 0)
+layout(location = 0) out vec2 outUV;
+layout(location = 1) out vec3 outCameraPos;
+layout(location = 2) out mat4 outInvViewProj;
+layout(location = 6) out mat4 outViewProj;
+
+const vec3 positions[3] = vec3[](
+    vec3(-1.0, -1.0, 0.0),
+    vec3( 3.0, -1.0, 0.0),
+    vec3(-1.0,  3.0, 0.0)
 );
 
-layout(location = 0) out vec3 outNearPoint;
-layout(location = 1) out vec3 outFarPoint;
-layout(location = 2) out vec3 outCameraPos;
-layout(location = 3) out mat4 outViewProj;
-
-vec3 Unproject(vec3 p, mat4 viweProjInv) {
-    vec4 p2 = viweProjInv * vec4(p, 1.0);
-    return p2.xyz / p2.w;
-}
-
 void main() {
-    // Grid coordinates are written given in NDC
-    vec3 p = gridVertices[gl_VertexIndex].xyz;
+    vec3 pos = positions[gl_VertexIndex].xyz;
+    gl_Position = vec4(pos, 1.0);
 
-    // For shading calculations, we need to know the near and far point for each fragment.
-    // This is simply done by appliying the inverse view-projection transform and persp. division
-    mat4 invViewProj = inverse(sceneData.viewProj); // TODO: calculate on CPU
-    outNearPoint = Unproject(vec3(p.xy, 0.0), invViewProj);
-    outFarPoint = Unproject(vec3(p.xy, 1.0), invViewProj);
-
-    // We need to pass this so we can calculate depth in the fragment shader
+    outUV = (pos.xy + 1.0) * 0.5;
+    outInvViewProj = inverse(sceneData.viewProj); // TODO: move this to CPU
     outViewProj = sceneData.viewProj;
-
-    // And we pass this so we can apply a distance-based fade effect in the fragment shader
     outCameraPos = sceneData.cameraPos.xyz;
-
-    gl_Position = vec4(p, 1.0);
 }

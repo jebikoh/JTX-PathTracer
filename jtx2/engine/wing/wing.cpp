@@ -2,6 +2,7 @@
 #include <interface/display.hpp>
 #include <jvk/shaders.hpp>
 #include <scene/scene.hpp>
+#include <interface/ui_renderer.hpp>
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL

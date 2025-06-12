@@ -14,6 +14,34 @@ struct RenderContext;
 class Display;
 struct GfxContext;
 
+struct UiDrawContext {
+    void Init();
+    void Destroy() const;
+
+    void SetChannelForeground() const;
+    void SetChannelBackground() const;
+
+    void StartTable(const char *id, float col0 = 1.0f, float col1 = 1.0f);
+    void EndTable();
+
+    void StartTableNoBackground(const char *id, float col0 = 1.0f, float col1 = 1.0f);
+    void EndTableNoBackground();
+
+    void NewRow(const char *label) const;
+private:
+    ImDrawList *m_drawList = nullptr;
+    bool m_bTableActive = false;
+
+    void StartRectangleBackground();
+    void EndRectangleBackground() const;
+
+    struct BgState {
+        ImVec2 hMin{};
+        ImVec2 hMax{};
+        float rnd = 0.0f;
+    } m_bgState;
+};
+
 /**
  * This class is responsible for rendering the UI using ImGui, including initialization
  * destruction, and event handling.

@@ -8,67 +8,83 @@
 
 // #define JTX_UI_DRAW_DEMO_WINDOW
 
-#define JTX_UI_RIGHT_ALIGN_TEXT(text)                                                                                                                                     \
-    const auto __jtx_posX = (ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::CalcTextSize(text).x - ImGui::GetScrollX() - 2 * ImGui::GetStyle().ItemSpacing.x); \
-    ImGui::SetCursorPosX(__jtx_posX);                                                                                                                                     \
-    ImGui::Text("%s", text)
-
-#define JTX_UI_FULL_WIDTH \
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x)
-
-#define JTX_UI_TABLE_START(tableName)                                              \
-    if (ImGui::BeginTable(tableName, 2, ImGuiTableFlags_SizingStretchSame)) {      \
-        ImGui::TableSetupColumn("COL1", ImGuiTableColumnFlags_WidthStretch, 1.0f); \
-    ImGui::TableSetupColumn("COL2", ImGuiTableColumnFlags_WidthStretch, 1.0f)
-
-#define JTX_UI_TABLE_START_R(tableName, ratioC1, ratioC2)                             \
-    if (ImGui::BeginTable(tableName, 2, ImGuiTableFlags_SizingStretchSame)) {         \
-        ImGui::TableSetupColumn("COL1", ImGuiTableColumnFlags_WidthStretch, ratioC1); \
-    ImGui::TableSetupColumn("COL2", ImGuiTableColumnFlags_WidthStretch, ratioC2)
-
-#define JTX_UI_TABLE_END \
-    ImGui::EndTable();   \
-    }
-
-#define JTX_UI_TABLE_NEW_ROW(label)     \
-    {                                   \
-        ImGui::TableNextRow();          \
-        ImGui::TableSetColumnIndex(0);  \
-        JTX_UI_RIGHT_ALIGN_TEXT(label); \
-        ImGui::TableSetColumnIndex(1);  \
-        JTX_UI_FULL_WIDTH;              \
-    }
-
-// Only one of these per scope
-#define JTX_UI_SETUP_CHANNELS                                \
-    ImDrawList *__jtx_drawlist = ImGui::GetWindowDrawList(); \
-    __jtx_drawlist->ChannelsSplit(2)
-
-#define JTX_UI_CHANNEL_FOREGROUND \
-    __jtx_drawlist->ChannelsSetCurrent(1)
-
-#define JTX_UI_CHANNEL_BACKGROUND \
-    __jtx_drawlist->ChannelsSetCurrent(0)
-
-#define JTX_UI_CHANNELS_MERGE \
-    __jtx_drawlist->ChannelsMerge()
-
-#define JTX_UI_CHILD_BG_RECT_START                            \
-    ImGuiWindow *__jtx_win = ImGui::GetCurrentWindow();       \
-    float __jtx_rnd        = ImGui::GetStyle().FrameRounding; \
-    ImVec2 __jtx_hMin      = ImGui::GetItemRectMin();         \
-    ImVec2 __jtx_hMax      = ImGui::GetItemRectMax()
-
-#define JTX_UI_CHILD_BG_RECT_END                                   \
-    ImVec2 __jtx_tMax = ImGui::GetItemRectMax();                   \
-    __jtx_drawlist->AddRectFilled(                                 \
-            __jtx_hMin,                                            \
-            ImVec2(__jtx_hMax.x, __jtx_tMax.y),                    \
-            ImGui::GetColorU32(ImVec4(0.129, 0.137, 0.141, 1.0f)), \
-            __jtx_rnd,                                             \
-            ImDrawFlags_RoundCornersAll)
-
 namespace jtx {
+
+void UiDrawContext::Init() {
+    m_drawList = ImGui::GetWindowDrawList();
+    m_drawList->ChannelsSplit(2);
+}
+
+void UiDrawContext::Destroy() const {
+    m_drawList->ChannelsMerge();
+}
+
+void UiDrawContext::SetChannelForeground() const {
+    m_drawList->ChannelsSetCurrent(1);
+}
+
+void UiDrawContext::SetChannelBackground() const {
+    m_drawList->ChannelsSetCurrent(0);
+}
+
+void UiDrawContext::StartRectangleBackground() {
+    m_bgState.rnd    = ImGui::GetStyle().FrameRounding;
+    m_bgState.hMin   = ImGui::GetItemRectMin();
+    m_bgState.hMax   = ImGui::GetItemRectMax();
+}
+
+void UiDrawContext::EndRectangleBackground() const {
+    const ImVec2 tMax = ImGui::GetItemRectMax();
+    m_drawList->AddRectFilled(
+            m_bgState.hMin,
+            ImVec2(m_bgState.hMax.x, tMax.y),
+            ImGui::GetColorU32(ImVec4(0.129, 0.137, 0.141, 1.0f)),
+            m_bgState.rnd,
+            ImDrawFlags_RoundCornersAll);
+}
+
+inline void UiDrawContext::StartTable(const char *id, const float col0, const float col1) {
+    StartRectangleBackground();
+    m_bTableActive = ImGui::BeginTable(id, 2, ImGuiTableFlags_SizingStretchSame);
+    ImGui::TableSetupColumn("COL1", ImGuiTableColumnFlags_WidthStretch, col0);
+    ImGui::TableSetupColumn("COL2", ImGuiTableColumnFlags_WidthStretch, col1);
+}
+
+inline void UiDrawContext::EndTable() {
+    if (m_bTableActive) {
+        ImGui::EndTable();
+        m_bTableActive = false;
+        SetChannelBackground();
+        EndRectangleBackground();
+        SetChannelForeground();
+    }
+}
+inline void UiDrawContext::StartTableNoBackground(const char *id, float col0, float col1) {
+    m_bTableActive = ImGui::BeginTable(id, 2, ImGuiTableFlags_SizingStretchSame);
+    ImGui::TableSetupColumn("COL1", ImGuiTableColumnFlags_WidthStretch, col0);
+    ImGui::TableSetupColumn("COL2", ImGuiTableColumnFlags_WidthStretch, col1);
+}
+inline void UiDrawContext::EndTableNoBackground() {
+    if (m_bTableActive) {
+        ImGui::EndTable();
+        m_bTableActive = false;
+        SetChannelBackground();
+        EndRectangleBackground();
+        SetChannelForeground();
+    }
+}
+
+inline void UiDrawContext::NewRow(const char *label) const {
+    ImGui::TableNextRow();
+    ImGui::TableSetColumnIndex(0);
+
+    const float posX = (ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::CalcTextSize(label).x - ImGui::GetScrollX() - 2 * ImGui::GetStyle().ItemSpacing.x); \
+    ImGui::SetCursorPosX(posX);                                                                                                                                     \
+    ImGui::Text("%s", label);
+
+    ImGui::TableSetColumnIndex(1);
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+}
 
 void UIRenderer::Init() {
     LOG_INFO(UI, "Initializing UI renderer");
@@ -227,22 +243,23 @@ void UIRenderer::NewFrame() {
     {
         ImGui::Begin("Render Settings");
 
-        JTX_UI_SETUP_CHANNELS;
+        UiDrawContext ctx;
+        ctx.Init();
+        ctx.SetChannelForeground();
 
         // Backend table
-        JTX_UI_CHANNEL_FOREGROUND;
         {
-            JTX_UI_TABLE_START("BackendTable");
-            JTX_UI_TABLE_NEW_ROW("Render Backend");
+            ctx.StartTableNoBackground("BackendTable");
+            ctx.NewRow("Render Backend");
             const char *renderBackends[]    = {"JTX"};
             static int currentRenderBackend = 0;
             ImGui::Combo("##RenderBackend", &currentRenderBackend, renderBackends, IM_ARRAYSIZE(renderBackends));
 
-            JTX_UI_TABLE_NEW_ROW("Viewport Backend");
+            ctx.NewRow("Viewport Backend");
             const char *viewportBackends[] = {"JVK"};
             static int currentVpBackend    = 0;
             ImGui::Combo("##ViewportBackend", &currentVpBackend, viewportBackends, IM_ARRAYSIZE(viewportBackends));
-            JTX_UI_TABLE_END;
+            ctx.EndTableNoBackground();
         }
 
 #ifdef JTX_UI_DRAW_DEMO_WINDOW
@@ -250,56 +267,45 @@ void UIRenderer::NewFrame() {
 #endif
 
         // Sampling settings
-        JTX_UI_CHANNEL_FOREGROUND;
         if (ImGui::CollapsingHeader("Sampling")) {
-            JTX_UI_CHILD_BG_RECT_START;
-
             static int xPixelSamples = 16;
             static int yPixelSamples = 16;
             static int maxDepth      = 32;
 
-            JTX_UI_TABLE_START("PTTable");
+            ctx.StartTable("SamplingTable");
 
-            JTX_UI_TABLE_NEW_ROW("SPP X");
+            ctx.NewRow("SPP X");
             ImGui::DragInt("##XSamples", &xPixelSamples, 1);
 
-            JTX_UI_TABLE_NEW_ROW("SPP Y");
+            ctx.NewRow("SPP Y");
             ImGui::DragInt("##YSamples", &yPixelSamples, 1);
 
-            JTX_UI_TABLE_NEW_ROW("Max Depth");
+            ctx.NewRow("Max Depth");
             ImGui::DragInt("##MaxDepth", &maxDepth, 1);
 
-            JTX_UI_TABLE_END;
-
-            JTX_UI_CHANNEL_BACKGROUND;
-            JTX_UI_CHILD_BG_RECT_END;
+            ctx.EndTable();
         }
 
-        JTX_UI_CHANNEL_FOREGROUND;
         if (ImGui::CollapsingHeader("Performance")) {
-            JTX_UI_CHILD_BG_RECT_START;
-
             static int tileSize       = 32;
             static int numThreads     = 32;
             static int samplesPerPass = 1;
 
-            JTX_UI_TABLE_START("Performance");
+            ctx.StartTable("Performance");
 
-            JTX_UI_TABLE_NEW_ROW("Tile Size");
+            ctx.NewRow("Tile Size");
             ImGui::DragInt("##TileSize", &tileSize, 0);
 
-            JTX_UI_TABLE_NEW_ROW("Thread Count");
+            ctx.NewRow("Thread Count");
             ImGui::DragInt("##NumThreads", &numThreads, 0);
 
-            JTX_UI_TABLE_NEW_ROW("Samples Per Pass");
+            ctx.NewRow("Samples Per Pass");
             ImGui::DragInt("##SamplesPerPass", &samplesPerPass, 0);
 
-            JTX_UI_TABLE_END;
-            JTX_UI_CHANNEL_BACKGROUND;
-            JTX_UI_CHILD_BG_RECT_END;
+            ctx.EndTable();
         }
 
-        JTX_UI_CHANNELS_MERGE;
+        ctx.Destroy();
 
         ImGui::CollapsingHeader("Debug");
 

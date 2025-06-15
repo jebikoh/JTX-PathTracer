@@ -36,7 +36,7 @@ void GfxContext::InitWindow() {
     SDL_Init(SDL_INIT_VIDEO);
     SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "1");
     constexpr auto windowFlags = static_cast<SDL_WindowFlags>(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    window.pWindow                  = SDL_CreateWindow(
+    window.pWindow             = SDL_CreateWindow(
             "JTX",
             SDL_WINDOWPOS_UNDEFINED,
             SDL_WINDOWPOS_UNDEFINED,
@@ -87,22 +87,44 @@ void GfxContext::InitVulkan() {
     features12.descriptorIndexing  = true;
     features12.scalarBlockLayout   = true;
 
+    bool m_bRayTracingSupported = true;
     vkb::PhysicalDeviceSelector pdSelector{vkbInstance};
-    const auto vkbPdResult = pdSelector
-                                     .set_minimum_version(1, 2)
-                                     .add_required_extension(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME)
-                                     .add_required_extension(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)
-                                     .add_required_extension(VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME)
-                                     .set_required_features_12(features12)
-                                     .set_surface(ctx)
-                                     .select();
+    auto vkbPdResult = pdSelector
+                               .set_minimum_version(1, 2)
+                               .add_required_extension(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME)
+                               .add_required_extension(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)
+                               .add_required_extension(VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME)
+                               .add_required_extension(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)
+                               .add_required_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
+                               .add_required_extension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)
+                               .set_required_features_12(features12)
+                               .set_surface(ctx)
+                               .select();
     if (!vkbPdResult) {
-        LOG_FATAL(DISPLAY, "Failed to Initialize vkb physical device");
+        m_bRayTracingSupported = false;
+        pdSelector = vkb::PhysicalDeviceSelector{vkbInstance};
+        vkbPdResult = pdSelector
+                              .set_minimum_version(1, 2)
+                              .add_required_extension(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME)
+                              .add_required_extension(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)
+                              .add_required_extension(VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME)
+                              .set_surface(ctx)
+                              .select();
+        if (!vkbPdResult) {
+            LOG_FATAL(DISPLAY, "Failed to select physical device with required features and extensions");
+        }
+
+        LOG_INFO(VULKAN, "Selected device does not support hardware ray tracing");
+    } else {
+        LOG_INFO(VULKAN, "Selected device supports hardware ray tracing");
     }
-    const vkb::PhysicalDevice& vkbPd = vkbPdResult.value();
-    ctx.physicalDevice              = vkbPd.physical_device;
+
+    vkb::PhysicalDevice &vkbPd = vkbPdResult.value();
+    ctx.physicalDevice               = vkbPd.physical_device;
 
     // Vulkan device
+    vkb::DeviceBuilder deviceBuilder{vkbPd};
+
     VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRendering{};
     dynamicRendering.sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
     dynamicRendering.dynamicRendering = VK_TRUE;
@@ -112,8 +134,26 @@ void GfxContext::InitVulkan() {
     synchronization2.synchronization2 = VK_TRUE;
     synchronization2.pNext            = &dynamicRendering;
 
-    vkb::DeviceBuilder deviceBuilder{vkbPd};
-    deviceBuilder.add_pNext(&synchronization2);
+    // Check if ray tracing is supported
+    auto availableExtensions = vkbPd.get_available_extensions();
+
+    if (m_bRayTracingSupported) {
+        LOG_INFO(VULKAN, "Enabling ray tracing features");
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructures{};
+        accelerationStructures.sType                 = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+        accelerationStructures.accelerationStructure = VK_TRUE;
+        accelerationStructures.pNext                 = &synchronization2;
+
+        VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipeline{};
+        rayTracingPipeline.sType              = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+        rayTracingPipeline.rayTracingPipeline = VK_TRUE;
+        rayTracingPipeline.pNext              = &accelerationStructures;
+
+        deviceBuilder.add_pNext(&rayTracingPipeline);
+    } else {
+        deviceBuilder.add_pNext(&synchronization2);
+    }
+
     vkb::Device vkbDevice = deviceBuilder.build().value();
     ctx.device            = vkbDevice;
 
@@ -220,7 +260,7 @@ void GfxContext::InitDefaultImages() {
     defaultImages.white  = CreateImage(&white, VkExtent3D{1, 1, 1}, 4, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
 
     const uint32_t black = jtx::packUnorm4x8({0.0f, 0.0f, 0.0f, 1.0f});
-    defaultImages.black   = CreateImage(&black, VkExtent3D{1, 1, 1}, 4, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
+    defaultImages.black  = CreateImage(&black, VkExtent3D{1, 1, 1}, 4, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
 
     // Error checkerboard
     const uint32_t magenta = jtx::packUnorm4x8({1.0f, 0.0f, 1.0f, 1.0f});
@@ -299,7 +339,6 @@ void GfxContext::DestroyDrawImages() const {
     drawImage.depthStencilImage.Destroy(ctx, allocator);
 
     LOG_DEBUG(DISPLAY, "Draw images destroyed");
-
 }
 
 void GfxContext::DestroyFrameData() {
@@ -461,7 +500,7 @@ void GfxContext::ResizeSwapchain() {
 
 std::optional<RenderContext> GfxContext::StartFrame() {
     const uint32_t frameIndex = GetCurrentFrameIndex();
-    const auto &frame = frameData[frameIndex];
+    const auto &frame         = frameData[frameIndex];
     CHECK_VK(frame.drawFence.Wait());
     CHECK_VK(frame.drawFence.Reset());
 
@@ -479,13 +518,13 @@ std::optional<RenderContext> GfxContext::StartFrame() {
     CHECK_VK(frame.cmdBuffer.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT));
 
     return RenderContext{
-            .cmd       = frame.cmdBuffer,
-            .swapchainIndex    = swapchainIndex,
-            .frameIndex        = frameIndex,
-            .swapchain = {
-                    .image  = swapchain.images[swapchainIndex],
-                    .view   = swapchain.views[swapchainIndex],
-                    .extent = swapchain.extent},
+            .cmd            = frame.cmdBuffer,
+            .swapchainIndex = swapchainIndex,
+            .frameIndex     = frameIndex,
+            .swapchain      = {
+                         .image  = swapchain.images[swapchainIndex],
+                         .view   = swapchain.views[swapchainIndex],
+                         .extent = swapchain.extent},
             .drawImage         = drawImage.image,
             .depthStencilImage = drawImage.depthStencilImage,
             .layout            = {

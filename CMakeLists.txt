@@ -213,6 +213,11 @@ set(JTX_BACKEND_CPU
         jtx2/engine/cpu/bxdf/bxdf.hpp
 )
 
+set(JTX_BACKEND_VK
+    jtx2/engine/vulkan/backend_vk.hpp
+    jtx2/engine/vulkan/backend_vk.cpp
+)
+
 set(JTX_BACKEND
         jtx2/engine/backends.hpp
 )

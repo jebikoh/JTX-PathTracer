@@ -323,7 +323,7 @@ void WingEngine::LoadScene(const Scene *pScene) {
     size_t uboOffset = 0;
     for (const auto &material: pScene->materials) {
         GPUMaterialUBOData uboData{};
-        uboData.diffuse                                            = vec4(material.parameters.albedo, 1.0f);
+        uboData.diffuse                                            = vec4(material.parameters.diffuse, 1.0f);
         uboData.ambient                                            = vec4(1.0f, 1.0f, 1.0f, 1.0f);
         uboData.specular                                           = vec4(1.0f, 1.0f, 1.0f, 1.0f);
         uboData.shininess                                          = 32.0f;

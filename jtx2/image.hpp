@@ -150,7 +150,7 @@ public:
         width = w;
         height = h;
         channels = c;
-        data = new uint8_t[w * h * c];
+        data = new uint8_t[w * h * c]();
     }
 };
 
@@ -281,7 +281,7 @@ public:
         width = w;
         height = h;
         channels = c;
-        data = new float[w * h * c];
+        data = new float[w * h * c]();
     }
 };
 

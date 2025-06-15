@@ -2,16 +2,18 @@
 #include <jtx.hpp>
 
 namespace jtx {
+struct SurfaceAttributes;
+struct Scene;
 
 struct BxDFSample {
-    vec3 f;
-    vec3 wi;
-    vec3 pdf;
+    vec3 f;    // Scattering function value
+    vec3 wi;   // Sampled incident direction
+    float pdf; // PDF of the sampled direction
 };
 
-bool SampleBxDF();
-vec3 EvalBxDF();
-float PDFBxDF();
+bool SampleBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &wo, float s0, const vec2 &s1, BxDFSample &s);
+vec3 EvalBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &wo, const vec3 &wi);
+float PDFBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &wo, const vec3 &wi);
 
 inline vec3 Reflect(const vec3 &wo, const vec3 &n) {
     return -wo + 2.0f * jtx::dot(wo, n) * n;
@@ -45,7 +47,7 @@ inline bool Refract(const vec3 &wi, vec3 n, float eta, vec3 &wt) {
 }
 
 inline vec3 Shlick(const vec3 &wo, const vec3 &wm, const vec3 &R) {
-    const auto cosTheta = jtx::absdot(wo, wm);
+    const auto cosTheta = jtx::AbsDot(wo, wm);
     const auto m = 1 - cosTheta;
     const auto m2 = m * m;
     return R + (vec3(1.0f) - R) * m2 * m2 * m;

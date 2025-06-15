@@ -35,7 +35,8 @@ public:
         m_bvh.Build(*m_scene);
     }
 
-    void StartRendering();
+    void StartProgressiveRender();
+    void StartRender();
 
     void UpdateRenderSettings(const RenderSettings &settings) {
         m_renderSettings = settings;

@@ -51,6 +51,27 @@ enum JtxResult {
     JTX_ERROR_FILE_WRITE             = -5,// Error while writing file
 };
 
+inline const char* string_JtxResult(const JtxResult input_value) {
+    switch (input_value) {
+        case JTX_SUCCESS:                      return "JTX_SUCCESS";
+        case JTX_FAILURE:                      return "JTX_FAILURE";
+        case JTX_ERROR_INVALID_FILE_EXTENSION: return "JTX_ERROR_INVALID_FILE_EXTENSION";
+        case JTX_ERROR_INVALID_DATA:           return "JTX_ERROR_INVALID_DATA";
+        case JTX_ERROR_FILE_LOADING:           return "JTX_ERROR_FILE_LOADING";
+        case JTX_ERROR_FILE_INVALID_DATA:      return "JTX_ERROR_FILE_INVALID_DATA";
+        case JTX_ERROR_FILE_WRITE:             return "JTX_ERROR_FILE_WRITE";
+        default:                                return "Unknown JtxResult value";
+    }
+}
+
+inline void CheckJtxError(const JtxResult result, char const *const func, const char *const file, int const line) {
+    if (!result) {
+        LOG_FATAL(VULKAN, "Detected Vulkan error at {}:{} '{}': {}", file, line, func, string_JtxResult(result));
+    }
+}
+
+#define CHECK_JTX(err) CheckJtxError((err), #err, __FILE__, __LINE__)
+
 constexpr float PI_OVER_4 = jtx::JTX_PI_F / 4;
 constexpr float PI_OVER_2 = jtx::JTX_PI_F / 2;
 constexpr float INV_TWO_PI = 1.0f / (2.0f * jtx::JTX_PI_F);

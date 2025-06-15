@@ -186,7 +186,7 @@ private:
                 fmt::format_to(std::back_inserter(buf), "[INF] ");
                 break;
             case LogLevel::ERR:
-                fmt::format_to(std::back_inserter(buf), "[ERR] [{}:{}]", ctx.function, ctx.line);
+                fmt::format_to(std::back_inserter(buf), "[ERR] [{}:{}] ", ctx.function, ctx.line);
                 break;
             case LogLevel::DEBUG:
                 fmt::format_to(std::back_inserter(buf), "[DBG] [{}:{}] ", ctx.function, ctx.line);

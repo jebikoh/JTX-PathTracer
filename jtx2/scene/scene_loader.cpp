@@ -59,8 +59,7 @@ JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &sc
         Material mat{};
 
         // Diffuse material loading
-        auto data = material.diffuse.data();
-        mat.parameters.albedo = vec3(data);
+        mat.parameters.diffuse = vec3(material.diffuse.data());
         if (!material.diffuse_texname.empty()) {
             auto texturePath = material.diffuse_texname;
             if (textureMap.contains(texturePath)) {
@@ -76,16 +75,15 @@ JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &sc
             mat.textureIndices.albedo = JTX_MATERIAL_TEXTURE_INDEX_NONE;
         }
 
+        mat.parameters.emission = vec3(material.emission.data());
         scene.materials.push_back(mat);
     }
 
     if (scene.materials.empty()) {
         LOG_DEBUG(LOADER, "No materials found in OBJ file, adding default material");
         Material mat{};
-        mat.parameters.albedo = vec3(1.0f, 1.0f, 1.0f);
-
-        mat.textureIndices.albedo = JTX_MATERIAL_TEXTURE_INDEX_NONE;
-        mat.textureIndices.metallicRoughness = JTX_MATERIAL_TEXTURE_INDEX_NONE;
+        mat.mType = Material::DIFFUSE;
+        mat.parameters.diffuse = vec3(1.0f, 1.0f, 1.0f);
         scene.materials.push_back(mat);
     }
 
@@ -108,10 +106,13 @@ JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &sc
         newMesh.startIndex = scene.indices.size();
         newMesh.numIndices = numIndices;
 
-        // Add material for the mesh if it exists, o/w we assign the first material
-        // TODO: add proper check for materials
-        newMesh.materialIndex = !mesh.material_ids.empty() ? 0 : 0;
-        // newMesh.materialIndex = !mesh.material_ids.empty() ? mesh.material_ids[0] : 0;
+        // We don't support meshes having multiple materials, so we just take the first material ID
+        if (mesh.material_ids.empty()) {
+            newMesh.materialIndex = 0;
+        } else {
+            newMesh.materialIndex = mesh.material_ids[0];
+        }
+
         scene.meshes.push_back(newMesh);
 
         // We keep track of the current vertex index ourselves

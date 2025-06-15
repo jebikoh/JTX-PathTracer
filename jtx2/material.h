@@ -16,7 +16,7 @@ struct Material {
     Type mType = DIFFUSE;
 
     struct Parameters {
-        vec3 albedo;
+        vec3 diffuse;
         vec3 ior;
         vec3 k;
         vec3 emission;

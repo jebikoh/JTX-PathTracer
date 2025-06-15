@@ -3,13 +3,13 @@
 #include <interface/display.hpp>
 #include <scene/scene_loader.hpp>
 
-// #define JTX_ENABLE_UI
+#define JTX_ENABLE_UI
 
 int main(int argc, char *argv[]) {
     Logger::AddDefaultSink();
 #ifdef JTX_ENABLE_UI
     jtx::Scene scene;
-    CHECK_JTX(jtx::LoadScene("assets/cornell_box.obj", scene));
+    CHECK_JTX(jtx::LoadScene("assets/duck/duck.obj", scene));
 
     jtx::Display display;
     display.Init();

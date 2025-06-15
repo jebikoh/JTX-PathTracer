@@ -1,5 +1,13 @@
 # JTX Path Tracer
 
+**Update June 2025**:
+
+I am currently in the process of rewriting the original project. The code for this can be found in JTX2.
+
+My original version (for which everything below this point is for) was becoming too unweidly to work with as it was very much a learning project.
+
+---
+
 This is my physically-based Monte Carlo path tracer, based on PBRTv4, built with multithreaded and vectorized C++ 20 and a interactive UI made with SDL2, OpenGL, and ImGui.
 
 ![image](https://github.com/user-attachments/assets/f6499dc1-893a-4249-bdaa-b36749b3c80f)

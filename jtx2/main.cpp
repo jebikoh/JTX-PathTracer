@@ -30,14 +30,14 @@ int main(int argc, char *argv[]) {
 
     jtx::RenderSettings rs;
     rs.maxDepth = 32;
-    rs.sppRow = 32;
-    rs.sppCol = 32;
+    rs.sppRow = 128;
+    rs.sppCol = 128;
     rs.tileSize = 32;
     rs.numThreads = 16;
     rs.samplesPerPass = 16;
 
     jtx::BackendCPU backend;
-    backend.Init(800, 400, rs, cs);
+    backend.Init(400, 400, rs, cs);
     backend.SetScene(&scene);
     backend.StartProgressiveRender();
     backend.Destroy();

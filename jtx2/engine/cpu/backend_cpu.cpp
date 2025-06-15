@@ -94,7 +94,8 @@ void BackendCPU::StartProgressiveRender() {
                                 const ray r = m_camera.GetRay(row, col, sample, sampler);
 
                                 // Integrate ray
-                                vec3 intensity = IntegrateBasic(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
+                                // const vec3 intensity = Integrate(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
+                                const vec3 intensity = IntegrateRR(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
 
                                 // Accumulate
                                 float *acc = JTX_IMAGE_PIXEL_PTR(m_accBuffer, row, col);
@@ -194,7 +195,7 @@ void BackendCPU::StartRender() {
                                 Sampler sampler(row, col, sample + 1);
                                 const ray r = m_camera.GetRay(row, col, sample, sampler);
 
-                                const vec3 intensity = IntegrateBasic(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
+                                const vec3 intensity = Integrate(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
 
                                 float *acc = JTX_IMAGE_PIXEL_PTR(m_accBuffer, row, col); // TODO: optimize this
                                 acc[0] += intensity.x;

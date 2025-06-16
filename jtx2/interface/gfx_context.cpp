@@ -440,7 +440,7 @@ jvk::Image GfxContext::CreateImage(const void *pData, const VkExtent3D extent, c
     if (bMipmapped) imgUsages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
     const jvk::Image image = CreateImage(extent, format, imgUsages, bMipmapped);
-    imBuffer.Submit(graphicsQueue, [&](VkCommandBuffer cmd) {
+    imBuffer.SubmitAndWait(graphicsQueue, [&](const VkCommandBuffer cmd) {
         jvk::TransitionImage(cmd, image.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
         VkBufferImageCopy copyRegion{};

@@ -1,5 +1,8 @@
 #pragma once
 
+#include "rt.hpp"
+
+
 #include <jvk/buffer.hpp>
 #include <jvk/context.hpp>
 #include <jvk/descriptor.hpp>
@@ -47,7 +50,7 @@ struct Scene;
  */
 class WingEngine {
 public:
-    explicit WingEngine(const GfxContext &gfx) : m_gfx(gfx) {}
+    explicit WingEngine(const GfxContext &gfx) : m_gfx(gfx), m_ASManager(gfx) {}
 
     void Init();
 
@@ -75,6 +78,12 @@ public:
     void LoadScene(const Scene *pScene);
 
     void DrawSettingsPanel(UiDrawContext &ctx);
+
+    /**
+     * Enables ray tracing if supported by the GPU and the application.
+     * @return true if ray tracing was enabled, false otherwise
+     */
+    bool EnableRayTracing() { m_bRayTracingEnabled = m_gfx.bRayTracingSupported; return m_bRayTracingEnabled; }
 private:
     const GfxContext &m_gfx;
     jvk::DynamicDescriptorAllocator m_descriptorAllocator;
@@ -178,10 +187,11 @@ private:
     void InitBillboardPipeline();
     void DestroyBillboardPipeline();
 
-    void DrawSettingsPanel();
-
     // Ray tracing
-    void BuildAS();
+    bool m_bRayTracingEnabled = false;
+    ASManager m_ASManager;
+    void BuildBLAS();
+    void BuildTLAS();
 };
 
 }// namespace jtx

@@ -4,7 +4,7 @@
 
 I am currently in the process of rewriting the original project. The code for this can be found in JTX2.
 
-My original version (for which everything below this point is for) was becoming too unweidly to work with as it was very much a learning project.
+My original version (for which everything below this point is for) was becoming too unwieldy to work with as it was very much a learning project. I also wanted to incorporate my Vulkan path tracer projects (and eventually, my CUDA OptiX projects) into one project.
 
 ---
 

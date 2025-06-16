@@ -26,7 +26,7 @@ struct Triangle {
 struct Mesh {
     std::string name;
     uint32_t startIndex;
-    uint32_t numIndices;
+    uint32_t numIndices; // In triangles, not vertices
     uint32_t materialIndex;
 };
 

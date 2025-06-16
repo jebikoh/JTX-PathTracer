@@ -1,11 +1,14 @@
 #include <engine/wing/wing.hpp>
 #include <interface/display.hpp>
+#include <interface/ui_renderer.hpp>
 #include <jvk/shaders.hpp>
 #include <scene/scene.hpp>
-#include <interface/ui_renderer.hpp>
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
+#include "jvk/as_builder.hpp"
+
+
 #include <glm/gtx/transform.hpp>
 
 namespace jtx {
@@ -51,9 +54,8 @@ void WingEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
 
     // Viewport calculations
     const VkRect2D renderArea{
-        {m_viewRectangle.x, m_viewRectangle.y},
-        {m_viewRectangle.w, m_viewRectangle.h}
-    };
+            {m_viewRectangle.x, m_viewRectangle.y},
+            {m_viewRectangle.w, m_viewRectangle.h}};
 
     // Calculate resolve region
     region.src[0].width = region.dst[0].width = m_viewRectangle.x;
@@ -95,8 +97,8 @@ void WingEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
     dsClearValue.depthStencil.stencil = 0;
 
     const VkRenderingAttachmentInfo depthAttachment = jvk::init::DepthRenderingAttachment(ctx.depthStencilImage.imageView, &dsClearValue, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-    VkRenderingInfo renderingInfo             = jvk::init::Rendering(ctx.swapchain.extent, &colorAttachment, &depthAttachment);
-    renderingInfo.renderArea = renderArea;
+    VkRenderingInfo renderingInfo                   = jvk::init::Rendering(ctx.swapchain.extent, &colorAttachment, &depthAttachment);
+    renderingInfo.renderArea                        = renderArea;
 
     vkCmdBeginRenderingKHR(ctx.cmd, &renderingInfo);
 
@@ -145,7 +147,7 @@ void WingEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
         GPUDrawPushConstants pushConstants{};
         pushConstants.world  = glm::mat4(1.0f);
         pushConstants.normal = glm::mat4(1.0f);
-        vkCmdPushConstants(ctx.cmd, r.material->pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT,   0, sizeof(pushConstants), &pushConstants);
+        vkCmdPushConstants(ctx.cmd, r.material->pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConstants), &pushConstants);
 
         // Need to multiply by 3 because r.count and r.start are relative to vec3u
         vkCmdDrawIndexed(ctx.cmd, r.count * 3, 1, r.start * 3, 0, 0);
@@ -159,10 +161,10 @@ void WingEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
         vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gridPipeline.pipeline);
 
         GridPushConstants pushConstants{};
-        pushConstants.viewProj  = m_gpuSceneUboData.viewProj;
-        pushConstants.cameraPos = m_gpuSceneUboData.cameraPos;
+        pushConstants.viewProj    = m_gpuSceneUboData.viewProj;
+        pushConstants.cameraPos   = m_gpuSceneUboData.cameraPos;
         pushConstants.invViewProj = glm::inverse(m_gpuSceneUboData.viewProj);
-        vkCmdPushConstants(ctx.cmd, m_gridPipeline.layout, VK_SHADER_STAGE_FRAGMENT_BIT,   0, sizeof(pushConstants), &pushConstants);
+        vkCmdPushConstants(ctx.cmd, m_gridPipeline.layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pushConstants), &pushConstants);
 
         vkCmdDrawIndexed(ctx.cmd, 3, 1, 0, 0, 0);
     }
@@ -232,6 +234,8 @@ void WingEngine::LoadScene(const Scene *pScene) {
     // Device addresses
     VkBufferDeviceAddressInfo deviceAddressInfo{};
     deviceAddressInfo.sType            = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+    deviceAddressInfo.buffer           = m_gpuSceneMeshData.index.buffer;
+    m_gpuSceneMeshData.indexAddress    = vkGetBufferDeviceAddress(m_gfx.ctx, &deviceAddressInfo);
     deviceAddressInfo.buffer           = m_gpuSceneMeshData.position.buffer;
     m_gpuSceneMeshData.positionAddress = vkGetBufferDeviceAddress(m_gfx.ctx, &deviceAddressInfo);
     deviceAddressInfo.buffer           = m_gpuSceneMeshData.normal.buffer;
@@ -611,6 +615,50 @@ void WingEngine::InitGridPipeline() {
 
 void WingEngine::DestroyGridPipeline() const {
     m_gridPipeline.Destroy(m_gfx.ctx, true);
+}
+
+void WingEngine::BuildAS() {
+    assert(m_scene != nullptr);
+
+    const VkDeviceAddress vertexAddress = m_gpuSceneMeshData.positionAddress;
+    const VkDeviceAddress indexAddress  = m_gpuSceneMeshData.indexAddress;
+
+    // For now, we will build a BLAS for each mesh in the scene.
+    std::vector<jvk::BLASInput> inputs{m_scene->meshes.size()};
+
+    for (const auto &mesh: m_scene->meshes) {
+        jvk::BLASInput input;
+
+        const uint32_t numPrimitives = mesh.numIndices;
+
+        VkAccelerationStructureGeometryTrianglesDataKHR triangles{};
+        triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+        triangles.vertexData.deviceAddress = vertexAddress;
+        triangles.vertexStride = sizeof(vec3);
+        triangles.indexData.deviceAddress = indexAddress;
+        triangles.indexType = VK_INDEX_TYPE_UINT32;
+        triangles.maxVertex = mesh.numIndices - 1;
+
+        VkAccelerationStructureGeometryKHR geometry{};
+        geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+        geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+        geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
+        geometry.geometry.triangles = triangles;
+
+        // Double-check the offset here -- common point of failure
+        VkAccelerationStructureBuildRangeInfoKHR offset;
+        offset.firstVertex = 0;
+        offset.primitiveCount = mesh.numIndices;
+        offset.primitiveOffset = mesh.startIndex;
+        offset.transformOffset = 0;
+
+        input.geometry.push_back(geometry);
+        input.buildRange.push_back(offset);
+
+        inputs.push_back(input);
+    }
+
+
 }
 
 }// namespace jtx

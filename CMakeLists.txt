@@ -211,11 +211,7 @@ set(JTX_BACKEND_CPU
         jtx2/engine/cpu/integrator.cpp
         jtx2/engine/cpu/bxdf/diffuse.hpp
         jtx2/engine/cpu/bxdf/bxdf.hpp
-)
-
-set(JTX_BACKEND_VK
-    jtx2/engine/vulkan/backend_vk.hpp
-    jtx2/engine/vulkan/backend_vk.cpp
+        jtx2/engine/cpu/bxdf/bxdf.cpp
 )
 
 set(JTX_BACKEND
@@ -228,7 +224,8 @@ set(JTX_WING
     jtx2/engine/wing/camera.hpp
     jtx2/engine/wing/camera.cpp
     jtx2/engine/wing/render_data.hpp
-        jtx2/engine/cpu/bxdf/bxdf.cpp
+        jtx2/engine/wing/rt.hpp
+        jtx2/engine/wing/rt.cpp
 )
 
 # ──────────────────────────────────────────────────────────────────────────────

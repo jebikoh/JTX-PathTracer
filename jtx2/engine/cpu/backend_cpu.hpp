@@ -30,7 +30,7 @@ public:
         m_imgBuffer.Destroy();
     }
 
-    void SetScene(Scene *scene) {
+    void LoadScene(Scene *scene) {
         m_scene = scene;
         m_bvh.Build(*m_scene);
     }

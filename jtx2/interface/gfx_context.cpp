@@ -87,7 +87,6 @@ void GfxContext::InitVulkan() {
     features12.descriptorIndexing  = true;
     features12.scalarBlockLayout   = true;
 
-    bool m_bRayTracingSupported = true;
     vkb::PhysicalDeviceSelector pdSelector{vkbInstance};
     auto vkbPdResult = pdSelector
                                .set_minimum_version(1, 2)
@@ -101,7 +100,7 @@ void GfxContext::InitVulkan() {
                                .set_surface(ctx)
                                .select();
     if (!vkbPdResult) {
-        m_bRayTracingSupported = false;
+        bRayTracingSupported = false;
         pdSelector = vkb::PhysicalDeviceSelector{vkbInstance};
         vkbPdResult = pdSelector
                               .set_minimum_version(1, 2)
@@ -137,7 +136,7 @@ void GfxContext::InitVulkan() {
     // Check if ray tracing is supported
     auto availableExtensions = vkbPd.get_available_extensions();
 
-    if (m_bRayTracingSupported) {
+    if (bRayTracingSupported) {
         LOG_INFO(VULKAN, "Enabling ray tracing features");
         VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructures{};
         accelerationStructures.sType                 = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
@@ -158,6 +157,23 @@ void GfxContext::InitVulkan() {
     ctx.device            = vkbDevice;
 
     volkLoadDevice(ctx.device);
+
+    // Query RT properties if ray tracing is supported
+    if (bRayTracingSupported) {
+        VkPhysicalDeviceProperties2 props{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+        props.pNext = &rtProperties;
+        vkGetPhysicalDeviceProperties2(ctx.physicalDevice, &props);
+
+        LOG_DEBUG(VULKAN, "Ray tracing properties:");
+        LOG_DEBUG(VULKAN, "  Shader group handle size: {}", rtProperties.shaderGroupHandleSize);
+        LOG_DEBUG(VULKAN, "  Max ray recursions: {}", rtProperties.maxRayRecursionDepth);
+        LOG_DEBUG(VULKAN, "  Max shader group stride: {}", rtProperties.maxShaderGroupStride);
+        LOG_DEBUG(VULKAN, "  Shader group base alignment: {}", rtProperties.shaderGroupBaseAlignment);
+        LOG_DEBUG(VULKAN, "  Shader group handle capture replay size: {}", rtProperties.shaderGroupHandleCaptureReplaySize);
+        LOG_DEBUG(VULKAN, "  Max ray dispatch invocation count: {}", rtProperties.maxRayDispatchInvocationCount);
+        LOG_DEBUG(VULKAN, "  Shader group handle alignment: {}", rtProperties.shaderGroupHandleAlignment);
+        LOG_DEBUG(VULKAN, "  Max ray hit attribute size: {}", rtProperties.maxRayHitAttributeSize);
+    }
 
     // Graphics queue
     graphicsQueue.queue  = vkbDevice.get_queue(vkb::QueueType::graphics).value();

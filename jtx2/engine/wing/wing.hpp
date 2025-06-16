@@ -107,6 +107,7 @@ private:
         jvk::Buffer uv{};
         jvk::Buffer color{};
 
+        VkDeviceAddress indexAddress = 0;
         VkDeviceAddress positionAddress = 0;
         VkDeviceAddress normalAddress = 0;
         VkDeviceAddress uvAddress = 0;
@@ -178,6 +179,9 @@ private:
     void DestroyBillboardPipeline();
 
     void DrawSettingsPanel();
+
+    // Ray tracing
+    void BuildAS();
 };
 
 }// namespace jtx

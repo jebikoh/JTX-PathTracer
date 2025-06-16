@@ -46,6 +46,10 @@ struct ResolveRegion {
  * This class is responsible for maintain the Vulkan rendering context.
  *
  * All the high-level Vulkan structures are stored in this class and is passed around to subsystems by reference.
+ *
+ * TODO: Need to refactor this to either separate the window portion or have it be optional.
+ *       Want to be able to use this for offline rendering without a window/swapchain
+ *       I am thinking that maybe we can pass in a config struct to determine how to initialize the context
  */
 struct GfxContext {
     struct Window {
@@ -54,6 +58,10 @@ struct GfxContext {
     } window;
 
     jvk::VkContext ctx;
+
+    bool bRayTracingSupported = true;
+    VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtProperties{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR};
+
     VmaAllocator allocator;
 
     int frameNumber = 0;

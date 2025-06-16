@@ -28,7 +28,7 @@ struct ImmediateBuffer {
         fence.Destroy();
     }
 
-    void Submit(const VkQueue queue, std::function<void(VkCommandBuffer cmd)> &&function) const {
+    void SubmitAndWait(const VkQueue queue, std::function<void(VkCommandBuffer cmd)> &&function) const {
         // Reset fence & buffer
         CHECK_VK(fence.Reset());
         CHECK_VK(cmd.Reset());
@@ -43,7 +43,7 @@ struct ImmediateBuffer {
         CHECK_VK(cmd.End());
 
         // Submit and wait for fence
-        VkCommandBufferSubmitInfoKHR cmdInfo = cmd.SubmitInfo();
+        const VkCommandBufferSubmitInfoKHR cmdInfo = cmd.SubmitInfo();
         const VkSubmitInfo2KHR submit        = jvk::init::Submit(&cmdInfo, nullptr, nullptr);
         CHECK_VK(vkQueueSubmit2KHR(queue, 1, &submit, fence));
         CHECK_VK(fence.Wait());

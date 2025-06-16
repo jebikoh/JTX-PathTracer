@@ -6,8 +6,7 @@
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
-#include "jvk/as_builder.hpp"
-
+#include <engine/wing/rt.hpp>
 
 #include <glm/gtx/transform.hpp>
 
@@ -33,7 +32,6 @@ void WingEngine::Init() {
 
 void WingEngine::Destroy() {
     LOG_INFO(RASTERIZER, "Destroying Rasterizer");
-
 
     DestroyGPUScene();
     DestroyGridPipeline();
@@ -282,7 +280,7 @@ void WingEngine::LoadScene(const Scene *pScene) {
     LOG_DEBUG(RASTERIZER, "Vertex data copied to staging buffer");
 
     // Copy to GPU
-    m_gfx.imBuffer.Submit(m_gfx.graphicsQueue, [&](const VkCommandBuffer cmd) {
+    m_gfx.imBuffer.SubmitAndWait(m_gfx.graphicsQueue, [&](const VkCommandBuffer cmd) {
         VkBufferCopy copyRegion{};
         copyRegion.dstOffset = 0;
 
@@ -356,6 +354,12 @@ void WingEngine::LoadScene(const Scene *pScene) {
     m_materialBufferUBO.Unmap(m_gfx.allocator);
 
     m_bSceneLoaded = true;
+
+    if (m_bRayTracingEnabled) {
+        BuildBLAS();
+        BuildTLAS();
+    }
+
     LOG_INFO(RASTERIZER, "Scene loaded");
 }
 
@@ -532,6 +536,10 @@ void WingEngine::UpdateSceneData() {
 void WingEngine::DestroyGPUScene() {
     m_gfx.WaitIdle();
     if (m_bSceneLoaded) {
+        if (m_bRayTracingEnabled) {
+            m_ASManager.Destroy();
+        }
+
         DestroyGPUSceneMeshData();
         DestroyGPUSceneMaterials();
         DestroyGPUSceneTextures();
@@ -617,39 +625,40 @@ void WingEngine::DestroyGridPipeline() const {
     m_gridPipeline.Destroy(m_gfx.ctx, true);
 }
 
-void WingEngine::BuildAS() {
+void WingEngine::BuildBLAS() {
     assert(m_scene != nullptr);
 
     const VkDeviceAddress vertexAddress = m_gpuSceneMeshData.positionAddress;
     const VkDeviceAddress indexAddress  = m_gpuSceneMeshData.indexAddress;
 
     // For now, we will build a BLAS for each mesh in the scene.
-    std::vector<jvk::BLASInput> inputs{m_scene->meshes.size()};
+    std::vector<jtx::BLASInput> inputs;
+    inputs.reserve(m_scene->meshes.size());
 
     for (const auto &mesh: m_scene->meshes) {
-        jvk::BLASInput input;
+        jtx::BLASInput input;
 
         const uint32_t numPrimitives = mesh.numIndices;
 
         VkAccelerationStructureGeometryTrianglesDataKHR triangles{};
-        triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+        triangles.sType                    = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
         triangles.vertexData.deviceAddress = vertexAddress;
-        triangles.vertexStride = sizeof(vec3);
-        triangles.indexData.deviceAddress = indexAddress;
-        triangles.indexType = VK_INDEX_TYPE_UINT32;
-        triangles.maxVertex = mesh.numIndices - 1;
+        triangles.vertexStride             = sizeof(vec3);
+        triangles.indexData.deviceAddress  = indexAddress;
+        triangles.indexType                = VK_INDEX_TYPE_UINT32;
+        triangles.maxVertex                = mesh.numIndices * 3 - 1;
 
         VkAccelerationStructureGeometryKHR geometry{};
-        geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
-        geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
-        geometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
+        geometry.sType              = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+        geometry.geometryType       = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+        geometry.flags              = VK_GEOMETRY_OPAQUE_BIT_KHR;
         geometry.geometry.triangles = triangles;
 
         // Double-check the offset here -- common point of failure
         VkAccelerationStructureBuildRangeInfoKHR offset;
-        offset.firstVertex = 0;
-        offset.primitiveCount = mesh.numIndices;
-        offset.primitiveOffset = mesh.startIndex;
+        offset.firstVertex     = 0;
+        offset.primitiveCount  = mesh.numIndices;
+        offset.primitiveOffset = mesh.startIndex * sizeof(vec3u);
         offset.transformOffset = 0;
 
         input.geometry.push_back(geometry);
@@ -657,8 +666,32 @@ void WingEngine::BuildAS() {
 
         inputs.push_back(input);
     }
+    m_ASManager.BuildBLAS(inputs, VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR);
+}
 
+void WingEngine::BuildTLAS() {
 
+    // We don't really support instances, so we will just create one instance of each BLAS
+    // (We also don't support transforms right now, so identity matrix is hardcoded)
+    std::vector<VkAccelerationStructureInstanceKHR> tlas;
+    tlas.reserve(m_scene->meshes.size());
+
+    for (size_t i = 0; i < m_scene->meshes.size(); ++i) {
+        constexpr VkTransformMatrixKHR identity = {
+                1.0f, 0.0f, 0.0f, 0.0f,
+                0.0f, 1.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 1.0f, 0.0f};
+
+        VkAccelerationStructureInstanceKHR inst{};
+        inst.transform = identity;
+        inst.instanceCustomIndex = i;
+        inst.accelerationStructureReference = m_ASManager.GetBLASDeviceAddress(i);
+        inst.flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+        inst.mask = 0xFF;
+        inst.instanceShaderBindingTableRecordOffset = 0;
+        tlas.push_back(inst);
+    }
+    m_ASManager.BuildTLAS(tlas, VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR);
 }
 
 }// namespace jtx

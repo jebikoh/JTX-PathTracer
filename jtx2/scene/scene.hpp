@@ -33,6 +33,8 @@ struct Mesh {
 struct LightSample {
     vec3 position;
     vec3 normal;
+    vec3 emission;
+    float pdf;
 };
 
 /**
@@ -103,6 +105,8 @@ struct Scene {
         const vec3 n1 = normals[tri.y];
         const vec3 n2 = normals[tri.z];
         sample.normal = b.x * n0 + b.y * n1 + b.z * n2;
+
+        sample.emission = materials[materialIndices[index]].parameters.emission;
     }
 };
 

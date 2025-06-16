@@ -10,4 +10,6 @@ vec3 Integrate(ray r, const Scene &scene, const BVH &bvh, int maxDepth, Sampler 
 
 vec3 IntegrateRR(ray r, const Scene &scene, const BVH &bvh, int maxDepth, Sampler &rng);
 
+vec3 IntegrateNEE(ray r, const Scene &scene, const BVH &bvh, int maxDepth, Sampler &rng);
+
 }// namespace jtx

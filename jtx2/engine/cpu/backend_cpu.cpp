@@ -95,7 +95,8 @@ void BackendCPU::StartProgressiveRender() {
 
                                 // Integrate ray
                                 // const vec3 intensity = Integrate(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
-                                const vec3 intensity = IntegrateRR(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
+                                // const vec3 intensity = IntegrateRR(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
+                                const vec3 intensity = IntegrateNEE(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
 
                                 // Accumulate
                                 float *acc = JTX_IMAGE_PIXEL_PTR(m_accBuffer, row, col);

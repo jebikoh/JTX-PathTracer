@@ -188,12 +188,14 @@ JTX_FORCE_INLINE float CosineHemispherePDF(const float cosTheta) {
 }
 
 // TODO: benchmark and analyze this
+#define JTX_SAMPLE_TRIANGLE_BRANCHLESS
+
 JTX_FORCE_INLINE vec3 SampleUniformTriangle(vec2 s) {
 #ifdef JTX_SAMPLE_TRIANGLE_BRANCHLESS
     s.x = jtx::sqrt(s.x);
     const float b0 = 1 - s.x;
-    const float b1 = s.x * (1.0f - s.y);
-    return {b0, b1, s.x * s.y};
+    const float b1 = s.y * s.x;
+    return {b0, b1, 1 - b0 - b1};
 #else
     // "A Low-Distortion Map Between Triangle and Square" by Eric Heitz
     if (s.y > s.x) {

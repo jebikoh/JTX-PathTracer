@@ -3,7 +3,7 @@
 #include <interface/display.hpp>
 #include <scene/scene_loader.hpp>
 
-#define JTX_ENABLE_UI
+// #define JTX_ENABLE_UI
 
 int main(int argc, char *argv[]) {
     Logger::AddDefaultSink();
@@ -17,30 +17,30 @@ int main(int argc, char *argv[]) {
     display.Run();
     display.Destroy();
 #else
-    // jtx::Scene scene;
-    // jtx::LoadScene("assets/cb.obj", scene);
-    // scene.skyColor = vec3(0.0f);
-    //
-    // jtx::CameraSettings cs;
-    // cs.position = {278, 273, -800};
-    // cs.target = {278, 273, 0};
-    // cs.up = {0, 1, 0};
-    // cs.yfov = 40.0f;
-    // cs.focalDistance = 1.0f;
-    //
-    // jtx::RenderSettings rs;
-    // rs.maxDepth = 32;
-    // rs.sppRow = 128;
-    // rs.sppCol = 128;
-    // rs.tileSize = 32;
-    // rs.numThreads = 16;
-    // rs.samplesPerPass = 16;
-    //
-    // jtx::BackendCPU backend;
-    // backend.Init(400, 400, rs, cs);
-    // backend.SetScene(&scene);
-    // backend.StartProgressiveRender();
-    // backend.Destroy();
+    jtx::Scene scene;
+    jtx::LoadScene("assets/cb.obj", scene);
+    scene.skyColor = vec3(0.0f);
+
+    jtx::CameraSettings cs;
+    cs.position = {278, 273, -800};
+    cs.target = {278, 273, 0};
+    cs.up = {0, 1, 0};
+    cs.yfov = 40.0f;
+    cs.focalDistance = 1.0f;
+
+    jtx::RenderSettings rs;
+    rs.maxDepth = 32;
+    rs.sppRow = 16;
+    rs.sppCol = 16;
+    rs.tileSize = 32;
+    rs.numThreads = 16;
+    rs.samplesPerPass = 16;
+
+    jtx::BackendCPU backend;
+    backend.Init(400, 400, rs, cs);
+    backend.LoadScene(&scene);
+    backend.StartProgressiveRender();
+    backend.Destroy();
 #endif
 
     return 0;

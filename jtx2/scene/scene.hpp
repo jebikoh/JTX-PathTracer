@@ -101,12 +101,16 @@ struct Scene {
         const vec3 p2 = positions[tri.z];
         sample.position = b.x * p0 + b.y * p1 + b.z * p2;
 
+        const vec3 n = Normalize(Cross(p1 - p0, p2 - p0));
+
         const vec3 n0 = normals[tri.x];
         const vec3 n1 = normals[tri.y];
         const vec3 n2 = normals[tri.z];
-        sample.normal = b.x * n0 + b.y * n1 + b.z * n2;
+        const vec3 sn = b.x * n0 + b.y * n1 + b.z * n2;
+        sample.normal = dot(n, sn) < 0.0f ? -n : n;
 
         sample.emission = materials[materialIndices[index]].parameters.emission;
+        sample.pdf = 1.0f / (0.5f * Cross(p1 - p0, p2 - p0).Len());
     }
 };
 

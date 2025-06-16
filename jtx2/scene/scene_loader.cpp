@@ -124,6 +124,11 @@ JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &sc
             scene.indices.emplace_back(vertexIndex, vertexIndex + 1, vertexIndex + 2);
             scene.materialIndices.push_back(newMesh.materialIndex);
 
+            // Check if the triangle is emissive
+            if (scene.materials[newMesh.materialIndex].IsEmissive()) {
+                scene.emissiveTriangles.push_back(scene.indices.size() - 1);
+            }
+
             // Positions
             {
                 // FYI, jtx vector classes have an unsafe constructor that take in a T pointer

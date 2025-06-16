@@ -5,6 +5,8 @@
 #include "material.h"
 #include "util/aabb.hpp"
 
+#include <util/sampling.hpp>
+
 // TODO: add TRS transform and basic scene graph
 namespace jtx {
 
@@ -26,6 +28,11 @@ struct Mesh {
     uint32_t startIndex;
     uint32_t numIndices;
     uint32_t materialIndex;
+};
+
+struct LightSample {
+    vec3 position;
+    vec3 normal;
 };
 
 /**
@@ -58,6 +65,9 @@ struct Scene {
     std::vector<Image8u> textures;
     std::vector<Mesh> meshes;
 
+    // Lights
+    std::vector<uint32_t> emissiveTriangles; // Indices of triangles that are emissive
+
     // Skybox color
     vec3 skyColor;
 
@@ -77,6 +87,22 @@ struct Scene {
         }
 
         return triangles;
+    }
+
+    void SampleEmissiveTriangle(const vec2 &s, const uint32_t index, LightSample &sample) const {
+        const vec3 b = SampleUniformTriangle(s);
+
+        const vec3u tri = indices[index];
+
+        const vec3 p0 = positions[tri.x];
+        const vec3 p1 = positions[tri.y];
+        const vec3 p2 = positions[tri.z];
+        sample.position = b.x * p0 + b.y * p1 + b.z * p2;
+
+        const vec3 n0 = normals[tri.x];
+        const vec3 n1 = normals[tri.y];
+        const vec3 n2 = normals[tri.z];
+        sample.normal = b.x * n0 + b.y * n1 + b.z * n2;
     }
 };
 

@@ -187,6 +187,26 @@ JTX_FORCE_INLINE float CosineHemispherePDF(const float cosTheta) {
     return cosTheta * INV_PI;
 }
 
+// TODO: benchmark and analyze this
+JTX_FORCE_INLINE vec3 SampleUniformTriangle(vec2 s) {
+#ifdef JTX_SAMPLE_TRIANGLE_BRANCHLESS
+    s.x = jtx::sqrt(s.x);
+    const float b0 = 1 - s.x;
+    const float b1 = s.x * (1.0f - s.y);
+    return {b0, b1, s.x * s.y};
+#else
+    // "A Low-Distortion Map Between Triangle and Square" by Eric Heitz
+    if (s.y > s.x) {
+        s.x *= 0.5;
+        s.y -= s.x;
+    } else {
+        s.y *= 0.5;
+        s.x -= s.y;
+    }
+    return vec3(s.x, s.y, 1 - s.x - s.y);
+#endif
+}
+
 namespace detail {
     inline ray GenerateRayFromUnitSphere(Sampler &rng, const float offsetScale) {
         ray out{};

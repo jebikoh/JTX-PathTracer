@@ -110,7 +110,7 @@ struct Scene {
         sample.normal = dot(n, sn) < 0.0f ? -n : n;
 
         sample.emission = materials[materialIndices[index]].parameters.emission;
-        sample.pdf = 1.0f / (0.5f * Cross(p1 - p0, p2 - p0).Len());
+        sample.pdf = 1.0f / (0.5f * Cross(p1 - p0, p2 - p0).Length());
     }
 };
 

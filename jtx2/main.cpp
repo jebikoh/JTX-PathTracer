@@ -18,12 +18,12 @@ int main(int argc, char *argv[]) {
     display.Destroy();
 #else
     jtx::Scene scene;
-    jtx::LoadScene("assets/cb.obj", scene);
+    jtx::LoadScene("assets/cornell_box/small/cb_small.obj", scene);
     scene.skyColor = vec3(0.0f);
 
     jtx::CameraSettings cs;
-    cs.position = {278, 273, -800};
-    cs.target = {278, 273, 0};
+    cs.position = vec3{278, 273, -800} * 0.2f;
+    cs.target = vec3{278, 273, 0} * 0.2f;
     cs.up = {0, 1, 0};
     cs.yfov = 40.0f;
     cs.focalDistance = 1.0f;

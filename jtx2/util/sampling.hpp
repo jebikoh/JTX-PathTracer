@@ -141,7 +141,7 @@ inline vec4 Sampler::Uniform<vec4>(const float min, const float max) {
 // Most of these are taken from PBR 4d
 JTX_FORCE_INLINE vec3 SampleUniformSphere(const vec2 &s) {
     const float z = 1 - 2 * s.x;
-    const float a = jtx::safeSqrt(1.0f - z * z);
+    const float a = jtx::SafeSqrt(1.0f - z * z);
     const float phi = TWO_PI * s.y;
     return {jtx::cos(phi) * a, jtx::sin(phi) * a, z};
 }
@@ -169,7 +169,7 @@ JTX_FORCE_INLINE vec2 SampleUniformDiskConcentric(const vec2 &s) {
 }
 
 JTX_FORCE_INLINE vec3 SampleUniformHemisphere(const vec2 &s) {
-    const float sinTheta = jtx::safeSqrt(1 - s.x * s.x);
+    const float sinTheta = jtx::SafeSqrt(1 - s.x * s.x);
     const float phi = 2 * JTX_PI_F * s.y;
     return {jtx::cos(phi) * sinTheta, jtx::sin(phi) * sinTheta, s.x};
 }
@@ -180,7 +180,7 @@ JTX_FORCE_INLINE float UniformHemispherePDF() {
 
 JTX_FORCE_INLINE vec3 SampleCosineHemisphere(const vec2 &s) {
     const auto disk = SampleUniformDiskConcentric(s);
-    return {disk.x, disk.y, jtx::safeSqrt(1 - disk.x * disk.x - disk.y * disk.y)};
+    return {disk.x, disk.y, jtx::SafeSqrt(1 - disk.x * disk.x - disk.y * disk.y)};
 }
 
 JTX_FORCE_INLINE float CosineHemispherePDF(const float cosTheta) {
@@ -215,14 +215,14 @@ namespace detail {
 
         out.origin    = SampleUniformSphere(rng.Uniform<vec2>()) * offsetScale;
         const vec3 p1 = SampleUniformSphere(rng.Uniform<vec2>()) * offsetScale;
-        out.dir       = (p1 - out.origin).normalize();
+        out.dir       = (p1 - out.origin).Normalize();
         return out;
     }
 
     inline ray GenerateRayToOriginFromUnitSphere(Sampler &rng, const float offsetScale) {
         ray out{};
         out.origin = SampleUniformSphere(rng.Uniform<vec2>()) * offsetScale;
-        out.dir    = (JTX_VEC3_ORIGIN - out.origin).normalize();
+        out.dir    = (JTX_VEC3_ORIGIN - out.origin).Normalize();
         return out;
     }
 }// namespace detail

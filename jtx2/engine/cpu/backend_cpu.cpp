@@ -69,8 +69,10 @@ void BackendCPU::StartProgressiveRender() {
         currentSample.fetch_add(m_renderSettings.samplesPerPass, std::memory_order_relaxed);
         if (currentSample.load() >= spp) {
             bTerminate = true;
+        } else {
+            LOG_DEBUG(RENDER, "Render progress: {}%", static_cast<float>(currentSample.load()) / spp * 100.0f);
+            q.Reset();
         }
-        q.Reset();
     });
 
     // Launch threads

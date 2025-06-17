@@ -88,12 +88,16 @@ vec3 jtx::IntegrateRR(ray r, const Scene &scene, const BVH &bvh, int maxDepth, S
 }
 
 // Path tracer with Next Event Estimation (NEE)
-// Does NOT apply proper MIS
+// Samples both direct lighting via light sampling and indirect lighting via BxDF sampling
+// Does not apply multiple importance sampling (MIS) the two (0-1 weighting)
 vec3 jtx::IntegrateNEE(ray r, const Scene &scene, const BVH &bvh, int maxDepth, Sampler &rng) {
-    auto radiance = vec3(0.0f);
-    auto beta     = vec3(1.0f);
-    int depth     = 0;
-    bool bSpecularBounce = false; // TODO: update this once we add specular bxdfs
+    auto radiance        = vec3(0.0f);
+    auto beta            = vec3(1.0f);
+    int depth            = 0;
+
+    // We need to track specular bounces to know if we need to add emission
+    // TODO: update this once we add specular bxdfs
+    bool bSpecularBounce = false;
 
     TriangleIntersection triIsect;
     while (true) {
@@ -106,9 +110,8 @@ vec3 jtx::IntegrateNEE(ray r, const Scene &scene, const BVH &bvh, int maxDepth, 
         SurfaceAttributes surface;
         InterpolateVertexAttributes(scene, r, triIsect, surface);
 
-        // Only add emission on first bounce to avoid double counting
-        // Emission from lights is accounted for by direct light sampling
-        if (depth == 0) {
+        // Only add emission on the first bounce or if the previous bounce was specular
+        if (depth == 0 || bSpecularBounce) {
             radiance += beta * surface.material->parameters.emission;
         }
 
@@ -117,39 +120,47 @@ vec3 jtx::IntegrateNEE(ray r, const Scene &scene, const BVH &bvh, int maxDepth, 
         const vec3 wo = -r.dir;
 
         // Sample direct illumination
-        // For now, we will only deal with emissive triangles
         auto Ld = vec3(0.0f);
         {
-            const auto index = rng.Sample(scene.emissiveTriangles.size());
+            // Randomly select a light
+            const auto index         = rng.Sample(scene.emissiveTriangles.size());
             const auto emissiveIndex = scene.emissiveTriangles[index];
 
+            // Sample a point on that light
             LightSample lightSample;
             scene.SampleEmissiveTriangle(rng.Uniform<vec2>(), emissiveIndex, lightSample);
 
-            vec3 wi = lightSample.position - surface.point;
+            // Calculate the incident light direction
+            vec3 wi           = lightSample.position - surface.point;
             const float dist2 = wi.LenSqr();
-            const float dist = jtx::safeSqrt(dist2);
-            wi.normalize();
+            const float dist  = jtx::SafeSqrt(dist2);
+            wi /= dist;
 
-            const float cosThetaO = AbsDot(wi, surface.normal);
-            const float cosThetaL = AbsDot(-wi, lightSample.normal);
-
-            // Check for visibility
+            // Evaluate visibility term
             ray shadowRay(surface.point + surface.normal * 0.001f, wi);
-            if (!bvh.AnyHit(shadowRay, 0.001f, dist - 0.001f)) {
-                // Ray hit the light source, V = 1
+            // For larger scenes, the delta might need to be adjusted to be bigger
+            // When the vertex distances start exceeding the 100s, <=0.001f leads to artifacts
+            if (!bvh.AnyHit(shadowRay, 0.0f, dist - 0.01f)) {
+                // Ray was not obscured, V = 1.0f
                 vec3 Li = lightSample.emission;
+
+                // Incident angle cosine factors
+                const float cosThetaO = AbsDot(wi, surface.normal);      // From surface
+                const float cosThetaL = AbsDot(-wi, lightSample.normal); // From light
+
                 // P of selecting this light * P of selecting that point
                 const float pdfLight = (1.0f / static_cast<float>(scene.emissiveTriangles.size()) * lightSample.pdf);
                 // Evaluate BxDF
                 const auto f = EvalBxDF(scene, surface, wo, wi);
 
+                // Compute the contribution of this light sample
                 Ld = f * Li * cosThetaO * (cosThetaL / dist2) / pdfLight;
             }
         }
+        // Add direct lighting contribution to radiance
         radiance += beta * Ld;
 
-        // Sample indirect
+        // Sample indirect via BxDF sampling
         const float s = rng.Uniform<float>();
         const vec2 s2 = rng.Uniform<vec2>();
 
@@ -160,11 +171,11 @@ vec3 jtx::IntegrateNEE(ray r, const Scene &scene, const BVH &bvh, int maxDepth, 
         beta *= sample.f * AbsDot(sample.wi, surface.normal) / sample.pdf;
 
         // Russian roulette
-        // if (depth > JTX_RR_MIN_DEPTH) {
-        //     const float p = std::min(1.0f, beta.MaxComponent());
-        //     if (rng.Uniform<float>() >= p) break;
-        //     beta /= p;
-        // }
+        if (depth > JTX_RR_MIN_DEPTH) {
+            const float p = std::min(1.0f, beta.MaxComponent());
+            if (rng.Uniform<float>() >= p) break;
+            beta /= p;
+        }
 
         r = Ray(surface.point + sample.wi * 0.001f, sample.wi);
     }

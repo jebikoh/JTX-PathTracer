@@ -780,7 +780,7 @@ bool BVHEmbree::AnyHit(const ray &r, const float t0, const float t1) const {
     ray.flags     = 0;
 
     rtcOccluded1(m_scene, &ray);
-    return ray.tfar < t1;
+    return ray.tfar < 0.0f; // Embree sets tfar to -inf if it hits something
 }
 #endif
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <jtx.hpp>
 #include <scene/scene.hpp>
 
 namespace jtx {

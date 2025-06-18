@@ -20,3 +20,6 @@
 [submodule "ext/glm"]
 	path = ext/glm
 	url = https://github.com/g-truc/glm.git
+[submodule "ext/nfd"]
+	path = ext/nfd
+	url = https://github.com/btzy/nativefiledialog-extended.git

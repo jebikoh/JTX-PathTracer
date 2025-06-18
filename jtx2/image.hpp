@@ -92,8 +92,6 @@ public:
     /**
      * Loads an image from the given file. Accepts any format supported by stb. Note
      * float images will be converted to an 8-bit range (HDR->LDR).
-     *
-     * A failed load will return an empty image
      * @param path path to image file
      * @param out output image
      * @param bApplyEOTF will apply sRGB EOTF function if true

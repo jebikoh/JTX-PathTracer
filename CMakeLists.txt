@@ -109,6 +109,9 @@ else ()
     message(STATUS "[JTX] Embree support is disabled")
 endif ()
 
+# Native File Dialog Extended
+add_subdirectory(ext/nfd)
+
 # Fetched ─────────────────────────────────────────────────────────────────────
 # fmt
 include(FetchContent)
@@ -176,6 +179,7 @@ set(JTX_SCENE
         jtx2/scene/scene.hpp
         jtx2/scene/scene_loader.hpp
         jtx2/scene/scene_loader.cpp
+        jtx2/scene/scene_exporter.hpp
 )
 
 set(JTX_UTIL
@@ -258,6 +262,22 @@ target_include_directories(JTXCore PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/imfilebrowser
 )
 
+# Native file dialog dependencies
+if(APPLE)
+    # on macOS you must link the AppKit and UniformTypeIdentifiers frameworks
+    target_link_libraries(JTXCore PRIVATE
+            "-framework AppKit"
+            "-framework UniformTypeIdentifiers"
+    )
+elseif(WIN32)
+    # on Windows you must link ole32, uuid and shell32
+    target_link_libraries(JTXCore PRIVATE
+            ole32
+            uuid
+            shell32
+    )
+endif()
+
 target_link_libraries(JTXCore PUBLIC
         Vulkan::Vulkan
         GPUOpen::VulkanMemoryAllocator
@@ -270,7 +290,9 @@ target_link_libraries(JTXCore PUBLIC
         fmt::fmt
         fastgltf::fastgltf
         glm
+        nfd
 )
+
 if (JTX_USE_EMBREE AND embree_FOUND)
     target_link_libraries(JTXCore PUBLIC embree)
 endif ()

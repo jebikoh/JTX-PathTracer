@@ -4,13 +4,14 @@
 #include <jtx.hpp>
 #include <util/aabb.hpp>
 #include <util/simd.hpp>
-#include <scene/scene.hpp>
 
 #ifdef JTX_USE_EMBREE
 #include <embree4/rtcore.h>
 #endif
 
 namespace jtx {
+
+struct Scene;
 
 struct Triangle;
 
@@ -68,7 +69,7 @@ struct BVH2BuildNode {
 
 class BVH2 {
 public:
-    void Build(const jtx::Scene &scene, int maxTrianglesInNode = 1);
+    void Build(const Scene &scene, int maxTrianglesInNode = 1);
     void Destroy();
 
     bool ClosestHit(const ray &r, float t0, float t1, TriangleIntersection &isect) const;
@@ -177,7 +178,7 @@ BVH2BuildNode *BuildTreeForBVH4(std::span<Triangle> triangles, int *totalNodes, 
 
 class BVH4 {
 public:
-    void Build(const jtx::Scene &scene);
+    void Build(const Scene &scene);
     void Destroy();
 
     bool ClosestHit(const ray &r, float t0, float t1, TriangleIntersection &isect) const;
@@ -192,7 +193,7 @@ private:
 #ifdef JTX_USE_EMBREE
 class BVHEmbree {
 public:
-    void Build(const jtx::Scene &scene);
+    void Build(const Scene &scene);
     void Destroy() const;
 
     bool ClosestHit(const ray &r, float t0, float t1, TriangleIntersection &isect) const;

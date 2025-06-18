@@ -13,11 +13,11 @@ namespace jtx {
  * User is required to manually call update() after any changes to camera or relevant render settings
  */
 struct ThinLensCamera {
-    CameraSettings settings{};
     float width = 0;
     float height = 0;
     uint32_t sppRow = 1;
     uint32_t sppCol = 1;
+    Scene::CameraSettings settings{};
 
     /**
      * Updates camera's viewport and focal lens. Must be called after any changes to the camera settings.

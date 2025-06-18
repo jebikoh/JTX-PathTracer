@@ -1,3 +1,6 @@
+#include "nfd.h"
+
+
 #include <SDL_events.h>
 #include <interface/display.hpp>
 #include <thread>

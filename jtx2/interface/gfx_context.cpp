@@ -8,6 +8,8 @@
 #include <SDL_vulkan.h>
 #include <jvk/util.hpp>
 
+#include <nfd.h>
+
 constexpr bool JTX_USE_VALIDATION_LAYERS = true;
 
 namespace jtx {
@@ -48,6 +50,10 @@ void GfxContext::InitWindow() {
     SDL_Vulkan_GetDrawableSize(window.pWindow, &w, &h);
     window.extent.width  = w;
     window.extent.height = h;
+
+    if (NFD_Init() != NFD_OKAY) {
+        LOG_FATAL(DISPLAY, "Failed to initialize NFD");
+    }
 
     LOG_DEBUG(DISPLAY, "Window Initialized");
 }
@@ -101,12 +107,13 @@ void GfxContext::InitVulkan() {
                                .select();
     if (!vkbPdResult) {
         bRayTracingSupported = false;
-        pdSelector = vkb::PhysicalDeviceSelector{vkbInstance};
-        vkbPdResult = pdSelector
+        pdSelector           = vkb::PhysicalDeviceSelector{vkbInstance};
+        vkbPdResult          = pdSelector
                               .set_minimum_version(1, 2)
                               .add_required_extension(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME)
                               .add_required_extension(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)
                               .add_required_extension(VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME)
+                              .set_required_features_12(features12)
                               .set_surface(ctx)
                               .select();
         if (!vkbPdResult) {
@@ -119,7 +126,7 @@ void GfxContext::InitVulkan() {
     }
 
     vkb::PhysicalDevice &vkbPd = vkbPdResult.value();
-    ctx.physicalDevice               = vkbPd.physical_device;
+    ctx.physicalDevice         = vkbPd.physical_device;
 
     // Vulkan device
     vkb::DeviceBuilder deviceBuilder{vkbPd};
@@ -319,6 +326,7 @@ void GfxContext::Destroy() {
 void GfxContext::DestroyWindow() const {
     LOG_DEBUG(DISPLAY, "Destroying window");
 
+    NFD_Quit();
     SDL_DestroyWindow(window.pWindow);
 
     LOG_DEBUG(DISPLAY, "Window Destroyed");

@@ -1,10 +1,9 @@
 #pragma once
 
-#include "image.hpp"
-#include "jtx.hpp"
-#include "material.h"
-#include "util/aabb.hpp"
-
+#include <image.hpp>
+#include <jtx.hpp>
+#include <material.h>
+#include <util/aabb.hpp>
 #include <util/sampling.hpp>
 
 // TODO: add TRS transform and basic scene graph
@@ -52,6 +51,27 @@ struct LightSample {
 struct Scene {
     std::string name;
 
+    // Camera
+    struct CameraSettings {
+        vec3 position{};
+        vec3 target{};
+        vec3 up{};
+
+        float yfov;       // FOV for reference
+        float focalLength;// Focal length in mm
+        float sensorWidth;// Sensor width in mm
+        // Sensor height is derived from aspect ratio
+
+        bool bEnableDof     = false;// Enable/disable depth of field
+        float focalDistance = 1.0f; // Focal distance in meters
+        float fStop         = 2.8f; // Aperture size (f-stop)
+
+        // TODO:
+        // - Exposure (ISO100)
+        // - Tone mapping: ACES, Reinhard, Uncharted2
+        // - Display device: sRGB, Display P3
+    } cameraSettings;
+
     // Triangle data
     std::vector<vec3u> indices;
     std::vector<uint32_t> materialIndices;
@@ -67,16 +87,43 @@ struct Scene {
     std::vector<Image8u> textures;
     std::vector<Mesh> meshes;
 
-    // Lights
-    std::vector<uint32_t> emissiveTriangles; // Indices of triangles that are emissive
-
     // Skybox color
     vec3 skyColor;
 
-    /**
-     * Generates an array of triangles in this scene
-     * @return triangles in this scene
-     */
+    // Lights
+    std::vector<uint32_t> emissiveTriangles; // Indices of triangles that are emissive
+
+    void Destroy() {
+        indices.clear();
+        indices.shrink_to_fit();
+        materialIndices.clear();
+        materialIndices.shrink_to_fit();
+
+        positions.clear();
+        positions.shrink_to_fit();
+        normals.clear();
+        normals.shrink_to_fit();
+        texCoords.clear();
+        texCoords.shrink_to_fit();
+        colors.clear();
+        colors.shrink_to_fit();
+
+        materials.clear();
+        materials.shrink_to_fit();
+
+        for (auto &texture : textures) {
+            texture.Destroy();
+        }
+        textures.clear();
+        textures.shrink_to_fit();
+
+        meshes.clear();
+        meshes.shrink_to_fit();
+
+        emissiveTriangles.clear();
+        emissiveTriangles.shrink_to_fit();
+    }
+
     std::vector<Triangle> GetTriangles() const {
         std::vector<Triangle> triangles;
 

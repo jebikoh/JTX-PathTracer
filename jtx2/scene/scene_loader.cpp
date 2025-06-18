@@ -54,26 +54,31 @@ JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &sc
     // Hashmap to keep track of textures we've already loaded
     std::unordered_map<std::string, int> textureMap;
 
+    const auto LoadTexture = [&](const std::string &texPath) {
+        if (texPath.empty()) return JTX_MATERIAL_TEXTURE_INDEX_NONE;
+
+        if (textureMap.contains(texPath)) {
+            return textureMap[texPath];
+        }
+
+        Image8u texture;
+        if (Image8u::Load((baseDir + texPath), scene.textures.back()) < 0) {
+            textureMap[texPath] = JTX_MATERIAL_TEXTURE_MISSING;
+            return JTX_MATERIAL_TEXTURE_MISSING;
+        }
+
+        scene.textures.emplace_back(texture);
+        const size_t textureIndex = scene.textures.size() - 1;
+        textureMap[texPath]       = textureIndex;
+        return textureIndex;
+    };
+
     // Load all materials
     for (const auto & material : result.materials) {
         Material mat{};
 
-        // Diffuse material loading
         mat.parameters.diffuse = vec3(material.diffuse.data());
-        if (!material.diffuse_texname.empty()) {
-            auto texturePath = material.diffuse_texname;
-            if (textureMap.contains(texturePath)) {
-                mat.textureIndices.albedo = textureMap[texturePath];
-            } else {
-                scene.textures.emplace_back();
-                Image8u::Load((baseDir + texturePath), scene.textures.back());
-                const size_t textureIndex = scene.textures.size() - 1;
-                textureMap[texturePath] = textureIndex;
-                mat.textureIndices.albedo = textureIndex;
-            }
-        } else {
-            mat.textureIndices.albedo = JTX_MATERIAL_TEXTURE_INDEX_NONE;
-        }
+        mat.textureIndices.diffuse = LoadTexture(material.diffuse_texname);
 
         mat.parameters.emission = vec3(material.emission.data());
         scene.materials.push_back(mat);

@@ -31,6 +31,9 @@ public:
     void Run();
 
     void SetScene(jtx::Scene *pScene) {
+        if (m_pScene) {
+            m_pScene->Destroy();
+        }
         m_pScene = pScene;
         m_wing.LoadScene(pScene);
     }

@@ -8,7 +8,7 @@ namespace jtx {
 
 class BackendCPU {
 public:
-    void Init(const uint32_t width, const uint32_t height, const RenderSettings &settings, const CameraSettings &cameraSettings) {
+    void Init(const uint32_t width, const uint32_t height, const RenderSettings &settings) {
         m_width = width;
         m_height = height;
         m_renderSettings = settings;
@@ -18,7 +18,6 @@ public:
         m_camera.height = height;
         m_camera.sppRow = settings.sppRow;
         m_camera.sppCol = settings.sppCol;
-        m_camera.settings = cameraSettings;
 
         m_accBuffer.Resize(width, height, 3);
         m_imgBuffer.Resize(width, height, 3);
@@ -33,6 +32,7 @@ public:
     void LoadScene(Scene *scene) {
         m_scene = scene;
         m_bvh.Build(*m_scene);
+        UpdateCameraSettings();
     }
 
     void StartProgressiveRender();
@@ -44,8 +44,8 @@ public:
         m_renderSettings.sppCol = settings.sppCol;
     }
 
-    void UpdateCameraSettings(const CameraSettings &settings) {
-        m_camera.settings = settings;
+    void UpdateCameraSettings() {
+        m_camera.settings = m_scene->cameraSettings;
     }
 
     void Resize(const int width, const int height) {

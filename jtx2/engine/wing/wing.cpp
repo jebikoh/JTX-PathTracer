@@ -229,27 +229,22 @@ void WingEngine::LoadScene(const Scene *pScene) {
         LOG_DEBUG(RASTERIZER, "Created color GPU buffer");
     }
 
-    // Device addresses
-    VkBufferDeviceAddressInfo deviceAddressInfo{};
-    deviceAddressInfo.sType            = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-    deviceAddressInfo.buffer           = m_gpuSceneMeshData.index.buffer;
-    m_gpuSceneMeshData.indexAddress    = vkGetBufferDeviceAddress(m_gfx.ctx, &deviceAddressInfo);
-    deviceAddressInfo.buffer           = m_gpuSceneMeshData.position.buffer;
-    m_gpuSceneMeshData.positionAddress = vkGetBufferDeviceAddress(m_gfx.ctx, &deviceAddressInfo);
-    deviceAddressInfo.buffer           = m_gpuSceneMeshData.normal.buffer;
-    m_gpuSceneMeshData.normalAddress   = vkGetBufferDeviceAddress(m_gfx.ctx, &deviceAddressInfo);
-    deviceAddressInfo.buffer           = m_gpuSceneMeshData.uv.buffer;
-    m_gpuSceneMeshData.uvAddress       = vkGetBufferDeviceAddress(m_gfx.ctx, &deviceAddressInfo);
-    if (bSceneHasVertexColors) {
-        deviceAddressInfo.buffer        = m_gpuSceneMeshData.color.buffer;
-        m_gpuSceneMeshData.colorAddress = vkGetBufferDeviceAddress(m_gfx.ctx, &deviceAddressInfo);
-    }
-
     // Index buffer
     LOG_DEBUG(RASTERIZER, "Creating index buffer");
-    constexpr VkBufferUsageFlags indexBufferUsages = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    // We need VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT for ray tracing
+    constexpr VkBufferUsageFlags indexBufferUsages = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     m_gpuSceneMeshData.index                       = m_gfx.CreateBuffer(indexBufferSize, indexBufferUsages, bufferMemoryUsage);
     LOG_DEBUG(RASTERIZER, "Created index buffer");
+
+    // Device addresses
+    VkBufferDeviceAddressInfo deviceAddressInfo{};
+    m_gpuSceneMeshData.indexAddress    = m_gpuSceneMeshData.index.GetDeviceAddress(m_gfx.ctx);
+    m_gpuSceneMeshData.positionAddress = m_gpuSceneMeshData.position.GetDeviceAddress(m_gfx.ctx);
+    m_gpuSceneMeshData.normalAddress   = m_gpuSceneMeshData.normal.GetDeviceAddress(m_gfx.ctx);
+    m_gpuSceneMeshData.uvAddress       = m_gpuSceneMeshData.uv.GetDeviceAddress(m_gfx.ctx);
+    if (bSceneHasVertexColors) {
+        m_gpuSceneMeshData.colorAddress = m_gpuSceneMeshData.color.GetDeviceAddress(m_gfx.ctx);
+    }
 
     // Staging buffer
     LOG_DEBUG(RASTERIZER, "Creating staging buffer");
@@ -332,8 +327,8 @@ void WingEngine::LoadScene(const Scene *pScene) {
         static_cast<GPUMaterialUBOData *>(materialData)[uboOffset] = uboData;
 
         GPUMaterialResources resources{};
-        if (material.textureIndices.albedo != JTX_MATERIAL_TEXTURE_INDEX_NONE) {
-            resources.images.diffuse = m_sceneTextures[material.textureIndices.albedo];
+        if (material.textureIndices.diffuse != JTX_MATERIAL_TEXTURE_INDEX_NONE) {
+            resources.images.diffuse = m_sceneTextures[material.textureIndices.diffuse];
         } else {
             resources.images.diffuse = m_gfx.defaultImages.white;
         }

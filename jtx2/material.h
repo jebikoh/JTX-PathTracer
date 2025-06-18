@@ -4,6 +4,7 @@
 namespace jtx {
 
 static constexpr int32_t JTX_MATERIAL_TEXTURE_INDEX_NONE = -1;
+static constexpr int32_t JTX_MATERIAL_TEXTURE_MISSING    = -2;
 
 struct Material {
     enum Type {
@@ -28,7 +29,7 @@ struct Material {
     } parameters;
 
     struct TextureIndices {
-        int32_t albedo            = JTX_MATERIAL_TEXTURE_INDEX_NONE;
+        int32_t diffuse            = JTX_MATERIAL_TEXTURE_INDEX_NONE;
         int32_t metallicRoughness = JTX_MATERIAL_TEXTURE_INDEX_NONE;
     } textureIndices;
 

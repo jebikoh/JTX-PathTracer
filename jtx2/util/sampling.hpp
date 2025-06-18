@@ -192,7 +192,7 @@ JTX_FORCE_INLINE float CosineHemispherePDF(const float cosTheta) {
 
 JTX_FORCE_INLINE vec3 SampleUniformTriangle(vec2 s) {
 #ifdef JTX_SAMPLE_TRIANGLE_BRANCHLESS
-    s.x = jtx::sqrt(s.x);
+    s.x = jtx::Sqrt(s.x);
     const float b0 = 1 - s.x;
     const float b1 = s.y * s.x;
     return {b0, b1, 1 - b0 - b1};

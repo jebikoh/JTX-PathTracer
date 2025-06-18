@@ -22,7 +22,7 @@ struct WorkQueue {
 };
 
 inline float ApplyGamma(const float x) {
-    if (x > 0) return jtx::sqrt(x);
+    if (x > 0) return jtx::Sqrt(x);
     return 0.0f;
 }
 

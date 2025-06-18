@@ -53,7 +53,7 @@ TEST(Sampler, UniformU32) {
 
     constexpr float mu = static_cast<float>(range - 1) / 2.0f;
     constexpr float var = range * range / 12.0f;
-    const float epsMu = 2 * jtx::sqrt(var / JTX_N);
+    const float epsMu = 2 * jtx::Sqrt(var / JTX_N);
 
     uint64_t sum = 0;
     for (uint32_t i = 0; i < JTX_N; ++i) {
@@ -73,7 +73,7 @@ TEST(Sampler, UniformFP32) {
 
     constexpr float mu = 0.5f;
     constexpr float var = 1.0f / 12.0f;
-    const float epsMu = 2 * jtx::sqrt(var / JTX_N);
+    const float epsMu = 2 * jtx::Sqrt(var / JTX_N);
 
     float sum = 0;
     for (uint32_t i = 0; i < JTX_N; ++i) {
@@ -94,8 +94,8 @@ TEST(Sampler, UniformFP32Range) {
     constexpr float rmax = 23.32f;
 
     constexpr float mu = (rmin + rmax) * 0.5f;
-    const float var = jtx::sqr((rmax - rmin)) * (1.0f / 12.0f);
-    const float epsMu   = 2 * jtx::sqrt(var / JTX_N);
+    const float var = jtx::Sqr((rmax - rmin)) * (1.0f / 12.0f);
+    const float epsMu   = 2 * jtx::Sqrt(var / JTX_N);
 
     float sum = 0;
     for (uint32_t i = 0; i < JTX_N; ++i) {

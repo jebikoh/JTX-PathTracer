@@ -186,6 +186,7 @@ set(JTX_UTIL
         jtx2/util/simd.hpp
         jtx2/util/sampling.hpp
         jtx2/util/timer.hpp
+        jtx2/util/complex.hpp
 )
 
 set(JTX_INTERFACE

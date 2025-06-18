@@ -10,7 +10,7 @@ inline float ApplyGamma(const float x) {
 }
 
 inline float ClampIntensity(float i) {
-    return jtx::clamp(i, 0.0f, 0.999f);
+    return jtx::Clamp(i, 0.0f, 0.999f);
 }
 
 inline vec3 SRGBToLinear(const vec3 &srgb) {

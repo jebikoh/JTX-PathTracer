@@ -31,7 +31,7 @@ inline vec3 ApplyGamma(const vec3 &x) {
 }
 
 inline float ClampIntensity(const float x) {
-    return jtx::clamp(x, 0.0f, 0.999f);
+    return jtx::Clamp(x, 0.0f, 0.999f);
 }
 
 inline vec3 ClampIntensity(const vec3 &x) {

@@ -64,7 +64,7 @@ TEST(Sampler, UniformU32) {
     }
     const float sampleMean = static_cast<float>(sum) / static_cast<float>(JTX_N);
 
-    EXPECT_LT(jtx::abs(sampleMean - mu), epsMu);
+    EXPECT_LT(jtx::Abs(sampleMean - mu), epsMu);
 }
 
 // Continuous uniform distribution
@@ -84,7 +84,7 @@ TEST(Sampler, UniformFP32) {
     }
     const float sampleMean = sum / static_cast<float>(JTX_N);
 
-    EXPECT_LT(jtx::abs(sampleMean - mu), epsMu);
+    EXPECT_LT(jtx::Abs(sampleMean - mu), epsMu);
 }
 
 TEST(Sampler, UniformFP32Range) {
@@ -106,7 +106,7 @@ TEST(Sampler, UniformFP32Range) {
     }
     const float sampleMean = sum / static_cast<float>(JTX_N);
 
-    EXPECT_LT(jtx::abs(sampleMean - mu), epsMu);
+    EXPECT_LT(jtx::Abs(sampleMean - mu), epsMu);
 }
 
 TEST(Sampler, UniformSphere) {

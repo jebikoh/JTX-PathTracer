@@ -155,7 +155,7 @@ JTX_FORCE_INLINE vec2 SampleUniformDiskConcentric(const vec2 &s) {
     if (offset.x == 0 && offset.y == 0) return {0.0f, 0.0f};
 
     float r, theta;
-    if (jtx::abs(offset.x) > jtx::abs(offset.y)) {
+    if (jtx::Abs(offset.x) > jtx::Abs(offset.y)) {
         // X is dominant axis
         r = offset.x;
         theta = PI_OVER_4 * (offset.y / offset.x);

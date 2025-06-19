@@ -93,6 +93,19 @@ struct Scene {
     // Lights
     std::vector<uint32_t> emissiveTriangles; // Indices of triangles that are emissive
 
+    size_t AddMaterial(const Material &material) {
+        materials.push_back(material);
+        return materials.size() - 1;
+    }
+
+    void UpdateMeshMaterial(const size_t meshIndex, const size_t materialIndex) {
+        auto &mesh = meshes[meshIndex];
+        mesh.materialIndex = materialIndex;
+        for (int i = mesh.startIndex; i < mesh.startIndex + mesh.numIndices; ++i) {
+            materialIndices[i] = materialIndex;
+        }
+    }
+
     void Destroy() {
         indices.clear();
         indices.shrink_to_fit();

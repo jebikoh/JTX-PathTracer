@@ -94,9 +94,6 @@ vec3 jtx::IntegrateNEE(ray r, const Scene &scene, const BVH &bvh, int maxDepth, 
     auto radiance        = vec3(0.0f);
     auto beta            = vec3(1.0f);
     int depth            = 0;
-
-    // We need to track specular bounces to know if we need to add emission
-    // TODO: update this once we add specular bxdfs
     bool bSpecularBounce = false;
 
     TriangleIntersection triIsect;
@@ -167,6 +164,8 @@ vec3 jtx::IntegrateNEE(ray r, const Scene &scene, const BVH &bvh, int maxDepth, 
         BxDFSample sample;
         bool bSuccess = SampleBxDF(scene, surface, wo, s, s2, sample);
         if (!bSuccess) break;
+
+        bSpecularBounce = sample.bSpecular;
 
         beta *= sample.f * AbsDot(sample.wi, surface.normal) / sample.pdf;
 

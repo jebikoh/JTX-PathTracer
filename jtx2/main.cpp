@@ -3,7 +3,7 @@
 #include <interface/display.hpp>
 #include <scene/scene_loader.hpp>
 
-#define JTX_ENABLE_UI
+// #define JTX_ENABLE_UI
 
 int main(int argc, char *argv[]) {
     Logger::AddDefaultSink();
@@ -26,6 +26,22 @@ int main(int argc, char *argv[]) {
     scene.cameraSettings.up = {0, 1, 0};
     scene.cameraSettings.yfov = 40.0f;
     scene.cameraSettings.focalDistance = 1.0f;
+
+    // Specular gold material on short box
+    // jtx::Material conductor;
+    // conductor.mType = jtx::Material::COMPLEX_CONDUCTOR;
+    // conductor.parameters = {
+    //     .ior = vec3(0.18299,0.42108,1.37340),
+    //     .k = vec3(3.42420,2.34590,1.77040),
+    // };
+    jtx::Material conductor;
+    conductor.mType = jtx::Material::CONDUCTOR;
+    conductor.parameters = {
+        .f0 = vec3(0.384, 0.58, 1)
+    };
+
+    const uint32_t materialIndex = scene.AddMaterial(conductor);
+    scene.UpdateMeshMaterial(6, materialIndex);
 
     jtx::RenderSettings rs;
     rs.maxDepth = 32;

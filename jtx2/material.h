@@ -10,8 +10,9 @@ struct Material {
     enum Type {
         DIFFUSE            = 0,
         DIELECTRIC         = 1,
-        CONDUCTOR          = 2,
-        METALLIC_ROUGHNESS = 3,
+        COMPLEX_CONDUCTOR  = 2,
+        CONDUCTOR          = 3,
+        METALLIC_ROUGHNESS = 4,
     };
 
     Type mType = DIFFUSE;
@@ -20,6 +21,7 @@ struct Material {
         vec3 diffuse;
         vec3 ior;
         vec3 k;
+        vec3 f0;
         vec3 emission;
 
         float alphaX;

@@ -66,7 +66,7 @@ inline const char* string_JtxResult(const JtxResult input_value) {
 
 inline void CheckJtxError(const JtxResult result, char const *const func, const char *const file, int const line) {
     if (!result) {
-        LOG_FATAL(VULKAN, "Detected Vulkan error at {}:{} '{}': {}", file, line, func, string_JtxResult(result));
+        LOG_FATAL(VULKAN, "Detected JTX error at {}:{} '{}': {}", file, line, func, string_JtxResult(result));
     }
 }
 

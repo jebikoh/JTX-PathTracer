@@ -218,6 +218,7 @@ set(JTX_BACKEND_CPU
         jtx2/engine/cpu/bxdf/bxdf.hpp
         jtx2/engine/cpu/bxdf/bxdf.cpp
         jtx2/engine/cpu/bxdf/microfacet.hpp
+        jtx2/engine/cpu/bxdf/conductor.hpp
 )
 
 set(JTX_BACKEND

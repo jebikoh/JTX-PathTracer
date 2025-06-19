@@ -12,6 +12,7 @@
     <mapping directory="$PROJECT_DIR$/ext/glm" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/jtxlib" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/jtxlib/lib/Catch2" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/ext/nfd" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/sdl" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/vkbootstrap" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/vma" vcs="Git" />

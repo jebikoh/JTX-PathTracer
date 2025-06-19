@@ -54,7 +54,7 @@ JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &sc
     // Hashmap to keep track of textures we've already loaded
     std::unordered_map<std::string, int> textureMap;
 
-    const auto LoadTexture = [&](const std::string &texPath) {
+    const auto LoadTexture = [&](const std::string &texPath) {\
         if (texPath.empty()) return JTX_MATERIAL_TEXTURE_INDEX_NONE;
 
         if (textureMap.contains(texPath)) {
@@ -62,13 +62,13 @@ JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &sc
         }
 
         Image8u texture;
-        if (Image8u::Load((baseDir + texPath), scene.textures.back()) < 0) {
+        if (Image8u::Load((baseDir + texPath), texture) < 0) {
             textureMap[texPath] = JTX_MATERIAL_TEXTURE_MISSING;
             return JTX_MATERIAL_TEXTURE_MISSING;
         }
 
-        scene.textures.emplace_back(texture);
-        const size_t textureIndex = scene.textures.size() - 1;
+        scene.textures.push_back(std::move(texture));
+        const int32_t textureIndex = scene.textures.size() - 1;
         textureMap[texPath]       = textureIndex;
         return textureIndex;
     };

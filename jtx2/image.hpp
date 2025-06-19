@@ -142,6 +142,7 @@ public:
      * Resizes the current images -- data is not copied
      * @param w new width
      * @param h new height
+     * @param c new channels
      */
     void Resize(const uint32_t w, const uint32_t h, const uint32_t c) {
         this->Destroy();
@@ -273,6 +274,7 @@ public:
      * Resizes the current images -- data is not copied
      * @param w new width
      * @param h new height
+     * @param c new channels
      */
     void Resize(const uint32_t w, const uint32_t h, const uint32_t c) {
         this->Destroy();

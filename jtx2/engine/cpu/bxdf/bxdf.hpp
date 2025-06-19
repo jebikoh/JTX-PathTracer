@@ -12,6 +12,7 @@ struct BxDFSample {
     vec3 f;    // Scattering function value
     vec3 wi;   // Sampled incident direction
     float pdf; // PDF of the sampled direction
+    bool bSpecular;
 };
 
 bool SampleBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &wo, float s0, const vec2 &s1, BxDFSample &s);
@@ -47,7 +48,7 @@ inline bool Refract(const vec3 &wi, vec3 n, float &eta, vec3 &wt) {
     }
 
     // Compute Snell's law
-    const float r = jtx::max(0.0f, 1 - (cosThetaI * cosThetaI) / (eta * eta));
+    const float r = jtx::max(0.0f, 1 - (cosThetaI * cosThetaI)) / (eta * eta);
     if (r >= 1) return false;
     const float cosThetaT = jtx::SafeSqrt(1 - r);
 
@@ -58,12 +59,12 @@ inline bool Refract(const vec3 &wi, vec3 n, float &eta, vec3 &wt) {
 /**
  * Computes Schlick's approximation of fresnel reflectance.
  * @param wo outgoing direction
- * @param wm microfacet normal
+ * @param n surface normal
  * @param R reflectance color (RGB)
  * @return Fresnel reflectance value
  */
-inline vec3 Schlick(const vec3 &wo, const vec3 &wm, const vec3 &R) {
-    const auto cosTheta = jtx::AbsDot(wo, wm);
+inline vec3 Schlick(const vec3 &wo, const vec3 &n, const vec3 &R) {
+    const auto cosTheta = jtx::AbsDot(wo, n);
     const auto m = 1 - cosTheta;
     const auto m2 = m * m;
     return R + (vec3(1.0f) - R) * m2 * m2 * m;
@@ -84,7 +85,7 @@ inline float FresnelDielectric(float cosThetaI, float eta) {
     }
 
     // Snell's law
-    const float r = (1 - (cosThetaI * cosThetaI) / (eta * eta));
+    const float r = jtx::max(0.0f, 1 - (cosThetaI * cosThetaI)) / (eta * eta);
     if (r >= 1) return 1.0f; // Total internal reflection
     const float cosThetaT = jtx::SafeSqrt(1 - r);
 

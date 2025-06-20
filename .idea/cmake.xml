@@ -2,6 +2,7 @@
 <project version="4">
   <component name="CMakeSharedSettings">
     <configurations>
+      <configuration PROFILE_NAME="RelWithProfiling" ENABLED="true" CONFIG_NAME="Release" />
       <configuration PROFILE_NAME="Release" ENABLED="true" CONFIG_NAME="Release" GENERATION_OPTIONS="-DJTX_ENABLE_PROFILING:BOOL=OFF -DJTX_ENABLE_PERF_FLAGS:BOOL=ON" />
       <configuration PROFILE_NAME="RelWithDebInfo" ENABLED="true" CONFIG_NAME="RelWithDebInfo" GENERATION_OPTIONS="-DJTX_ENABLE_PROFILING:BOOL=OFF" />
       <configuration PROFILE_NAME="Benchmark" ENABLED="true" CONFIG_NAME="RelWithDebInfo" GENERATION_OPTIONS="-G Ninja -DJTX_BUILD_BENCHMARKS:BOOL=ON -DJTX_ENABLE_PROFILING:BOOL=OFF" />

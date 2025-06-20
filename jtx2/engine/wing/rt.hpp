@@ -1,5 +1,9 @@
 #pragma once
+#include "jvk/commands.hpp"
+
+
 #include <jvk/buffer.hpp>
+#include <jvk/fence.hpp>
 #include <jvk/jvk.hpp>
 
 /**
@@ -11,44 +15,76 @@
 namespace jtx {
 struct GfxContext;
 
+/**
+ * Struct to hold required information from the user to build a BLAS
+ */
 struct BLASInput {
-    std::vector<VkAccelerationStructureGeometryKHR> geometry;
-    std::vector<VkAccelerationStructureBuildRangeInfoKHR> buildRange;
-    VkBuildAccelerationStructureFlagsKHR flags;
+    std::vector<VkAccelerationStructureGeometryKHR> geometry;         // Geometry type, flags, triangle data references
+    std::vector<VkAccelerationStructureBuildRangeInfoKHR> buildRange; // Indices within the vertex arrays for the BLAS
+    VkBuildAccelerationStructureFlagsKHR flags = 0;                   // Build flags
 };
 
+/**
+ * Represents a Vulkan acceleration structure (BLAS or TLAS)
+ */
 struct AccelerationStructure {
     VkAccelerationStructureKHR handle = VK_NULL_HANDLE;
     jvk::Buffer buffer;
     VkDeviceAddress address = 0;
 };
 
+/**
+ * Information required to build an acceleration structure and the resulting acceleration structure
+ */
 struct AccelerationStructureBuildInfo {
     VkAccelerationStructureBuildGeometryInfoKHR build{.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR};
     const VkAccelerationStructureBuildRangeInfoKHR *pRange = nullptr;
     VkAccelerationStructureBuildSizesInfoKHR size{.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR};
-    AccelerationStructure as{};
-    AccelerationStructure cleanupAS{};
+    AccelerationStructure as{};        // Acceleration structure
+    AccelerationStructure cleanupAS{}; // Acceleration structure to destroy after compaction
 };
 
 struct ASManager {
     explicit ASManager(const GfxContext &gfx)
         : m_gfx(gfx) {}
 
+    void Init();
+
+    /**
+     * Builds a bottom-level acceleration structure (BLAS) for each input provided.
+     * @param inputs vector of BLASInput structures for each BLAS to build
+     * @param flags build flags to apply to each BLAS
+     */
     void BuildBLAS(
         const std::vector<BLASInput> &inputs,
-        VkBuildAccelerationStructureFlagsKHR flags);
+        VkBuildAccelerationStructureFlagsKHR flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR);
 
+    /**
+     * Builds a top-level acceleration structure (TLAS) from the provided instances.
+     * @param instances vector of VkAccelerationStructureInstanceKHR structures representing instances
+     * @param flags build flags to apply to the TLAS
+     * @param bUpdate set to true if TLAS is being updated, false if it is being built from scratch
+     */
     void BuildTLAS(
         const std::vector<VkAccelerationStructureInstanceKHR> &instances,
         VkBuildAccelerationStructureFlagsKHR flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR,
         bool bUpdate = false);
 
+    /**
+     * Retrieve the device address of a BLAS at the specified index.
+     * @param index index of the BLAS
+     * @return the device address of the BLAS
+     */
     VkDeviceAddress GetBLASDeviceAddress(const size_t index) const {
         return m_blas[index].address;
     }
 
-    void Destroy();
+    /**
+     * Destroys all acceleration structures and their associated buffers.
+     */
+    void DestroyAS();
+
+    void Destroy() const;
 
 private:
     const GfxContext &m_gfx;
@@ -73,12 +109,16 @@ private:
     void DestroyNonCompactedBLAS(const std::vector<uint32_t> &BLASIndices, const std::vector<AccelerationStructureBuildInfo> &buildInfo) const;
 
     void CreateTLAS(
-        VkCommandBuffer cmd,
-        uint32_t numInstances,
-        VkDeviceAddress instancesAddress,
-        jvk::Buffer &scratchBuffer,
-        VkBuildAccelerationStructureFlagsKHR flags,
-        bool bUpdate);
+            VkCommandBuffer cmd,
+            uint32_t numInstances,
+            VkDeviceAddress instancesAddress,
+            jvk::Buffer &scratchBuffer,
+            VkBuildAccelerationStructureFlagsKHR flags,
+            bool bUpdate);
+
+    jvk::CommandPool m_pool;
+    jvk::Fence m_fence1;
+    jvk::Fence m_fence2;
 };
 
 }// namespace jtx

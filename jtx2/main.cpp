@@ -3,7 +3,7 @@
 #include <interface/display.hpp>
 #include <scene/scene_loader.hpp>
 
-// #define JTX_ENABLE_UI
+#define JTX_ENABLE_UI
 
 int main(int argc, char *argv[]) {
     Logger::AddDefaultSink();

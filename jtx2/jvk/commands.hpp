@@ -1,5 +1,9 @@
 #pragma once
 
+#include "fence.hpp"
+#include "init.hpp"
+
+
 #include <jvk/jvk.hpp>
 
 namespace jvk {
@@ -27,6 +31,14 @@ struct CommandBuffer {
 
     VkResult Reset(const VkCommandBufferResetFlags flags = 0) const {
         return vkResetCommandBuffer(cmd, flags);
+    }
+
+    void SubmitAndWait(const VkQueue queue, const jvk::Fence &fence) const {
+        CHECK_VK(fence.Reset());
+        const VkCommandBufferSubmitInfoKHR cmdInfo = SubmitInfo();
+        const VkSubmitInfo2KHR submit = jvk::init::Submit(&cmdInfo, nullptr, nullptr);
+        CHECK_VK(vkQueueSubmit2KHR(queue, 1, &submit, fence));
+        CHECK_VK(fence.Wait());
     }
 
     VkCommandBufferSubmitInfoKHR SubmitInfo() const {

@@ -214,7 +214,11 @@ void WingEngine::LoadScene(const Scene *pScene) {
     bool bSceneHasVertexColors = colorBufferSize > 0;
 
     // Vertex buffers (position, normal, uv, color)
-    constexpr VkBufferUsageFlags vertexBufferUsages = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    VkBufferUsageFlags vertexBufferUsages = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    if (m_bRayTracingEnabled) {
+        vertexBufferUsages |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+    }
+
     constexpr VmaMemoryUsage bufferMemoryUsage      = VMA_MEMORY_USAGE_GPU_ONLY;
 
     LOG_DEBUG(RASTERIZER, "Creating GPU buffers");
@@ -232,7 +236,10 @@ void WingEngine::LoadScene(const Scene *pScene) {
     // Index buffer
     LOG_DEBUG(RASTERIZER, "Creating index buffer");
     // We need VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT for ray tracing
-    constexpr VkBufferUsageFlags indexBufferUsages = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    VkBufferUsageFlags indexBufferUsages = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    if (m_bRayTracingEnabled) {
+        indexBufferUsages |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+    }
     m_gpuSceneMeshData.index                       = m_gfx.CreateBuffer(indexBufferSize, indexBufferUsages, bufferMemoryUsage);
     LOG_DEBUG(RASTERIZER, "Created index buffer");
 
@@ -351,8 +358,10 @@ void WingEngine::LoadScene(const Scene *pScene) {
     m_bSceneLoaded = true;
 
     if (m_bRayTracingEnabled) {
+        LOG_DEBUG(RASTERIZER, "Building RT acceleration structures");
         BuildBLAS();
         BuildTLAS();
+        LOG_DEBUG(RASTERIZER, "RT acceleration structures built");
     }
 
     LOG_INFO(RASTERIZER, "Scene loaded");
@@ -532,7 +541,9 @@ void WingEngine::DestroyGPUScene() {
     m_gfx.WaitIdle();
     if (m_bSceneLoaded) {
         if (m_bRayTracingEnabled) {
-            m_ASManager.Destroy();
+            LOG_DEBUG(RASTERIZER, "Destroying RT acceleration structures");
+            m_ASManager.DestroyAS();
+            LOG_DEBUG(RASTERIZER, "RT acceleration structures destroyed");
         }
 
         DestroyGPUSceneMeshData();
@@ -642,6 +653,7 @@ void WingEngine::BuildBLAS() {
         triangles.indexData.deviceAddress  = indexAddress;
         triangles.indexType                = VK_INDEX_TYPE_UINT32;
         triangles.maxVertex                = mesh.numIndices * 3 - 1;
+        triangles.vertexFormat             = VK_FORMAT_R32G32B32_SFLOAT;
 
         VkAccelerationStructureGeometryKHR geometry{};
         geometry.sType              = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
@@ -665,7 +677,6 @@ void WingEngine::BuildBLAS() {
 }
 
 void WingEngine::BuildTLAS() {
-
     // We don't really support instances, so we will just create one instance of each BLAS
     // (We also don't support transforms right now, so identity matrix is hardcoded)
     std::vector<VkAccelerationStructureInstanceKHR> tlas;

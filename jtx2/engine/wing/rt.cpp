@@ -7,6 +7,12 @@ inline bool HasFlag(const VkFlags item, const VkFlags flag) {
     return (item & flag) == flag;
 }
 
+void ASManager::Init() {
+    m_fence1.Init(m_gfx.ctx);
+    m_fence2.Init(m_gfx.ctx);
+    m_pool.Init(m_gfx.ctx, m_gfx.graphicsQueue.family, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+}
+
 void ASManager::BuildBLAS(const std::vector<BLASInput> &inputs, const VkBuildAccelerationStructureFlagsKHR flags) {
     const uint32_t numBLAS      = static_cast<uint32_t>(inputs.size());
     uint32_t numBLASCompactions = 0;
@@ -95,38 +101,38 @@ void ASManager::BuildBLAS(const std::vector<BLASInput> &inputs, const VkBuildAcc
     m_gfx.DestroyBuffer(scratchBuffer);
 }
 
-void ASManager::BuildTLAS(const std::vector<VkAccelerationStructureInstanceKHR> &instances, VkBuildAccelerationStructureFlagsKHR flags, bool bUpdate) {
+void ASManager::BuildTLAS(const std::vector<VkAccelerationStructureInstanceKHR> &instances, const VkBuildAccelerationStructureFlagsKHR flags, const bool bUpdate) {
     assert(m_tlas.handle == VK_NULL_HANDLE || bUpdate);
     const uint32_t numInstances = static_cast<uint32_t>(instances.size());
 
-    jvk::Buffer instancesBuffer;
     jvk::Buffer scratchBuffer;
 
+    // Copy instance data to a staging buffer
+    const auto bufSize              = numInstances * sizeof(VkAccelerationStructureInstanceKHR);
+    const jvk::Buffer stagingBuffer = m_gfx.CreateBuffer(bufSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
+    void *data = stagingBuffer.Map(m_gfx.allocator);
+    std::memcpy(data, instances.data(), bufSize);
+    stagingBuffer.Unmap(m_gfx.allocator);
+
+    const jvk::Buffer instancesBuffer = m_gfx.CreateBuffer(
+            numInstances * sizeof(VkAccelerationStructureInstanceKHR),
+            VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VMA_MEMORY_USAGE_GPU_ONLY);
+
+    // Copy staging buffer to device buffer
     m_gfx.imBuffer.SubmitAndWait(m_gfx.graphicsQueue, [&](const VkCommandBuffer cmd) {
-        // Copy instance data to a staging buffer
-        const auto bufSize              = numInstances * sizeof(VkAccelerationStructureInstanceKHR);
-        const jvk::Buffer stagingBuffer = m_gfx.CreateBuffer(bufSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
-        void *data = stagingBuffer.Map(m_gfx.allocator);
-        std::memcpy(data, instances.data(), bufSize);
-        stagingBuffer.Unmap(m_gfx.allocator);
+        VkBufferCopy copyRegion{};
+        copyRegion.srcOffset = 0;
+        copyRegion.dstOffset = 0;
+        copyRegion.size      = bufSize;
+        vkCmdCopyBuffer(cmd, stagingBuffer.buffer, instancesBuffer.buffer, 1, &copyRegion);
+    });
 
-        instancesBuffer = m_gfx.CreateBuffer(
-                numInstances * sizeof(VkAccelerationStructureInstanceKHR),
-                VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                VMA_MEMORY_USAGE_GPU_ONLY);
+    m_gfx.DestroyBuffer(stagingBuffer);
 
-        // Copy staging buffer to device buffer
-        m_gfx.imBuffer.SubmitAndWait(m_gfx.graphicsQueue, [&](const VkCommandBuffer cmd) {
-           VkBufferCopy copyRegion{};
-            copyRegion.size = bufSize;
-            copyRegion.dstOffset = 0;
-            copyRegion.srcOffset = 0;
-            vkCmdCopyBuffer(cmd, stagingBuffer.buffer, instancesBuffer.buffer, 1, &copyRegion);
-        });
-        m_gfx.DestroyBuffer(stagingBuffer);
+    const VkDeviceAddress instancesAddress = instancesBuffer.GetDeviceAddress(m_gfx.ctx);
 
-        const VkDeviceAddress instancesAddress = instancesBuffer.GetDeviceAddress(m_gfx.ctx);
-
+    m_gfx.imBuffer.SubmitAndWait(m_gfx.graphicsQueue, [&](const VkCommandBuffer cmd) {
         VkMemoryBarrier barrier{};
         barrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -138,7 +144,8 @@ void ASManager::BuildTLAS(const std::vector<VkAccelerationStructureInstanceKHR> 
     m_gfx.DestroyBuffer(scratchBuffer);
     m_gfx.DestroyBuffer(instancesBuffer);
 }
-void ASManager::Destroy() {
+
+void ASManager::DestroyAS() {
     for (auto &blas: m_blas) {
         vkDestroyAccelerationStructureKHR(m_gfx.ctx, blas.handle, nullptr);
         m_gfx.DestroyBuffer(blas.buffer);
@@ -150,6 +157,12 @@ void ASManager::Destroy() {
         m_gfx.DestroyBuffer(m_tlas.buffer);
         m_tlas.handle = VK_NULL_HANDLE;
     }
+}
+
+void ASManager::Destroy() const {
+    m_pool.Destroy();
+    m_fence1.Destroy();
+    m_fence2.Destroy();
 }
 
 AccelerationStructure ASManager::CreateAS(const VkAccelerationStructureCreateInfoKHR &info) const {

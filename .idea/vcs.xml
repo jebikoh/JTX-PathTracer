@@ -8,6 +8,7 @@
     <mapping directory="$PROJECT_DIR$/cmake-build-debugtest/_deps/fmt-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-release/_deps/fmt-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-relwithdebinfo/_deps/fmt-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-relwithprofiling/_deps/fmt-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/fastgltf" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/glm" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/jtxlib" vcs="Git" />

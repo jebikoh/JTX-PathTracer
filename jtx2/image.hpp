@@ -305,4 +305,42 @@ inline RGBA32f Image32f::GetPixel<RGBA32f>(const int row, const int col) {
     return result;
 }
 
+/**
+ * Calculates the Mean Squared Error (MSE) between two images.
+ *
+ * Images must have the same dimensions and channel count.
+ * @param img the image to compare
+ * @param ref the reference image to compare against
+ * @return MSE value, or -1.0f on failure.
+ */
+float CalculateMSE(const Image8u &img, const Image8u &ref);
+
+/**
+ * Loads images and calculates the Mean Squared Error (MSE) between them.
+ *
+ * Images must have the same dimensions and channel count.
+ * @param imgPath path to the image to compare
+ * @param refPath path to the reference image to compare against
+ * @return MSE value, or -1.0f on failure
+ */
+inline float CalculateMSE(const std::string &imgPath, const std::string &refPath) {
+    Image8u img;
+    if (Image8u::Load(imgPath, img) != JTX_SUCCESS) {
+        LOG_ERROR(TEXTURE, "Failed to load image");
+        return -1.0f;
+    }
+
+    Image8u ref;
+    if (Image8u::Load(refPath, ref) != JTX_SUCCESS) {
+        LOG_ERROR(TEXTURE, "Failed to load reference image");
+        return -1.0f;
+    }
+
+    const float mse = CalculateMSE(img, ref);
+
+    img.Destroy();
+    ref.Destroy();
+    return mse;
+}
+
 }// namespace jtx

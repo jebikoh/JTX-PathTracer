@@ -24,6 +24,7 @@ struct RenderSettings {
     uint32_t tileSize       = 32;
     uint32_t numThreads     = 16;
     uint32_t samplesPerPass = 1;
+    uint32_t seed           = 0;
 };
 
 }// namespace jtx

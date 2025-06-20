@@ -20,7 +20,7 @@ public:
     }
 
     /**
-     * Initializes sampler by hashing three 32-bit unsigned integers
+     * Initializes sampler with three 32-bit unsigned integers
      *
      * Utilizes xxhash32
      * @param x X strata
@@ -29,6 +29,17 @@ public:
      */
     Sampler(const uint32_t x, const uint32_t y, const uint32_t z) {
         m_state = xxHash32({x, y, z});
+    }
+
+    /**
+     * Initializes the sampler with a seed and three 32-bit unsigned integers
+     * @param seed base seed
+     * @param x X strata
+     * @param y Y strata
+     * @param z Z strata
+     */
+    Sampler(const uint32_t seed, const uint32_t x, const uint32_t y, const uint32_t z) {
+        m_state = xxHash32({seed, x, y, z});
     }
 
     /**

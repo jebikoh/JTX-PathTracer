@@ -116,9 +116,12 @@ vec3 jtx::IntegrateNEE(ray r, const Scene &scene, const BVH &bvh, int maxDepth, 
 
         const vec3 wo = -r.dir;
 
-        // Sample direct illumination
+        // Sample direct illumination (NEE)
+        // 
+        // If the previous bounce was specular, we skip direct lighting sampling since specular
+        // surfaces are modelled with a dirac delta function
         auto Ld = vec3(0.0f);
-        {
+        if (!bSpecularBounce) {
             // Randomly select a light
             const auto index         = rng.Sample(scene.emissiveTriangles.size());
             const auto emissiveIndex = scene.emissiveTriangles[index];

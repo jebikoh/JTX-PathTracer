@@ -36,7 +36,9 @@ public:
     }
 
     void StartProgressiveRender();
-    void StartRender();
+    void StartOfflineRender();
+
+    JtxResult SaveRenderOutput(const std::string &path) const;
 
     void UpdateRenderSettings(const RenderSettings &settings) {
         m_renderSettings = settings;

@@ -92,13 +92,13 @@ void BackendCPU::StartProgressiveRender() {
                     for (auto sample = startingSample; sample < std::min(startingSample + m_renderSettings.samplesPerPass, spp); ++sample) {
                         for (auto row = job.startRow; row < job.endRow; ++row) {
                             for (auto col = job.startCol; col < job.endCol; ++col) {
-                                Sampler sampler(row, col, sample + 1);
+                                Sampler sampler(m_renderSettings.seed, row, col, sample + 1);
                                 const ray r = m_camera.GetRay(row, col, sample, sampler);
 
                                 // Integrate ray
-                                // const vec3 intensity = Integrate(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
+                                const vec3 intensity = Integrate(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
                                 // const vec3 intensity = IntegrateRR(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
-                                const vec3 intensity = IntegrateNEE(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
+                                // const vec3 intensity = IntegrateNEE(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
 
                                 // Accumulate
                                 float *acc = JTX_IMAGE_PIXEL_PTR(m_accBuffer, row, col);
@@ -136,16 +136,10 @@ void BackendCPU::StartProgressiveRender() {
         thread.join();
     }
     LOG_INFO(RENDER, "Rendering completed");
-    // TODO: remove this
-    if (m_imgBuffer.Save("img.png")) {
-        LOG_DEBUG(RENDER, "Output saved");
-    } else {
-        LOG_DEBUG(RENDER, "Output not saved");
-    }
 }
 
-void BackendCPU::StartRender() {
-    LOG_INFO(RENDER, "Starting progressive rendering with CPU backend");
+void BackendCPU::StartOfflineRender() {
+    LOG_INFO(RENDER, "Starting offline rendering with CPU backend");
     // Updates camera every time; use dirty flag if needed later
     m_camera.Update();
 
@@ -167,48 +161,36 @@ void BackendCPU::StartRender() {
     std::vector<std::thread> threads;
     threads.reserve(m_renderSettings.numThreads);
 
-    // Setup synchronization
-    const uint32_t spp                  = m_renderSettings.sppRow * m_renderSettings.sppCol;
-    bool bTerminate                     = false;
-    std::atomic<uint32_t> currentSample = 0;
-    std::barrier endBarrier(m_renderSettings.numThreads, [&]() noexcept {
-        currentSample.fetch_add(m_renderSettings.samplesPerPass, std::memory_order_relaxed);
-        if (currentSample.load() >= spp) {
-            bTerminate = true;
-        }
-    });
+    // Offline rendering doesn't need synchronization per sample since there is no progressive display
+    const uint32_t spp = m_renderSettings.sppRow * m_renderSettings.sppCol;
 
     // Launch threads
+    PROFILE_LOCAL_START("Render progress");
     LOG_DEBUG(RENDER, "Launching {} threads", m_renderSettings.numThreads);
     for (uint32_t i = 0; i < m_renderSettings.numThreads; ++i) {
-        threads.emplace_back([this, &bTerminate, &currentSample, &q, spp, &endBarrier] {
+        threads.emplace_back([this, &q, spp] {
             while (true) {
-                if (bTerminate) break;
+                const auto jobIndex = q.nextJobIndex.fetch_add(1, std::memory_order_relaxed);
+                if (jobIndex >= q.jobs.size()) break;
+                const auto &job = q.jobs[jobIndex];
 
-                const int startingSample = currentSample.load();
-                while (true) {
-                    // Fetch job
-                    const auto jobIndex = q.nextJobIndex.fetch_add(1, std::memory_order_relaxed);
-                    if (jobIndex >= q.jobs.size()) break;
-                    const auto &job = q.jobs[jobIndex];
+                for (auto sample = 0; sample < spp; ++sample) {
+                    for (auto row = job.startRow; row < job.endRow; ++row) {
+                        for (auto col = job.startCol; col < job.endCol; ++col) {
+                            Sampler sampler(row, col, sample + 1);
+                            const ray r = m_camera.GetRay(row, col, sample, sampler);
 
-                    for (auto sample = startingSample; sample < std::min(startingSample + m_renderSettings.samplesPerPass, spp); ++sample) {
-                        for (auto row = job.startRow; row < job.endRow; ++row) {
-                            for (auto col = job.startCol; col < job.endCol; ++col) {
-                                Sampler sampler(row, col, sample + 1);
-                                const ray r = m_camera.GetRay(row, col, sample, sampler);
+                            // const vec3 intensity = Integrate(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
+                            // const vec3 intensity = IntegrateRR(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
+                            const vec3 intensity = IntegrateNEE(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
 
-                                const vec3 intensity = Integrate(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
-
-                                float *acc = JTX_IMAGE_PIXEL_PTR(m_accBuffer, row, col); // TODO: optimize this
-                                acc[0] += intensity.x;
-                                acc[1] += intensity.y;
-                                acc[2] += intensity.z;
-                            }
+                            float *acc = JTX_IMAGE_PIXEL_PTR(m_accBuffer, row, col);// TODO: optimize this
+                            acc[0] += intensity.x;
+                            acc[1] += intensity.y;
+                            acc[2] += intensity.z;
                         }
                     }
                 }
-                endBarrier.arrive_and_wait();
             }
         });
     }
@@ -217,9 +199,29 @@ void BackendCPU::StartRender() {
     for (auto &thread: threads) {
         thread.join();
     }
+    PROFILE_LOCAL_LOG_TIME();
     LOG_INFO(RENDER, "Rendering completed");
 
     // Apply tonemapping and OETF
+    for (uint32_t row = 0; row < m_height; ++row) {
+        for (uint32_t col = 0; col < m_width; ++col) {
+            const float *acc = JTX_IMAGE_PIXEL_PTR(m_accBuffer, row, col);
+            vec3 accIntensity(acc);
+
+            accIntensity = ApplyGamma(accIntensity / static_cast<float>(spp));
+            accIntensity = ClampIntensity(accIntensity) * 255.999f;
+
+            uint8_t *img = JTX_IMAGE_PIXEL_PTR(m_imgBuffer, row, col);
+            img[0]       = static_cast<uint8_t>(accIntensity[0]);
+            img[1]       = static_cast<uint8_t>(accIntensity[1]);
+            img[2]       = static_cast<uint8_t>(accIntensity[2]);
+        }
+    }
+}
+
+JtxResult BackendCPU::SaveRenderOutput(const std::string &path) const {
+    LOG_INFO(RENDER, "Saving render output to {}", path);
+    return m_imgBuffer.Save(path);
 }
 
 }// namespace jtx

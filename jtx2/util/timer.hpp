@@ -8,6 +8,11 @@
 
 #define PROFILE_SCOPE(name) do {} while(0)
 
+#define PROFILE_LOCAL_START(name) do {} while(0)
+#define PROFILE_LOCAL_LOG_TIME_MILLIS() do {} while(0)
+#define PROFILE_LOCAL_LOG_TIME_SECONDS() do {} while(0)
+#define PROFILE_LOCAL_LOG_TIME() do {} while(0)
+
 #else
 
 namespace jtx::detail {
@@ -30,7 +35,56 @@ private:
     std::chrono::time_point<std::chrono::high_resolution_clock> m_start;
 };
 
+struct Timer {
+    Timer() = default;
+    ~Timer() = default;
+
+    void Start(const std::string &name) {
+        m_name = name;
+        m_start = Clock::now();
+    }
+
+    void LogElapsedTimeMillis() {
+        const auto end = Clock::now();
+        const double ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end - m_start).count();
+        LOG_INFO(TIMER, "{}: {} ms", m_name, ms);
+    }
+
+    void LogElapsedTimeSeconds() {
+        const auto end = Clock::now();
+        const double ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(end - m_start).count();
+        LOG_INFO(TIMER, "{}: {:.3f} seconds", m_name, ms / 1000.0);
+    }
+
+    void LogElapsedTime() {
+        const auto end = Clock::now();
+        auto duration  = end - m_start;
+
+        const auto hrs  = std::chrono::duration_cast<std::chrono::hours>(duration);
+        duration -= hrs;
+        const auto mins = std::chrono::duration_cast<std::chrono::minutes>(duration);
+        duration -= mins;
+        const auto secs = std::chrono::duration_cast<std::chrono::seconds>(duration);
+        duration -= secs;
+        auto ms   = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+
+        LOG_INFO(TIMER, "{}: {}:{:02}:{:02}.{:03}", m_name, hrs.count(), mins.count(), secs.count(), ms);
+    }
+
+private:
+    using Clock = std::chrono::high_resolution_clock;
+
+    std::string m_name;
+    Clock::time_point m_start;
+};
+
 }// namespace jtx::detail
 
 #define PROFILE_SCOPE(name) jtx::detail::ScopeTimer timer##__LINE__(name)
+
+#define PROFILE_LOCAL_START(name) jtx::detail::Timer timer##__LINE__; timer##__LINE__.Start(name)
+#define PROFILE_LOCAL_LOG_TIME_MILLIS() timer##__LINE__.LogElapsedTimeMillis()
+#define PROFILE_LOCAL_LOG_TIME_SECONDS() timer##__LINE__.LogElapsedTimeSeconds()
+#define PROFILE_LOCAL_LOG_TIME() timer##__LINE__.LogElapsedTime()
+
 #endif

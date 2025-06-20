@@ -44,6 +44,7 @@ enum class LogCategory {
     INPUT      = 8,
     TEST       = 9,
     RENDER     = 10,
+    TIMER      = 11,
 };
 
 struct LogContext {
@@ -178,6 +179,8 @@ private:
             case LogCategory::RENDER:
                 fmt::format_to(std::back_inserter(buf), "[RNDR] ");
                 break;
+            case LogCategory::TIMER:
+                fmt::format_to(std::back_inserter(buf), "[TIMR] ");
         }
 
         // Level

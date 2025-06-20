@@ -219,4 +219,19 @@ JtxResult jtx::Image32f::Load(const uint8_t *buffer, const size_t size, Image32f
     LOG_INFO(TEXTURE, "Loaded 32-bit float texture from memory");
     return JTX_SUCCESS;
 }
+
+float jtx::CalculateMSE(const Image8u &img, const Image8u &ref) {
+    if (ref.width != img.width || ref.height != img.height || ref.channels != img.channels) {
+        LOG_ERROR(TEXTURE, "Images must have the same dimensions and channels for MSE calculation");
+        return -1.0f;
+    }
+
+    float error = 0.0f;
+    for (int i = 0; i < ref.width * ref.height * ref.channels; ++i) {
+        const float diff = static_cast<float>(ref.data[i]) - static_cast<float>(img.data[i]);
+        error += diff * diff;
+    }
+
+    return error / static_cast<float>(ref.width * ref.height * ref.channels);
+}
 #pragma endregion

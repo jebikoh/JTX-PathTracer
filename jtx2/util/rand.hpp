@@ -20,8 +20,8 @@ inline uint32_t xxHash32(const vec3u &p) {
 }
 
 inline uint32_t xxHash32(const vec4u &p) {
-    uint h32 = p.w + XXHASH32_PRIME32_5 + p.x * XXHASH32_PRIME32_3;
-    h32      = XXHASH32_PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
+    uint32_t h32 = p.w + XXHASH32_PRIME32_5 + p.x * XXHASH32_PRIME32_3;
+    h32          = XXHASH32_PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
     h32 += p.y * XXHASH32_PRIME32_3;
     h32 = XXHASH32_PRIME32_4 * ((h32 << 17) | (h32 >> (32 - 17)));
     h32 += p.z * XXHASH32_PRIME32_3;

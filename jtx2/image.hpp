@@ -2,6 +2,7 @@
 
 #include "jtx.hpp"
 
+#include <filesystem>
 #include <set>
 
 namespace jtx {
@@ -323,7 +324,7 @@ float CalculateMSE(const Image8u &img, const Image8u &ref);
  * @param refPath path to the reference image to compare against
  * @return MSE value, or -1.0f on failure
  */
-inline float CalculateMSE(const std::string &imgPath, const std::string &refPath) {
+inline float CalculateMSE(const std::filesystem::path &imgPath, const std::filesystem::path &refPath) {
     Image8u img;
     if (Image8u::Load(imgPath, img) != JTX_SUCCESS) {
         LOG_ERROR(TEXTURE, "Failed to load image");

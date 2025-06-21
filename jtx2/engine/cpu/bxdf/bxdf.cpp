@@ -1,4 +1,5 @@
 #include "conductor.hpp"
+#include "dielectric.hpp"
 
 
 #include <bvh/isect.hpp>
@@ -43,6 +44,15 @@ bool SampleBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3
             }
             return false;
         }
+        case Material::DIELECTRIC: {
+            const auto bxdf = DielectricBxDF(surface.material->parameters.ior.x);
+            if (bxdf.Sample(woLocal, s0, s1, s)) {
+                if (s.pdf == 0.0f) return false;
+                s.wi = frame.ToWorld(s.wi);
+                return true;
+            }
+            return false;
+        }
         default:
             return false;
     }
@@ -68,6 +78,10 @@ vec3 EvalBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &
             const auto bxdf = ComplexConductorBxDF(surface.material->parameters.ior, surface.material->parameters.k);
             return bxdf.Evaluate(woLocal, wiLocal);
         }
+        case Material::DIELECTRIC: {
+            const auto bxdf = DielectricBxDF(surface.material->parameters.ior.x);
+            return bxdf.Evaluate(woLocal, wiLocal);
+        }
         default:
             return {};
     }
@@ -91,6 +105,10 @@ float PDFBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &
         }
         case Material::COMPLEX_CONDUCTOR: {
             const auto bxdf = ComplexConductorBxDF(surface.material->parameters.ior, surface.material->parameters.k);
+            return bxdf.PDF(woLocal, wiLocal);
+        }
+        case Material::DIELECTRIC: {
+            const auto bxdf = DielectricBxDF(surface.material->parameters.ior.x);
             return bxdf.PDF(woLocal, wiLocal);
         }
         default:

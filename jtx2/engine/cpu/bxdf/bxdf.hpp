@@ -12,6 +12,7 @@ struct BxDFSample {
     vec3 f;    // Scattering function value
     vec3 wi;   // Sampled incident direction
     float pdf; // PDF of the sampled direction
+    float eta; // Relative index of refraction (eta_t / eta_i)
     bool bSpecular;
 };
 
@@ -41,7 +42,8 @@ inline bool Refract(const vec3 &wi, vec3 n, float &eta, vec3 &wt) {
     float cosThetaI = jtx::dot(wi, n);
 
     // Ray is exiting, flip parameters
-    if (cosThetaI > 0.0f) {
+    //
+    if (cosThetaI < 0.0f) {
         eta = 1 / eta;
         cosThetaI = -cosThetaI;
         n = -n;
@@ -76,7 +78,7 @@ inline vec3 Schlick(const vec3 &wo, const vec3 &n, const vec3 &R) {
  * @param eta relative index of refraction (eta_t / eta_i)
  * @return Fresnel reflectance
  */
-inline float FresnelDielectric(float cosThetaI, float eta) {
+inline float Fresnel(float cosThetaI, float eta) {
     cosThetaI = Clamp(cosThetaI, -1.0f, 1.0f);
     // Ray is exiting, flip parameters
     if (cosThetaI < 0.0f) {
@@ -85,7 +87,7 @@ inline float FresnelDielectric(float cosThetaI, float eta) {
     }
 
     // Snell's law
-    const float r = jtx::max(0.0f, 1 - (cosThetaI * cosThetaI)) / (eta * eta);
+    const float r = jtx::max(0.0f, 1 - cosThetaI * cosThetaI) / (eta * eta);
     if (r >= 1) return 1.0f; // Total internal reflection
     const float cosThetaT = jtx::SafeSqrt(1 - r);
 

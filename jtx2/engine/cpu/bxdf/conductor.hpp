@@ -8,8 +8,8 @@ namespace jtx {
 
 class ComplexConductorBxDF {
 public:
-    ComplexConductorBxDF(const vec2 &m_alpha, const vec3 &eta, const vec3 &k)
-        : m_ggx(m_alpha), m_eta(eta), m_k(k) {}
+    ComplexConductorBxDF(const vec2 &alpha, const vec3 &eta, const vec3 &k)
+        : m_ggx(alpha), m_eta(eta), m_k(k) {}
 
     // Constructor for perfectly specular conductor
     ComplexConductorBxDF(const vec3 &eta, const vec3 &k) :

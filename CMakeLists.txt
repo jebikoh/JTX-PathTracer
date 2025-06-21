@@ -219,6 +219,7 @@ set(JTX_BACKEND_CPU
         jtx2/engine/cpu/bxdf/bxdf.cpp
         jtx2/engine/cpu/bxdf/microfacet.hpp
         jtx2/engine/cpu/bxdf/conductor.hpp
+        jtx2/engine/cpu/bxdf/dielectric.hpp
 )
 
 set(JTX_BACKEND

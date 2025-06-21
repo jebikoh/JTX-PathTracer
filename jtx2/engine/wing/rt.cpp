@@ -7,12 +7,6 @@ inline bool HasFlag(const VkFlags item, const VkFlags flag) {
     return (item & flag) == flag;
 }
 
-void ASManager::Init() {
-    m_fence1.Init(m_gfx.ctx);
-    m_fence2.Init(m_gfx.ctx);
-    m_pool.Init(m_gfx.ctx, m_gfx.graphicsQueue.family, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-}
-
 void ASManager::BuildBLAS(const std::vector<BLASInput> &inputs, const VkBuildAccelerationStructureFlagsKHR flags) {
     const uint32_t numBLAS      = static_cast<uint32_t>(inputs.size());
     uint32_t numBLASCompactions = 0;
@@ -157,12 +151,6 @@ void ASManager::DestroyAS() {
         m_gfx.DestroyBuffer(m_tlas.buffer);
         m_tlas.handle = VK_NULL_HANDLE;
     }
-}
-
-void ASManager::Destroy() const {
-    m_pool.Destroy();
-    m_fence1.Destroy();
-    m_fence2.Destroy();
 }
 
 AccelerationStructure ASManager::CreateAS(const VkAccelerationStructureCreateInfoKHR &info) const {

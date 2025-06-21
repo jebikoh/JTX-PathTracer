@@ -3,7 +3,7 @@
 #include <interface/display.hpp>
 #include <scene/scene_loader.hpp>
 
-#define JTX_ENABLE_UI
+// #define JTX_ENABLE_UI
 
 int main(int argc, char *argv[]) {
     Logger::AddDefaultSink();
@@ -39,14 +39,21 @@ int main(int argc, char *argv[]) {
     // conductor.parameters = {
     //     .f0 = vec3(0.384, 0.58, 1)
     // };
-    //
     // const uint32_t materialIndex = scene.AddMaterial(conductor);
     // scene.UpdateMeshMaterial(7, materialIndex);
 
+    jtx::Material dielectric;
+    dielectric.mType = jtx::Material::DIELECTRIC;
+    dielectric.parameters = {
+        .ior = vec3(1.5)
+    };
+    const uint32_t materialIndex = scene.AddMaterial(dielectric);
+    scene.UpdateMeshMaterial(7, materialIndex);
+
     jtx::RenderSettings rs;
     rs.maxDepth = 32;
-    rs.sppRow = 16;
-    rs.sppCol = 16;
+    rs.sppRow = 128;
+    rs.sppCol = 128;
     rs.tileSize = 32;
     rs.numThreads = 16;
     rs.seed = 419;
@@ -55,7 +62,7 @@ int main(int argc, char *argv[]) {
     backend.Init(400, 400, rs);
     backend.LoadScene(&scene);
     backend.StartOfflineRender();
-    CHECK_JTX(backend.SaveRenderOutput("nee_400x400_256spp.png"));
+    CHECK_JTX(backend.SaveRenderOutput("dielectric.png"));
     backend.Destroy();
 
     // const float mse = jtx::CalculateMSE("../renders/diffuse-cornell-box/nee_400x400_256spp.png",

@@ -48,8 +48,6 @@ struct ASManager {
     explicit ASManager(const GfxContext &gfx)
         : m_gfx(gfx) {}
 
-    void Init();
-
     /**
      * Builds a bottom-level acceleration structure (BLAS) for each input provided.
      * @param inputs vector of BLASInput structures for each BLAS to build
@@ -84,8 +82,6 @@ struct ASManager {
      */
     void DestroyAS();
 
-    void Destroy() const;
-
 private:
     const GfxContext &m_gfx;
 
@@ -115,10 +111,6 @@ private:
             jvk::Buffer &scratchBuffer,
             VkBuildAccelerationStructureFlagsKHR flags,
             bool bUpdate);
-
-    jvk::CommandPool m_pool;
-    jvk::Fence m_fence1;
-    jvk::Fence m_fence2;
 };
 
 }// namespace jtx

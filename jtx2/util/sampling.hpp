@@ -161,6 +161,12 @@ JTX_FORCE_INLINE float UniformSpherePDF() {
     return INV_4_PI;
 }
 
+JTX_FORCE_INLINE vec2 SampleUniformDiscPolar(const vec2 &s) {
+    const float r     = jtx::Sqrt(s.x);
+    const float theta = TWO_PI * s.y;
+    return {r * jtx::cos(theta), r * jtx::sin(theta)};
+}
+
 JTX_FORCE_INLINE vec2 SampleUniformDiskConcentric(const vec2 &s) {
     const vec2 offset = 2.0f * s - vec2(1.0f, 1.0f);
     if (offset.x == 0 && offset.y == 0) return {0.0f, 0.0f};

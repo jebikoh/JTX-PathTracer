@@ -50,7 +50,7 @@ inline bool Refract(const vec3 &wi, vec3 n, float &eta, vec3 &wt) {
     }
 
     // Compute Snell's law
-    const float r = jtx::max(0.0f, 1 - (cosThetaI * cosThetaI)) / (eta * eta);
+    const float r = jtx::Max(0.0f, 1 - (cosThetaI * cosThetaI)) / (eta * eta);
     if (r >= 1) return false;
     const float cosThetaT = jtx::SafeSqrt(1 - r);
 
@@ -87,7 +87,7 @@ inline float Fresnel(float cosThetaI, float eta) {
     }
 
     // Snell's law
-    const float r = jtx::max(0.0f, 1 - cosThetaI * cosThetaI) / (eta * eta);
+    const float r = jtx::Max(0.0f, 1 - cosThetaI * cosThetaI) / (eta * eta);
     if (r >= 1) return 1.0f; // Total internal reflection
     const float cosThetaT = jtx::SafeSqrt(1 - r);
 

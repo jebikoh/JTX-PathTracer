@@ -18,14 +18,14 @@ public:
 
     vec3 Evaluate(const vec3 &wo, const vec3 &wi) const {
         // If the surface is perfectly specular, it is considered a dirac delta function
-        if (m_eta == 1 || m_ggx.IsSpecular()) return {};
+        if (m_eta == 1 || m_ggx.IsSmooth()) return {};
 
         // TODO: rough conductor
         return {};
     }
 
     bool Sample(const vec3 &wo, const float s0, const vec2 &s1, BxDFSample &s) const {
-        if (m_eta == 1 || m_ggx.IsSpecular()) {
+        if (m_eta == 1 || m_ggx.IsSmooth()) {
             // Perfectly specular specular
             const float R = Fresnel(CosTheta(wo), m_eta);
             const float T = 1.0f - R;
@@ -54,7 +54,7 @@ public:
     }
 
     float PDF(const vec3 &wo, const vec3 &wi) const {
-        if (m_eta == 1 || m_ggx.IsSpecular()) return 0.0f;
+        if (m_eta == 1 || m_ggx.IsSmooth()) return 0.0f;
 
         // TODO: rough specular
         return 1.0f;

@@ -17,7 +17,7 @@ public:
 
     vec3 Evaluate(const vec3& wo, const vec3& wi) const {
         // If the surface is perfectly specular, it is considered a dirac delta function
-        if (m_ggx.IsSpecular()) return {};
+        if (m_ggx.IsSmooth()) return {};
         if (!SameHemisphere(wo, wi)) return {};
 
         // TODO: rough conductor
@@ -25,7 +25,7 @@ public:
     }
 
     bool Sample(const vec3 &wo, float s0, const vec2 &s1, BxDFSample &s) const {
-        if (m_ggx.IsSpecular()) {
+        if (m_ggx.IsSmooth()) {
             // Perfectly specular conductor
             s.wi = vec3(-wo.x, -wo.y, wo.z);
             const float absCosThetaI = AbsCosTheta(s.wi);
@@ -40,7 +40,7 @@ public:
     }
 
     float PDF(const vec3 &wo, const vec3 &wi) const {
-        if (m_ggx.IsSpecular()) return 0.0f;
+        if (m_ggx.IsSmooth()) return 0.0f;
         if (!SameHemisphere(wo, wi)) return 0.0f;
 
         // TODO: rough conductor
@@ -66,7 +66,7 @@ public:
 
     vec3 Evaluate(const vec3& wo, const vec3& wi) const {
         // If the surface is perfectly specular, it is considered a dirac delta function
-        if (m_ggx.IsSpecular()) return {};
+        if (m_ggx.IsSmooth()) return {};
         if (!SameHemisphere(wo, wi)) return {};
 
         // TODO: rough conductor
@@ -74,7 +74,7 @@ public:
     }
 
     bool Sample(const vec3 &wo, float s0, const vec2 &s1, BxDFSample &s) const {
-        if (m_ggx.IsSpecular()) {
+        if (m_ggx.IsSmooth()) {
             // Perfectly specular conductor
             s.wi = vec3(-wo.x, -wo.y, wo.z);
             const float absCosThetaI = AbsCosTheta(s.wi);
@@ -89,7 +89,7 @@ public:
     }
 
     float PDF(const vec3 &wo, const vec3 &wi) const {
-        if (m_ggx.IsSpecular()) return 0.0f;
+        if (m_ggx.IsSmooth()) return 0.0f;
         if (!SameHemisphere(wo, wi)) return 0.0f;
 
         // TODO: rough conductor

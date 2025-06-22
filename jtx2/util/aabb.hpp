@@ -34,7 +34,7 @@ struct AABB {
      */
     AABB(const vec3 &a, const vec3 &b) {
         pmin = jtx::min(a, b);
-        pmax = jtx::max(a, b);
+        pmax = jtx::Max(a, b);
     }
 
     /**
@@ -44,12 +44,12 @@ struct AABB {
      */
     AABB(const AABB &a, const AABB &b) {
         pmin = jtx::min(a.pmin, b.pmin);
-        pmax = jtx::max(a.pmax, b.pmax);
+        pmax = jtx::Max(a.pmax, b.pmax);
     }
 
     AABB(const vec3 &a, const vec3 &b, const vec3 &c) {
         pmin = jtx::min(jtx::min(a, b), c);
-        pmax = jtx::max(jtx::max(a, b), c);
+        pmax = jtx::Max(jtx::Max(a, b), c);
     }
 
     /**
@@ -58,7 +58,7 @@ struct AABB {
      */
     void Expand(const AABB &other) {
         pmin = jtx::min(pmin, other.pmin);
-        pmax = jtx::max(pmax, other.pmax);
+        pmax = jtx::Max(pmax, other.pmax);
     }
 
     /**
@@ -67,7 +67,7 @@ struct AABB {
      */
     void Expand(const vec3 &p) {
         pmin = jtx::min(pmin, p);
-        pmax = jtx::max(pmax, p);
+        pmax = jtx::Max(pmax, p);
     }
 
     /**

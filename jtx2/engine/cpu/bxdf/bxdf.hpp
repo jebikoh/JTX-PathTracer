@@ -27,7 +27,7 @@ float PDFBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &
  * @return reflection direction
  */
 inline vec3 Reflect(const vec3 &wo, const vec3 &n) {
-    return -wo + 2.0f * jtx::dot(wo, n) * n;
+    return -wo + 2.0f * jtx::Dot(wo, n) * n;
 }
 
 /**
@@ -39,7 +39,7 @@ inline vec3 Reflect(const vec3 &wo, const vec3 &n) {
  * @return true if refraction occurs, false if total internal reflection occurs
  */
 inline bool Refract(const vec3 &wi, vec3 n, float &eta, vec3 &wt) {
-    float cosThetaI = jtx::dot(wi, n);
+    float cosThetaI = jtx::Dot(wi, n);
 
     // Ray is exiting, flip parameters
     //

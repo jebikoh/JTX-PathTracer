@@ -12,7 +12,7 @@ inline bool IsInf(const float x) {
     return std::isinf(x);
 }
 
-/**
+/*
  * Trowbridge-Reitz (GGX) microfacet model for rough surfaces.
  *
  * Parameterized by X and Y roughness values:
@@ -139,7 +139,7 @@ public:
         const vec3 t2         = Cross(vh, t1);
 
         // Sample a point on a unit disc
-        vec2 p = SampleUniformDiscPolar(s); // Why polar and not concentric?
+        vec2 p = SampleUniformDiscPolar(s);
 
         // Apply affine transformation to the sampled point
         const float h = Sqrt(1 - p.x * p.x);

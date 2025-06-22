@@ -167,7 +167,7 @@ struct Scene {
         const vec3 n1 = normals[tri.y];
         const vec3 n2 = normals[tri.z];
         const vec3 sn = b.x * n0 + b.y * n1 + b.z * n2;
-        sample.normal = dot(n, sn) < 0.0f ? -n : n;
+        sample.normal = Dot(n, sn) < 0.0f ? -n : n;
 
         sample.emission = materials[materialIndices[index]].parameters.emission;
         sample.pdf = 1.0f / (0.5f * Cross(p1 - p0, p2 - p0).Length());

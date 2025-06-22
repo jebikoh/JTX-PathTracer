@@ -132,7 +132,7 @@ vec3 jtx::IntegrateNEE(ray r, const Scene &scene, const BVH &bvh, int maxDepth, 
 
             // Calculate the incident light direction
             vec3 wi           = lightSample.position - surface.point;
-            const float dist2 = wi.LenSqr();
+            const float dist2 = wi.LengthSquared();
             const float dist  = jtx::SafeSqrt(dist2);
             wi /= dist;
 

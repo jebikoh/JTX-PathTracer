@@ -23,11 +23,7 @@ struct Material {
         vec3 k;
         vec3 f0;
         vec3 emission;
-
-        float alphaX;
-        float alphaY;
-        float metallic;
-        float roughness;
+        vec2 roughness;
     } parameters;
 
     struct TextureIndices {
@@ -35,7 +31,7 @@ struct Material {
         int32_t metallicRoughness = JTX_MATERIAL_TEXTURE_INDEX_NONE;
     } textureIndices;
 
-    bool IsEmissive() const { return parameters.emission.LenSqr() > 0.0f; }
+    bool IsEmissive() const { return parameters.emission.LengthSquared() > 0.0f; }
 };
 
 }

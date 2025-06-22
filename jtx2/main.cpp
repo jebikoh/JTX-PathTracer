@@ -18,6 +18,7 @@ int main(int argc, char *argv[]) {
     display.Destroy();
 #else
     jtx::Scene scene;
+    // jtx::LoadScene("assets/ajax/ajax.obj", scene);
     jtx::LoadScene("assets/cornell_box/small/cb_small.obj", scene);
 
     scene.skyColor = vec3(0.0f);
@@ -38,14 +39,14 @@ int main(int argc, char *argv[]) {
     // const uint32_t materialIndex = scene.AddMaterial(conductor);
     // scene.UpdateMeshMaterial(7, materialIndex);
 
-    jtx::Material conductor;
-    conductor.mType = jtx::Material::CONDUCTOR;
-    conductor.parameters = {
-        .f0 = vec3(0.384, 0.58, 1),
-        .roughness = vec2(0.1f, 0.1f)
-    };
-    const uint32_t materialIndex = scene.AddMaterial(conductor);
-    scene.UpdateMeshMaterial(7, materialIndex);
+    // jtx::Material conductor;
+    // conductor.mType = jtx::Material::CONDUCTOR;
+    // conductor.parameters = {
+    //     .f0 = vec3(0.384, 0.58, 1),
+    //     .roughness = vec2(0.1f, 0.1f)
+    // };
+    // const uint32_t materialIndex = scene.AddMaterial(conductor);
+    // scene.UpdateMeshMaterial(6, materialIndex);
 
     // jtx::Material dielectric;
     // dielectric.mType = jtx::Material::DIELECTRIC;
@@ -53,7 +54,7 @@ int main(int argc, char *argv[]) {
     //     .ior = vec3(1.5)
     // };
     // const uint32_t materialIndex = scene.AddMaterial(dielectric);
-    // scene.UpdateMeshMaterial(7, materialIndex);
+    // scene.UpdateMeshMaterial(6, materialIndex);
 
     jtx::RenderSettings rs;
     rs.maxDepth = 32;
@@ -67,7 +68,7 @@ int main(int argc, char *argv[]) {
     backend.Init(400, 400, rs);
     backend.LoadScene(&scene);
     backend.StartOfflineRender();
-    CHECK_JTX(backend.SaveRenderOutput("dielectric.png"));
+    CHECK_JTX(backend.SaveRenderOutput("MIS_32x32.png"));
     backend.Destroy();
 
     // const float mse = jtx::CalculateMSE("../renders/diffuse-cornell-box/nee_400x400_256spp.png",

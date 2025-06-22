@@ -33,6 +33,8 @@ struct LightSample {
     vec3 position;
     vec3 normal;
     vec3 emission;
+    vec3 direction;
+    float distance;
     float pdf;
 };
 
@@ -151,7 +153,7 @@ struct Scene {
         return triangles;
     }
 
-    void SampleEmissiveTriangle(const vec2 &s, const uint32_t index, LightSample &sample) const {
+    void SampleTriangle(const vec2 &s, const uint32_t index, LightSample &sample) const {
         const vec3 b = SampleUniformTriangle(s);
 
         const vec3u tri = indices[index];
@@ -171,6 +173,19 @@ struct Scene {
 
         sample.emission = materials[materialIndices[index]].parameters.emission;
         sample.pdf = 1.0f / (0.5f * Cross(p1 - p0, p2 - p0).Length());
+    }
+
+    /**
+     * Calculates the probability density function (PDF) of sampling a triangle.
+     * @param index triangle index
+     * @return pdf of sampling a point on the triangle
+     */
+    float TrianglePDF(const uint32_t index) const {
+        const vec3u tri = indices[index];
+        const vec3 p0 = positions[tri.x];
+        const vec3 p1 = positions[tri.y];
+        const vec3 p2 = positions[tri.z];
+        return 1.0f / (0.5f * Cross(p1 - p0, p2 - p0).Length());
     }
 };
 

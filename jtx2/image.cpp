@@ -18,16 +18,16 @@ jtx::Image8u::Image8u(const uint8_t *buffer, const int w, const int h, const int
     : width(w),
       height(h),
       channels(c) {
-    data = new uint8_t[w * h * c];
-    memcpy(data, buffer, w * h * c);
+    pData = new uint8_t[w * h * c];
+    memcpy(pData, buffer, w * h * c);
 }
 
 jtx::Image8u::Image8u(Image8u &&other) noexcept
     : width(other.width),
       height(other.height),
       channels(other.channels),
-      data(other.data) {
-    other.data = nullptr;
+      pData(other.pData) {
+    other.pData = nullptr;
     other.Destroy();
 }
 
@@ -37,9 +37,9 @@ jtx::Image8u &jtx::Image8u::operator=(Image8u &&other) noexcept {
         width    = other.width;
         height   = other.height;
         channels = other.channels;
-        data     = other.data;
+        pData     = other.pData;
 
-        other.data = nullptr;
+        other.pData = nullptr;
         other.Destroy();
     }
     return *this;
@@ -50,9 +50,9 @@ void jtx::Image8u::Destroy() {
     height   = 0;
     channels = 0;
 
-    if (data != nullptr) {
-        delete[] data;
-        data = nullptr;
+    if (pData != nullptr) {
+        delete[] pData;
+        pData = nullptr;
     }
 }
 
@@ -72,8 +72,8 @@ JtxResult jtx::Image8u::Load(const std::filesystem::path &path, Image8u &out, bo
         return JTX_ERROR_FILE_LOADING;
     }
 
-    out.data = new uint8_t[out.width * out.height * out.channels];
-    memcpy(out.data, data, out.width * out.height * out.channels);
+    out.pData = new uint8_t[out.width * out.height * out.channels];
+    memcpy(out.pData, data, out.width * out.height * out.channels);
     stbi_image_free(data);
 
     LOG_INFO(TEXTURE, "Loaded 8-bit texture: {}", path.string());
@@ -94,8 +94,8 @@ JtxResult jtx::Image8u::Load(const uint8_t *buffer, const size_t size, Image8u &
         return JTX_ERROR_FILE_LOADING;
     }
 
-    out.data = new uint8_t[out.width * out.height * out.channels];
-    memcpy(out.data, data, out.width * out.height * out.channels);
+    out.pData = new uint8_t[out.width * out.height * out.channels];
+    memcpy(out.pData, data, out.width * out.height * out.channels);
     stbi_image_free(data);
 
     LOG_INFO(TEXTURE, "Loaded 8-bit texture from memory");
@@ -103,7 +103,18 @@ JtxResult jtx::Image8u::Load(const uint8_t *buffer, const size_t size, Image8u &
 }
 
 JtxResult jtx::Image8u::Save(const std::filesystem::path &path) const {
-    if (stbi_write_png(path.string().c_str(), width, height, channels, data, width * channels)) {
+    std::vector<uint8_t> flipped(width * height * channels);
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            const int srcIndex = (y * width + x) * channels;
+            const int dstIndex = ((height - 1 - y) * width + x) * channels;
+            for (int c = 0; c < channels; ++c) {
+                flipped[dstIndex + c] = pData[srcIndex + c];
+            }
+        }
+    }
+
+    if (stbi_write_png(path.string().c_str(), width, height, channels, flipped.data(), width * channels)) {
         return JTX_SUCCESS;
     }
     LOG_ERROR(TEXTURE, "Failed to save image to file: {}", stbi_failure_reason());
@@ -113,13 +124,13 @@ JtxResult jtx::Image8u::Save(const std::filesystem::path &path) const {
 jtx::Image8u jtx::Image8u::As32b(const uint8_t alpha) const {
     Image8u out(width, height, 4);
     if (channels == 4) {
-        memcpy(out.data, data, width * height * 4);
+        memcpy(out.pData, pData, width * height * 4);
     }
 
     for (int row = 0; row < height; ++row) {
         for (int col = 0; col < width; ++col) {
-            auto srcPixel = data + ((row * width + col) * channels);
-            auto dstPixel = out.data + (row * out.width + col) * 4;
+            auto srcPixel = pData + ((row * width + col) * channels);
+            auto dstPixel = out.pData + (row * out.width + col) * 4;
             dstPixel[0]   = srcPixel[0];
             dstPixel[1]   = srcPixel[1];
             dstPixel[2]   = srcPixel[2];
@@ -138,16 +149,16 @@ jtx::Image32f::Image32f(const float *buffer, const int w, const int h, const int
     : width(w),
       height(h),
       channels(c) {
-    data = new float[w * h * c];
-    memcpy(data, buffer, w * h * c);
+    pData = new float[w * h * c];
+    memcpy(pData, buffer, w * h * c);
 }
 
 jtx::Image32f::Image32f(Image32f &other)
     : width(other.width),
       height(other.height),
       channels(other.channels),
-      data(other.data) {
-    other.data = nullptr;
+      pData(other.pData) {
+    other.pData = nullptr;
     other.Destroy();
 }
 jtx::Image32f &jtx::Image32f::operator=(Image32f &other) {
@@ -156,9 +167,9 @@ jtx::Image32f &jtx::Image32f::operator=(Image32f &other) {
         width    = other.width;
         height   = other.height;
         channels = other.channels;
-        data     = other.data;
+        pData     = other.pData;
 
-        other.data = nullptr;
+        other.pData = nullptr;
         other.Destroy();
     }
     return *this;
@@ -168,9 +179,9 @@ void jtx::Image32f::Destroy() {
     width    = 0;
     height   = 0;
     channels = 0;
-    if (data != nullptr) {
-        delete[] data;
-        data = nullptr;
+    if (pData != nullptr) {
+        delete[] pData;
+        pData = nullptr;
     }
 }
 
@@ -190,8 +201,8 @@ JtxResult jtx::Image32f::Load(const std::filesystem::path &path, Image32f &out) 
         return JTX_ERROR_FILE_LOADING;
     }
 
-    out.data = new float[out.width * out.height * out.channels];
-    memcpy(out.data, data, out.width * out.height * out.channels);
+    out.pData = new float[out.width * out.height * out.channels];
+    memcpy(out.pData, data, out.width * out.height * out.channels);
     stbi_image_free(data);
 
     LOG_INFO(TEXTURE, "Loaded 32-bit float texture: {}", path.string());
@@ -212,8 +223,8 @@ JtxResult jtx::Image32f::Load(const uint8_t *buffer, const size_t size, Image32f
         return JTX_ERROR_FILE_LOADING;
     }
 
-    out.data = new float[out.width * out.height * out.channels];
-    memcpy(out.data, data, out.width * out.height * out.channels);
+    out.pData = new float[out.width * out.height * out.channels];
+    memcpy(out.pData, data, out.width * out.height * out.channels);
     stbi_image_free(data);
 
     LOG_INFO(TEXTURE, "Loaded 32-bit float texture from memory");
@@ -228,7 +239,7 @@ float jtx::CalculateMSE(const Image8u &img, const Image8u &ref) {
 
     float error = 0.0f;
     for (int i = 0; i < ref.width * ref.height * ref.channels; ++i) {
-        const float diff = static_cast<float>(ref.data[i]) - static_cast<float>(img.data[i]);
+        const float diff = static_cast<float>(ref.pData[i]) - static_cast<float>(img.pData[i]);
         error += diff * diff;
     }
 

@@ -3,7 +3,7 @@
 #include <interface/display.hpp>
 #include <scene/scene_loader.hpp>
 
-#define JTX_ENABLE_UI
+// #define JTX_ENABLE_UI
 
 int main(int argc, char *argv[]) {
     Logger::AddDefaultSink();
@@ -58,8 +58,8 @@ int main(int argc, char *argv[]) {
 
     jtx::RenderSettings rs;
     rs.maxDepth = 32;
-    rs.sppRow = 64;
-    rs.sppCol = 64;
+    rs.sppRow = 16;
+    rs.sppCol = 16;
     rs.tileSize = 32;
     rs.numThreads = std::thread::hardware_concurrency() - 1;
     rs.seed = 419;

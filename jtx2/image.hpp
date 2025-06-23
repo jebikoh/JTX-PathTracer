@@ -35,7 +35,7 @@ struct RGB32f {
 #define JTX_IMAGE_ROW_STRIDE(img) \
     ((img).width * (img).channels)
 #define JTX_IMAGE_ROW_PTR(img, row) \
-    ((img).data + (row) * JTX_IMAGE_ROW_STRIDE(img))
+    ((img).pData + (row) * JTX_IMAGE_ROW_STRIDE(img))
 #define JTX_IMAGE_PIXEL_PTR(img, row, col) \
     (JTX_IMAGE_ROW_PTR(img, row) + (col) * (img).channels)
 
@@ -51,7 +51,7 @@ struct RGB32f {
 class Image8u {
 public:
     int width, height, channels;
-    uint8_t *data;
+    uint8_t *pData;
 
     /**
      * Creates an empty image (0x0x0)
@@ -60,7 +60,7 @@ public:
         : width(0),
           height(0),
           channels(0),
-          data(nullptr) {
+          pData(nullptr) {
     }
 
     /**
@@ -73,7 +73,7 @@ public:
         : width(w),
           height(h),
           channels(c) {
-        data = new uint8_t[w * h * c];
+        pData = new uint8_t[w * h * c];
     }
 
     /**
@@ -128,8 +128,8 @@ public:
     template<typename T>
     T GetPixel(int row, int col);
 
-    const uint8_t &operator[](const int index) const { return data[index]; }
-    uint8_t &operator[](const int index) { return data[index]; }
+    const uint8_t &operator[](const int index) const { return pData[index]; }
+    uint8_t &operator[](const int index) { return pData[index]; }
 
     bool IsEmpty() const { return width == 0 || height == 0 || channels == 0; }
 
@@ -150,7 +150,7 @@ public:
         width = w;
         height = h;
         channels = c;
-        data = new uint8_t[w * h * c]();
+        pData = new uint8_t[w * h * c]();
     }
 };
 
@@ -163,29 +163,29 @@ T Image8u::GetPixel(int row, int col) {
 template<>
 inline RGB8u Image8u::GetPixel<RGB8u>(const int row, const int col) {
     const int i = (row * width + col) * channels;
-    return {data[i], data[i + 1], data[i + 2]};
+    return {pData[i], pData[i + 1], pData[i + 2]};
 }
 
 template<>
 inline RGBA8u Image8u::GetPixel<RGBA8u>(const int row, const int col) {
     const int i   = (row * width + col) * channels;
-    RGBA8u result = {data[i], data[i + 1], data[i + 2], 1};
-    if (channels == 4) { result.a = data[i + 3]; }
+    RGBA8u result = {pData[i], pData[i + 1], pData[i + 2], 1};
+    if (channels == 4) { result.a = pData[i + 3]; }
     return result;
 }
 
 template<>
 inline RGB32f Image8u::GetPixel<RGB32f>(const int row, const int col) {
     const int i = (row * width + col) * channels;
-    return {static_cast<float>(data[i]), static_cast<float>(data[i + 1]), static_cast<float>(data[i + 2])};
+    return {static_cast<float>(pData[i]), static_cast<float>(pData[i + 1]), static_cast<float>(pData[i + 2])};
 }
 
 template<>
 inline RGBA32f Image8u::GetPixel<RGBA32f>(const int row, const int col) {
     const int i    = (row * width + col) * channels;
     RGBA32f result = {
-            static_cast<float>(data[i]), static_cast<float>(data[i + 1]), static_cast<float>(data[i + 2]), 1.0f};
-    if (channels == 4) { result.a = static_cast<float>(data[i + 3]); }
+            static_cast<float>(pData[i]), static_cast<float>(pData[i + 1]), static_cast<float>(pData[i + 2]), 1.0f};
+    if (channels == 4) { result.a = static_cast<float>(pData[i + 3]); }
     return result;
 }
 
@@ -195,7 +195,7 @@ inline RGBA32f Image8u::GetPixel<RGBA32f>(const int row, const int col) {
 class Image32f {
 public:
     int width, height, channels;
-    float *data;
+    float *pData;
 
     /**
      * Creates an empty image (0x0x0)
@@ -204,7 +204,7 @@ public:
         : width(0),
           height(0),
           channels(0),
-          data(nullptr) {
+          pData(nullptr) {
     }
 
     /**
@@ -217,7 +217,7 @@ public:
         : width(w),
           height(h),
           channels(c),
-          data(nullptr) {
+          pData(nullptr) {
     }
 
     /**
@@ -266,8 +266,8 @@ public:
     template<typename T>
     T GetPixel(int row, int col);
 
-    const float &operator[](const int index) const { return data[index]; }
-    float &operator[](const int index) { return data[index]; }
+    const float &operator[](const int index) const { return pData[index]; }
+    float &operator[](const int index) { return pData[index]; }
 
     bool IsEmpty() const { return width == 0 || height == 0 || channels == 0; }
 
@@ -282,7 +282,7 @@ public:
         width = w;
         height = h;
         channels = c;
-        data = new float[w * h * c]();
+        pData = new float[w * h * c]();
     }
 };
 
@@ -295,14 +295,14 @@ T Image32f::GetPixel(int row, int col) {
 template<>
 inline RGB32f Image32f::GetPixel<RGB32f>(const int row, const int col) {
     const int i = (row * width + col) * channels;
-    return {data[i], data[i + 1], data[i + 2]};
+    return {pData[i], pData[i + 1], pData[i + 2]};
 }
 
 template<>
 inline RGBA32f Image32f::GetPixel<RGBA32f>(const int row, const int col) {
     const int i    = (row * width + col) * channels;
-    RGBA32f result = {data[i], data[i + 1], data[i + 2], 1.0f};
-    if (channels == 4) { result.a = data[i + 3]; }
+    RGBA32f result = {pData[i], pData[i + 1], pData[i + 2], 1.0f};
+    if (channels == 4) { result.a = pData[i + 3]; }
     return result;
 }
 

@@ -6,6 +6,8 @@ I am currently in the process of rewriting the original project. The code for th
 
 My original version (for which everything below this point is for) was becoming too unwieldy to work with as it was very much a learning project. I also wanted to incorporate my Vulkan path tracer projects (and eventually, my CUDA OptiX projects) into one project.
 
+![ajax](https://github.com/user-attachments/assets/6b44f17f-84d6-46f5-9214-547d9cb30931)
+
 ---
 
 This is my physically-based Monte Carlo path tracer, based on PBRTv4, built with multithreaded and vectorized C++ 20 and a interactive UI made with SDL2, OpenGL, and ImGui.

@@ -52,7 +52,7 @@ class WingEngine {
 public:
     explicit WingEngine(const GfxContext &gfx) : m_gfx(gfx), m_ASManager(gfx) {}
 
-    void Init();
+    void Init(bool bEnableRayTracing = false);
 
     void Destroy();
 
@@ -78,12 +78,6 @@ public:
     void LoadScene(const Scene *pScene);
 
     void DrawSettingsPanel(UiDrawContext &ctx);
-
-    /**
-     * Enables ray tracing if supported by the GPU and the application.
-     * @return true if ray tracing was enabled, false otherwise
-     */
-    bool EnableRayTracing() { m_bRayTracingEnabled = m_gfx.bRayTracingSupported; return m_bRayTracingEnabled; }
 private:
     const GfxContext &m_gfx;
     jvk::DynamicDescriptorAllocator m_descriptorAllocator;
@@ -168,6 +162,7 @@ private:
 
     // Draw
     GPUDrawContext m_drawContext;
+    void Rasterize(RenderContext &ctx, const VkRect2D &renderArea);
 
     void PopulateContext();
     void UpdateSceneData();
@@ -188,10 +183,32 @@ private:
     void DestroyBillboardPipeline();
 
     // Ray tracing
-    bool m_bRayTracingEnabled = false;
+    bool m_bRayTracingAvailable = false;
+    bool m_bRayTracingEnabled   = false;
     ASManager m_ASManager;
     void BuildBLAS();
     void BuildTLAS();
+
+    void InitRayTracingDescriptors();
+    void DestroyRayTracingDescriptors() const;
+    VkDescriptorSetLayout m_rtDescriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorSet m_rtDescriptorSet = VK_NULL_HANDLE;
+
+    void InitRayTracingPipeline();
+    void DestroyRayTracingPipeline() const;
+    std::vector<VkRayTracingShaderGroupCreateInfoKHR> m_rtShaderGroups;
+    VkPipelineLayout m_rtPipelineLayout;
+    VkPipeline m_rtPipeline;
+
+    void InitRayTracingSBT();
+    void DestroyRayTracingSBT() const;
+    jvk::Buffer m_rtSBTBuffer;
+    VkStridedDeviceAddressRegionKHR m_rayGenRegion{};
+    VkStridedDeviceAddressRegionKHR m_missRegion{};
+    VkStridedDeviceAddressRegionKHR m_hitRegion{};
+    VkStridedDeviceAddressRegionKHR m_callableRegion{};
+
+    void RayTrace(RenderContext &cmd, const glm::vec4 &clearColor) const;
 };
 
 }// namespace jtx

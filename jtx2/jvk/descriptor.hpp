@@ -60,13 +60,16 @@ private:
 struct DescriptorWriter {
     std::deque<VkDescriptorImageInfo> images;
     std::deque<std::vector<VkDescriptorImageInfo>> imageArrays;
-
     std::vector<VkDescriptorBufferInfo> buffers;
+    std::vector<VkWriteDescriptorSetAccelerationStructureKHR> accelerationStructures;
+
     std::vector<VkWriteDescriptorSet> writes;
 
     void WriteImage(int binding, VkImageView image, VkSampler sampler, VkImageLayout layout, VkDescriptorType type);
     void WriteImages(int binding, std::span<VkDescriptorImageInfo> infos, VkDescriptorType type);
+
     void WriteBuffer(int binding, VkBuffer buffer, size_t size, size_t offset, VkDescriptorType type);
+    void WriteAS(int binding, const VkAccelerationStructureKHR *accelerationStructure);
 
     void Clear();
     void UpdateSet(VkDevice device, VkDescriptorSet set);

@@ -33,6 +33,13 @@ struct GPUDrawPushConstants {
     glm::mat4 normal;
 };
 
+struct GPURayTracingPushConstants {
+    glm::vec4 clearColor;
+    glm::vec3 lightPosition;
+    float lightIntensity;
+    int lightType;
+};
+
 struct GPUMaterialInstance;
 
 /**

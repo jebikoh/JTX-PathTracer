@@ -77,6 +77,10 @@ struct ASManager {
         return m_blas[index].address;
     }
 
+    VkAccelerationStructureKHR *GetTLAS() {
+        return &m_tlas.handle;
+    }
+
     /**
      * Destroys all acceleration structures and their associated buffers.
      */

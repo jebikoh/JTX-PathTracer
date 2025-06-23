@@ -13,17 +13,17 @@
     } while (0)
 #else
 #define LOG_DEBUG(category, msg, ...) \
-    Logger::Get().Log({__LINE__, __func__, LogLevel::DEBUG, LogCategory::category}, msg, ## __VA_ARGS__)
+    Logger::Get().Log({__LINE__, __func__, LogLevel::DEBUG, LogCategory::category}, msg, ##__VA_ARGS__)
 #endif
 
 #define LOG_INFO(category, msg, ...) \
-    Logger::Get().Log({__LINE__, __func__, LogLevel::INFO, LogCategory::category}, msg, ## __VA_ARGS__)
+    Logger::Get().Log({__LINE__, __func__, LogLevel::INFO, LogCategory::category}, msg, ##__VA_ARGS__)
 
 #define LOG_ERROR(category, msg, ...) \
-    Logger::Get().Log({__LINE__, __func__, LogLevel::ERR, LogCategory::category}, msg, ## __VA_ARGS__)
+    Logger::Get().Log({__LINE__, __func__, LogLevel::ERR, LogCategory::category}, msg, ##__VA_ARGS__)
 
 #define LOG_FATAL(category, msg, ...) \
-    Logger::Get().Log({__LINE__, __func__, LogLevel::FATAL, LogCategory::category}, msg, ## __VA_ARGS__)
+    Logger::Get().Log({__LINE__, __func__, LogLevel::FATAL, LogCategory::category}, msg, ##__VA_ARGS__)
 
 enum class LogLevel {
     INFO  = 0,
@@ -33,18 +33,18 @@ enum class LogLevel {
 };
 
 enum class LogCategory {
-    GENERAL    = 0,
-    DISPLAY    = 1,
-    UI         = 2,
-    RASTERIZER = 3,
-    TRACER     = 4,
-    VULKAN     = 5,
-    TEXTURE    = 6,
-    LOADER     = 7,
-    INPUT      = 8,
-    TEST       = 9,
-    RENDER     = 10,
-    TIMER      = 11,
+    GENERAL = 0,
+    DISPLAY = 1,
+    UI      = 2,
+    WING    = 3,
+    TRACER  = 4,
+    VULKAN  = 5,
+    TEXTURE = 6,
+    LOADER  = 7,
+    INPUT   = 8,
+    TEST    = 9,
+    RENDER  = 10,
+    TIMER   = 11,
 };
 
 struct LogContext {
@@ -67,7 +67,7 @@ struct LogEntry {
 };
 
 struct Logger {
-    using Sink = std::function<void(const LogEntry&)>;
+    using Sink = std::function<void(const LogEntry &)>;
 
     void AddSink(const Sink &fn) { m_sinks.push_back(fn); }
     void ClearSinks() { m_sinks.clear(); }
@@ -80,7 +80,7 @@ struct Logger {
     template<typename... Args>
     void Log(const LogContext ctx, fmt::format_string<Args...> format, Args &&...args) {
         const auto entry = FormatMessage(ctx, format, std::forward<Args>(args)...);
-        for (auto &sink : m_sinks) {
+        for (auto &sink: m_sinks) {
             sink(entry);
         }
 
@@ -114,6 +114,7 @@ struct Logger {
             fmt::print(color, "{}\n", entry.message);
         });
     }
+
 private:
     std::chrono::time_point<std::chrono::system_clock> m_start;
     std::vector<Sink> m_sinks{};
@@ -122,7 +123,7 @@ private:
         : m_start(std::chrono::system_clock::now()) {}
 
     template<typename... Args>
-    static auto FormatMessage(const LogContext ctx, fmt::format_string<Args ...> format, Args &&...args) {
+    static auto FormatMessage(const LogContext ctx, fmt::format_string<Args...> format, Args &&...args) {
         auto buf = fmt::memory_buffer();
 
         auto color = LogColor::WHITE;
@@ -155,8 +156,8 @@ private:
             case LogCategory::UI:
                 fmt::format_to(std::back_inserter(buf), "[UIUX] ");
                 break;
-            case LogCategory::RASTERIZER:
-                fmt::format_to(std::back_inserter(buf), "[RSTR] ");
+            case LogCategory::WING:
+                fmt::format_to(std::back_inserter(buf), "[WING] ");
                 break;
             case LogCategory::TRACER:
                 fmt::format_to(std::back_inserter(buf), "[TRCR] ");
@@ -203,8 +204,7 @@ private:
         fmt::format_to(std::back_inserter(buf), format, std::forward<Args>(args)...);
 
         return LogEntry{
-            .color = color,
-            .message = to_string(buf)
-        };
+                .color   = color,
+                .message = to_string(buf)};
     }
 };

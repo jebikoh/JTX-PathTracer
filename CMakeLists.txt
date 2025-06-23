@@ -432,6 +432,9 @@ set(GLSL_SOURCE_FILES
         "${PROJECT_SOURCE_DIR}/shaders/mesh.vert"
         "${PROJECT_SOURCE_DIR}/shaders/grid.frag"
         "${PROJECT_SOURCE_DIR}/shaders/grid.vert"
+        "${PROJECT_SOURCE_DIR}/shaders/raytrace.rchit"
+        "${PROJECT_SOURCE_DIR}/shaders/raytrace.rgen"
+        "${PROJECT_SOURCE_DIR}/shaders/raytrace.rmiss"
 )
 
 foreach (GLSL ${GLSL_SOURCE_FILES})
@@ -442,7 +445,7 @@ foreach (GLSL ${GLSL_SOURCE_FILES})
     message(STATUS COMMAND ${GLSL_VALIDATOR} -V ${GLSL} -o ${SPIRV})
     add_custom_command(
             OUTPUT ${SPIRV}
-            COMMAND ${GLSL_VALIDATOR} -V ${GLSL} -o ${SPIRV}
+            COMMAND ${GLSL_VALIDATOR} -V --target-env vulkan1.2 ${GLSL} -o ${SPIRV}
             DEPENDS ${GLSL})
     list(APPEND SPIRV_BINARY_FILES ${SPIRV})
 endforeach (GLSL)

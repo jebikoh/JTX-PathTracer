@@ -3,7 +3,7 @@
 #include <interface/display.hpp>
 #include <scene/scene_loader.hpp>
 
-// #define JTX_ENABLE_UI
+#define JTX_ENABLE_UI
 
 int main(int argc, char *argv[]) {
     Logger::AddDefaultSink();
@@ -18,8 +18,8 @@ int main(int argc, char *argv[]) {
     display.Destroy();
 #else
     jtx::Scene scene;
-    // jtx::LoadScene("assets/ajax/ajax.obj", scene);
-    jtx::LoadScene("assets/cornell_box/small/cb_small.obj", scene);
+    jtx::LoadScene("assets/ajax/ajax.obj", scene);
+    // jtx::LoadScene("assets/cornell_box/small/cb_small.obj", scene);
 
     scene.skyColor = vec3(0.0f);
     scene.cameraSettings.position = vec3{278, 273, -800} * 0.2f;
@@ -29,15 +29,15 @@ int main(int argc, char *argv[]) {
     scene.cameraSettings.focalDistance = 1.0f;
 
     // Specular gold material on short box
-    // jtx::Material conductor;
-    // conductor.mType = jtx::Material::COMPLEX_CONDUCTOR;
-    // conductor.parameters = { // Perfectly specular
-    //     .ior = vec3(0.18299,0.42108,1.37340),
-    //     .k = vec3(3.42420,2.34590,1.77040),
-    //     .roughness = vec2(0.1f, 0.1f),
-    // };
-    // const uint32_t materialIndex = scene.AddMaterial(conductor);
-    // scene.UpdateMeshMaterial(7, materialIndex);
+    jtx::Material conductor;
+    conductor.mType = jtx::Material::COMPLEX_CONDUCTOR;
+    conductor.parameters = { // Perfectly specular
+        .ior = vec3(0.18299,0.42108,1.37340),
+        .k = vec3(3.42420,2.34590,1.77040),
+        .roughness = vec2(0.1f, 0.1f),
+    };
+    const uint32_t materialIndex = scene.AddMaterial(conductor);
+    scene.UpdateMeshMaterial(6, materialIndex);
 
     // jtx::Material conductor;
     // conductor.mType = jtx::Material::CONDUCTOR;
@@ -58,17 +58,17 @@ int main(int argc, char *argv[]) {
 
     jtx::RenderSettings rs;
     rs.maxDepth = 32;
-    rs.sppRow = 32;
-    rs.sppCol = 32;
+    rs.sppRow = 64;
+    rs.sppCol = 64;
     rs.tileSize = 32;
-    rs.numThreads = 16;
+    rs.numThreads = std::thread::hardware_concurrency() - 1;
     rs.seed = 419;
 
     jtx::BackendCPU backend;
-    backend.Init(400, 400, rs);
+    backend.Init(1920, 1080, rs);
     backend.LoadScene(&scene);
     backend.StartOfflineRender();
-    CHECK_JTX(backend.SaveRenderOutput("MIS_32x32.png"));
+    CHECK_JTX(backend.SaveRenderOutput("ajax.png"));
     backend.Destroy();
 
     // const float mse = jtx::CalculateMSE("../renders/diffuse-cornell-box/nee_400x400_256spp.png",

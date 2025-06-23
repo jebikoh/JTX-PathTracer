@@ -224,6 +224,23 @@ void DescriptorWriter::WriteBuffer(const int binding, const VkBuffer buffer, con
     writes.push_back(write);
 }
 
+void DescriptorWriter::WriteAS(const int binding, const VkAccelerationStructureKHR *accelerationStructure) {
+    const VkWriteDescriptorSetAccelerationStructureKHR &info = accelerationStructures.emplace_back(VkWriteDescriptorSetAccelerationStructureKHR{
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR,
+        .accelerationStructureCount = 1,
+        .pAccelerationStructures = accelerationStructure
+    });
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstBinding = binding;
+    write.dstSet = VK_NULL_HANDLE;
+    write.descriptorCount = 1;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+    write.pNext = &info;
+    writes.push_back(write);
+}
+
 void DescriptorWriter::Clear() {
     images.clear();
     imageArrays.clear();

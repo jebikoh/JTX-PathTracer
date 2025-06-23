@@ -1,3 +1,4 @@
+*.spv
 .DS_Store
 build/
 build-release/

@@ -229,6 +229,10 @@ void GfxContext::InitDrawImages() {
     drawImageUsages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;    // Copy to image
     drawImageUsages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;// Graphics pipeline
 
+    if (bRayTracingSupported) {
+        drawImageUsages |= VK_IMAGE_USAGE_STORAGE_BIT;
+    }
+
     const VkImageCreateInfo drawImageInfo = jvk::init::Image(drawImage.image.imageFormat, drawImageUsages, drawImage.image.imageExtent);
 
     VmaAllocationCreateInfo drawImageAllocInfo{};

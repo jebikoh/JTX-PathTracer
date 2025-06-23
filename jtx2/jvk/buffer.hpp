@@ -24,6 +24,10 @@ struct Buffer {
         return vkGetBufferDeviceAddress(device, &info);
     }
 
+    void *GetMapping() const {
+        return info.pMappedData;
+    }
+
     void *Map(const VmaAllocator allocator) const {
         void *data = nullptr;
         vmaMapMemory(allocator, allocation, &data);

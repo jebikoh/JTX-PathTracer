@@ -16,11 +16,8 @@ void Display::Init() {
     pLoadedDisplay = this;
 
     m_gfx.Init();
-
     m_uiRenderer.Init();
-
-    m_wing.Init();
-    m_wing.EnableRayTracing();
+    m_wing.Init(m_gfx.bRayTracingSupported);
 
     m_uiRenderer.RegisterViewportBackend(JTX_VIEWPORT_BACKEND_WING, "Wing",
                                          [this](UiDrawContext &ctx) {

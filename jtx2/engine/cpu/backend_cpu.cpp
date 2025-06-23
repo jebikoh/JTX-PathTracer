@@ -76,6 +76,7 @@ void BackendCPU::StartProgressiveRender() {
     });
 
     // Launch threads
+    PROFILE_LOCAL_START("Render progress");
     LOG_DEBUG(RENDER, "Launching {} threads", m_renderSettings.numThreads);
     for (uint32_t i = 0; i < m_renderSettings.numThreads; ++i) {
         threads.emplace_back([this, &bTerminate, &currentSample, &q, spp, &endBarrier] {
@@ -96,9 +97,10 @@ void BackendCPU::StartProgressiveRender() {
                                 const ray r = m_camera.GetRay(row, col, sample, sampler);
 
                                 // Integrate ray
-                                const vec3 intensity = Integrate(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
+                                // const vec3 intensity = Integrate(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
                                 // const vec3 intensity = IntegrateRR(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
                                 // const vec3 intensity = IntegrateNEE(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
+                                const vec3 intensity = IntegrateMIS(r, *m_scene, m_bvh, m_renderSettings.maxDepth, sampler);
 
                                 // Accumulate
                                 float *acc = JTX_IMAGE_PIXEL_PTR(m_accBuffer, row, col);
@@ -135,7 +137,8 @@ void BackendCPU::StartProgressiveRender() {
     for (auto &thread: threads) {
         thread.join();
     }
-    LOG_INFO(RENDER, "Rendering completed");
+    PROFILE_LOCAL_LOG_TIME();
+    LOG_INFO(RENDER, "Progressive rendering completed");
 }
 
 void BackendCPU::StartOfflineRender() {
@@ -200,8 +203,6 @@ void BackendCPU::StartOfflineRender() {
     for (auto &thread: threads) {
         thread.join();
     }
-    PROFILE_LOCAL_LOG_TIME();
-    LOG_INFO(RENDER, "Rendering completed");
 
     // Apply tonemapping and OETF
     for (uint32_t row = 0; row < m_height; ++row) {
@@ -218,6 +219,9 @@ void BackendCPU::StartOfflineRender() {
             img[2]       = static_cast<uint8_t>(accIntensity[2]);
         }
     }
+
+    PROFILE_LOCAL_LOG_TIME();
+    LOG_INFO(RENDER, "Offline rendering completed");
 }
 
 JtxResult BackendCPU::SaveRenderOutput(const std::string &path) const {

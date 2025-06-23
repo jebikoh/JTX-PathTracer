@@ -59,16 +59,24 @@ struct Scene {
         vec3 target{};
         vec3 up{};
 
-        float yfov;       // FOV for reference
-        float focalLength;// Focal length in mm
-        float sensorWidth;// Sensor width in mm
-        // Sensor height is derived from aspect ratio
+        // Focal length (mm): distance from center of lens to convergence point
+        //                    (i.e. distance from lens to image sensor)
+        //                    shorter length -> wider FOV
+        //                    larger length  -> narrow FOV
+        float focalLength = 0.05f; // 50mm
+        // Sensor width (mm): physical width of image sensor.
+        float sensorWidth = 0.036f; // 36mm
+        // Focal distance (m): distance from lens to point in plane of perfect focus
+        float focalDistance = 10.0f;
 
-        bool bEnableDof     = false;// Enable/disable depth of field
-        float focalDistance = 1.0f; // Focal distance in meters
+        // Enable/disable depth of field
+        bool bEnableDof     = false;
+        // F-Stop: ratio of len's focalLength to diameter of aperture
+        //         larger f-stop -> smaller aperture -> deeper depth of field
+        //         smaller f-stop -> larger aperture -> shallower depth of field
         float fStop         = 2.8f; // Aperture size (f-stop)
 
-        // TODO:
+        // TODO: these should be moved elsewhere -- not camera related
         // - Exposure (ISO100)
         // - Tone mapping: ACES, Reinhard, Uncharted2
         // - Display device: sRGB, Display P3

@@ -2,6 +2,7 @@
 #include <engine/cpu/backend_cpu.hpp>
 #include <interface/display.hpp>
 #include <scene/scene_loader.hpp>
+#include <thread>
 
 // #define JTX_ENABLE_UI
 
@@ -25,8 +26,12 @@ int main(int argc, char *argv[]) {
     scene.cameraSettings.position = vec3{278, 273, -800} * 0.2f;
     scene.cameraSettings.target = vec3{278, 273, 0} * 0.2f;
     scene.cameraSettings.up = {0, 1, 0};
-    scene.cameraSettings.yfov = 40.0f;
-    scene.cameraSettings.focalDistance = 1.0f;
+    scene.cameraSettings.focalDistance = 10.0f;
+    scene.cameraSettings.focalLength = 0.05f; // 50mm
+    scene.cameraSettings.sensorWidth = 0.036f; // 36mm
+    scene.cameraSettings.focalDistance = 200.0f;
+    scene.cameraSettings.bEnableDof = true;
+    scene.cameraSettings.fStop = 8.0f;
 
     // Specular gold material on short box
     jtx::Material conductor;
@@ -58,24 +63,19 @@ int main(int argc, char *argv[]) {
 
     jtx::RenderSettings rs;
     rs.maxDepth = 32;
-    rs.sppRow = 16;
-    rs.sppCol = 16;
+    rs.sppRow = 32;
+    rs.sppCol = 32;
     rs.tileSize = 32;
     rs.numThreads = std::thread::hardware_concurrency() - 1;
     rs.seed = 419;
+    rs.samplesPerPass = 1;
 
     jtx::BackendCPU backend;
     backend.Init(1920, 1080, rs);
     backend.LoadScene(&scene);
     backend.StartOfflineRender();
-    CHECK_JTX(backend.SaveRenderOutput("ajax.png"));
+    CHECK_JTX(backend.SaveRenderOutput("ajax_offline_dof_fstop8.png"));
     backend.Destroy();
-
-    // const float mse = jtx::CalculateMSE("../renders/diffuse-cornell-box/nee_400x400_256spp.png",
-    //                   "../renders/diffuse-cornell-box/ref_400x400_16384spp.png");
-    // if (mse > 0.0f) {
-    //     LOG_INFO(GENERAL, "MSE: {:.6f}", mse);
-    // }
 #endif
 
     return 0;

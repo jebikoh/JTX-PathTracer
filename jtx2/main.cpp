@@ -65,8 +65,8 @@ int main(int argc, char *argv[]) {
 
     jtx::RenderSettings rs;
     rs.maxDepth = 32;
-    rs.sppRow = 64;
-    rs.sppCol = 64;
+    rs.sppRow = 32;
+    rs.sppCol = 32;
     rs.tileSize = 32;
     rs.numThreads = std::thread::hardware_concurrency() - 1;
     rs.seed = 419;

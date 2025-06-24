@@ -109,11 +109,4 @@ TEST(Sampler, UniformFP32Range) {
     EXPECT_LT(jtx::Abs(sampleMean - mu), epsMu);
 }
 
-TEST(Sampler, UniformSphere) {
-    Sampler sampler(20252805);
-
-    const auto mu = vec3(0.0f, 0.0f, 0.0f);
-    const
-}
-
 }// namespace jtx

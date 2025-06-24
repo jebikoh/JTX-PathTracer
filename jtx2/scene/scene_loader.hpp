@@ -7,7 +7,7 @@
 
 namespace jtx {
 
-static const std::set<std::string> JTX_SCENE_SUPPORTED_FORMATS = {".obj", ".gltf", ".glb"};
+static const std::set<std::string> JTX_SCENE_SUPPORTED_FORMATS = {".obj", ".gltf", ".glb", ".jtx"};
 
 /**
  * Loads any of the supported filetypes into the given scene.
@@ -20,8 +20,9 @@ static const std::set<std::string> JTX_SCENE_SUPPORTED_FORMATS = {".obj", ".gltf
 JtxResult LoadScene(const std::filesystem::path &path, Scene &scene);
 
 namespace detail {
-JtxResult LoadObj(const std::filesystem::path &path, Scene &scene);
-JtxResult LoadGltf(const std::filesystem::path &path, Scene &scene);
-}
+    JtxResult LoadObj(const std::filesystem::path &path, Scene &scene);
+    JtxResult LoadGltf(const std::filesystem::path &path, Scene &scene);
+    JtxResult LoadJtx(const std::filesystem::path &path, Scene &scene);
+}// namespace detail
 
-}
+}// namespace jtx

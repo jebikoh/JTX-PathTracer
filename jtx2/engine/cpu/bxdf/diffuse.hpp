@@ -1,7 +1,8 @@
 #pragma once
-#include <assert.h>
+
 #include <jtx.hpp>
 #include <util/sampling.hpp>
+#include <engine/cpu/bxdf/bxdf.hpp>
 
 namespace jtx {
 

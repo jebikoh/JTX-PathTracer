@@ -66,7 +66,7 @@ TEST(AABB4, HitResultMatchesAABB) {
     ray rays[JTX_AABB4_TEST_NUM_SAMPLES];
     for (int i = 0; i < JTX_AABB4_TEST_NUM_SAMPLES; ++i) {
         rays[i].origin = rng.Uniform<vec3>(-1.5, 1.5);
-        rays[i].dir = unitVector(rng.Uniform<float>(), rng.Uniform<float>());
+        rays[i].dir = SampleUniformSphere(rng.Uniform<vec2>());
         rays[i].time = 0;
     }
 

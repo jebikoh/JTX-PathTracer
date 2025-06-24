@@ -6,7 +6,7 @@ namespace jtx {
 
 struct Scene;
 
-// Export scene to JTX json format (.jtx)
-JtxResult ExportScene(const Scene &scene, const std::filesystem::path &path, bool bEncodeImages = false);
+// Export scene to JTX json format (.jtx/json)
+JtxResult ExportScene(const Scene &scene, const std::filesystem::path &path);
 
 }

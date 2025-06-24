@@ -1,8 +1,11 @@
-#include "scene_loader.hpp"
-
-#include "image.hpp"
+#include <image.hpp>
+#include <scene/scene_loader.hpp>
 
 #include <rapidobj.hpp>
+#include <rapidjson/rapidjson.h>
+#include <rapidjson/document.h>
+#include <rapidjson/istreamwrapper.h>
+#include <rapidjson/error/en.h>
 
 JtxResult jtx::LoadScene(const std::filesystem::path &path, Scene &scene) {
     LOG_INFO(LOADER,"Loading scene: {}", path.string());
@@ -19,6 +22,10 @@ JtxResult jtx::LoadScene(const std::filesystem::path &path, Scene &scene) {
 
     if (fileExt == ".gltf") {
         return detail::LoadGltf(path, scene);
+    }
+
+    if (fileExt == ".jtx") {
+        return detail::LoadJtx(path, scene);
     }
 
     // This should ideally never be called
@@ -172,11 +179,163 @@ JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &sc
         }
     }
 
-    LOG_INFO(LOADER,"OBJ file loaded with {} meshes, {} vertices, {} indices", scene.meshes.size(), scene.positions.size(), scene.indices.size());
+    LOG_INFO(LOADER,"OBJ file loaded with {} meshes, {} triangles, {} materials", scene.meshes.size(), scene.indices.size(), scene.materials.size());
     return JTX_SUCCESS;
 }
 
 JtxResult jtx::detail::LoadGltf(const std::filesystem::path &path, jtx::Scene &scene) {
-    LOG_ERROR(LOADER,"GLTF loading not implemented yet");
+    LOG_ERROR(LOADER, "GLTF loading not implemented yet");
     return JTX_FAILURE;
+}
+
+namespace jtx::detail {
+namespace {
+    using namespace rapidjson;
+
+    void FromJson(const Value &arr, vec2 &v) {
+        assert(arr.IsArray() && arr.Size() == 2);
+        v.x = arr[0].GetFloat();
+        v.y = arr[1].GetFloat();
+    }
+
+    void FromJson(const Value &arr, vec3 &v) {
+        assert(arr.IsArray() && arr.Size() == 3);
+        v.x = arr[0].GetFloat();
+        v.y = arr[1].GetFloat();
+        v.z = arr[2].GetFloat();
+    }
+
+    void FromJson(const Value &arr, vec3u &v) {
+        assert(arr.IsArray() && arr.Size() == 3);
+        v.x = arr[0].GetUint();
+        v.y = arr[1].GetUint();
+        v.z = arr[2].GetUint();
+    }
+}
+}
+
+JtxResult jtx::detail::LoadJtx(const std::filesystem::path &path, Scene &scene) {
+    LOG_DEBUG(LOADER,"Loading JTX file: {}", path.string());
+
+    using namespace rapidjson;
+
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        LOG_ERROR(LOADER, "Failed to open JTX file: {}", path.string());
+        return JTX_ERROR_FILE_LOADING;
+    }
+
+    IStreamWrapper isw(file);
+    Document d;
+    d.ParseStream(isw);
+
+    if (d.HasParseError()) {
+        LOG_ERROR(LOADER, "Failed to parse JTX JSON: {} (offset {})",
+           GetParseError_En(d.GetParseError()), d.GetErrorOffset());
+        return JTX_ERROR_FILE_INVALID_DATA;
+    }
+
+    scene.name = d["name"].GetString();
+
+    // -- Camera settings --
+    const Value& cs = d["camera"];
+    FromJson(cs["position"], scene.cameraSettings.position);
+    FromJson(cs["target"], scene.cameraSettings.target);
+    FromJson(cs["up"], scene.cameraSettings.up);
+    scene.cameraSettings.focalLength = cs["focalLength"].GetFloat();
+    scene.cameraSettings.sensorWidth = cs["sensorWidth"].GetFloat();
+    scene.cameraSettings.focalDistance = cs["focalDistance"].GetFloat();
+    scene.cameraSettings.bEnableDof = cs["enableDOF"].GetBool();
+    scene.cameraSettings.fStop = cs["fStop"].GetFloat();
+
+    // -- Materials --
+    const Value& materials = d["materials"];
+    scene.materials.reserve(materials.Size());
+    for (const auto& m_json : materials.GetArray()) {
+        Material mat{};
+        mat.mType = (Material::Type)m_json["type"].GetInt();
+
+        const Value& params = m_json["parameters"];
+        FromJson(params["diffuse"], mat.parameters.diffuse);
+        FromJson(params["ior"], mat.parameters.ior);
+        FromJson(params["k"], mat.parameters.k);
+        FromJson(params["f0"], mat.parameters.f0);
+        FromJson(params["emission"], mat.parameters.emission);
+        FromJson(params["roughness"], mat.parameters.roughness);
+
+        const Value& tex = m_json["textureIndices"];
+        mat.textureIndices.diffuse = tex["diffuse"].GetInt();
+        mat.textureIndices.metallicRoughness = tex["metallicRoughness"].GetInt();
+
+        scene.materials.push_back(mat);
+    }
+
+    // -- Textures --
+    // TODO
+
+    // -- Meshes --
+    const Value& meshes = d["meshes"];
+    scene.meshes.reserve(meshes.Size());
+    for (const auto& m_json : meshes.GetArray()) {
+        Mesh mesh{};
+        mesh.name = m_json["name"].GetString();
+        mesh.materialIndex = m_json["materialIndex"].GetInt();
+        mesh.startIndex = m_json["startIndex"].GetUint();
+        mesh.numIndices = m_json["numIndices"].GetUint();
+        scene.meshes.push_back(mesh);
+    }
+
+    // -- Vertex data --
+    const Value& vertexData = d["vertexData"];
+    std::string binFilename = vertexData["binary"].GetString();
+    std::filesystem::path binPath = path.parent_path() / binFilename;
+
+    std::ifstream binStream(binPath, std::ios::binary);
+    if (!binStream.is_open()) {
+        LOG_ERROR(LOADER, "Failed to open binary data file: {}", binPath.string());
+        return JTX_ERROR_FILE_LOADING;
+    }
+
+    const Value& layout = vertexData["layout"];
+    auto LoadDataBlock = [&]<typename T0>(const char* name, T0& targetVector) -> bool {
+        if (!layout.HasMember(name)) {
+            LOG_ERROR(LOADER, "Block missing from layout: {}", name);
+            return false;
+        }
+
+        const Value &blockInfo = layout[name];
+        const uint64_t offset = blockInfo["offset"].GetUint64();
+        uint64_t count = blockInfo["count"].GetUint64();
+
+        if (count > 0) {
+            targetVector.resize(count);
+            binStream.seekg(offset);
+            binStream.read(reinterpret_cast<char*>(targetVector.data()), count * sizeof(typename std::remove_reference_t<T0>::value_type));
+            if (!binStream.good()) {
+                LOG_ERROR(LOADER, "Error reading block '{}' from binary file: {}", name, binPath.string());
+                return false;
+            }
+        }
+        return true;
+    };
+
+    if (!LoadDataBlock("indices", scene.indices)) return JTX_ERROR_FILE_LOADING;
+    if (!LoadDataBlock("positions", scene.positions)) return JTX_ERROR_FILE_LOADING;
+    if (!LoadDataBlock("normals", scene.normals)) return JTX_ERROR_FILE_LOADING;
+    if (!LoadDataBlock("texCoords", scene.texCoords)) return JTX_ERROR_FILE_LOADING;
+    if (!LoadDataBlock("colors", scene.colors)) return JTX_ERROR_FILE_LOADING;
+
+    // -- Material Indices & Emissive Triangles --
+    scene.materialIndices.resize(scene.indices.size());
+    for (const auto &mesh : scene.meshes) {
+        for (uint32_t i = 0; i < mesh.numIndices; ++i) {
+            scene.materialIndices[mesh.startIndex + i] = mesh.materialIndex;
+            if (scene.materials[mesh.materialIndex].IsEmissive()) {
+                scene.emissiveTriangles.push_back(mesh.startIndex + i);
+            }
+        }
+    }
+
+    LOG_INFO(LOADER, "JTX file loaded with {} meshes, {} triangles, {} materials", scene.meshes.size(), scene.indices.size(), scene.materials.size());
+    return JTX_SUCCESS;
 }

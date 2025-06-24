@@ -182,6 +182,7 @@ set(JTX_SCENE
         jtx2/scene/scene_loader.hpp
         jtx2/scene/scene_loader.cpp
         jtx2/scene/scene_exporter.hpp
+        jtx2/scene/scene_exporter.cpp
 )
 
 set(JTX_UTIL
@@ -264,6 +265,7 @@ target_include_directories(JTXCore PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/tinyexr
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/IconsLucide
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/imfilebrowser
+        ${CMAKE_CURRENT_SOURCE_DIR}/ext/rapidjson
 )
 
 # Native file dialog dependencies

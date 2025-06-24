@@ -1,8 +1,11 @@
+#include "bvh/bvh.hpp"
+
+
 #include <gtest/gtest.h>
 
 #include <functional>
 
-#include <../engine/jtx/cpu/bvh.hpp>
+#include <bvh/bvh.hpp>
 #include <scene/scene_loader.hpp>
 #include <util/sampling.hpp>
 
@@ -15,7 +18,7 @@ constexpr float JTX_BVH_TEST_EPSILON      = 1e-5;
 constexpr float JTX_BVH_TEST_OFFSET_SCALE = 5.0f;
 
 void validateBVH(
-        const BVHEmbree &bvhEmbree,
+        const BVH &bvhEmbree,
         const std::function<void(const ray &, float &)> &isectFn,
         const std::function<ray(Sampler &)> &rayGen,
         const uint32_t seed  = JTX_BVH_TEST_RNG_SEED,

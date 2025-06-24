@@ -191,6 +191,7 @@ vec3 jtx::IntegrateMIS(ray r, const Scene &scene, const BVH &bvh, int maxDepth, 
     int depth = 0;
     bool bSpecularBounce = false;
     float probBRDF = 1.0f;
+    float etaScale = 1.0f;
 
     TriangleIntersection triIsect;
     while (true) {
@@ -291,8 +292,10 @@ vec3 jtx::IntegrateMIS(ray r, const Scene &scene, const BVH &bvh, int maxDepth, 
         beta *= sample.f * AbsDot(sample.wi, surface.normal) / sample.pdf;
 
         // Russian roulette
-        if (depth > JTX_RR_MIN_DEPTH) {
-            const float p = std::min(1.0f, beta.MaxComponent());
+        if (sample.bTransmission) etaScale *= sample.eta * sample.eta;
+        vec3 rrBeta = beta * etaScale;
+        if (depth > JTX_RR_MIN_DEPTH && rrBeta.MaxComponent() < 1) {
+            const float p = std::min(1.0f, rrBeta.MaxComponent());
             if (rng.Uniform<float>() >= p) break;
             beta /= p;
         }

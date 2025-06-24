@@ -47,7 +47,7 @@ bool SampleBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3
             return false;
         }
         case Material::DIELECTRIC: {
-            const auto bxdf = DielectricBxDF(material.parameters.ior.x);
+            const auto bxdf = DielectricBxDF(material.parameters.roughness, material.parameters.ior.x);
             if (bxdf.Sample(woLocal, s0, s1, s)) {
                 if (s.pdf == 0.0f) return false;
                 s.wi = frame.ToWorld(s.wi);

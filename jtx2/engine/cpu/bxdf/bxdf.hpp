@@ -14,6 +14,7 @@ struct BxDFSample {
     float pdf; // PDF of the sampled direction
     float eta; // Relative index of refraction (eta_t / eta_i)
     bool bSpecular;
+    bool bTransmission;
 };
 
 bool SampleBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &wo, float s0, const vec2 &s1, BxDFSample &s);

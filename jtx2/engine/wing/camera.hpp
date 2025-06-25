@@ -7,28 +7,6 @@
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 #include <unordered_map>
-#include <util/logger.hpp>
-
-/**
- * Class for FPS camera
- *
- * This is temporary just to test the rasterization backend
- */
-struct FPSCamera {
-    glm::vec3 velocity{};
-    glm::vec3 position = glm::vec3(0.0f, 0.0f, 10.f);
-
-    float pitch = 0.0f;
-    float yaw   = 0.0f;
-    float speed = 1.0f;
-
-    [[nodiscard]] glm::mat4 getViewMatrix() const;
-    [[nodiscard]] glm::mat4 getRotationMatrix() const;
-
-    void processSDLEvent(const SDL_Event &event);
-    void update(float deltaTime = 0.0f);
-    glm::vec3 getFront() const;
-};
 
 /**
  * Orbiting camera
@@ -41,21 +19,19 @@ public:
     glm::vec3 position    = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::quat orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 
-    float yaw      = 0.0f;
-    float pitch    = 0.0f;
     float distance = 10.0f;
 
     float orbitSpeed = 1.0f;
     float dollySpeed = 1.1f;
     float panSpeed   = 1.0f;
 
-    glm::vec3 getFrontVector() const { return orientation * glm::vec3(0, 0, -1); }
-    glm::vec3 getRightVector() const { return orientation * glm::vec3(1, 0, 0); }
-    glm::vec3 getUpVector() const { return orientation * glm::vec3(0, 1, 0); }
+    glm::vec3 GetFrontVector() const { return orientation * glm::vec3(0, 0, -1); }
+    glm::vec3 GetRightVector() const { return orientation * glm::vec3(1, 0, 0); }
+    glm::vec3 GetUpVector() const { return orientation * glm::vec3(0, 1, 0); }
 
-    glm::mat4 getViewMatrix() const { return glm::lookAt(position, target, getUpVector()); }
+    glm::mat4 GetViewMatrix() const { return glm::lookAt(position, target, GetUpVector()); }
 
-    void processSDLEvent(const SDL_Event &e) {
+    void ProcessSDLEvent(const SDL_Event &e) {
         if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) {
             const bool bDown = e.type == SDL_KEYDOWN;
             switch (e.key.keysym.sym) {
@@ -118,8 +94,8 @@ public:
             const glm::vec2 delta      = deltaPixel * 0.002f;
 
             if (m_bShiftHeld) {
-                target += -delta.x * panSpeed * getRightVector();
-                target += delta.y * panSpeed * getUpVector();
+                target += -delta.x * panSpeed * GetRightVector();
+                target += delta.y * panSpeed * GetUpVector();
             } else {
                 const float dYaw   = -delta.x * orbitSpeed * glm::two_pi<float>();
                 const float dPitch = -delta.y * orbitSpeed * glm::pi<float>();
@@ -152,8 +128,8 @@ public:
             m_lastCenter           = center;
 
             if (m_bShiftHeld) {
-                target += -delta.x * panSpeed * getRightVector();
-                target += delta.y * panSpeed * getUpVector();
+                target += -delta.x * panSpeed * GetRightVector();
+                target += delta.y * panSpeed * GetUpVector();
             } else {
                 const float dYaw   = -delta.x * orbitSpeed * glm::two_pi<float>();
                 const float dPitch = -delta.y * orbitSpeed * glm::pi<float>();
@@ -169,7 +145,7 @@ public:
      * This resets input tracking state; should be called any time SDL events
      * are not forwarded to this class
      */
-    void resetInputState() {
+    void ResetInputState() {
         m_fingers.clear();
         m_lastCenter   = glm::vec2(0.0f);
         m_lastMousePos = glm::vec2(0.0f);
@@ -181,8 +157,8 @@ public:
     /**
      * This should be called once per frame after input has been handled
      */
-    void update() {
-        position = target - getFrontVector() * distance;
+    void Update() {
+        position = target - GetFrontVector() * distance;
         // LOG_DEBUG(RASTERIZER, "Camera Position: ({}, {}, {})", position.x, position.y, position.z);
     }
 

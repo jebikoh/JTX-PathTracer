@@ -195,11 +195,11 @@ void WingEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
 }
 
 void WingEngine::ProcessEvent(const SDL_Event &event) {
-    m_camera.processSDLEvent(event);
+    m_camera.ProcessSDLEvent(event);
 }
 
 void WingEngine::SkipEvent() {
-    m_camera.resetInputState();
+    m_camera.ResetInputState();
 }
 
 void WingEngine::LoadScene(const Scene *pScene) {
@@ -523,7 +523,7 @@ void WingEngine::PopulateContext() {
 }
 
 void WingEngine::UpdateGlobalUBOData() {
-    m_camera.update();
+    m_camera.Update();
 
     float aspectRatio;
     if (m_viewRectangle.w > 0 && m_viewRectangle.h > 0) {
@@ -532,7 +532,7 @@ void WingEngine::UpdateGlobalUBOData() {
         aspectRatio = static_cast<float>(m_gfx.window.extent.width) / static_cast<float>(m_gfx.window.extent.width);
     }
 
-    const glm::mat4 view = m_camera.getViewMatrix();
+    const glm::mat4 view = m_camera.GetViewMatrix();
     glm::mat4 proj       = glm::perspective(glm::radians(70.f), aspectRatio, 0.1f, 10000.0f);
     proj[1][1] *= -1;
 

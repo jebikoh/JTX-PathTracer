@@ -1,0 +1,99 @@
+{
+    "name": "../assets/scenes/ajax/ajax.obj",
+    "version": "1.0",
+    "camera": {
+        "position": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "target": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "up": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "focalLength": 0.05000000074505806,
+        "sensorWidth": 0.035999998450279236,
+        "focalDistance": 10.0,
+        "enableDOF": false,
+        "fStop": 2.799999952316284
+    },
+    "materials": [
+        {
+            "type": 0,
+            "parameters": {
+                "diffuse": [
+                    0.800000011920929,
+                    0.800000011920929,
+                    0.800000011920929
+                ],
+                "ior": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "k": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "f0": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "roughness": [
+                    0.0,
+                    0.0
+                ]
+            },
+            "textureIndices": {
+                "diffuse": -1,
+                "metallicRoughness": -1
+            }
+        }
+    ],
+    "meshes": [
+        {
+            "name": "Ajax_Mesh",
+            "materialIndex": 0,
+            "startIndex": 0,
+            "numIndices": 544566
+        }
+    ],
+    "vertexData": {
+        "binary": "ajax.bin",
+        "layout": {
+            "indices": {
+                "offset": 0,
+                "count": 544566
+            },
+            "positions": {
+                "offset": 6534792,
+                "count": 1633698
+            },
+            "normals": {
+                "offset": 26139168,
+                "count": 1633698
+            },
+            "texCoords": {
+                "offset": 45743544,
+                "count": 1633698
+            },
+            "colors": {
+                "offset": 58813128,
+                "count": 0
+            }
+        }
+    }
+}

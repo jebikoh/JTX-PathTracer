@@ -35,6 +35,8 @@ Value ToJson(const vec3u &v, Document::AllocatorType &allocator) {
 }
 
 JtxResult ExportScene(const Scene &scene, const std::filesystem::path &path) {
+    LOG_INFO(LOADER, "Exporting scene:", scene.name);
+
     // Setup JSON document
     Document d;
     d.SetObject();
@@ -148,6 +150,8 @@ JtxResult ExportScene(const Scene &scene, const std::filesystem::path &path) {
     std::ofstream file(path);
     file << buffer.GetString();
     file.close();
+
+    LOG_INFO(LOADER, "Scene exported to:", path.string());
 
     return JTX_SUCCESS;
 }

@@ -233,8 +233,7 @@ set(JTX_WING
     jtx2/engine/wing/wing.hpp
     jtx2/engine/wing/wing.cpp
     jtx2/engine/wing/camera.hpp
-    jtx2/engine/wing/camera.cpp
-    jtx2/engine/wing/render_data.hpp
+        jtx2/engine/wing/render_data.hpp
         jtx2/engine/wing/rt.hpp
         jtx2/engine/wing/rt.cpp
 )

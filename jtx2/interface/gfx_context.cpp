@@ -51,10 +51,6 @@ void GfxContext::InitWindow() {
     window.extent.width  = w;
     window.extent.height = h;
 
-    if (NFD_Init() != NFD_OKAY) {
-        LOG_FATAL(DISPLAY, "Failed to initialize NFD");
-    }
-
     LOG_DEBUG(DISPLAY, "Window Initialized");
 }
 
@@ -330,7 +326,6 @@ void GfxContext::Destroy() {
 void GfxContext::DestroyWindow() const {
     LOG_DEBUG(DISPLAY, "Destroying window");
 
-    NFD_Quit();
     SDL_DestroyWindow(window.pWindow);
 
     LOG_DEBUG(DISPLAY, "Window Destroyed");

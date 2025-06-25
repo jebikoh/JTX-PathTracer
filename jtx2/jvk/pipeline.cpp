@@ -148,7 +148,7 @@ VkPipeline PipelineBuilder::BuildPipeline(const VkDevice device) const {
     pipelineInfo.layout              = pipelineLayout;
 
     // DYNAMIC STATE
-    VkDynamicState state[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    constexpr VkDynamicState state[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
     VkPipelineDynamicStateCreateInfo dynamicInfo{};
     dynamicInfo.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
     dynamicInfo.pDynamicStates    = &state[0];

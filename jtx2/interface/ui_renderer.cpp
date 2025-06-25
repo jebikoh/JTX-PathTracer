@@ -1,3 +1,6 @@
+#include "nfd.h"
+
+
 #include <interface/display.hpp>
 #include <interface/ui_renderer.hpp>
 
@@ -76,8 +79,10 @@ void UiDrawContext::NewRow(const char *label) {
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 }
 
-void UIRenderer::Init() {
+void UIRenderer::Init(const std::function<void()> &importSceneCallback) {
     LOG_INFO(UI, "Initializing UI renderer");
+
+    m_importSceneCallback = importSceneCallback;
 
     constexpr VkDescriptorPoolSize poolSizes[] =
             {
@@ -195,20 +200,15 @@ void UIRenderer::NewFrame() {
         {
             if (ImGui::BeginMenuBar()) {
                 if (ImGui::BeginMenu("File")) {
-                    if (ImGui::MenuItem("New")) {}
-                    if (ImGui::MenuItem("Open")) {}
-                    if (ImGui::MenuItem("Save")) {}
-                    if (ImGui::MenuItem("Exit")) {}
+                    if (ImGui::MenuItem("Import")) {
+                        m_importSceneCallback();
+                    }
+                    if (ImGui::MenuItem("Export")) {}
                     ImGui::EndMenu();
                 }
 
                 if (ImGui::BeginMenu("Edit")) {
-                    if (ImGui::MenuItem("Undo")) {}
-                    if (ImGui::MenuItem("Redo")) {}
-                    ImGui::Separator();
-                    if (ImGui::MenuItem("Cut")) {}
-                    if (ImGui::MenuItem("Copy")) {}
-                    if (ImGui::MenuItem("Paste")) {}
+                    if (ImGui::MenuItem("Render Image")) {}
                     ImGui::EndMenu();
                 }
 

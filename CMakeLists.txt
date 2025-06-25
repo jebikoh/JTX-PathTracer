@@ -268,15 +268,12 @@ target_include_directories(JTXCore PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/rapidjson
 )
 
-# Native file dialog dependencies
 if(APPLE)
-    # on macOS you must link the AppKit and UniformTypeIdentifiers frameworks
     target_link_libraries(JTXCore PRIVATE
             "-framework AppKit"
             "-framework UniformTypeIdentifiers"
     )
 elseif(WIN32)
-    # on Windows you must link ole32, uuid and shell32
     target_link_libraries(JTXCore PRIVATE
             ole32
             uuid

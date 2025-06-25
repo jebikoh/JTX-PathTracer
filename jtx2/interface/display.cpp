@@ -1,4 +1,5 @@
 #include "nfd.h"
+#include "scene/scene_loader.hpp"
 
 
 #include <SDL_events.h>
@@ -16,13 +17,19 @@ void Display::Init() {
     pLoadedDisplay = this;
 
     m_gfx.Init();
-    m_uiRenderer.Init();
+    m_uiRenderer.Init([this] {
+        ImportScene();
+    });
     m_wing.Init(m_gfx.bRayTracingSupported);
 
     m_uiRenderer.RegisterViewportBackend(JTX_VIEWPORT_BACKEND_WING, "Wing",
                                          [this](UiDrawContext &ctx) {
                                              m_wing.DrawSettingsPanel(ctx);
                                          });
+
+    if (NFD_Init() != NFD_OKAY) {
+        LOG_FATAL(DISPLAY, "Failed to initialize NFD");
+    }
 
     LOG_INFO(DISPLAY, "Display initialized");
 }
@@ -31,6 +38,13 @@ void Display::Destroy() {
     LOG_INFO(DISPLAY, "Destroying display");
 
     m_gfx.WaitIdle();
+
+
+    NFD_Quit();
+    if (m_bSceneLoaded) {
+        m_Scene.Destroy();
+    }
+
     m_wing.Destroy();
     m_uiRenderer.Destroy();
     m_gfx.Destroy();
@@ -92,6 +106,36 @@ void Display::Run() {
         m_gfx.ResizeSwapchain();
 
         Draw();
+    }
+}
+
+void Display::ImportScene() {
+    constexpr nfdu8filteritem_t filters[1] = {{"Scene file", "jtx,obj,gltf,glb"}};
+    nfdopendialogu8args_t args{};
+    args.filterList  = filters;
+    args.filterCount = 1;
+
+    nfdu8char_t *outPath;
+    const nfdresult_t result = NFD_OpenDialogU8_With(&outPath, &args);
+
+    if (result == NFD_OKAY) {
+        const auto s = std::string(outPath);
+        LOG_INFO(UI, "User selected path: {}", outPath);
+        NFD_FreePathU8(outPath);
+
+        m_gfx.WaitIdle();
+        if (m_bSceneLoaded) {
+            m_Scene.Destroy();
+        }
+
+        const auto loadResult = LoadScene(s, m_Scene);
+        if (loadResult > 0) {
+            m_wing.LoadScene(&m_Scene);
+        }
+    } else if (result == NFD_CANCEL) {
+        LOG_DEBUG(UI, "User cancelled scene import");
+    } else {
+        LOG_ERROR(UI, "Error while opening file dialog: {}", NFD_GetError());
     }
 }
 

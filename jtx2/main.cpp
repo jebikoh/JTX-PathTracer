@@ -5,17 +5,13 @@
 #include <thread>
 #include <scene/scene_exporter.hpp>
 
-// #define JTX_ENABLE_UI
+#define JTX_ENABLE_UI
 
 int main(int argc, char *argv[]) {
     Logger::AddDefaultSink();
 #ifdef JTX_ENABLE_UI
-    jtx::Scene scene;
-    CHECK_JTX(jtx::LoadScene("assets/duck/duck.obj", scene));
-
     jtx::Display display;
     display.Init();
-    display.SetScene(&scene);
     display.Run();
     display.Destroy();
 #else

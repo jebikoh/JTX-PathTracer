@@ -165,7 +165,7 @@ private:
     void Rasterize(RenderContext &ctx, const VkRect2D &renderArea);
 
     void PopulateContext();
-    void UpdateSceneData();
+    void UpdateGlobalUBOData();
 
     jvk::DescriptorWriter m_descriptorWriter;
 
@@ -208,7 +208,7 @@ private:
     VkStridedDeviceAddressRegionKHR m_hitRegion{};
     VkStridedDeviceAddressRegionKHR m_callableRegion{};
 
-    void RayTrace(RenderContext &cmd, const glm::vec4 &clearColor) const;
+    void RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const;
 };
 
 }// namespace jtx

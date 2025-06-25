@@ -59,12 +59,11 @@ void WingEngine::Destroy() {
 }
 
 void WingEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
-    if (!m_bSceneLoaded) {
-        return;
+    UpdateGlobalUBOData();
+    if (m_bSceneLoaded) {
+        PopulateContext();
     }
 
-    UpdateSceneData();
-    PopulateContext();
     // Calculate resolve region
     region.src[0].width = region.dst[0].width = m_viewRectangle.x;
     region.src[0].height = region.dst[0].height = m_viewRectangle.y;
@@ -84,22 +83,6 @@ void WingEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
 }
 
 void WingEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
-    // Draw sorting
-    std::vector<uint32_t> opaqueDraws;
-    opaqueDraws.reserve(m_drawContext.opaque.size());
-    for (uint32_t i = 0; i < m_drawContext.opaque.size(); i++) {
-        opaqueDraws.push_back(i);
-    }
-
-    std::ranges::sort(opaqueDraws, [&](const auto &iA, const auto &iB) {
-        const GPURenderObject &a = m_drawContext.opaque[iA];
-        const GPURenderObject &b = m_drawContext.opaque[iB];
-        if (a.material == b.material) {
-            return a.start < b.start;
-        }
-        return a.material < b.material;
-    });
-
     // Begin render pass
     VkClearValue drawImageClearValue{};
     drawImageClearValue.color = {0.255f, 0.247f, 0.255f, 1.0f};
@@ -123,59 +106,77 @@ void WingEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
 
     vkCmdBeginRenderingKHR(ctx.cmd, &renderingInfo);
 
-    // Update scene data UBO & descriptor set (layout 0, binding 0)
-    const FrameData &frame = m_frameData[ctx.frameIndex];
+    VkViewport viewport{};
+    viewport.x        = static_cast<float>(m_viewRectangle.x);
+    viewport.y        = static_cast<float>(m_viewRectangle.y);
+    viewport.width    = static_cast<float>(m_viewRectangle.w);
+    viewport.height   = static_cast<float>(m_viewRectangle.h);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(ctx.cmd, 0, 1, &viewport);
 
-    *frame.gpuSceneDataUBOMapping = m_gpuSceneUboData;
+    // SCISSOR
+    VkRect2D scissor{};
+    scissor.offset.x      = m_viewRectangle.x;
+    scissor.offset.y      = m_viewRectangle.y;
+    scissor.extent.width  = m_viewRectangle.w;
+    scissor.extent.height = m_viewRectangle.h;
+    vkCmdSetScissor(ctx.cmd, 0, 1, &scissor);
 
-    const jvk::Pipeline *lastPipeline       = nullptr;
-    const GPUMaterialInstance *lastMaterial = nullptr;
-
-    // Bind index buffer
-    vkCmdBindIndexBuffer(ctx.cmd, m_gpuSceneMeshData.index, 0, VK_INDEX_TYPE_UINT32);
-
-    auto draw = [&](const GPURenderObject &r) {
-        if (r.material != lastMaterial) {
-            lastMaterial = r.material;
-
-            if (r.material->pipeline != lastPipeline) {
-                lastPipeline = r.material->pipeline;
-
-                vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->pipeline);
-                vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->layout, 0, 1, &frame.gpuSceneDataUboDescriptorSet, 0, nullptr);
-
-                VkViewport viewport{};
-                viewport.x        = static_cast<float>(m_viewRectangle.x);
-                viewport.y        = static_cast<float>(m_viewRectangle.y);
-                viewport.width    = static_cast<float>(m_viewRectangle.w);
-                viewport.height   = static_cast<float>(m_viewRectangle.h);
-                viewport.minDepth = 0.0f;
-                viewport.maxDepth = 1.0f;
-                vkCmdSetViewport(ctx.cmd, 0, 1, &viewport);
-
-                // SCISSOR
-                VkRect2D scissor{};
-                scissor.offset.x      = m_viewRectangle.x;
-                scissor.offset.y      = m_viewRectangle.y;
-                scissor.extent.width  = m_viewRectangle.w;
-                scissor.extent.height = m_viewRectangle.h;
-                vkCmdSetScissor(ctx.cmd, 0, 1, &scissor);
-            }
-
-            vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->layout, 1, 1, &r.material->descriptorSet, 0, nullptr);
+    if (m_bSceneLoaded) {
+        // Draw sorting
+        std::vector<uint32_t> opaqueDraws;
+        opaqueDraws.reserve(m_drawContext.opaque.size());
+        for (uint32_t i = 0; i < m_drawContext.opaque.size(); i++) {
+            opaqueDraws.push_back(i);
         }
 
-        GPUDrawPushConstants pushConstants{};
-        pushConstants.world  = glm::mat4(1.0f);
-        pushConstants.normal = glm::mat4(1.0f);
-        vkCmdPushConstants(ctx.cmd, r.material->pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConstants), &pushConstants);
+        std::ranges::sort(opaqueDraws, [&](const auto &iA, const auto &iB) {
+            const GPURenderObject &a = m_drawContext.opaque[iA];
+            const GPURenderObject &b = m_drawContext.opaque[iB];
+            if (a.material == b.material) {
+                return a.start < b.start;
+            }
+            return a.material < b.material;
+        });
 
-        // Need to multiply by 3 because r.count and r.start are relative to vec3u
-        vkCmdDrawIndexed(ctx.cmd, r.count * 3, 1, r.start * 3, 0, 0);
-    };
+        // Update scene data UBO & descriptor set (layout 0, binding 0)
+        const FrameData &frame = m_frameData[ctx.frameIndex];
 
-    for (const auto &r: opaqueDraws) {
-        draw(m_drawContext.opaque[r]);
+        *frame.gpuSceneDataUBOMapping = m_gpuSceneUboData;
+
+        const jvk::Pipeline *lastPipeline       = nullptr;
+        const GPUMaterialInstance *lastMaterial = nullptr;
+
+        // Bind index buffer
+        vkCmdBindIndexBuffer(ctx.cmd, m_gpuSceneMeshData.index, 0, VK_INDEX_TYPE_UINT32);
+
+        auto draw = [&](const GPURenderObject &r) {
+            if (r.material != lastMaterial) {
+                lastMaterial = r.material;
+
+                if (r.material->pipeline != lastPipeline) {
+                    lastPipeline = r.material->pipeline;
+
+                    vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->pipeline);
+                    vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->layout, 0, 1, &frame.gpuSceneDataUboDescriptorSet, 0, nullptr);
+                }
+
+                vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->layout, 1, 1, &r.material->descriptorSet, 0, nullptr);
+            }
+
+            GPUDrawPushConstants pushConstants{};
+            pushConstants.world  = glm::mat4(1.0f);
+            pushConstants.normal = glm::mat4(1.0f);
+            vkCmdPushConstants(ctx.cmd, r.material->pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConstants), &pushConstants);
+
+            // Need to multiply by 3 because r.count and r.start are relative to vec3u
+            vkCmdDrawIndexed(ctx.cmd, r.count * 3, 1, r.start * 3, 0, 0);
+        };
+
+        for (const auto &r: opaqueDraws) {
+            draw(m_drawContext.opaque[r]);
+        }
     }
 
     if (m_bDrawGrid) {
@@ -187,7 +188,7 @@ void WingEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
         pushConstants.invViewProj = glm::inverse(m_gpuSceneUboData.viewProj);
         vkCmdPushConstants(ctx.cmd, m_gridPipeline.layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pushConstants), &pushConstants);
 
-        vkCmdDrawIndexed(ctx.cmd, 3, 1, 0, 0, 0);
+        vkCmdDraw(ctx.cmd, 3, 1, 0, 0);
     }
 
     vkCmdEndRenderingKHR(ctx.cmd);
@@ -548,7 +549,7 @@ void WingEngine::PopulateContext() {
     }
 }
 
-void WingEngine::UpdateSceneData() {
+void WingEngine::UpdateGlobalUBOData() {
     m_camera.update();
 
     float aspectRatio;
@@ -955,6 +956,8 @@ void WingEngine::DestroyRayTracingSBT() const {
 }
 
 void WingEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const {
+    if (!m_bSceneLoaded) return;
+
     jvk::TransitionImageIfNeeded(ctx.cmd, ctx.drawImage.image, ctx.layout.drawImage, VK_IMAGE_LAYOUT_GENERAL);
     ctx.layout.drawImage = VK_IMAGE_LAYOUT_GENERAL;
 

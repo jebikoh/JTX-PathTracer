@@ -74,6 +74,8 @@ JtxResult ExportScene(const Scene &scene, const std::filesystem::path &path) {
         Value tex(kObjectType);
         tex.AddMember("diffuse", material.textureIndices.diffuse, allocator);
         tex.AddMember("metallicRoughness", material.textureIndices.metallicRoughness, allocator);
+        m.AddMember("textureIndices", tex, allocator);
+
         materials.PushBack(m, allocator);
     }
     d.AddMember("materials", materials, allocator);

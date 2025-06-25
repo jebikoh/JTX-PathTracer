@@ -41,6 +41,7 @@ private:
     WingEngine m_wing;
 
     void ImportScene();
+    void ExportScene() const;
 };
 
 }// namespace jtx

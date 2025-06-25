@@ -1,11 +1,12 @@
 #include <image.hpp>
 #include <scene/scene_loader.hpp>
 
-#include <rapidobj.hpp>
-#include <rapidjson/rapidjson.h>
 #include <rapidjson/document.h>
-#include <rapidjson/istreamwrapper.h>
 #include <rapidjson/error/en.h>
+#include <rapidjson/istreamwrapper.h>
+#include <rapidjson/rapidjson.h>
+#include <rapidobj.hpp>
+#include <unordered_set>
 
 JtxResult jtx::LoadScene(const std::filesystem::path &path, Scene &scene) {
     LOG_INFO(LOADER,"Loading scene: {}", path.string());
@@ -56,7 +57,7 @@ JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &sc
         return JTX_ERROR_FILE_INVALID_DATA;
     }
 
-    scene.name = path.string();
+    scene.name = path.stem().string();
 
     // Hashmap to keep track of textures we've already loaded
     std::unordered_map<std::string, int> textureMap;
@@ -248,6 +249,32 @@ JtxResult jtx::detail::LoadJtx(const std::filesystem::path &path, Scene &scene) 
     scene.cameraSettings.bEnableDof = cs["enableDOF"].GetBool();
     scene.cameraSettings.fStop = cs["fStop"].GetFloat();
 
+    // -- Textures --
+    std::unordered_set<uint32_t> failedTexLoads;
+    const Value& textures = d["textures"];
+    const uint32_t numTextures = textures["count"].GetUint();
+
+    scene.textures.resize(numTextures);
+
+    uint32_t index = 0;
+    for (const auto& tex_json : textures["paths"].GetArray()) {
+        const std::string filename = tex_json.GetString();
+        if (filename.empty()) {
+            LOG_INFO(LOADER, "Texture at index {} is empty, skipping", index);
+            failedTexLoads.insert(index++);
+            continue;
+        }
+
+        const std::filesystem::path texPath = path.parent_path() / filename;
+        Image8u texture{};
+        if (Image8u::Load(texPath, texture) < 1) {
+            failedTexLoads.insert(index++);
+            continue;
+        }
+
+        scene.textures[index++] = std::move(texture);
+    }
+
     // -- Materials --
     const Value& materials = d["materials"];
     scene.materials.reserve(materials.Size());
@@ -265,13 +292,12 @@ JtxResult jtx::detail::LoadJtx(const std::filesystem::path &path, Scene &scene) 
 
         const Value& tex = m_json["textureIndices"];
         mat.textureIndices.diffuse = tex["diffuse"].GetInt();
+        if (failedTexLoads.contains(mat.textureIndices.diffuse)) mat.textureIndices.diffuse = JTX_MATERIAL_TEXTURE_MISSING;
         mat.textureIndices.metallicRoughness = tex["metallicRoughness"].GetInt();
+        if (failedTexLoads.contains(mat.textureIndices.metallicRoughness)) mat.textureIndices.metallicRoughness = JTX_MATERIAL_TEXTURE_MISSING;
 
         scene.materials.push_back(mat);
     }
-
-    // -- Textures --
-    // TODO
 
     // -- Meshes --
     const Value& meshes = d["meshes"];

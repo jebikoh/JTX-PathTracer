@@ -211,7 +211,14 @@ void WingEngine::LoadScene(const Scene *pScene) {
 
     // -- Textures --
     LOG_DEBUG(WING, "Loading textures");
+    m_sceneTextures.resize(pScene->textures.size());
+    uint32_t index = 0;
     for (const auto &tex: pScene->textures) {
+        if (tex.IsEmpty()) {
+            ++index;
+            continue;
+        }
+
         auto format             = VK_FORMAT_R8G8B8A8_SRGB;
         const VkExtent3D extent = {static_cast<uint32_t>(tex.width), static_cast<uint32_t>(tex.height), 1};
 
@@ -223,7 +230,8 @@ void WingEngine::LoadScene(const Scene *pScene) {
         } else {
             gpuTex = m_gfx.CreateImage(tex.pData, extent, tex.channels, format, VK_IMAGE_USAGE_SAMPLED_BIT);
         }
-        m_sceneTextures.push_back(gpuTex);
+
+        m_sceneTextures[index++] = gpuTex;
     }
     LOG_DEBUG(WING, "Textures loaded");
 
@@ -358,10 +366,12 @@ void WingEngine::LoadScene(const Scene *pScene) {
         static_cast<GPUMaterialUBOData *>(materialData)[uboOffset] = uboData;
 
         GPUMaterialResources resources{};
-        if (material.textureIndices.diffuse != JTX_MATERIAL_TEXTURE_INDEX_NONE) {
-            resources.images.diffuse = m_sceneTextures[material.textureIndices.diffuse];
-        } else {
+        if (material.textureIndices.diffuse == JTX_MATERIAL_TEXTURE_INDEX_NONE) {
             resources.images.diffuse = m_gfx.defaultImages.white;
+        } else if (material.textureIndices.diffuse == JTX_MATERIAL_TEXTURE_MISSING) {
+            resources.images.diffuse = m_gfx.defaultImages.checkerboard;
+        } else {
+            resources.images.diffuse = m_sceneTextures[material.textureIndices.diffuse];
         }
         resources.images.ambient    = m_gfx.defaultImages.white;
         resources.images.specular   = m_gfx.defaultImages.white;

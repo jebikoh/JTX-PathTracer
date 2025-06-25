@@ -4,6 +4,7 @@
 
 #include <SDL_events.h>
 #include <interface/display.hpp>
+#include <scene/scene_exporter.hpp>
 #include <thread>
 
 namespace jtx {
@@ -19,6 +20,9 @@ void Display::Init() {
     m_gfx.Init();
     m_uiRenderer.Init([this] {
         ImportScene();
+    },
+    [this] {
+        ExportScene();
     });
     m_wing.Init(m_gfx.bRayTracingSupported);
 
@@ -139,6 +143,30 @@ void Display::ImportScene() {
         LOG_DEBUG(UI, "User cancelled scene import");
     } else {
         LOG_ERROR(UI, "Error while opening file dialog: {}", NFD_GetError());
+    }
+}
+
+void Display::ExportScene() const {
+    const auto name = m_Scene.name.empty() ? "scene.jtx" : m_Scene.name + ".jtx";
+
+    constexpr nfdu8filteritem_t filters[1] = {{"JTX scene file", "jtx"}};
+    nfdsavedialogu8args_t args{};
+    args.filterList  = filters;
+    args.filterCount = 1;
+    args.defaultName = name.c_str();
+
+    nfdu8char_t *outPath;
+    const nfdresult_t result = NFD_SaveDialogN_With(&outPath, &args);
+    if (result == NFD_OKAY) {
+        const auto s = std::string(outPath);
+        LOG_INFO(UI, "User selected export path: {}", outPath);
+        NFD_FreePathU8(outPath);
+
+        const auto exportResult = jtx::ExportScene(m_Scene, s);
+    } else if (result == NFD_CANCEL) {
+        LOG_DEBUG(UI, "User cancelled scene export");
+    } else {
+        LOG_ERROR(UI, "Error while opening save dialog: {}", NFD_GetError());
     }
 }
 

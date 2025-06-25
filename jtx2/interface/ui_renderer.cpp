@@ -79,10 +79,11 @@ void UiDrawContext::NewRow(const char *label) {
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 }
 
-void UIRenderer::Init(const std::function<void()> &importSceneCallback) {
+void UIRenderer::Init(const std::function<void()> &importSceneCallback, const std::function<void()> &exportSceneCallback) {
     LOG_INFO(UI, "Initializing UI renderer");
 
     m_importSceneCallback = importSceneCallback;
+    m_exportSceneCallback = exportSceneCallback;
 
     constexpr VkDescriptorPoolSize poolSizes[] =
             {
@@ -203,7 +204,9 @@ void UIRenderer::NewFrame() {
                     if (ImGui::MenuItem("Import")) {
                         m_importSceneCallback();
                     }
-                    if (ImGui::MenuItem("Export")) {}
+                    if (ImGui::MenuItem("Export")) {
+                        m_exportSceneCallback();
+                    }
                     ImGui::EndMenu();
                 }
 

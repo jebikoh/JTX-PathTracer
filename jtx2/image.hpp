@@ -110,7 +110,7 @@ public:
      */
     static JtxResult Load(const uint8_t *buffer, size_t size, Image8u &out, bool bApplyEOTF = true);
 
-    JtxResult Save(const std::filesystem::path &path) const;
+    JtxResult Save(const std::filesystem::path &path, bool bFlip = true) const;
 
     /**
      * Retrieves pixel value at given coordinates. If the requested format has more channels

@@ -28,7 +28,7 @@ struct Material {
 
     struct TextureIndices {
         int32_t diffuse            = JTX_MATERIAL_TEXTURE_INDEX_NONE;
-        int32_t metallicRoughness = JTX_MATERIAL_TEXTURE_INDEX_NONE;
+        int32_t metallicRoughness  = JTX_MATERIAL_TEXTURE_INDEX_NONE;
     } textureIndices;
 
     bool IsEmissive() const { return parameters.emission.LengthSquared() > 0.0f; }

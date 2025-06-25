@@ -6,6 +6,7 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/prettywriter.h>
 
+#include <unordered_set>
 
 using namespace rapidjson;
 
@@ -35,7 +36,7 @@ Value ToJson(const vec3u &v, Document::AllocatorType &allocator) {
 }
 
 JtxResult ExportScene(const Scene &scene, const std::filesystem::path &path) {
-    LOG_INFO(LOADER, "Exporting scene:", scene.name);
+    LOG_INFO(LOADER, "Exporting scene: {}", scene.name);
 
     // Setup JSON document
     Document d;
@@ -83,7 +84,25 @@ JtxResult ExportScene(const Scene &scene, const std::filesystem::path &path) {
     d.AddMember("materials", materials, allocator);
 
     // Textures
-    // TODO
+    Value textures(kObjectType);
+    textures.AddMember("count", static_cast<uint32_t>(scene.textures.size()), allocator);
+    Value texturePaths(kArrayType);
+
+    std::string baseDir = path.parent_path().string() + '/';
+    uint32_t nTex = 0;
+    for (const auto &texture : scene.textures) {
+        std::string texName = "tex_" + std::to_string(nTex++) + ".png";
+        std::string texPath = baseDir + texName;
+        const auto texResult = texture.Save(texPath, false);
+        if (texResult < 1) {
+            LOG_INFO(LOADER, "Failed to save texture to disk: {}", texPath);
+            texName = "";
+        }
+        texturePaths.PushBack(Value(texName.c_str(), allocator).Move(), allocator);
+        nTex++;
+    }
+    textures.AddMember("paths", texturePaths, allocator);
+    d.AddMember("textures", textures, allocator);
 
     // Meshes
     Value meshes(kArrayType);
@@ -151,7 +170,7 @@ JtxResult ExportScene(const Scene &scene, const std::filesystem::path &path) {
     file << buffer.GetString();
     file.close();
 
-    LOG_INFO(LOADER, "Scene exported to:", path.string());
+    LOG_INFO(LOADER, "Scene exported to: {}", path.string());
 
     return JTX_SUCCESS;
 }

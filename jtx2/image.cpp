@@ -102,21 +102,27 @@ JtxResult jtx::Image8u::Load(const uint8_t *buffer, const size_t size, Image8u &
     return JTX_SUCCESS;
 }
 
-JtxResult jtx::Image8u::Save(const std::filesystem::path &path) const {
-    std::vector<uint8_t> flipped(width * height * channels);
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            const int srcIndex = (y * width + x) * channels;
-            const int dstIndex = ((height - 1 - y) * width + x) * channels;
-            for (int c = 0; c < channels; ++c) {
-                flipped[dstIndex + c] = pData[srcIndex + c];
+JtxResult jtx::Image8u::Save(const std::filesystem::path &path, const bool bFlip) const {
+    if (bFlip) {
+        std::vector<uint8_t> flipped(width * height * channels);
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                const int srcIndex = (y * width + x) * channels;
+                const int dstIndex = ((height - 1 - y) * width + x) * channels;
+                for (int c = 0; c < channels; ++c) {
+                    flipped[dstIndex + c] = pData[srcIndex + c];
+                }
             }
+        }
+        if (stbi_write_png(path.string().c_str(), width, height, channels, flipped.data(), width * channels)) {
+            return JTX_SUCCESS;
+        }
+    } else {
+        if (stbi_write_png(path.string().c_str(), width, height, channels, pData, width * channels)) {
+            return JTX_SUCCESS;
         }
     }
 
-    if (stbi_write_png(path.string().c_str(), width, height, channels, flipped.data(), width * channels)) {
-        return JTX_SUCCESS;
-    }
     LOG_ERROR(TEXTURE, "Failed to save image to file: {}", stbi_failure_reason());
     return JTX_ERROR_FILE_WRITE;
 }

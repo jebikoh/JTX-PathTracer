@@ -50,7 +50,7 @@ public:
     explicit UIRenderer(const GfxContext &gfx)
         : m_gfx(gfx) {}
 
-    void Init(const std::function<void()> &importSceneCallback);
+    void Init(const std::function<void()> &importSceneCallback, const std::function<void()> &exportSceneCallback);
     void Destroy() const;
 
     /**
@@ -102,6 +102,7 @@ private:
     int m_currentViewportBackend = 0;
 
     std::function<void()> m_importSceneCallback;
+    std::function<void()> m_exportSceneCallback;
 };
 
 }// namespace jtx

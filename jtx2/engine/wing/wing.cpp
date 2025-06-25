@@ -207,8 +207,9 @@ void WingEngine::LoadScene(const Scene *pScene) {
     if (m_bSceneLoaded) {
         DestroyGPUScene();
     }
-    m_scene = pScene;
+    m_pScene = pScene;
 
+    // -- Textures --
     LOG_DEBUG(WING, "Loading textures");
     for (const auto &tex: pScene->textures) {
         auto format             = VK_FORMAT_R8G8B8A8_SRGB;
@@ -226,6 +227,7 @@ void WingEngine::LoadScene(const Scene *pScene) {
     }
     LOG_DEBUG(WING, "Textures loaded");
 
+    // -- Mesh buffers --
     // Calculate non-interleaved buffer sizes
     const size_t positionBufferSize = pScene->positions.size() * sizeof(vec3);
     const size_t normalBufferSize   = pScene->normals.size() * sizeof(vec3);
@@ -335,8 +337,7 @@ void WingEngine::LoadScene(const Scene *pScene) {
 
     m_gfx.DestroyBuffer(staging);
 
-    // Load materials
-    m_gpuMaterialInstances.clear();
+    // -- Materials --
     m_gpuMaterialInstances.reserve(pScene->materials.size());
 
     LOG_DEBUG(WING, "Creating material UBO");
@@ -380,6 +381,7 @@ void WingEngine::LoadScene(const Scene *pScene) {
 
     m_bSceneLoaded = true;
 
+    // -- RT resources --
     if (m_bRayTracingAvailable) {
         LOG_DEBUG(WING, "Initializing RT scene resources");
         BuildBLAS();
@@ -408,25 +410,6 @@ void WingEngine::DrawSettingsPanel(UiDrawContext &ctx) {
         ctx.EndTable();
     }
     ctx.EndRectangleBackground();
-}
-
-void WingEngine::DestroyGPUSceneMeshData() {
-    LOG_DEBUG(WING, "Destroying GPU scene buffers");
-    LOG_DEBUG(WING, "Destroying index buffer");
-    m_gfx.DestroyBuffer(m_gpuSceneMeshData.index);
-    LOG_DEBUG(WING, "Destroying vertex buffers");
-    m_gfx.DestroyBuffer(m_gpuSceneMeshData.position);
-    LOG_DEBUG(WING, "Destroying normal buffer");
-    m_gfx.DestroyBuffer(m_gpuSceneMeshData.normal);
-    LOG_DEBUG(WING, "Destroying UV buffer");
-    m_gfx.DestroyBuffer(m_gpuSceneMeshData.uv);
-    if (m_gpuSceneMeshData.color.IsValid()) {
-        LOG_DEBUG(WING, "Destroying color buffer");
-        m_gfx.DestroyBuffer(m_gpuSceneMeshData.color);
-    }
-
-    m_gpuSceneMeshData = {};
-    LOG_DEBUG(WING, "Destroyed GPU scene buffers");
 }
 
 void WingEngine::InitMaterialResources() {
@@ -498,16 +481,6 @@ void WingEngine::DestroyMaterialResources() const {
     m_gpuMaterials.transparentPipeline.Destroy(m_gfx.ctx, false);
 }
 
-void WingEngine::DestroyGPUSceneMaterials() const {
-    m_gfx.DestroyBuffer(m_materialBufferUBO);
-}
-
-void WingEngine::DestroyGPUSceneTextures() const {
-    for (const auto &img: m_sceneTextures) {
-        img.Destroy(m_gfx.ctx, m_gfx.allocator);
-    }
-}
-
 GPUMaterialInstance WingEngine::WriteMaterial(const GPUMaterialPass pass, const GPUMaterialResources &resources) {
     GPUMaterialInstance mat{};
     mat.mType = pass;
@@ -538,7 +511,7 @@ void WingEngine::PopulateContext() {
     m_drawContext.transparent.clear();
 
     // Loop through meshes
-    for (const auto &mesh: m_scene->meshes) {
+    for (const auto &mesh: m_pScene->meshes) {
         GPURenderObject obj{};
         obj.start      = mesh.startIndex;
         obj.count      = mesh.numIndices;
@@ -574,17 +547,48 @@ void WingEngine::UpdateGlobalUBOData() {
 }
 
 void WingEngine::DestroyGPUScene() {
-    m_gfx.WaitIdle();
     if (m_bSceneLoaded) {
+        m_gfx.WaitIdle();
+
+        // -- RT resources --
         if (m_bRayTracingAvailable) {
             LOG_DEBUG(WING, "Destroying RT acceleration structures");
             m_ASManager.DestroyAS();
             LOG_DEBUG(WING, "RT acceleration structures destroyed");
         }
 
-        DestroyGPUSceneMeshData();
-        DestroyGPUSceneMaterials();
-        DestroyGPUSceneTextures();
+        // -- Material resources --
+        LOG_DEBUG(WING, "Destroying GPU scene materials");
+        m_gpuMaterialInstances.clear();
+        m_gfx.DestroyBuffer(m_materialBufferUBO);
+        LOG_DEBUG(WING, "Destroyed GPU scene materials");
+
+        // -- Mesh buffers --
+        LOG_DEBUG(WING, "Destroying GPU scene buffers");
+        LOG_DEBUG(WING, "Destroying index buffer");
+        m_gfx.DestroyBuffer(m_gpuSceneMeshData.index);
+        LOG_DEBUG(WING, "Destroying vertex buffers");
+        m_gfx.DestroyBuffer(m_gpuSceneMeshData.position);
+        LOG_DEBUG(WING, "Destroying normal buffer");
+        m_gfx.DestroyBuffer(m_gpuSceneMeshData.normal);
+        LOG_DEBUG(WING, "Destroying UV buffer");
+        m_gfx.DestroyBuffer(m_gpuSceneMeshData.uv);
+        if (m_gpuSceneMeshData.color.IsValid()) {
+            LOG_DEBUG(WING, "Destroying color buffer");
+            m_gfx.DestroyBuffer(m_gpuSceneMeshData.color);
+        }
+        m_gpuSceneMeshData = {};
+        LOG_DEBUG(WING, "Destroyed GPU scene buffers");
+
+        // -- Textures --
+        LOG_DEBUG(WING, "Destroying GPU scene textures");
+        for (const auto &tex : m_sceneTextures) {
+            m_gfx.DestroyImage(tex);
+        }
+        m_sceneTextures.clear();
+        LOG_DEBUG(WING, "Destroyed GPU scene textures");
+
+        m_pScene = nullptr;
     }
     m_bSceneLoaded = false;
 }
@@ -672,16 +676,16 @@ void WingEngine::DestroyGridPipeline() const {
 }
 
 void WingEngine::BuildBLAS() {
-    assert(m_scene != nullptr);
+    assert(m_pScene != nullptr);
 
     const VkDeviceAddress vertexAddress = m_gpuSceneMeshData.positionAddress;
     const VkDeviceAddress indexAddress  = m_gpuSceneMeshData.indexAddress;
 
     // For now, we will build a BLAS for each mesh in the scene.
     std::vector<jtx::BLASInput> inputs;
-    inputs.reserve(m_scene->meshes.size());
+    inputs.reserve(m_pScene->meshes.size());
 
-    for (const auto &mesh: m_scene->meshes) {
+    for (const auto &mesh: m_pScene->meshes) {
         jtx::BLASInput input;
 
         const uint32_t numPrimitives = mesh.numIndices;
@@ -720,9 +724,9 @@ void WingEngine::BuildTLAS() {
     // We don't really support instances, so we will just create one instance of each BLAS
     // (We also don't support transforms right now, so identity matrix is hardcoded)
     std::vector<VkAccelerationStructureInstanceKHR> tlas;
-    tlas.reserve(m_scene->meshes.size());
+    tlas.reserve(m_pScene->meshes.size());
 
-    for (size_t i = 0; i < m_scene->meshes.size(); ++i) {
+    for (size_t i = 0; i < m_pScene->meshes.size(); ++i) {
         constexpr VkTransformMatrixKHR identity = {
                 1.0f, 0.0f, 0.0f, 0.0f,
                 0.0f, 1.0f, 0.0f, 0.0f,

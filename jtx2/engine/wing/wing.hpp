@@ -86,7 +86,7 @@ private:
 
     // Scene
     bool m_bSceneLoaded = false;
-    const Scene *m_scene = nullptr;
+    const Scene *m_pScene = nullptr;
 
     OrbitCamera m_camera{};
 
@@ -116,7 +116,6 @@ private:
         VkDeviceAddress uvAddress = 0;
         VkDeviceAddress colorAddress = 0;
     } m_gpuSceneMeshData;
-    void DestroyGPUSceneMeshData();
 
     // GPU material pipelines and descriptor layouts
     struct GPUMaterials {
@@ -141,16 +140,6 @@ private:
      * Destroys material pipelines and descriptor layouts
      */
     void DestroyMaterialResources() const;
-
-    /**
-     * Destroys all material instances and the material UBO if a scene is loaded
-     */
-    void DestroyGPUSceneMaterials() const;
-
-    /**
-     * Destroys all loaded textures on the GPU
-     */
-    void DestroyGPUSceneTextures() const;
 
     /**
      * Utility function to write a single material instance given a pass type and resources.

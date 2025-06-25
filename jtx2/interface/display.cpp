@@ -131,6 +131,9 @@ void Display::ImportScene() {
         const auto loadResult = LoadScene(s, m_Scene);
         if (loadResult > 0) {
             m_wing.LoadScene(&m_Scene);
+            m_bSceneLoaded = true;
+        } else {
+            m_bSceneLoaded = false;
         }
     } else if (result == NFD_CANCEL) {
         LOG_DEBUG(UI, "User cancelled scene import");

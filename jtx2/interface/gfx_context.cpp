@@ -136,6 +136,17 @@ void GfxContext::InitVulkan() {
     synchronization2.synchronization2 = VK_TRUE;
     synchronization2.pNext            = &dynamicRendering;
 
+    VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexing{};
+    descriptorIndexing.sType                                         = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+    descriptorIndexing.descriptorBindingPartiallyBound               = VK_TRUE;
+    descriptorIndexing.shaderStorageBufferArrayNonUniformIndexing    = VK_TRUE;
+    descriptorIndexing.shaderSampledImageArrayNonUniformIndexing     = VK_TRUE;
+    descriptorIndexing.shaderStorageImageArrayNonUniformIndexing     = VK_TRUE;
+    descriptorIndexing.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+    descriptorIndexing.descriptorBindingSampledImageUpdateAfterBind  = VK_TRUE;
+    descriptorIndexing.descriptorBindingStorageImageUpdateAfterBind  = VK_TRUE;
+    descriptorIndexing.pNext = &synchronization2;
+
     // Check if ray tracing is supported
     auto availableExtensions = vkbPd.get_available_extensions();
 

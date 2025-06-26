@@ -103,7 +103,7 @@
     ],
     "textures": {
         "count": 1,
-        "textures": [
+        "paths": [
             "tex_0.png"
         ]
     },

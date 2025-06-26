@@ -11,6 +11,56 @@ namespace jtx {
 
 class Display;
 
+// No more push constants
+
+using BufferHandle = uint32_t;
+using TextureHandle = int32_t;
+
+// Layout 0: Per-frame global data
+// Binding 0 (UBO):
+struct alignas(256) GPUGlobalUniformData {
+    glm::mat4 viewProj;
+    glm::mat4 iViewProj;
+    glm::vec4 cameraPosition;
+    glm::vec3 sunDirection;
+    float sunIntensity;
+};
+
+// Layout 1: Bindless scene resources
+// Binding 0 (SSBO): GPUObjectData[]
+struct GPUObjectData {
+    glm::mat4 world;
+    glm::mat4 normal;
+    BufferHandle material;
+    BufferHandle geometry;
+};
+
+// Binding 1 (SSBO): GPUMaterialData[]
+struct GPUMaterialData {
+    // Everything padded to vec4 for alignment
+    glm::vec4 diffuse;
+    glm::vec4 ior;
+    glm::vec4 k;
+    glm::vec4 f0;
+    glm::vec4 emission;
+    glm::vec4 roughness;
+    TextureHandle diffuseTexture;
+};
+
+// Binding 2 (Combined Image Samplers): scene texture/sampler array
+
+// Binding 3 (SSBO): GPUGeometryData[]
+struct GPUGeometryData {
+    VkDeviceAddress vertexBuffer;
+    VkDeviceAddress normalBuffer;
+    VkDeviceAddress uvBuffer;
+    VkDeviceAddress colorBuffer;
+    VkDeviceAddress indexBuffer;
+};
+
+// Binding 4 (Acceleration Structure): TLAS if RT is supported
+
+
 /**
  * All meshes are stored in a single set of buffers, meaning, we can just
  * send the device addresses in the UBO instead of push constants.

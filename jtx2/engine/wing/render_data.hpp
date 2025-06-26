@@ -11,19 +11,30 @@ namespace jtx {
 
 class Display;
 
-// No more push constants
+using ResourceHandle = uint32_t;
+using TextureHandle  = int32_t;
 
-using BufferHandle = uint32_t;
-using TextureHandle = int32_t;
+enum kL2Bindings {
+    GPU_OBJECT_DATA           = 0,
+    GPU_MATERIAL_DATA         = 1,
+    GPU_TEXTURE_SAMPLER_ARRAY = 2,
+    GPU_TLAS                  = 3,
+};
 
 // Layout 0: Per-frame global data
 // Binding 0 (UBO):
 struct alignas(256) GPUGlobalUniformData {
     glm::mat4 viewProj;
-    glm::mat4 iViewProj;
+    glm::mat4 invViewProj;
     glm::vec4 cameraPosition;
     glm::vec3 sunDirection;
     float sunIntensity;
+
+    VkDeviceAddress vertexBuffer;
+    VkDeviceAddress normalBuffer;
+    VkDeviceAddress uvBuffer;
+    VkDeviceAddress colorBuffer;
+    VkDeviceAddress indexBuffer;
 };
 
 // Layout 1: Bindless scene resources
@@ -31,13 +42,13 @@ struct alignas(256) GPUGlobalUniformData {
 struct GPUObjectData {
     glm::mat4 world;
     glm::mat4 normal;
-    BufferHandle material;
-    BufferHandle geometry;
+    uint32_t start;
+    uint32_t count;
+    ResourceHandle material;
 };
 
 // Binding 1 (SSBO): GPUMaterialData[]
 struct GPUMaterialData {
-    // Everything padded to vec4 for alignment
     glm::vec4 diffuse;
     glm::vec4 ior;
     glm::vec4 k;
@@ -49,16 +60,7 @@ struct GPUMaterialData {
 
 // Binding 2 (Combined Image Samplers): scene texture/sampler array
 
-// Binding 3 (SSBO): GPUGeometryData[]
-struct GPUGeometryData {
-    VkDeviceAddress vertexBuffer;
-    VkDeviceAddress normalBuffer;
-    VkDeviceAddress uvBuffer;
-    VkDeviceAddress colorBuffer;
-    VkDeviceAddress indexBuffer;
-};
-
-// Binding 4 (Acceleration Structure): TLAS if RT is supported
+// Binding 3 (Acceleration Structure): TLAS if RT is supported
 
 
 /**
@@ -169,4 +171,4 @@ struct GridPushConstants {
 
 #pragma endregion
 
-}
+}// namespace jtx

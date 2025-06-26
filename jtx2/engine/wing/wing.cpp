@@ -12,7 +12,7 @@
 
 namespace jtx {
 
-void WingEngine::Init(const bool bEnableRayTracing) {
+void VkEngine::Init(const bool bEnableRayTracing) {
     LOG_INFO(WING, "Initializing Rasterizer");
     m_bRayTracingAvailable = bEnableRayTracing;
 
@@ -40,7 +40,7 @@ void WingEngine::Init(const bool bEnableRayTracing) {
     LOG_INFO(WING, "Rasterizer initialized");
 }
 
-void WingEngine::Destroy() {
+void VkEngine::Destroy() {
     LOG_INFO(WING, "Destroying Rasterizer");
 
     if (m_bRayTracingAvailable) {
@@ -58,7 +58,7 @@ void WingEngine::Destroy() {
     LOG_INFO(WING, "Rasterizer destroyed");
 }
 
-void WingEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
+void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
     UpdateGlobalUBOData();
     if (m_bSceneLoaded) {
         PopulateContext();
@@ -82,7 +82,7 @@ void WingEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
     }
 }
 
-void WingEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
+void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
     // Begin render pass
     VkClearValue drawImageClearValue{};
     drawImageClearValue.color = {0.255f, 0.247f, 0.255f, 1.0f};
@@ -194,15 +194,15 @@ void WingEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
     vkCmdEndRenderingKHR(ctx.cmd);
 }
 
-void WingEngine::ProcessEvent(const SDL_Event &event) {
+void VkEngine::ProcessEvent(const SDL_Event &event) {
     m_camera.ProcessSDLEvent(event);
 }
 
-void WingEngine::SkipEvent() {
+void VkEngine::SkipEvent() {
     m_camera.ResetInputState();
 }
 
-void WingEngine::LoadScene(const Scene *pScene) {
+void VkEngine::LoadScene(const Scene *pScene) {
     LOG_INFO(WING, "Loading scene");
     if (m_bSceneLoaded) {
         DestroyGPUScene();
@@ -408,7 +408,7 @@ void WingEngine::LoadScene(const Scene *pScene) {
     LOG_INFO(WING, "Scene loaded");
 }
 
-void WingEngine::DrawSettingsPanel(UiDrawContext &ctx) {
+void VkEngine::DrawSettingsPanel(UiDrawContext &ctx) {
     ctx.StartRectangleBackground();
     if (ctx.StartTable("WingViewportTable")) {
         ctx.NewRow("Draw grid");
@@ -422,7 +422,50 @@ void WingEngine::DrawSettingsPanel(UiDrawContext &ctx) {
     ctx.EndRectangleBackground();
 }
 
-void WingEngine::InitMaterialResources() {
+void VkEngine::InitDescriptorSets() {
+    // -- Bindless descriptor pool --
+    std::vector<VkDescriptorPoolSize> poolSizes = {
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 512},
+        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 512}
+    };
+    if (m_bRayTracingAvailable) {
+        poolSizes.push_back({VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1});
+    }
+
+    jvk::DescriptorAllocator allocator;
+    allocator.InitPool(m_gfx.ctx, 4, poolSizes, VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT);
+
+    jvk::DescriptorLayoutBuilder builder;
+    builder.AddBinding(kL2Bindings::GPU_OBJECT_DATA, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+    builder.AddBinding(kL2Bindings::GPU_GEOMETRY_DATA, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+    builder.AddBinding(kL2Bindings::GPU_MATERIAL_DATA, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+    builder.AddBinding(kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    if (m_bRayTracingAvailable) {
+        builder.AddBinding(kL2Bindings::GPU_TLAS, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR);
+    }
+
+    std::vector<VkDescriptorBindingFlags> bindingFlags = {
+        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+    };
+    if (m_bRayTracingAvailable) {
+        bindingFlags.push_back(VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT);
+    }
+
+    VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo{};
+    bindingFlagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+    bindingFlagsInfo.bindingCount = static_cast<uint32_t>(bindingFlags.size());
+    bindingFlagsInfo.pBindingFlags = bindingFlags.data();
+
+    constexpr auto shaderStages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+    const auto layout = builder.Build(m_gfx.ctx, shaderStages, &bindingFlagsInfo, VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT);
+
+    const VkDescriptorSet set = allocator.Allocate(m_gfx.ctx, layout);
+}
+
+void VkEngine::InitMaterialResources() {
     VkShaderModule vertShader;
     if (!jvk::LoadShaderModule("../shaders/mesh.vert.spv", m_gfx.ctx, &vertShader)) {
         LOG_FATAL(WING, "Failed to load vertex shader");
@@ -486,13 +529,13 @@ void WingEngine::InitMaterialResources() {
     vkDestroyShaderModule(m_gfx.ctx, fragShader, nullptr);
 }
 
-void WingEngine::DestroyMaterialResources() const {
+void VkEngine::DestroyMaterialResources() const {
     vkDestroyDescriptorSetLayout(m_gfx.ctx, m_gpuMaterials.descriptorSetLayout, nullptr);
     m_gpuMaterials.opaquePipeline.Destroy(m_gfx.ctx, true);
     m_gpuMaterials.transparentPipeline.Destroy(m_gfx.ctx, false);
 }
 
-GPUMaterialInstance WingEngine::WriteMaterial(const GPUMaterialPass pass, const GPUMaterialResources &resources) {
+GPUMaterialInstance VkEngine::WriteMaterial(const GPUMaterialPass pass, const GPUMaterialResources &resources) {
     GPUMaterialInstance mat{};
     mat.mType = pass;
 
@@ -517,7 +560,7 @@ GPUMaterialInstance WingEngine::WriteMaterial(const GPUMaterialPass pass, const 
     return mat;
 }
 
-void WingEngine::PopulateContext() {
+void VkEngine::PopulateContext() {
     m_drawContext.opaque.clear();
     m_drawContext.transparent.clear();
 
@@ -533,7 +576,7 @@ void WingEngine::PopulateContext() {
     }
 }
 
-void WingEngine::UpdateGlobalUBOData() {
+void VkEngine::UpdateGlobalUBOData() {
     m_camera.Update();
 
     float aspectRatio;
@@ -557,7 +600,7 @@ void WingEngine::UpdateGlobalUBOData() {
     m_gpuSceneUboData.colorBufferAddress  = m_gpuSceneMeshData.colorAddress;
 }
 
-void WingEngine::DestroyGPUScene() {
+void VkEngine::DestroyGPUScene() {
     if (m_bSceneLoaded) {
         m_gfx.WaitIdle();
 
@@ -604,7 +647,7 @@ void WingEngine::DestroyGPUScene() {
     m_bSceneLoaded = false;
 }
 
-void WingEngine::InitFrameSceneData() {
+void VkEngine::InitFrameSceneData() {
     jvk::DescriptorLayoutBuilder builder;
     builder.AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
     VkShaderStageFlags stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -628,7 +671,7 @@ void WingEngine::InitFrameSceneData() {
     }
 }
 
-void WingEngine::DestroyFrameSceneData() const {
+void VkEngine::DestroyFrameSceneData() const {
     vkDestroyDescriptorSetLayout(m_gfx.ctx, m_gpuSceneDataUboDescriptorLayout, nullptr);
 
     for (auto &frame: m_frameData) {
@@ -637,7 +680,7 @@ void WingEngine::DestroyFrameSceneData() const {
     }
 }
 
-void WingEngine::InitGridPipeline() {
+void VkEngine::InitGridPipeline() {
     // Shaders
     VkShaderModule vertShader;
     if (!jvk::LoadShaderModule("../shaders/grid.vert.spv", m_gfx.ctx, &vertShader)) {
@@ -682,11 +725,11 @@ void WingEngine::InitGridPipeline() {
     vkDestroyShaderModule(m_gfx.ctx, fragShader, nullptr);
 }
 
-void WingEngine::DestroyGridPipeline() const {
+void VkEngine::DestroyGridPipeline() const {
     m_gridPipeline.Destroy(m_gfx.ctx, true);
 }
 
-void WingEngine::BuildBLAS() {
+void VkEngine::BuildBLAS() {
     assert(m_pScene != nullptr);
 
     const VkDeviceAddress vertexAddress = m_gpuSceneMeshData.positionAddress;
@@ -731,7 +774,7 @@ void WingEngine::BuildBLAS() {
     m_ASManager.BuildBLAS(inputs, VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR);
 }
 
-void WingEngine::BuildTLAS() {
+void VkEngine::BuildTLAS() {
     // We don't really support instances, so we will just create one instance of each BLAS
     // (We also don't support transforms right now, so identity matrix is hardcoded)
     std::vector<VkAccelerationStructureInstanceKHR> tlas;
@@ -755,7 +798,7 @@ void WingEngine::BuildTLAS() {
     m_ASManager.BuildTLAS(tlas, VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR);
 }
 
-void WingEngine::InitRayTracingDescriptors() {
+void VkEngine::InitRayTracingDescriptors() {
     LOG_DEBUG(WING, "Initializing ray tracing descriptors");
 
     jvk::DescriptorLayoutBuilder builder;
@@ -767,7 +810,7 @@ void WingEngine::InitRayTracingDescriptors() {
     LOG_DEBUG(WING, "Ray tracing descriptors initialized");
 }
 
-void WingEngine::DestroyRayTracingDescriptors() const {
+void VkEngine::DestroyRayTracingDescriptors() const {
     LOG_DEBUG(WING, "Destroying ray tracing descriptors");
 
     vkDestroyDescriptorSetLayout(m_gfx.ctx, m_rtDescriptorSetLayout, nullptr);
@@ -775,7 +818,7 @@ void WingEngine::DestroyRayTracingDescriptors() const {
     LOG_DEBUG(WING, "Ray tracing descriptors destroyed");
 }
 
-void WingEngine::InitRayTracingPipeline() {
+void VkEngine::InitRayTracingPipeline() {
     LOG_DEBUG(WING, "Initializing ray tracing pipeline");
 
     VkShaderModule raygenShader;
@@ -881,7 +924,7 @@ void WingEngine::InitRayTracingPipeline() {
     LOG_DEBUG(WING, "Ray tracing pipeline initialized");
 }
 
-void WingEngine::DestroyRayTracingPipeline() const {
+void VkEngine::DestroyRayTracingPipeline() const {
     LOG_DEBUG(WING, "Destroying ray tracing pipeline");
 
     vkDestroyPipeline(m_gfx.ctx, m_rtPipeline, nullptr);
@@ -894,7 +937,7 @@ inline uint32_t AlignUp(const uint32_t size, const uint32_t alignment) {
     return (size + (alignment - 1)) & ~(alignment - 1);
 }
 
-void WingEngine::InitRayTracingSBT() {
+void VkEngine::InitRayTracingSBT() {
     LOG_DEBUG(WING, "Initializing SBT");
 
     constexpr uint32_t rayGenCount = 1;
@@ -962,7 +1005,7 @@ void WingEngine::InitRayTracingSBT() {
     LOG_DEBUG(WING, "SBT initialized");
 }
 
-void WingEngine::DestroyRayTracingSBT() const {
+void VkEngine::DestroyRayTracingSBT() const {
     LOG_DEBUG(WING, "Destroying SBT");
 
     m_gfx.DestroyBuffer(m_rtSBTBuffer);
@@ -970,7 +1013,7 @@ void WingEngine::DestroyRayTracingSBT() const {
     LOG_DEBUG(WING, "SBT destroyed");
 }
 
-void WingEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const {
+void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const {
     if (!m_bSceneLoaded) return;
 
     jvk::TransitionImageIfNeeded(ctx.cmd, ctx.drawImage.image, ctx.layout.drawImage, VK_IMAGE_LAYOUT_GENERAL);

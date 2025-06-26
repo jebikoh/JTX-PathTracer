@@ -38,7 +38,7 @@ private:
 
     GfxContext m_gfx;
     UIRenderer m_uiRenderer;
-    WingEngine m_wing;
+    VkEngine m_wing;
 
     void ImportScene();
     void ExportScene() const;

@@ -22,16 +22,11 @@ struct DescriptorLayoutBuilder {
     VkDescriptorSetLayout Build(VkDevice device, VkShaderStageFlags shaderStages, const void *pNext = nullptr, VkDescriptorSetLayoutCreateFlags flags = 0);
 };
 
-struct [[maybe_unused]] DescriptorAllocator {
-    struct PoolSizeRatio {
-        VkDescriptorType type;
-        float ratio;
-    };
-
+struct DescriptorAllocator {
     VkDescriptorPool pool;
 
-    void InitPool(VkDevice device, uint32_t maxSets, std::span<PoolSizeRatio> poolRatios);
-    void ClearDescriptors(VkDevice device) const;
+    void InitPool(VkDevice device, uint32_t maxSets, std::span<VkDescriptorPoolSize> sizes, VkDescriptorPoolCreateFlags flags = 0);
+    void Reset(VkDevice device) const;
     void DestroyPool(VkDevice device) const;
     VkDescriptorSet Allocate(VkDevice device, VkDescriptorSetLayout layout) const;
 };

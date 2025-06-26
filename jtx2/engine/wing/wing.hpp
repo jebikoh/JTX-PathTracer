@@ -22,35 +22,37 @@ struct UiDrawContext;
 struct Scene;
 
 /**
- * This class is responsible for rasterizing the scene, including managing
- * GPU resources, pipelines, and rendering commands.
- *
  * GPU data overview:
- *
- * Push Constants (per-object):
+ * Layout 0, Binding 0: Global scene data (UBO)
+ *  - view proj matrix (mat4)
+ *  - inverse view proj matrix (mat4)
+ *  - camera position (vec4)
+ *  - sun direction (vec3)
+ *  - sun intensity (float)
+ * Layout 1, Binding 0: Bindless Object Data (SSBO) []
  *  - world matrix (mat4)
  *  - normal matrix (mat4)
- * Layout 0, Binding 0: Scene-Data (per-frame):
- *  - view matrix (mat4)
- *  - proj matrix (mat4)
- *  - view proj matrix (mat4)
- *  - camera position (vec4)
+ *  - material handle (uint32_t)
+ *  - geometry handle (uint32_t)
+ * Layout 1, Binding 1: Bindless Material Data (SSBO) []
+ *  - diffuse color (vec4)
+ *  - ior (vec4)
+ *  - k (vec4)
+ *  - f0 (vec4)
+ *  - emission (vec4)
+ *  - roughness (vec4)
+ *  - diffuse texture handle (int32_t)
+ * Layout 1, Binding 2: Bindless Texture Sampler Array (Combined Image Sampler) []
+ * Layout 1, Binding 3: Bindless Geometry Data (SSBO) []
  *  - vertex buffer address (VkDeviceAddress)
  *  - normal buffer address (VkDeviceAddress)
- *  - UV buffer address (VkDeviceAddress)
+ *  - uv buffer address (VkDeviceAddress)
  *  - color buffer address (VkDeviceAddress)
- * Layout 1, Binding 0: Material Data UBO (per-object)
- *  - ambient value (vec4)
- *  - diffuse value (vec4)
- *  - specular value (vec4)
- *  - shininess value (float)
- * Layout 1, Binding 1: Ambient image/sampler (per-object)
- * Layout 1, Binding 2: Diffuse image/sampler (per-object)
- * Layout 1, Binding 3: Specular image/sampler (per-object)
+ *  - index buffer address (VkDeviceAddress)
  */
-class WingEngine {
+class VkEngine {
 public:
-    explicit WingEngine(const GfxContext &gfx) : m_gfx(gfx), m_ASManager(gfx) {}
+    explicit VkEngine(const GfxContext &gfx) : m_gfx(gfx), m_ASManager(gfx) {}
 
     void Init(bool bEnableRayTracing = false);
 
@@ -89,6 +91,8 @@ private:
     const Scene *m_pScene = nullptr;
 
     OrbitCamera m_camera{};
+
+    void InitDescriptorSets();
 
     // Frame data
     struct FrameData {
@@ -186,8 +190,8 @@ private:
     void InitRayTracingPipeline();
     void DestroyRayTracingPipeline() const;
     std::vector<VkRayTracingShaderGroupCreateInfoKHR> m_rtShaderGroups;
-    VkPipelineLayout m_rtPipelineLayout;
-    VkPipeline m_rtPipeline;
+    VkPipelineLayout m_rtPipelineLayout = VK_NULL_HANDLE;
+    VkPipeline m_rtPipeline = VK_NULL_HANDLE;
 
     void InitRayTracingSBT();
     void DestroyRayTracingSBT() const;

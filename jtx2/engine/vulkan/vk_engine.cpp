@@ -213,11 +213,11 @@ void VkEngine::InitDescriptors() {
 
     // -- Bindless descriptor set layout --
     jvk::DescriptorLayoutBuilder builder;
-    builder.AddBinding(kL2Bindings::GPU_OBJECT_DATA, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-    builder.AddBinding(kL2Bindings::GPU_MATERIAL_DATA, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-    builder.AddBinding(kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    builder.AddBinding(kL2Bindings::GPU_OBJECT_DATA, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+    builder.AddBinding(kL2Bindings::GPU_MATERIAL_DATA, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+    builder.AddBinding(kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY, 256, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
     if (m_bRayTracingAvailable) {
-        builder.AddBinding(kL2Bindings::GPU_TLAS, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR);
+        builder.AddBinding(kL2Bindings::GPU_TLAS, 1, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR);
     }
 
     constexpr VkDescriptorBindingFlags bindingFlags     = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
@@ -283,10 +283,10 @@ void VkEngine::UpdateGlobalUniformData() {
     m_gpuGlobalUniformData.cameraPosition = glm::vec4(m_camera.position, 0.0f);
     m_gpuGlobalUniformData.sunDirection   = glm::vec4(-1.0f, -1.0f, -1.0f, 0.0f);
     m_gpuGlobalUniformData.sunIntensity   = 10.0f;
-    m_gpuGlobalUniformData.vertexBuffer   = m_gpuSceneMeshData.positionAddress;
-    m_gpuGlobalUniformData.normalBuffer   = m_gpuSceneMeshData.normalAddress;
-    m_gpuGlobalUniformData.uvBuffer       = m_gpuSceneMeshData.uvAddress;
-    m_gpuGlobalUniformData.colorBuffer    = m_gpuSceneMeshData.colorAddress;
+    m_gpuGlobalUniformData.vertexBuffer   = m_gpuSceneData.positionAddress;
+    m_gpuGlobalUniformData.normalBuffer   = m_gpuSceneData.normalAddress;
+    m_gpuGlobalUniformData.uvBuffer       = m_gpuSceneData.uvAddress;
+    m_gpuGlobalUniformData.colorBuffer    = m_gpuSceneData.colorAddress;
 }
 
 void VkEngine::InitPipelines() {
@@ -428,210 +428,195 @@ void VkEngine::PopulateContext() {
 }
 
 void VkEngine::LoadScene(const Scene *pScene) {
-    // LOG_INFO(VKE, "Loading scene");
-    // if (m_bSceneLoaded) {
-    //     DestroyGPUScene();
-    // }
-    // m_pScene = pScene;
-    //
-    // // -- Textures --
-    // LOG_DEBUG(VKE, "Loading textures");
-    // m_sceneTextures.resize(pScene->textures.size());
-    // uint32_t index = 0;
-    // for (const auto &tex: pScene->textures) {
-    //     if (tex.IsEmpty()) {
-    //         ++index;
-    //         continue;
-    //     }
-    //
-    //     auto format             = VK_FORMAT_R8G8B8A8_SRGB;
-    //     const VkExtent3D extent = {static_cast<uint32_t>(tex.width), static_cast<uint32_t>(tex.height), 1};
-    //
-    //     jvk::Image gpuTex;
-    //     if (tex.channels < 4) {
-    //         Image8u tex32b = tex.As32b();
-    //         gpuTex         = m_gfx.CreateImage(tex32b.pData, extent, tex32b.channels, format, VK_IMAGE_USAGE_SAMPLED_BIT);
-    //         tex32b.Destroy();
-    //     } else {
-    //         gpuTex = m_gfx.CreateImage(tex.pData, extent, tex.channels, format, VK_IMAGE_USAGE_SAMPLED_BIT);
-    //     }
-    //
-    //     m_sceneTextures[index++] = gpuTex;
-    // }
-    // LOG_DEBUG(VKE, "Textures loaded");
-    //
-    // // -- Mesh buffers --
-    // // Calculate non-interleaved buffer sizes
-    // const size_t positionBufferSize = pScene->positions.size() * sizeof(vec3);
-    // const size_t normalBufferSize   = pScene->normals.size() * sizeof(vec3);
-    // const size_t uvBufferSize       = pScene->texCoords.size() * sizeof(vec2);
-    // const size_t colorBufferSize    = pScene->colors.size() * sizeof(vec3);
-    // const size_t indexBufferSize    = pScene->indices.size() * sizeof(vec3u);
-    // const size_t totalSize          = positionBufferSize + normalBufferSize + uvBufferSize + colorBufferSize + indexBufferSize;
-    //
-    // bool bSceneHasVertexColors = colorBufferSize > 0;
-    //
-    // // Vertex buffers (position, normal, uv, color)
-    // // TODO: AS build input should only be applied to index and vertex buffers
-    // VkBufferUsageFlags vertexBufferUsages = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-    // if (m_bRayTracingAvailable) {
-    //     vertexBufferUsages |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
-    // }
-    // constexpr VmaMemoryUsage bufferMemoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
-    //
-    // LOG_DEBUG(VKE, "Creating GPU buffers");
-    // m_gpuSceneMeshData.position = m_gfx.CreateBuffer(positionBufferSize, vertexBufferUsages, bufferMemoryUsage);
-    // LOG_DEBUG(VKE, "Created position GPU buffer");
-    // m_gpuSceneMeshData.normal = m_gfx.CreateBuffer(normalBufferSize, vertexBufferUsages, bufferMemoryUsage);
-    // LOG_DEBUG(VKE, "Created normal GPU buffer");
-    // m_gpuSceneMeshData.uv = m_gfx.CreateBuffer(uvBufferSize, vertexBufferUsages, bufferMemoryUsage);
-    // LOG_DEBUG(VKE, "Created UV GPU buffer");
-    // if (bSceneHasVertexColors) {
-    //     m_gpuSceneMeshData.color = m_gfx.CreateBuffer(colorBufferSize, vertexBufferUsages, bufferMemoryUsage);
-    //     LOG_DEBUG(VKE, "Created color GPU buffer");
-    // }
-    //
-    // // Index buffer
-    // LOG_DEBUG(VKE, "Creating index buffer");
-    // // We need VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT for ray tracing
-    // VkBufferUsageFlags indexBufferUsages = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-    // if (m_bRayTracingAvailable) {
-    //     indexBufferUsages |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
-    // }
-    // m_gpuSceneMeshData.index = m_gfx.CreateBuffer(indexBufferSize, indexBufferUsages, bufferMemoryUsage);
-    // LOG_DEBUG(VKE, "Created index buffer");
-    //
-    // // Device addresses
-    // VkBufferDeviceAddressInfo deviceAddressInfo{};
-    // m_gpuSceneMeshData.indexAddress    = m_gpuSceneMeshData.index.GetDeviceAddress(m_gfx.ctx);
-    // m_gpuSceneMeshData.positionAddress = m_gpuSceneMeshData.position.GetDeviceAddress(m_gfx.ctx);
-    // m_gpuSceneMeshData.normalAddress   = m_gpuSceneMeshData.normal.GetDeviceAddress(m_gfx.ctx);
-    // m_gpuSceneMeshData.uvAddress       = m_gpuSceneMeshData.uv.GetDeviceAddress(m_gfx.ctx);
-    // if (bSceneHasVertexColors) {
-    //     m_gpuSceneMeshData.colorAddress = m_gpuSceneMeshData.color.GetDeviceAddress(m_gfx.ctx);
-    // }
-    //
-    // // Staging buffer
-    // LOG_DEBUG(VKE, "Creating staging buffer");
-    // jvk::Buffer staging = m_gfx.CreateBuffer(totalSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
-    // LOG_DEBUG(VKE, "Created staging buffer");
-    //
-    // void *data    = staging.Map(m_gfx.allocator);
-    // auto dataPtr  = static_cast<char *>(data);
-    // size_t offset = 0;
-    //
-    // std::ranges::copy(pScene->indices, reinterpret_cast<vec3u *>(dataPtr));
-    // offset += indexBufferSize;
-    //
-    // std::ranges::copy(pScene->positions, reinterpret_cast<vec3 *>(dataPtr + offset));
-    // offset += positionBufferSize;
-    //
-    // std::ranges::copy(pScene->normals, reinterpret_cast<vec3 *>(dataPtr + offset));
-    // offset += normalBufferSize;
-    //
-    // std::ranges::copy(pScene->texCoords, reinterpret_cast<vec2 *>(dataPtr + offset));
-    // offset += uvBufferSize;
-    //
-    // if (bSceneHasVertexColors) {
-    //     std::ranges::copy(pScene->colors, reinterpret_cast<vec3 *>(dataPtr + offset));
-    // }
-    //
-    // staging.Unmap(m_gfx.allocator);
-    // LOG_DEBUG(VKE, "Vertex data copied to staging buffer");
-    //
-    // // Copy to GPU
-    // m_gfx.imBuffer.SubmitAndWait(m_gfx.graphicsQueue, [&](const VkCommandBuffer cmd) {
-    //     VkBufferCopy copyRegion{};
-    //     copyRegion.dstOffset = 0;
-    //
-    //     copyRegion.srcOffset = 0;
-    //     copyRegion.size      = indexBufferSize;
-    //     vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneMeshData.index.buffer, 1, &copyRegion);
-    //
-    //     copyRegion.srcOffset += indexBufferSize;
-    //     copyRegion.size = positionBufferSize;
-    //     vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneMeshData.position.buffer, 1, &copyRegion);
-    //
-    //     copyRegion.srcOffset += positionBufferSize;
-    //     copyRegion.size = normalBufferSize;
-    //     vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneMeshData.normal.buffer, 1, &copyRegion);
-    //
-    //     copyRegion.srcOffset += normalBufferSize;
-    //     copyRegion.size = uvBufferSize;
-    //     vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneMeshData.uv.buffer, 1, &copyRegion);
-    //
-    //     if (bSceneHasVertexColors) {
-    //         copyRegion.srcOffset += uvBufferSize;
-    //         copyRegion.size = colorBufferSize;
-    //         vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneMeshData.color.buffer, 1, &copyRegion);
-    //     }
-    // });
-    // LOG_DEBUG(VKE, "Staging buffer copied to GPU");
-    //
-    // m_gfx.DestroyBuffer(staging);
-    //
-    // // -- Materials --
-    // m_gpuMaterialInstances.reserve(pScene->materials.size());
-    //
-    // LOG_DEBUG(VKE, "Creating material UBO");
-    // LOG_DEBUG(VKE, "Scene has {} materials", pScene->materials.size());
-    // // Create UBO that can hold material data for all materials
-    // m_materialBufferUBO = m_gfx.CreateBuffer(sizeof(GPUMaterialUBOData) * pScene->materials.size(), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
-    // LOG_DEBUG(VKE, "Created material UBO");
-    //
-    // void *materialData = m_materialBufferUBO.Map(m_gfx.allocator);
-    //
-    // size_t uboOffset = 0;
-    // for (const auto &material: pScene->materials) {
-    //     GPUMaterialUBOData uboData{};
-    //     uboData.diffuse                                            = vec4(material.parameters.diffuse, 1.0f);
-    //     uboData.ambient                                            = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    //     uboData.specular                                           = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    //     uboData.shininess                                          = 32.0f;
-    //     static_cast<GPUMaterialUBOData *>(materialData)[uboOffset] = uboData;
-    //
-    //     GPUMaterialResources resources{};
-    //     if (material.textureIndices.diffuse == JTX_MATERIAL_TEXTURE_INDEX_NONE) {
-    //         resources.images.diffuse = m_gfx.defaultImages.white;
-    //     } else if (material.textureIndices.diffuse == JTX_MATERIAL_TEXTURE_MISSING) {
-    //         resources.images.diffuse = m_gfx.defaultImages.checkerboard;
-    //     } else {
-    //         resources.images.diffuse = m_sceneTextures[material.textureIndices.diffuse];
-    //     }
-    //     resources.images.ambient    = m_gfx.defaultImages.white;
-    //     resources.images.specular   = m_gfx.defaultImages.white;
-    //     resources.samplers.diffuse  = m_gfx.defaultSamplers.linear;
-    //     resources.samplers.ambient  = m_gfx.defaultSamplers.linear;
-    //     resources.samplers.specular = m_gfx.defaultSamplers.linear;
-    //
-    //     resources.ubo       = m_materialBufferUBO;
-    //     resources.uboOffset = uboOffset * sizeof(GPUMaterialUBOData);
-    //
-    //     GPUMaterialInstance mat = WriteMaterial(GPUMaterialPass::OPAQUE, resources);
-    //     m_gpuMaterialInstances.push_back(mat);
-    //
-    //     uboOffset++;
-    // }
-    // m_materialBufferUBO.Unmap(m_gfx.allocator);
-    //
-    // m_bSceneLoaded = true;
-    //
-    // // -- RT resources --
-    // if (m_bRayTracingAvailable) {
-    //     LOG_DEBUG(VKE, "Initializing RT scene resources");
-    //     BuildBLAS();
-    //     BuildTLAS();
-    //
-    //     jvk::DescriptorWriter writer;
-    //     writer.WriteAS(0, m_ASManager.GetTLAS());
-    //     writer.WriteImage(1, m_gfx.drawImage.image.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-    //     writer.UpdateSet(m_gfx.ctx, m_rtDescriptorSet);
-    //
-    //     LOG_DEBUG(VKE, "RT scene resources initialized");
-    // }
-    //
-    // LOG_INFO(VKE, "Scene loaded");
-    return;
+    LOG_INFO(VKE, "Loading scene");
+    if (m_bSceneLoaded) {
+        DestroyScene();
+    }
+    m_pScene = pScene;
+
+    jvk::DescriptorWriter writer;
+
+    // -- Textures --
+    LOG_DEBUG(VKE, "Loading textures");
+    m_gpuSceneData.textures.resize(pScene->textures.size());
+    uint32_t index = 0;
+    for (const auto &tex: pScene->textures) {
+        if (tex.IsEmpty()) {
+            ++index;
+            continue;
+        }
+
+        auto format             = VK_FORMAT_R8G8B8A8_SRGB;
+        const VkExtent3D extent = {static_cast<uint32_t>(tex.width), static_cast<uint32_t>(tex.height), 1};
+
+        jvk::Image gpuTex;
+        if (tex.channels < 4) {
+            Image8u tex32b = tex.As32b();
+            gpuTex         = m_gfx.CreateImage(tex32b.pData, extent, tex32b.channels, format, VK_IMAGE_USAGE_SAMPLED_BIT);
+            tex32b.Destroy();
+        } else {
+            gpuTex = m_gfx.CreateImage(tex.pData, extent, tex.channels, format, VK_IMAGE_USAGE_SAMPLED_BIT);
+        }
+        m_gpuSceneData.textures[index++] = gpuTex;
+    }
+
+    LOG_DEBUG(VKE, "Textures loaded");
+
+    // -- Mesh buffers --
+    // Calculate non-interleaved buffer sizes
+    const size_t positionBufferSize = pScene->positions.size() * sizeof(vec3);
+    const size_t normalBufferSize   = pScene->normals.size() * sizeof(vec3);
+    const size_t uvBufferSize       = pScene->texCoords.size() * sizeof(vec2);
+    const size_t colorBufferSize    = pScene->colors.size() * sizeof(vec3);
+    const size_t indexBufferSize    = pScene->indices.size() * sizeof(vec3u);
+    const size_t totalSize          = positionBufferSize + normalBufferSize + uvBufferSize + colorBufferSize + indexBufferSize;
+
+    bool bSceneHasVertexColors = colorBufferSize > 0;
+
+    // Vertex buffers (position, normal, uv, color)
+    // TODO: AS build input should only be applied to index and vertex buffers
+    VkBufferUsageFlags vertexBufferUsages = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    if (m_bRayTracingAvailable) {
+        vertexBufferUsages |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+    }
+    constexpr VmaMemoryUsage bufferMemoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+    LOG_DEBUG(VKE, "Creating GPU buffers");
+    m_gpuSceneData.position = m_gfx.CreateBuffer(positionBufferSize, vertexBufferUsages, bufferMemoryUsage);
+    LOG_DEBUG(VKE, "Created position GPU buffer");
+    m_gpuSceneData.normal = m_gfx.CreateBuffer(normalBufferSize, vertexBufferUsages, bufferMemoryUsage);
+    LOG_DEBUG(VKE, "Created normal GPU buffer");
+    m_gpuSceneData.uv = m_gfx.CreateBuffer(uvBufferSize, vertexBufferUsages, bufferMemoryUsage);
+    LOG_DEBUG(VKE, "Created UV GPU buffer");
+    if (bSceneHasVertexColors) {
+        m_gpuSceneData.color = m_gfx.CreateBuffer(colorBufferSize, vertexBufferUsages, bufferMemoryUsage);
+        LOG_DEBUG(VKE, "Created color GPU buffer");
+    }
+
+    // Index buffer
+    LOG_DEBUG(VKE, "Creating index buffer");
+    // We need VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT for ray tracing
+    VkBufferUsageFlags indexBufferUsages = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    if (m_bRayTracingAvailable) {
+        indexBufferUsages |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+    }
+    m_gpuSceneData.index = m_gfx.CreateBuffer(indexBufferSize, indexBufferUsages, bufferMemoryUsage);
+    LOG_DEBUG(VKE, "Created index buffer");
+
+    // Device addresses
+    VkBufferDeviceAddressInfo deviceAddressInfo{};
+    m_gpuSceneData.indexAddress    = m_gpuSceneData.index.GetDeviceAddress(m_gfx.ctx);
+    m_gpuSceneData.positionAddress = m_gpuSceneData.position.GetDeviceAddress(m_gfx.ctx);
+    m_gpuSceneData.normalAddress   = m_gpuSceneData.normal.GetDeviceAddress(m_gfx.ctx);
+    m_gpuSceneData.uvAddress       = m_gpuSceneData.uv.GetDeviceAddress(m_gfx.ctx);
+    if (bSceneHasVertexColors) {
+        m_gpuSceneData.colorAddress = m_gpuSceneData.color.GetDeviceAddress(m_gfx.ctx);
+    }
+
+    // Staging buffer
+    LOG_DEBUG(VKE, "Creating staging buffer");
+    jvk::Buffer staging = m_gfx.CreateBuffer(totalSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
+    LOG_DEBUG(VKE, "Created staging buffer");
+
+    void *data    = staging.Map(m_gfx.allocator);
+    auto dataPtr  = static_cast<char *>(data);
+    size_t offset = 0;
+
+    std::ranges::copy(pScene->indices, reinterpret_cast<vec3u *>(dataPtr));
+    offset += indexBufferSize;
+
+    std::ranges::copy(pScene->positions, reinterpret_cast<vec3 *>(dataPtr + offset));
+    offset += positionBufferSize;
+
+    std::ranges::copy(pScene->normals, reinterpret_cast<vec3 *>(dataPtr + offset));
+    offset += normalBufferSize;
+
+    std::ranges::copy(pScene->texCoords, reinterpret_cast<vec2 *>(dataPtr + offset));
+    offset += uvBufferSize;
+
+    if (bSceneHasVertexColors) {
+        std::ranges::copy(pScene->colors, reinterpret_cast<vec3 *>(dataPtr + offset));
+    }
+
+    staging.Unmap(m_gfx.allocator);
+    LOG_DEBUG(VKE, "Vertex data copied to staging buffer");
+
+    // Copy to GPU
+    m_gfx.imBuffer.SubmitAndWait(m_gfx.graphicsQueue, [&](const VkCommandBuffer cmd) {
+        VkBufferCopy copyRegion{};
+        copyRegion.dstOffset = 0;
+
+        copyRegion.srcOffset = 0;
+        copyRegion.size      = indexBufferSize;
+        vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneData.index.buffer, 1, &copyRegion);
+
+        copyRegion.srcOffset += indexBufferSize;
+        copyRegion.size = positionBufferSize;
+        vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneData.position.buffer, 1, &copyRegion);
+
+        copyRegion.srcOffset += positionBufferSize;
+        copyRegion.size = normalBufferSize;
+        vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneData.normal.buffer, 1, &copyRegion);
+
+        copyRegion.srcOffset += normalBufferSize;
+        copyRegion.size = uvBufferSize;
+        vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneData.uv.buffer, 1, &copyRegion);
+
+        if (bSceneHasVertexColors) {
+            copyRegion.srcOffset += uvBufferSize;
+            copyRegion.size = colorBufferSize;
+            vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneData.color.buffer, 1, &copyRegion);
+        }
+    });
+    LOG_DEBUG(VKE, "Staging buffer copied to GPU");
+
+    m_gfx.DestroyBuffer(staging);
+
+    // -- Materials --
+    std::vector<GPUMaterialData> gpuMaterials;
+    gpuMaterials.reserve(pScene->materials.size());
+
+    LOG_DEBUG(VKE, "Creating material UBO");
+    LOG_DEBUG(VKE, "Scene has {} materials", pScene->materials.size());
+    // Create UBO that can hold material data for all materials
+    m_gpuSceneData.materialBuffer = m_gfx.CreateBuffer(sizeof(GPUMaterialData) * pScene->materials.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+    LOG_DEBUG(VKE, "Created material SSBO");
+
+    void *materialData = m_gpuSceneData.materialBuffer.Map(m_gfx.allocator);
+
+    offset = 0;
+    for (const auto &material: pScene->materials) {
+        GPUMaterialData m{};
+        m.diffuse        = vec4(material.parameters.diffuse, 0.0f);
+        m.ior            = vec4(material.parameters.ior, 0.0f);
+        m.k              = vec4(material.parameters.k, 0.0f);
+        m.f0             = vec4(material.parameters.f0, 0.0f);
+        m.emission       = vec4(material.parameters.emission, 0.0f);
+        m.roughness      = vec4(vec3(material.parameters.roughness, 0.0f), 0.0f);
+        m.diffuseTexture = material.textureIndices.diffuse;
+        static_cast<GPUMaterialData *>(materialData)[offset++] = m;
+    }
+
+    m_gpuSceneData.materialBuffer.Unmap(m_gfx.allocator);
+
+    m_bSceneLoaded = true;
+
+    // -- RT resources --
+    // TODO
+    if (m_bRayTracingAvailable) {
+        LOG_DEBUG(VKE, "Initializing RT scene resources");
+        BuildBLAS();
+        BuildTLAS();
+
+        jvk::DescriptorWriter writer;
+        writer.WriteAS(0, m_ASManager.GetTLAS());
+        writer.WriteImage(1, m_gfx.drawImage.image.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+        writer.UpdateSet(m_gfx.ctx, m_bindlessDescriptorSet);
+
+        LOG_DEBUG(VKE, "RT scene resources initialized");
+    }
+
+    LOG_INFO(VKE, "Scene loaded");
 }
 
 void VkEngine::DestroyGPUScene() {
@@ -654,18 +639,18 @@ void VkEngine::DestroyGPUScene() {
         // -- Mesh buffers --
         LOG_DEBUG(VKE, "Destroying GPU scene buffers");
         LOG_DEBUG(VKE, "Destroying index buffer");
-        m_gfx.DestroyBuffer(m_gpuSceneMeshData.index);
+        m_gfx.DestroyBuffer(m_gpuSceneData.index);
         LOG_DEBUG(VKE, "Destroying vertex buffers");
-        m_gfx.DestroyBuffer(m_gpuSceneMeshData.position);
+        m_gfx.DestroyBuffer(m_gpuSceneData.position);
         LOG_DEBUG(VKE, "Destroying normal buffer");
-        m_gfx.DestroyBuffer(m_gpuSceneMeshData.normal);
+        m_gfx.DestroyBuffer(m_gpuSceneData.normal);
         LOG_DEBUG(VKE, "Destroying UV buffer");
-        m_gfx.DestroyBuffer(m_gpuSceneMeshData.uv);
-        if (m_gpuSceneMeshData.color.IsValid()) {
+        m_gfx.DestroyBuffer(m_gpuSceneData.uv);
+        if (m_gpuSceneData.color.IsValid()) {
             LOG_DEBUG(VKE, "Destroying color buffer");
-            m_gfx.DestroyBuffer(m_gpuSceneMeshData.color);
+            m_gfx.DestroyBuffer(m_gpuSceneData.color);
         }
-        m_gpuSceneMeshData = {};
+        m_gpuSceneData = {};
         LOG_DEBUG(VKE, "Destroyed GPU scene buffers");
 
         // -- Textures --
@@ -684,8 +669,8 @@ void VkEngine::DestroyGPUScene() {
 void VkEngine::BuildBLAS() {
     assert(m_pScene != nullptr);
 
-    const VkDeviceAddress vertexAddress = m_gpuSceneMeshData.positionAddress;
-    const VkDeviceAddress indexAddress  = m_gpuSceneMeshData.indexAddress;
+    const VkDeviceAddress vertexAddress = m_gpuSceneData.positionAddress;
+    const VkDeviceAddress indexAddress  = m_gpuSceneData.indexAddress;
 
     // For now, we will build a BLAS for each mesh in the scene.
     std::vector<jtx::BLASInput> inputs;

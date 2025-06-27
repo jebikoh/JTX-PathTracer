@@ -47,12 +47,12 @@ struct GPUObjectData {
 
 // Binding 1 (SSBO): GPUMaterialData[]
 struct GPUMaterialData {
-    glm::vec4 diffuse;
-    glm::vec4 ior;
-    glm::vec4 k;
-    glm::vec4 f0;
-    glm::vec4 emission;
-    glm::vec4 roughness;
+    vec4 diffuse;
+    vec4 ior;
+    vec4 k;
+    vec4 f0;
+    vec4 emission;
+    vec4 roughness;
     TextureHandle diffuseTexture;
 };
 

@@ -148,7 +148,8 @@ private:
         VkDeviceAddress colorAddress    = 0;
 
         std::vector<jvk::Image> textures;
-    } m_gpuSceneMeshData;
+        jvk::Buffer materialBuffer;
+    } m_gpuSceneData;
 
     // == Rasterization ==
     GPUDrawContext m_drawContext;

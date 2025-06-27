@@ -36,9 +36,9 @@ enum class LogCategory {
     GENERAL = 0,
     DISPLAY = 1,
     UI      = 2,
-    WING    = 3,
+    GFX     = 5,
+    VKE     = 3,
     TRACER  = 4,
-    VULKAN  = 5,
     TEXTURE = 6,
     LOADER  = 7,
     INPUT   = 8,
@@ -156,14 +156,14 @@ private:
             case LogCategory::UI:
                 fmt::format_to(std::back_inserter(buf), "[UIUX] ");
                 break;
-            case LogCategory::WING:
-                fmt::format_to(std::back_inserter(buf), "[WING] ");
+            case LogCategory::VKE:
+                fmt::format_to(std::back_inserter(buf), "[VKEN] ");
                 break;
             case LogCategory::TRACER:
                 fmt::format_to(std::back_inserter(buf), "[TRCR] ");
                 break;
-            case LogCategory::VULKAN:
-                fmt::format_to(std::back_inserter(buf), "[VLKN] ");
+            case LogCategory::GFX:
+                fmt::format_to(std::back_inserter(buf), "[GFXC] ");
                 break;
             case LogCategory::TEXTURE:
                 fmt::format_to(std::back_inserter(buf), "[TXTR] ");

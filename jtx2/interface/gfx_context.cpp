@@ -17,7 +17,7 @@ namespace jtx {
 #pragma region Initialization
 
 void GfxContext::Init() {
-    LOG_INFO(DISPLAY, "Initializing GFX context");
+    LOG_INFO(GFX, "Initializing GFX context");
 
     InitWindow();
     InitVulkan();
@@ -29,11 +29,11 @@ void GfxContext::Init() {
     InitDefaultImages();
     InitDefaultSamplers();
 
-    LOG_INFO(DISPLAY, "GFX context initialized");
+    LOG_INFO(GFX, "GFX context initialized");
 }
 
 void GfxContext::InitWindow() {
-    LOG_DEBUG(DISPLAY, "Initializing window");
+    LOG_DEBUG(GFX, "Initializing window");
 
     SDL_Init(SDL_INIT_VIDEO);
     SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "1");
@@ -51,16 +51,16 @@ void GfxContext::InitWindow() {
     window.extent.width  = w;
     window.extent.height = h;
 
-    LOG_DEBUG(DISPLAY, "Window Initialized");
+    LOG_DEBUG(GFX, "Window Initialized");
 }
 
 void GfxContext::InitVulkan() {
-    LOG_DEBUG(DISPLAY, "Initializing vulkan");
+    LOG_DEBUG(GFX, "Initializing vulkan");
 
     // Volk
     const auto volkResult = volkInitialize();
     if (volkResult != VK_SUCCESS) {
-        LOG_FATAL(DISPLAY, "Failed to Initialize volk");
+        LOG_FATAL(GFX, "Failed to Initialize volk");
     }
 
     // Vulkan instance
@@ -72,7 +72,7 @@ void GfxContext::InitVulkan() {
                                            .require_api_version(1, 2, 0)
                                            .build();
     if (!vkbInstanceResult) {
-        LOG_FATAL(DISPLAY, "Failed to Initialize vkb instance");
+        LOG_FATAL(GFX, "Failed to Initialize vkb instance");
     }
     const vkb::Instance vkbInstance = vkbInstanceResult.value();
     ctx.instance                    = vkbInstance.instance;
@@ -113,12 +113,12 @@ void GfxContext::InitVulkan() {
                               .set_surface(ctx)
                               .select();
         if (!vkbPdResult) {
-            LOG_FATAL(DISPLAY, "Failed to select physical device with required features and extensions");
+            LOG_FATAL(GFX, "Failed to select physical device with required features and extensions");
         }
 
-        LOG_INFO(VULKAN, "Selected device does not support hardware ray tracing");
+        LOG_INFO(GFX, "Selected device does not support hardware ray tracing");
     } else {
-        LOG_INFO(VULKAN, "Selected device supports hardware ray tracing");
+        LOG_INFO(GFX, "Selected device supports hardware ray tracing");
     }
 
     vkb::PhysicalDevice &vkbPd = vkbPdResult.value();
@@ -151,7 +151,7 @@ void GfxContext::InitVulkan() {
     auto availableExtensions = vkbPd.get_available_extensions();
 
     if (bRayTracingSupported) {
-        LOG_INFO(VULKAN, "Enabling ray tracing features");
+        LOG_INFO(GFX, "Enabling ray tracing features");
         VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructures{};
         accelerationStructures.sType                 = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
         accelerationStructures.accelerationStructure = VK_TRUE;
@@ -178,26 +178,26 @@ void GfxContext::InitVulkan() {
         props.pNext = &rtProperties;
         vkGetPhysicalDeviceProperties2(ctx.physicalDevice, &props);
 
-        LOG_DEBUG(VULKAN, "Ray tracing properties:");
-        LOG_DEBUG(VULKAN, "  Shader group handle size: {}", rtProperties.shaderGroupHandleSize);
-        LOG_DEBUG(VULKAN, "  Max ray recursions: {}", rtProperties.maxRayRecursionDepth);
-        LOG_DEBUG(VULKAN, "  Max shader group stride: {}", rtProperties.maxShaderGroupStride);
-        LOG_DEBUG(VULKAN, "  Shader group base alignment: {}", rtProperties.shaderGroupBaseAlignment);
-        LOG_DEBUG(VULKAN, "  Shader group handle capture replay size: {}", rtProperties.shaderGroupHandleCaptureReplaySize);
-        LOG_DEBUG(VULKAN, "  Max ray dispatch invocation count: {}", rtProperties.maxRayDispatchInvocationCount);
-        LOG_DEBUG(VULKAN, "  Shader group handle alignment: {}", rtProperties.shaderGroupHandleAlignment);
-        LOG_DEBUG(VULKAN, "  Max ray hit attribute size: {}", rtProperties.maxRayHitAttributeSize);
+        LOG_DEBUG(GFX, "Ray tracing properties:");
+        LOG_DEBUG(GFX, "  Shader group handle size: {}", rtProperties.shaderGroupHandleSize);
+        LOG_DEBUG(GFX, "  Max ray recursions: {}", rtProperties.maxRayRecursionDepth);
+        LOG_DEBUG(GFX, "  Max shader group stride: {}", rtProperties.maxShaderGroupStride);
+        LOG_DEBUG(GFX, "  Shader group base alignment: {}", rtProperties.shaderGroupBaseAlignment);
+        LOG_DEBUG(GFX, "  Shader group handle capture replay size: {}", rtProperties.shaderGroupHandleCaptureReplaySize);
+        LOG_DEBUG(GFX, "  Max ray dispatch invocation count: {}", rtProperties.maxRayDispatchInvocationCount);
+        LOG_DEBUG(GFX, "  Shader group handle alignment: {}", rtProperties.shaderGroupHandleAlignment);
+        LOG_DEBUG(GFX, "  Max ray hit attribute size: {}", rtProperties.maxRayHitAttributeSize);
     }
 
     // Graphics queue
     graphicsQueue.queue  = vkbDevice.get_queue(vkb::QueueType::graphics).value();
     graphicsQueue.family = vkbDevice.get_queue_index(vkb::QueueType::graphics).value();
 
-    LOG_DEBUG(DISPLAY, "Vulkan Initialized");
+    LOG_DEBUG(GFX, "Vulkan Initialized");
 }
 
 void GfxContext::InitAllocator() {
-    LOG_DEBUG(DISPLAY, "Initializing allocator");
+    LOG_DEBUG(GFX, "Initializing allocator");
 
     VmaVulkanFunctions vkFunctions{};
     vkFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
@@ -211,17 +211,17 @@ void GfxContext::InitAllocator() {
     allocatorInfo.pVulkanFunctions = &vkFunctions;
     vmaCreateAllocator(&allocatorInfo, &allocator);
 
-    LOG_DEBUG(DISPLAY, "Allocator initialized");
+    LOG_DEBUG(GFX, "Allocator initialized");
 }
 
 void GfxContext::InitSwapchain() {
-    LOG_DEBUG(DISPLAY, "Initializing swapchain");
+    LOG_DEBUG(GFX, "Initializing swapchain");
     swapchain.Init(ctx, window.extent.width, window.extent.height);
-    LOG_DEBUG(DISPLAY, "Swapchain Initialized");
+    LOG_DEBUG(GFX, "Swapchain Initialized");
 }
 
 void GfxContext::InitDrawImages() {
-    LOG_DEBUG(DISPLAY, "Initializing draw image");
+    LOG_DEBUG(GFX, "Initializing draw image");
     // Draw image
     VkExtent3D drawExtent{};
     drawExtent.width  = window.extent.width;
@@ -262,11 +262,11 @@ void GfxContext::InitDrawImages() {
 
     const VkImageViewCreateInfo depthImageViewInfo = jvk::init::ImageView(drawImage.depthStencilImage.imageFormat, drawImage.depthStencilImage.image, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
     CHECK_VK(vkCreateImageView(ctx, &depthImageViewInfo, nullptr, &drawImage.depthStencilImage.imageView));
-    LOG_DEBUG(DISPLAY, "Draw image Initialized");
+    LOG_DEBUG(GFX, "Draw image Initialized");
 }
 
 void GfxContext::InitFrameData() {
-    LOG_DEBUG(DISPLAY, "Initializing frame data");
+    LOG_DEBUG(GFX, "Initializing frame data");
     constexpr VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     for (auto &frame: frameData) {
         // Command pools
@@ -278,17 +278,17 @@ void GfxContext::InitFrameData() {
         CHECK_VK(frame.swapchainSemaphore.Init(ctx));
         CHECK_VK(frame.drawSemaphore.Init(ctx));
     }
-    LOG_DEBUG(DISPLAY, "Frame data Initialized");
+    LOG_DEBUG(GFX, "Frame data Initialized");
 }
 
 void GfxContext::InitImmediateBuffer() {
-    LOG_DEBUG(DISPLAY, "Initializing immediate buffer");
+    LOG_DEBUG(GFX, "Initializing immediate buffer");
     CHECK_VK(imBuffer.Init(ctx, graphicsQueue.family, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT));
-    LOG_DEBUG(DISPLAY, "Immediate buffer Initialized");
+    LOG_DEBUG(GFX, "Immediate buffer Initialized");
 }
 
 void GfxContext::InitDefaultImages() {
-    LOG_DEBUG(DISPLAY, "Initializing default images");
+    LOG_DEBUG(GFX, "Initializing default images");
 
     const uint32_t white = jtx::packUnorm4x8({1.0f, 1.0f, 1.0f, 1.0f});
     defaultImages.white  = CreateImage(&white, VkExtent3D{1, 1, 1}, 4, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
@@ -306,16 +306,16 @@ void GfxContext::InitDefaultImages() {
     }
     defaultImages.checkerboard = CreateImage(pixels, VkExtent3D{16, 16, 1}, 4, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_SAMPLED_BIT);
 
-    LOG_DEBUG(DISPLAY, "Default images initialized");
+    LOG_DEBUG(GFX, "Default images initialized");
 }
 
 void GfxContext::InitDefaultSamplers() {
-    LOG_DEBUG(DISPLAY, "Initializing default samplers");
+    LOG_DEBUG(GFX, "Initializing default samplers");
 
     CHECK_VK(defaultSamplers.linear.Init(ctx, VK_FILTER_LINEAR, VK_FILTER_LINEAR));
     CHECK_VK(defaultSamplers.nearest.Init(ctx, VK_FILTER_NEAREST, VK_FILTER_NEAREST));
 
-    LOG_DEBUG(DISPLAY, "Default samplers initialized");
+    LOG_DEBUG(GFX, "Default samplers initialized");
 }
 
 #pragma endregion
@@ -335,48 +335,48 @@ void GfxContext::Destroy() {
 }
 
 void GfxContext::DestroyWindow() const {
-    LOG_DEBUG(DISPLAY, "Destroying window");
+    LOG_DEBUG(GFX, "Destroying window");
 
     SDL_DestroyWindow(window.pWindow);
 
-    LOG_DEBUG(DISPLAY, "Window Destroyed");
+    LOG_DEBUG(GFX, "Window Destroyed");
 }
 
 void GfxContext::DestroyVulkan() const {
-    LOG_DEBUG(DISPLAY, "Destroying Vulkan context");
+    LOG_DEBUG(GFX, "Destroying Vulkan context");
 
     ctx.Destroy();
 
-    LOG_DEBUG(DISPLAY, "Vulkan context Destroyed");
+    LOG_DEBUG(GFX, "Vulkan context Destroyed");
 }
 
 void GfxContext::DestroyAllocator() const {
-    LOG_DEBUG(DISPLAY, "Destroying allocators");
+    LOG_DEBUG(GFX, "Destroying allocators");
 
     vmaDestroyAllocator(allocator);
 
-    LOG_DEBUG(DISPLAY, "Allocators Destroyed");
+    LOG_DEBUG(GFX, "Allocators Destroyed");
 }
 
 void GfxContext::DestroySwapchain() const {
-    LOG_DEBUG(DISPLAY, "Destroying swapchain");
+    LOG_DEBUG(GFX, "Destroying swapchain");
 
     swapchain.Destroy(ctx);
 
-    LOG_DEBUG(DISPLAY, "Swapchain Destroyed");
+    LOG_DEBUG(GFX, "Swapchain Destroyed");
 }
 
 void GfxContext::DestroyDrawImages() const {
-    LOG_DEBUG(DISPLAY, "Destroying draw images");
+    LOG_DEBUG(GFX, "Destroying draw images");
 
     drawImage.image.Destroy(ctx, allocator);
     drawImage.depthStencilImage.Destroy(ctx, allocator);
 
-    LOG_DEBUG(DISPLAY, "Draw images destroyed");
+    LOG_DEBUG(GFX, "Draw images destroyed");
 }
 
 void GfxContext::DestroyFrameData() {
-    LOG_DEBUG(DISPLAY, "Destroying frame data");
+    LOG_DEBUG(GFX, "Destroying frame data");
 
     for (auto &frame: frameData) {
         frame.drawSemaphore.Destroy();
@@ -385,34 +385,34 @@ void GfxContext::DestroyFrameData() {
         frame.cmdPool.Destroy();
     }
 
-    LOG_DEBUG(DISPLAY, "Frame data destroyed");
+    LOG_DEBUG(GFX, "Frame data destroyed");
 }
 
 void GfxContext::DestroyImmediateBuffer() const {
-    LOG_DEBUG(DISPLAY, "Destroying immediate buffer");
+    LOG_DEBUG(GFX, "Destroying immediate buffer");
 
     imBuffer.Destroy();
 
-    LOG_DEBUG(DISPLAY, "Immediate buffer destroyed");
+    LOG_DEBUG(GFX, "Immediate buffer destroyed");
 }
 
 void GfxContext::DestroyDefaultImages() const {
-    LOG_DEBUG(DISPLAY, "Destroying default images");
+    LOG_DEBUG(GFX, "Destroying default images");
 
     DestroyImage(defaultImages.white);
     DestroyImage(defaultImages.black);
     DestroyImage(defaultImages.checkerboard);
 
-    LOG_DEBUG(DISPLAY, "Default images destroyed");
+    LOG_DEBUG(GFX, "Default images destroyed");
 }
 
 void GfxContext::DestroyDefaultSamplers() const {
-    LOG_DEBUG(DISPLAY, "Destroying default samplers");
+    LOG_DEBUG(GFX, "Destroying default samplers");
 
     defaultSamplers.nearest.Destroy();
     defaultSamplers.linear.Destroy();
 
-    LOG_DEBUG(DISPLAY, "Default samplers destroyed");
+    LOG_DEBUG(GFX, "Default samplers destroyed");
 }
 
 #pragma endregion
@@ -516,7 +516,7 @@ void GfxContext::DestroyBuffer(const jvk::Buffer &buffer) const {
 
 void GfxContext::ResizeSwapchain() {
     if (m_bSwapchainOutOfDate) {
-        LOG_DEBUG(DISPLAY, "Resizing swapchain");
+        LOG_DEBUG(GFX, "Resizing swapchain");
         vkDeviceWaitIdle(ctx);
         swapchain.Destroy(ctx);
 
@@ -528,7 +528,7 @@ void GfxContext::ResizeSwapchain() {
         swapchain.Init(ctx, window.extent.width, window.extent.height);
         m_bSwapchainOutOfDate = false;
 
-        LOG_DEBUG(DISPLAY, "Swapchain resized");
+        LOG_DEBUG(GFX, "Swapchain resized");
     }
 }
 

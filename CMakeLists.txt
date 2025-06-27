@@ -230,12 +230,12 @@ set(JTX_BACKEND
 )
 
 set(JTX_WING
-    jtx2/engine/wing/wing.hpp
-    jtx2/engine/wing/wing.cpp
-    jtx2/engine/wing/camera.hpp
-        jtx2/engine/wing/render_data.hpp
-        jtx2/engine/wing/rt.hpp
-        jtx2/engine/wing/rt.cpp
+        jtx2/engine/vulkan/vk_engine.hpp
+        jtx2/engine/vulkan/vk_engine.cpp
+        jtx2/engine/vulkan/camera.hpp
+        jtx2/engine/vulkan/render_data.hpp
+        jtx2/engine/vulkan/rt.hpp
+        jtx2/engine/vulkan/rt.cpp
 )
 
 # ──────────────────────────────────────────────────────────────────────────────

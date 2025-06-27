@@ -1,7 +1,7 @@
 #pragma once
 
+#include <engine/vulkan/vk_engine.hpp>
 #include <interface/gfx_context.hpp>
-#include <engine/wing/wing.hpp>
 #include <interface/ui_renderer.hpp>
 #include <scene/scene.hpp>
 
@@ -22,7 +22,7 @@ namespace jtx {
  */
 class Display {
 public:
-    Display() : m_gfx(), m_uiRenderer(m_gfx), m_wing(m_gfx) {};
+    Display() : m_gfx(), m_uiRenderer(m_gfx), m_vk(m_gfx) {};
 
     void Init();
     void Destroy();
@@ -38,7 +38,7 @@ private:
 
     GfxContext m_gfx;
     UIRenderer m_uiRenderer;
-    VkEngine m_wing;
+    VkEngine m_vk;
 
     void ImportScene();
     void ExportScene() const;

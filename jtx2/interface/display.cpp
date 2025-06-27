@@ -24,11 +24,11 @@ void Display::Init() {
     [this] {
         ExportScene();
     });
-    m_wing.Init(m_gfx.bRayTracingSupported);
+    m_vk.Init(m_gfx.bRayTracingSupported);
 
-    m_uiRenderer.RegisterViewportBackend(JTX_VIEWPORT_BACKEND_WING, "Wing",
+    m_uiRenderer.RegisterViewportBackend(JTX_VIEWPORT_BACKEND_VULKAN, "Vulkan",
                                          [this](UiDrawContext &ctx) {
-                                             m_wing.DrawSettingsPanel(ctx);
+                                             m_vk.DrawSettingsPanel(ctx);
                                          });
 
     if (NFD_Init() != NFD_OKAY) {
@@ -49,7 +49,7 @@ void Display::Destroy() {
         m_Scene.Destroy();
     }
 
-    m_wing.Destroy();
+    m_vk.Destroy();
     m_uiRenderer.Destroy();
     m_gfx.Destroy();
     pLoadedDisplay = nullptr;
@@ -66,11 +66,11 @@ void Display::Draw() {
 
     jvk::ViewRectangle rect;
     if (m_uiRenderer.GetViewportRectangle(rect)) {
-        m_wing.SetViewportRectangle(rect);
+        m_vk.SetViewportRectangle(rect);
     }
 
     ResolveRegion region;
-    m_wing.Draw(ctx, region);
+    m_vk.Draw(ctx, region);
     m_gfx.ResolveToSwapchain(ctx, region);
 
     m_uiRenderer.Draw(ctx);
@@ -96,9 +96,9 @@ void Display::Run() {
             }
 
             if (m_uiRenderer.ProcessEvent(e)) {
-                m_wing.SkipEvent();
+                m_vk.SkipEvent();
             } else {
-                m_wing.ProcessEvent(e);
+                m_vk.ProcessEvent(e);
             }
         }
 
@@ -134,7 +134,7 @@ void Display::ImportScene() {
 
         const auto loadResult = LoadScene(s, m_Scene);
         if (loadResult > 0) {
-            m_wing.LoadScene(&m_Scene);
+            m_vk.LoadScene(&m_Scene);
             m_bSceneLoaded = true;
         } else {
             m_bSceneLoaded = false;

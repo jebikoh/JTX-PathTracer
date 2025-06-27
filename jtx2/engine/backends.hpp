@@ -11,7 +11,7 @@ enum RenderBackend {
 
 constexpr uint32_t JTX_NUM_VIEWPORT_BACKENDS = 1;
 enum ViewportBackend {
-    JTX_VIEWPORT_BACKEND_WING = 0
+    JTX_VIEWPORT_BACKEND_VULKAN = 0
 };
 
 /**

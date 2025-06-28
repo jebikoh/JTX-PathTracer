@@ -429,7 +429,7 @@ set(SPIRV_OUTPUT_DIR "${CMAKE_BINARY_DIR}/spv")
 file(MAKE_DIRECTORY "${SPIRV_OUTPUT_DIR}")
 
 set(GLSL_SOURCE_FILES
-        "${PROJECT_SOURCE_DIR}/shaders/mesh.frag"
+        "${PROJECT_SOURCE_DIR}/shaders/diffuse.frag"
         "${PROJECT_SOURCE_DIR}/shaders/mesh.vert"
         "${PROJECT_SOURCE_DIR}/shaders/grid.frag"
         "${PROJECT_SOURCE_DIR}/shaders/grid.vert"

@@ -1,4 +1,4 @@
-#include "nfd.h"
+#include <nfd.h>
 #include "scene/scene_loader.hpp"
 
 
@@ -156,7 +156,7 @@ void Display::ExportScene() const {
     args.defaultName = name.c_str();
 
     nfdu8char_t *outPath;
-    const nfdresult_t result = NFD_SaveDialogN_With(&outPath, &args);
+    const nfdresult_t result = NFD_SaveDialogU8_With(&outPath, &args);
     if (result == NFD_OKAY) {
         const auto s = std::string(outPath);
         LOG_INFO(UI, "User selected export path: {}", outPath);

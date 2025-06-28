@@ -9,24 +9,41 @@ layout(buffer_reference, scalar) readonly buffer Vec2Buffer {
     vec2 data[];
 };
 
-layout (set = 0, binding = 0) uniform SceneData {
-    mat4 view;
-    mat4 proj;
+layout(set = 0, binding = 0) uniform _GPUGlobalUniformData {
     mat4 viewProj;
+    mat4 invViewProj;
     vec4 cameraPos;
-    Vec3Buffer positionBuffer;
-    Vec3Buffer normalBuffer;
-    Vec2Buffer uvBuffer;
-    Vec3Buffer colorBuffer;
-} sceneData;
+    vec3 sunDirection;
+    float sunIntensity;
 
-layout (set = 1, binding = 0) uniform MaterialData {
-    vec4 ambient;
+    Vec3Buffer vertices;
+    Vec3Buffer normals;
+    Vec2Buffer uvs;
+    Vec3Buffer colors;
+};
+
+struct GPUObjectData {
+    mat4 world;
+    mat4 normal;
+    uint material;
+};
+
+layout(set = 1, binding = 0) buffer _GPUObjectDataBuffer {
+    GPUObjectData objectData[];
+};
+
+struct GPUMaterialData {
     vec4 diffuse;
-    vec4 specular;
-    float shininess;
-} materialData;
+    vec4 ior;
+    vec4 k;
+    vec4 f0;
+    vec4 emission;
+    vec4 roughness;
+    int diffuseTexture;
+};
 
-layout (set = 1, binding = 1) uniform sampler2D ambientTex;
-layout (set = 1, binding = 2) uniform sampler2D diffuseTex;
-layout (set = 1, binding = 3) uniform sampler2D specularTex;
+layout(set = 1, binding = 1) buffer _GPUMaterialDataBuffer {
+    GPUMaterialData materialData[];
+};
+
+layout(set = 1, binding = 2) uniform sampler2D textures[];

@@ -87,6 +87,13 @@ void GfxContext::InitVulkan() {
     features12.sType               = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
     features12.bufferDeviceAddress = true;
     features12.descriptorIndexing  = true;
+    features12.descriptorBindingPartiallyBound               = VK_TRUE;
+    features12.shaderStorageBufferArrayNonUniformIndexing    = VK_TRUE;
+    features12.shaderSampledImageArrayNonUniformIndexing     = VK_TRUE;
+    features12.shaderStorageImageArrayNonUniformIndexing     = VK_TRUE;
+    features12.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+    features12.descriptorBindingSampledImageUpdateAfterBind  = VK_TRUE;
+    features12.descriptorBindingStorageImageUpdateAfterBind  = VK_TRUE;
     features12.scalarBlockLayout   = true;
 
     vkb::PhysicalDeviceSelector pdSelector{vkbInstance};
@@ -135,17 +142,6 @@ void GfxContext::InitVulkan() {
     synchronization2.sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
     synchronization2.synchronization2 = VK_TRUE;
     synchronization2.pNext            = &dynamicRendering;
-
-    VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexing{};
-    descriptorIndexing.sType                                         = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
-    descriptorIndexing.descriptorBindingPartiallyBound               = VK_TRUE;
-    descriptorIndexing.shaderStorageBufferArrayNonUniformIndexing    = VK_TRUE;
-    descriptorIndexing.shaderSampledImageArrayNonUniformIndexing     = VK_TRUE;
-    descriptorIndexing.shaderStorageImageArrayNonUniformIndexing     = VK_TRUE;
-    descriptorIndexing.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
-    descriptorIndexing.descriptorBindingSampledImageUpdateAfterBind  = VK_TRUE;
-    descriptorIndexing.descriptorBindingStorageImageUpdateAfterBind  = VK_TRUE;
-    descriptorIndexing.pNext = &synchronization2;
 
     // Check if ray tracing is supported
     auto availableExtensions = vkbPd.get_available_extensions();

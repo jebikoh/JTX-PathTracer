@@ -121,6 +121,10 @@ void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
     scissor.extent.height = m_viewRectangle.h;
     vkCmdSetScissor(ctx.cmd, 0, 1, &scissor);
 
+    const FrameData &frame = m_frameData[ctx.frameIndex];
+    // Update scene data UBO & descriptor set (layout 0, binding 0)
+    // *frame.gpuGlobalUniformDataMapping = m_gpuGlobalUniformData;
+
     if (m_bSceneLoaded) {
         // Sort the draws by pipline
         std::vector<uint32_t> opaqueDraws;
@@ -138,16 +142,12 @@ void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
             return a.materialPipeline < b.materialPipeline;
         });
 
-        // Update scene data UBO & descriptor set (layout 0, binding 0)
-        const FrameData &frame = m_frameData[ctx.frameIndex];
-        *frame.gpuGlobalUniformDataMapping = m_gpuGlobalUniformData;
-
-        // Bind index buffer
-        vkCmdBindIndexBuffer(ctx.cmd, m_gpuSceneData.index, 0, VK_INDEX_TYPE_UINT32);
-
         // Bind layouts
         vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_materialPipelines.layout, 0, 1, &frame.gpuGlobalUniformDataDescriptorSet, 0, nullptr);
         vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_materialPipelines.layout, 1, 1, &m_bindlessDescriptorSet, 0, nullptr);
+
+        // Bind index buffer
+        vkCmdBindIndexBuffer(ctx.cmd, m_gpuSceneData.index, 0, VK_INDEX_TYPE_UINT32);
 
         const VkPipeline *lastPipeline       = nullptr;
         auto draw = [&](const GPURenderObject &r) {
@@ -265,6 +265,9 @@ void VkEngine::InitDescriptors() {
 void VkEngine::DestroyDescriptors() const {
     LOG_DEBUG(VKE, "Destroying descriptors");
 
+    vkDestroyDescriptorSetLayout(m_gfx.ctx, m_bindlessDescriptorSetLayout, nullptr);
+    vkDestroyDescriptorSetLayout(m_gfx.ctx, m_gpuGlobalUniformDataDescriptorLayout, nullptr);
+
     m_bindlessAllocator.DestroyPool(m_gfx.ctx);
     m_descriptorAllocator.DestroyPool(m_gfx.ctx);
 
@@ -285,7 +288,7 @@ void VkEngine::UpdateGlobalUniformData() {
     glm::mat4 proj       = glm::perspective(glm::radians(70.f), aspectRatio, 0.1f, 10000.0f);
     proj[1][1] *= -1;
 
-    m_gpuGlobalUniformData.viewProj       = view * proj;
+    m_gpuGlobalUniformData.viewProj       = proj * view;
     m_gpuGlobalUniformData.invViewProj    = glm::inverse(m_gpuGlobalUniformData.viewProj);
     m_gpuGlobalUniformData.cameraPosition = glm::vec4(m_camera.position, 0.0f);
     m_gpuGlobalUniformData.sunDirection   = glm::vec4(-1.0f, -1.0f, -1.0f, 0.0f);
@@ -425,6 +428,19 @@ void VkEngine::LoadScene(const Scene *pScene) {
     m_pScene = pScene;
 
     jvk::DescriptorWriter writer;
+
+    // -- Global data --
+    for (auto &frame : m_frameData) {
+        if (frame.gpuGlobalUniformData.buffer == VK_NULL_HANDLE) {
+            frame.gpuGlobalUniformData = m_gfx.CreateBuffer(
+                sizeof(GPUGlobalUniformData),
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VMA_MEMORY_USAGE_CPU_TO_GPU,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            frame.gpuGlobalUniformDataMapping = static_cast<GPUGlobalUniformData *>(frame.gpuGlobalUniformData.Map(m_gfx.allocator));
+        }
+        frame.gpuGlobalUniformDataMapping = {};
+    }
 
     // -- Textures --
     LOG_DEBUG(VKE, "Loading textures");

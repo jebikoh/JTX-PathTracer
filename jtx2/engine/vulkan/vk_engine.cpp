@@ -41,141 +41,148 @@ void VkEngine::Destroy() {
 }
 
 void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
-    // UpdateGlobalUniformData();
-    // if (m_bSceneLoaded) {
-    //     PopulateContext();
-    // }
-    //
-    // // Calculate resolve region
-    // region.src[0].width = region.dst[0].width = m_viewRectangle.x;
-    // region.src[0].height = region.dst[0].height = m_viewRectangle.y;
-    // region.src[1].width = region.dst[1].width = m_viewRectangle.x + m_viewRectangle.w;
-    // region.src[1].height = region.dst[1].height = m_viewRectangle.y + m_viewRectangle.h;
-    //
-    // // Calculate viewport
-    // const VkRect2D renderArea{
-    //                 {m_viewRectangle.x, m_viewRectangle.y},
-    //                 {m_viewRectangle.w, m_viewRectangle.h}};
-    //
-    // if (m_bRayTracingEnabled) {
-    //     RayTrace(ctx, glm::vec4(0.2f, 0.2f, 0.2f, 1.0f));
-    // } else {
-    //     Rasterize(ctx, renderArea);
-    // }
-    return;
+    UpdateGlobalUniformData();
+    if (m_bSceneLoaded) {
+        PopulateContext();
+    }
+
+    // Calculate resolve region
+    region.src[0].width = region.dst[0].width = m_viewRectangle.x;
+    region.src[0].height = region.dst[0].height = m_viewRectangle.y;
+    region.src[1].width = region.dst[1].width = m_viewRectangle.x + m_viewRectangle.w;
+    region.src[1].height = region.dst[1].height = m_viewRectangle.y + m_viewRectangle.h;
+
+    // Calculate viewport
+    const VkRect2D renderArea{
+                    {m_viewRectangle.x, m_viewRectangle.y},
+                    {m_viewRectangle.w, m_viewRectangle.h}};
+
+    if (m_bRayTracingEnabled) {
+        RayTrace(ctx, glm::vec4(0.2f, 0.2f, 0.2f, 1.0f));
+    } else {
+        Rasterize(ctx, renderArea);
+    }
+}
+
+void VkEngine::PopulateContext() {
+    m_drawContext.objects.clear();
+
+    // Loop through meshes
+    for (uint32_t i = 0; i < m_pScene->meshes.size(); ++i) {
+        const auto &mesh = m_pScene->meshes[i];
+        GPURenderObject obj{};
+        obj.objectID   = i;
+        obj.start      = mesh.startIndex;
+        obj.count      = mesh.numIndices;;
+        obj.materialPipeline = &m_materialPipelines.diffuse;
+        m_drawContext.objects.push_back(obj);
+    }
+
 }
 
 void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
-    // // Begin render pass
-    // VkClearValue drawImageClearValue{};
-    // drawImageClearValue.color = {0.255f, 0.247f, 0.255f, 1.0f};
-    //
-    // // Transition if needed
-    // jvk::TransitionImageIfNeeded(ctx.cmd, ctx.drawImage.image, ctx.layout.drawImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-    // ctx.layout.drawImage = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    //
-    // jvk::TransitionImageIfNeeded(ctx.cmd, ctx.depthStencilImage.image, ctx.layout.depthStencilImage, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-    // ctx.layout.depthStencilImage = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    //
-    // const VkRenderingAttachmentInfo colorAttachment = jvk::init::RenderingAttachment(ctx.drawImage.imageView, &drawImageClearValue, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-    //
-    // VkClearValue dsClearValue{};
-    // dsClearValue.depthStencil.depth   = 1.0f;
-    // dsClearValue.depthStencil.stencil = 0;
-    //
-    // const VkRenderingAttachmentInfo depthAttachment = jvk::init::DepthRenderingAttachment(ctx.depthStencilImage.imageView, &dsClearValue, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-    // VkRenderingInfo renderingInfo                   = jvk::init::Rendering(ctx.swapchain.extent, &colorAttachment, &depthAttachment);
-    // renderingInfo.renderArea                        = renderArea;
-    //
-    // vkCmdBeginRenderingKHR(ctx.cmd, &renderingInfo);
-    //
-    // VkViewport viewport{};
-    // viewport.x        = static_cast<float>(m_viewRectangle.x);
-    // viewport.y        = static_cast<float>(m_viewRectangle.y);
-    // viewport.width    = static_cast<float>(m_viewRectangle.w);
-    // viewport.height   = static_cast<float>(m_viewRectangle.h);
-    // viewport.minDepth = 0.0f;
-    // viewport.maxDepth = 1.0f;
-    // vkCmdSetViewport(ctx.cmd, 0, 1, &viewport);
-    //
-    // // SCISSOR
-    // VkRect2D scissor{};
-    // scissor.offset.x      = m_viewRectangle.x;
-    // scissor.offset.y      = m_viewRectangle.y;
-    // scissor.extent.width  = m_viewRectangle.w;
-    // scissor.extent.height = m_viewRectangle.h;
-    // vkCmdSetScissor(ctx.cmd, 0, 1, &scissor);
-    //
-    // if (m_bSceneLoaded) {
-    //     // Draw sorting
-    //     std::vector<uint32_t> opaqueDraws;
-    //     opaqueDraws.reserve(m_drawContext.opaque.size());
-    //     for (uint32_t i = 0; i < m_drawContext.opaque.size(); i++) {
-    //         opaqueDraws.push_back(i);
-    //     }
-    //
-    //     std::ranges::sort(opaqueDraws, [&](const auto &iA, const auto &iB) {
-    //         const GPURenderObject &a = m_drawContext.opaque[iA];
-    //         const GPURenderObject &b = m_drawContext.opaque[iB];
-    //         if (a.material == b.material) {
-    //             return a.start < b.start;
-    //         }
-    //         return a.material < b.material;
-    //     });
-    //
-    //     // Update scene data UBO & descriptor set (layout 0, binding 0)
-    //     const FrameData &frame = m_frameData[ctx.frameIndex];
-    //
-    //     *frame.gpuGlobalUniformDataMapping = m_gpuSceneUboData;
-    //
-    //     const jvk::Pipeline *lastPipeline       = nullptr;
-    //     const GPUMaterialInstance *lastMaterial = nullptr;
-    //
-    //     // Bind index buffer
-    //     vkCmdBindIndexBuffer(ctx.cmd, m_gpuSceneMeshData.index, 0, VK_INDEX_TYPE_UINT32);
-    //
-    //     auto draw = [&](const GPURenderObject &r) {
-    //         if (r.material != lastMaterial) {
-    //             lastMaterial = r.material;
-    //
-    //             if (r.material->pipeline != lastPipeline) {
-    //                 lastPipeline = r.material->pipeline;
-    //
-    //                 vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->pipeline);
-    //                 vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->layout, 0, 1, &frame.gpuGlobalUniformDataDescriptorSet, 0, nullptr);
-    //             }
-    //
-    //             vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, r.material->pipeline->layout, 1, 1, &r.material->descriptorSet, 0, nullptr);
-    //         }
-    //
-    //         GPUDrawPushConstants pushConstants{};
-    //         pushConstants.world  = glm::mat4(1.0f);
-    //         pushConstants.normal = glm::mat4(1.0f);
-    //         vkCmdPushConstants(ctx.cmd, r.material->pipeline->layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConstants), &pushConstants);
-    //
-    //         // Need to multiply by 3 because r.count and r.start are relative to vec3u
-    //         vkCmdDrawIndexed(ctx.cmd, r.count * 3, 1, r.start * 3, 0, 0);
-    //     };
-    //
-    //     for (const auto &r: opaqueDraws) {
-    //         draw(m_drawContext.opaque[r]);
-    //     }
-    // }
-    //
-    // if (m_bDrawGrid) {
-    //     vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gridPipeline.pipeline);
-    //
-    //     GridPushConstants pushConstants{};
-    //     pushConstants.viewProj    = m_gpuSceneUboData.viewProj;
-    //     pushConstants.cameraPos   = m_gpuSceneUboData.cameraPos;
-    //     pushConstants.invViewProj = glm::inverse(m_gpuSceneUboData.viewProj);
-    //     vkCmdPushConstants(ctx.cmd, m_gridPipeline.layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pushConstants), &pushConstants);
-    //
-    //     vkCmdDraw(ctx.cmd, 3, 1, 0, 0);
-    // }
-    //
-    // vkCmdEndRenderingKHR(ctx.cmd);
-    return;
+    // Begin render pass
+    VkClearValue drawImageClearValue{};
+    drawImageClearValue.color = {0.255f, 0.247f, 0.255f, 1.0f};
+
+    // Transition if needed
+    jvk::TransitionImageIfNeeded(ctx.cmd, ctx.drawImage.image, ctx.layout.drawImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    ctx.layout.drawImage = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    jvk::TransitionImageIfNeeded(ctx.cmd, ctx.depthStencilImage.image, ctx.layout.depthStencilImage, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    ctx.layout.depthStencilImage = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    const VkRenderingAttachmentInfo colorAttachment = jvk::init::RenderingAttachment(ctx.drawImage.imageView, &drawImageClearValue, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
+    VkClearValue dsClearValue{};
+    dsClearValue.depthStencil.depth   = 1.0f;
+    dsClearValue.depthStencil.stencil = 0;
+
+    const VkRenderingAttachmentInfo depthAttachment = jvk::init::DepthRenderingAttachment(ctx.depthStencilImage.imageView, &dsClearValue, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    VkRenderingInfo renderingInfo                   = jvk::init::Rendering(ctx.swapchain.extent, &colorAttachment, &depthAttachment);
+    renderingInfo.renderArea                        = renderArea;
+
+    vkCmdBeginRenderingKHR(ctx.cmd, &renderingInfo);
+
+    VkViewport viewport{};
+    viewport.x        = static_cast<float>(m_viewRectangle.x);
+    viewport.y        = static_cast<float>(m_viewRectangle.y);
+    viewport.width    = static_cast<float>(m_viewRectangle.w);
+    viewport.height   = static_cast<float>(m_viewRectangle.h);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(ctx.cmd, 0, 1, &viewport);
+
+    // SCISSOR
+    VkRect2D scissor{};
+    scissor.offset.x      = m_viewRectangle.x;
+    scissor.offset.y      = m_viewRectangle.y;
+    scissor.extent.width  = m_viewRectangle.w;
+    scissor.extent.height = m_viewRectangle.h;
+    vkCmdSetScissor(ctx.cmd, 0, 1, &scissor);
+
+    if (m_bSceneLoaded) {
+        // Sort the draws by pipline
+        std::vector<uint32_t> opaqueDraws;
+        opaqueDraws.reserve(m_drawContext.objects.size());
+        for (uint32_t i = 0; i < m_drawContext.objects.size(); i++) {
+            opaqueDraws.push_back(i);
+        }
+
+        std::ranges::sort(opaqueDraws, [&](const auto &iA, const auto &iB) {
+            const GPURenderObject &a = m_drawContext.objects[iA];
+            const GPURenderObject &b = m_drawContext.objects[iB];
+            if (a.materialPipeline == b.materialPipeline) {
+                return a.start < b.start;
+            }
+            return a.materialPipeline < b.materialPipeline;
+        });
+
+        // Update scene data UBO & descriptor set (layout 0, binding 0)
+        const FrameData &frame = m_frameData[ctx.frameIndex];
+        *frame.gpuGlobalUniformDataMapping = m_gpuGlobalUniformData;
+
+        // Bind index buffer
+        vkCmdBindIndexBuffer(ctx.cmd, m_gpuSceneData.index, 0, VK_INDEX_TYPE_UINT32);
+
+        // Bind layouts
+        vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_materialPipelines.layout, 0, 1, &frame.gpuGlobalUniformDataDescriptorSet, 0, nullptr);
+        vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_materialPipelines.layout, 1, 1, &m_bindlessDescriptorSet, 0, nullptr);
+
+        const VkPipeline *lastPipeline       = nullptr;
+        auto draw = [&](const GPURenderObject &r) {
+            if (r.materialPipeline != lastPipeline) {
+                lastPipeline = r.materialPipeline;
+
+                vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, *r.materialPipeline);
+            }
+
+            GPUDrawPushConstants pushConstants{};
+            pushConstants.objectID = r.objectID;
+            vkCmdPushConstants(ctx.cmd, m_materialPipelines.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConstants), &pushConstants);
+
+            // Need to multiply by 3 because r.count and r.start are relative to vec3u
+            vkCmdDrawIndexed(ctx.cmd, r.count * 3, 1, r.start * 3, 0, 0);
+        };
+
+        for (const auto &r: opaqueDraws) {
+            draw(m_drawContext.objects[r]);
+        }
+    }
+
+    if (m_bDrawGrid) {
+        vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_gridPipeline.pipeline);
+
+        GridPushConstants pushConstants{};
+        pushConstants.viewProj    = m_gpuGlobalUniformData.viewProj;
+        pushConstants.cameraPos   = m_gpuGlobalUniformData.cameraPosition;
+        pushConstants.invViewProj = m_gpuGlobalUniformData.invViewProj;
+        vkCmdPushConstants(ctx.cmd, m_gridPipeline.layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pushConstants), &pushConstants);
+
+        vkCmdDraw(ctx.cmd, 3, 1, 0, 0);
+    }
+
+    vkCmdEndRenderingKHR(ctx.cmd);
 }
 
 void VkEngine::ProcessEvent(const SDL_Event &event) {
@@ -410,23 +417,6 @@ void VkEngine::DestroyGridPipeline() const {
     m_gridPipeline.Destroy(m_gfx.ctx, true);
 }
 
-void VkEngine::PopulateContext() {
-    // TODO
-    // m_drawContext.opaque.clear();
-    // m_drawContext.transparent.clear();
-    //
-    // // Loop through meshes
-    // for (const auto &mesh: m_pScene->meshes) {
-    //     GPURenderObject obj{};
-    //     obj.start      = mesh.startIndex;
-    //     obj.count      = mesh.numIndices;
-    //     obj.transform  = glm::mat4(1.0f);
-    //     obj.nTransform = glm::mat4(1.0f);
-    //     obj.material   = &m_gpuMaterialInstances[mesh.materialIndex];
-    //     m_drawContext.opaque.push_back(obj);
-    // }
-}
-
 void VkEngine::LoadScene(const Scene *pScene) {
     LOG_INFO(VKE, "Loading scene");
     if (m_bSceneLoaded) {
@@ -457,6 +447,13 @@ void VkEngine::LoadScene(const Scene *pScene) {
         } else {
             gpuTex = m_gfx.CreateImage(tex.pData, extent, tex.channels, format, VK_IMAGE_USAGE_SAMPLED_BIT);
         }
+
+        writer.WriteImage(
+            kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY,
+            index, gpuTex.imageView,
+            m_gfx.defaultSamplers.linear,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
         m_gpuSceneData.textures[index++] = gpuTex;
     }
 
@@ -569,18 +566,18 @@ void VkEngine::LoadScene(const Scene *pScene) {
         }
     });
     LOG_DEBUG(VKE, "Staging buffer copied to GPU");
-
     m_gfx.DestroyBuffer(staging);
 
     // -- Materials --
     std::vector<GPUMaterialData> gpuMaterials;
     gpuMaterials.reserve(pScene->materials.size());
 
-    LOG_DEBUG(VKE, "Creating material UBO");
+    LOG_DEBUG(VKE, "Creating material buffer");
     LOG_DEBUG(VKE, "Scene has {} materials", pScene->materials.size());
-    // Create UBO that can hold material data for all materials
+    // This is mapped so we can easily make UI material updates
+    // TODO: experiment keeping a staging buffer the size of 1 GPUMaterialData persistent for copying
     m_gpuSceneData.materialBuffer = m_gfx.CreateBuffer(sizeof(GPUMaterialData) * pScene->materials.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-    LOG_DEBUG(VKE, "Created material SSBO");
+    LOG_DEBUG(VKE, "Created material buffer");
 
     void *materialData = m_gpuSceneData.materialBuffer.Map(m_gfx.allocator);
 
@@ -598,28 +595,62 @@ void VkEngine::LoadScene(const Scene *pScene) {
     }
 
     m_gpuSceneData.materialBuffer.Unmap(m_gfx.allocator);
+    writer.WriteBuffer(kL2Bindings::GPU_MATERIAL_DATA, m_gpuSceneData.materialBuffer.buffer, sizeof(GPUMaterialData) * pScene->materials.size(), 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
-    m_bSceneLoaded = true;
+    // -- Objects --
+    std::vector<GPUObjectData> gpuObjects;
+    for (const auto &mesh : pScene->meshes) {
+        GPUObjectData obj;
+        // We don't support transformation matrices for now
+        obj.world    = glm::mat4(1.0f);
+        obj.normal   = glm::mat4(1.0f);
+        // Resource handles should align with materialIndex
+        obj.material = mesh.materialIndex;
+        gpuObjects.push_back(obj);
 
-    // -- RT resources --
+        GPURenderObject rObj{};
+        rObj.start = mesh.startIndex;
+        rObj.count = mesh.numIndices;
+        // TODO: assign this dynamically
+        rObj.materialPipeline = &m_materialPipelines.diffuse;
+    }
+    size_t objSize = sizeof(GPUObjectData) * gpuObjects.size();
+    m_gpuSceneData.objectBuffer = m_gfx.CreateBuffer(objSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
+    staging = m_gfx.CreateBuffer(objSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
+    memcpy(staging.GetMapping(), gpuObjects.data(), objSize);
+    m_gfx.imBuffer.SubmitAndWait(m_gfx.graphicsQueue, [&](const VkCommandBuffer cmd) {
+        VkBufferCopy copyRegion{};
+        copyRegion.dstOffset = 0;
+        copyRegion.srcOffset = 0;
+        copyRegion.size      = objSize;
+        vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneData.objectBuffer.buffer, 1, &copyRegion);
+    });
+    m_gfx.DestroyBuffer(staging);
+
+    writer.WriteBuffer(kL2Bindings::GPU_OBJECT_DATA, m_gpuSceneData.objectBuffer.buffer, objSize, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+
+    // -- TLAS ==
     // TODO
     if (m_bRayTracingAvailable) {
         LOG_DEBUG(VKE, "Initializing RT scene resources");
         BuildBLAS();
         BuildTLAS();
 
-        jvk::DescriptorWriter writer;
-        writer.WriteAS(0, m_ASManager.GetTLAS());
-        writer.WriteImage(1, m_gfx.drawImage.image.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-        writer.UpdateSet(m_gfx.ctx, m_bindlessDescriptorSet);
+        writer.WriteAS(kL2Bindings::GPU_TLAS, m_ASManager.GetTLAS());
 
         LOG_DEBUG(VKE, "RT scene resources initialized");
     }
 
+    // -- Update set --
+    writer.UpdateSet(m_gfx.ctx, m_bindlessDescriptorSet);
+    m_bSceneLoaded = true;
+
     LOG_INFO(VKE, "Scene loaded");
 }
 
-void VkEngine::DestroyGPUScene() {
+void VkEngine::DestroyScene() {
     if (m_bSceneLoaded) {
         m_gfx.WaitIdle();
 
@@ -630,11 +661,15 @@ void VkEngine::DestroyGPUScene() {
             LOG_DEBUG(VKE, "RT acceleration structures destroyed");
         }
 
+        // -- Objects --
+        LOG_DEBUG(VKE, "Destroying GPU objects");
+        m_gfx.DestroyBuffer(m_gpuSceneData.objectBuffer);
+        LOG_DEBUG(VKE, "GPU objects destroyed");
+
         // -- Material resources --
-        LOG_DEBUG(VKE, "Destroying GPU scene materials");
-        m_gpuMaterialInstances.clear();
-        m_gfx.DestroyBuffer(m_materialBufferUBO);
-        LOG_DEBUG(VKE, "Destroyed GPU scene materials");
+        LOG_DEBUG(VKE, "Destroying GPU material data");
+        m_gfx.DestroyBuffer(m_gpuSceneData.materialBuffer);
+        LOG_DEBUG(VKE, "GPU material data destroyed");
 
         // -- Mesh buffers --
         LOG_DEBUG(VKE, "Destroying GPU scene buffers");
@@ -650,15 +685,14 @@ void VkEngine::DestroyGPUScene() {
             LOG_DEBUG(VKE, "Destroying color buffer");
             m_gfx.DestroyBuffer(m_gpuSceneData.color);
         }
-        m_gpuSceneData = {};
         LOG_DEBUG(VKE, "Destroyed GPU scene buffers");
 
         // -- Textures --
         LOG_DEBUG(VKE, "Destroying GPU scene textures");
-        for (const auto &tex : m_sceneTextures) {
+        for (const auto &tex : m_gpuSceneData.textures) {
             m_gfx.DestroyImage(tex);
         }
-        m_sceneTextures.clear();
+        m_gpuSceneData.textures.clear();
         LOG_DEBUG(VKE, "Destroyed GPU scene textures");
 
         m_pScene = nullptr;

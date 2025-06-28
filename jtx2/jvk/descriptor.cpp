@@ -168,6 +168,7 @@ VkDescriptorSet DynamicDescriptorAllocator::Allocate(const VkDevice device, cons
     return ds;
 }
 
+
 void DescriptorWriter::WriteImage(const int binding, const VkImageView image, const VkSampler sampler, const VkImageLayout layout, const VkDescriptorType type) {
     const VkDescriptorImageInfo &info = images.emplace_back(VkDescriptorImageInfo{
             .sampler     = sampler,
@@ -178,6 +179,23 @@ void DescriptorWriter::WriteImage(const int binding, const VkImageView image, co
     write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     write.dstBinding      = binding;
     write.dstSet          = VK_NULL_HANDLE;
+    write.descriptorCount = 1;
+    write.descriptorType  = type;
+    write.pImageInfo      = &info;
+    writes.push_back(write);
+}
+
+void DescriptorWriter::WriteImage(const int binding, const int index, const VkImageView image, const VkSampler sampler, const VkImageLayout layout, const VkDescriptorType type) {
+    const VkDescriptorImageInfo &info = images.emplace_back(VkDescriptorImageInfo{
+            .sampler     = sampler,
+            .imageView   = image,
+            .imageLayout = layout});
+
+    VkWriteDescriptorSet write{};
+    write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstBinding      = binding;
+    write.dstSet          = VK_NULL_HANDLE;
+    write.dstArrayElement = index;
     write.descriptorCount = 1;
     write.descriptorType  = type;
     write.pImageInfo      = &info;

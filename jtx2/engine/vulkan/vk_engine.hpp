@@ -149,6 +149,7 @@ private:
 
         std::vector<jvk::Image> textures;
         jvk::Buffer materialBuffer;
+        jvk::Buffer objectBuffer;
     } m_gpuSceneData;
 
     // == Rasterization ==

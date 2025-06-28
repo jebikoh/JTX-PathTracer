@@ -61,6 +61,7 @@ struct DescriptorWriter {
     std::vector<VkWriteDescriptorSet> writes;
 
     void WriteImage(int binding, VkImageView image, VkSampler sampler, VkImageLayout layout, VkDescriptorType type);
+    void WriteImage(int binding, int index, VkImageView image, VkSampler sampler, VkImageLayout layout, VkDescriptorType type);
     void WriteImages(int binding, std::span<VkDescriptorImageInfo> infos, VkDescriptorType type);
 
     void WriteBuffer(int binding, VkBuffer buffer, size_t size, size_t offset, VkDescriptorType type);

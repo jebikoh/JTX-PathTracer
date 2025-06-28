@@ -85,6 +85,7 @@ struct GPURayTracingPushConstants {
  * A flattened struct containing all the data required to render a single object.
  */
 struct GPURenderObject {
+    ResourceHandle objectID;
     uint32_t start;
     uint32_t count;
     VkPipeline *materialPipeline;

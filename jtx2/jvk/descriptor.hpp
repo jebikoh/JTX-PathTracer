@@ -16,10 +16,10 @@ namespace jvk {
 struct DescriptorLayoutBuilder {
     std::vector<VkDescriptorSetLayoutBinding> bindings;
 
-    void AddBinding(uint32_t binding, VkDescriptorType type);
-    void AddBinding(uint32_t binding, uint32_t count, VkDescriptorType type);
+    void AddBinding(uint32_t binding, VkDescriptorType type, VkShaderStageFlags stageFlags);
+    void AddBinding(uint32_t binding, uint32_t count, VkDescriptorType type, VkShaderStageFlags stageFlags);
     void Clear();
-    VkDescriptorSetLayout Build(VkDevice device, VkShaderStageFlags shaderStages, const void *pNext = nullptr, VkDescriptorSetLayoutCreateFlags flags = 0);
+    VkDescriptorSetLayout Build(VkDevice device, const void *pNext = nullptr, VkDescriptorSetLayoutCreateFlags flags = 0) const;
 };
 
 struct DescriptorAllocator {

@@ -220,12 +220,13 @@ void VkEngine::InitDescriptors() {
     m_bindlessAllocator.InitPool(m_gfx.ctx, 4, poolSizes, VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT);
 
     // -- Bindless descriptor set layout --
+    constexpr VkShaderStageFlags bindlessShaderStages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     jvk::DescriptorLayoutBuilder builder;
-    builder.AddBinding(kL2Bindings::GPU_OBJECT_DATA, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-    builder.AddBinding(kL2Bindings::GPU_MATERIAL_DATA, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-    builder.AddBinding(kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY, 256, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    builder.AddBinding(kL2Bindings::GPU_OBJECT_DATA, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, bindlessShaderStages);
+    builder.AddBinding(kL2Bindings::GPU_MATERIAL_DATA, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, bindlessShaderStages);
+    builder.AddBinding(kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY, 256, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, bindlessShaderStages);
     if (m_bRayTracingAvailable) {
-        builder.AddBinding(kL2Bindings::GPU_TLAS, 1, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR);
+        builder.AddBinding(kL2Bindings::GPU_TLAS, 1, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
     }
 
     constexpr VkDescriptorBindingFlags bindingFlags     = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
@@ -243,8 +244,7 @@ void VkEngine::InitDescriptors() {
     bindingFlagsInfo.bindingCount  = static_cast<uint32_t>(vBindingFlags.size());
     bindingFlagsInfo.pBindingFlags = vBindingFlags.data();
 
-    constexpr auto shaderStages   = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-    m_bindlessDescriptorSetLayout = builder.Build(m_gfx.ctx, shaderStages, &bindingFlagsInfo, VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT);
+    m_bindlessDescriptorSetLayout = builder.Build(m_gfx.ctx, &bindingFlagsInfo, VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT);
 
     // -- Bindless descriptor set --
     m_bindlessDescriptorSet = m_bindlessAllocator.Allocate(m_gfx.ctx, m_bindlessDescriptorSetLayout);
@@ -255,8 +255,13 @@ void VkEngine::InitDescriptors() {
     m_descriptorAllocator.InitPool(m_gfx.ctx, 2, poolSizesGlobal);
 
     builder.Clear();
-    builder.AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-    m_gpuGlobalUniformDataDescriptorLayout = builder.Build(m_gfx.ctx, shaderStages);
+
+    auto globalShaderStages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    if (m_bRayTracingAvailable) {
+        globalShaderStages |= VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+    }
+    builder.AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, globalShaderStages);
+    m_gpuGlobalUniformDataDescriptorLayout = builder.Build(m_gfx.ctx);
 
     for (auto &frame: m_frameData) {
         frame.gpuGlobalUniformDataDescriptorSet = m_descriptorAllocator.Allocate(m_gfx.ctx, m_gpuGlobalUniformDataDescriptorLayout);

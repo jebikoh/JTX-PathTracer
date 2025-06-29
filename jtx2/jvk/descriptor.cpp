@@ -2,19 +2,21 @@
 
 namespace jvk {
 
-void DescriptorLayoutBuilder::AddBinding(const uint32_t binding, const VkDescriptorType type) {
+void DescriptorLayoutBuilder::AddBinding(const uint32_t binding, const VkDescriptorType type, VkShaderStageFlags stageFlags) {
     VkDescriptorSetLayoutBinding newBinding{};
     newBinding.binding         = binding;
     newBinding.descriptorCount = 1;
     newBinding.descriptorType  = type;
+    newBinding.stageFlags      = stageFlags;
     bindings.push_back(newBinding);
 }
 
-void DescriptorLayoutBuilder::AddBinding(const uint32_t binding, const uint32_t count, const VkDescriptorType type) {
+void DescriptorLayoutBuilder::AddBinding(const uint32_t binding, const uint32_t count, const VkDescriptorType type, VkShaderStageFlags stageFlags) {
     VkDescriptorSetLayoutBinding newBinding{};
     newBinding.binding         = binding;
     newBinding.descriptorCount = count;
     newBinding.descriptorType  = type;
+    newBinding.stageFlags      = stageFlags;
     bindings.push_back(newBinding);
 }
 
@@ -22,11 +24,7 @@ void DescriptorLayoutBuilder::Clear() {
     bindings.clear();
 }
 
-VkDescriptorSetLayout DescriptorLayoutBuilder::Build(const VkDevice device, const VkShaderStageFlags shaderStages, const void *pNext, const VkDescriptorSetLayoutCreateFlags flags) {
-    for (auto &b: bindings) {
-        b.stageFlags |= shaderStages;
-    }
-
+VkDescriptorSetLayout DescriptorLayoutBuilder::Build(const VkDevice device, const void *pNext, const VkDescriptorSetLayoutCreateFlags flags) const {
     VkDescriptorSetLayoutCreateInfo info{};
     info.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     info.pNext        = pNext;

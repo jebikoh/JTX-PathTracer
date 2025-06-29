@@ -41,7 +41,7 @@ void ASManager::BuildBLAS(const std::vector<BLASInput> &inputs, const VkBuildAcc
 
     // Allocate scratch buffer
     // TODO: double check VMA flags
-    const jvk::Buffer scratchBuffer = m_gfx.CreateBuffer(maxScratchSize, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+    jvk::Buffer scratchBuffer = m_gfx.CreateBuffer(maxScratchSize, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
     VkBufferDeviceAddressInfo bufferAddressInfo{};
     bufferAddressInfo.sType        = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
@@ -103,12 +103,12 @@ void ASManager::BuildTLAS(const std::vector<VkAccelerationStructureInstanceKHR> 
 
     // Copy instance data to a staging buffer
     const auto bufSize              = numInstances * sizeof(VkAccelerationStructureInstanceKHR);
-    const jvk::Buffer stagingBuffer = m_gfx.CreateBuffer(bufSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
+    jvk::Buffer stagingBuffer = m_gfx.CreateBuffer(bufSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
     void *data = stagingBuffer.Map(m_gfx.allocator);
     std::memcpy(data, instances.data(), bufSize);
     stagingBuffer.Unmap(m_gfx.allocator);
 
-    const jvk::Buffer instancesBuffer = m_gfx.CreateBuffer(
+    jvk::Buffer instancesBuffer = m_gfx.CreateBuffer(
             numInstances * sizeof(VkAccelerationStructureInstanceKHR),
             VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
             VMA_MEMORY_USAGE_GPU_ONLY);
@@ -236,7 +236,7 @@ void ASManager::CompactBLAS(const VkCommandBuffer cmd, const std::vector<uint32_
     }
 }
 
-void ASManager::DestroyNonCompactedBLAS(const std::vector<uint32_t> &BLASIndices, const std::vector<AccelerationStructureBuildInfo> &buildInfo) const {
+void ASManager::DestroyNonCompactedBLAS(const std::vector<uint32_t> &BLASIndices, std::vector<AccelerationStructureBuildInfo> &buildInfo) const {
     for (auto &i: BLASIndices) {
         vkDestroyAccelerationStructureKHR(m_gfx.ctx, buildInfo[i].cleanupAS.handle, nullptr);
         m_gfx.DestroyBuffer(buildInfo[i].cleanupAS.buffer);

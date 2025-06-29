@@ -13,8 +13,11 @@ struct Buffer {
 
     operator VkBuffer() const { return buffer; }
 
-    void Destroy(const VmaAllocator allocator) const {
+    void Destroy(const VmaAllocator allocator) {
         vmaDestroyBuffer(allocator, buffer, allocation);
+        buffer = VK_NULL_HANDLE;
+        allocation = VK_NULL_HANDLE;
+        info = {};
     }
 
     VkDeviceAddress GetDeviceAddress(const VkDevice device) const {

@@ -13,7 +13,7 @@
 namespace jtx {
 
 void VkEngine::Init(const bool bEnableRayTracing) {
-    LOG_INFO(VKE, "Initilaizing Vulkan engine");
+    LOG_INFO(VKE, "Initializing Vulkan engine");
     // TODO: flip this back when ray tracing is ready
     // m_bRayTracingAvailable = bEnableRayTracing;
 
@@ -122,8 +122,6 @@ void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
     vkCmdSetScissor(ctx.cmd, 0, 1, &scissor);
 
     const FrameData &frame = m_frameData[ctx.frameIndex];
-    // Update scene data UBO & descriptor set (layout 0, binding 0)
-    // *frame.gpuGlobalUniformDataMapping = m_gpuGlobalUniformData;
 
     if (m_bSceneLoaded) {
         // Sort the draws by pipline
@@ -141,6 +139,9 @@ void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
             }
             return a.materialPipeline < b.materialPipeline;
         });
+
+        // Update scene data UBO
+        *frame.gpuGlobalUniformDataMapping = m_gpuGlobalUniformData;
 
         // Bind layouts
         vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_materialPipelines.layout, 0, 1, &frame.gpuGlobalUniformDataDescriptorSet, 0, nullptr);
@@ -430,6 +431,7 @@ void VkEngine::LoadScene(const Scene *pScene) {
     jvk::DescriptorWriter writer;
 
     // -- Global data --
+    LOG_DEBUG(VKE, "Preparing global uniform data buffers");
     for (auto &frame : m_frameData) {
         if (frame.gpuGlobalUniformData.buffer == VK_NULL_HANDLE) {
             frame.gpuGlobalUniformData = m_gfx.CreateBuffer(
@@ -438,13 +440,19 @@ void VkEngine::LoadScene(const Scene *pScene) {
                 VMA_MEMORY_USAGE_CPU_TO_GPU,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
             frame.gpuGlobalUniformDataMapping = static_cast<GPUGlobalUniformData *>(frame.gpuGlobalUniformData.Map(m_gfx.allocator));
+
+            writer.WriteBuffer(0, frame.gpuGlobalUniformData.buffer, sizeof(GPUGlobalUniformData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+            writer.UpdateSet(m_gfx.ctx, frame.gpuGlobalUniformDataDescriptorSet);
+            writer.Clear();
         }
-        frame.gpuGlobalUniformDataMapping = {};
+        *frame.gpuGlobalUniformDataMapping = {};
     }
+    LOG_DEBUG(VKE, "Global uniform data buffers prepared");
 
     // -- Textures --
     LOG_DEBUG(VKE, "Loading textures");
     m_gpuSceneData.textures.resize(pScene->textures.size());
+    LOG_DEBUG(VKE, "    Scene has {} textures", pScene->textures.size());
     uint32_t index = 0;
     for (const auto &tex: pScene->textures) {
         if (tex.IsEmpty()) {
@@ -477,6 +485,7 @@ void VkEngine::LoadScene(const Scene *pScene) {
 
     // -- Mesh buffers --
     // Calculate non-interleaved buffer sizes
+    LOG_DEBUG(VKE, "Loading mesh data");
     const size_t positionBufferSize = pScene->positions.size() * sizeof(vec3);
     const size_t normalBufferSize   = pScene->normals.size() * sizeof(vec3);
     const size_t uvBufferSize       = pScene->texCoords.size() * sizeof(vec2);
@@ -486,7 +495,7 @@ void VkEngine::LoadScene(const Scene *pScene) {
 
     bool bSceneHasVertexColors = colorBufferSize > 0;
 
-    // Vertex buffers (position, normal, uv, color)
+    // Vertex buffers (position, normal, uv, color)'
     // TODO: AS build input should only be applied to index and vertex buffers
     VkBufferUsageFlags vertexBufferUsages = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     if (m_bRayTracingAvailable) {
@@ -494,27 +503,25 @@ void VkEngine::LoadScene(const Scene *pScene) {
     }
     constexpr VmaMemoryUsage bufferMemoryUsage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-    LOG_DEBUG(VKE, "Creating GPU buffers");
     m_gpuSceneData.position = m_gfx.CreateBuffer(positionBufferSize, vertexBufferUsages, bufferMemoryUsage);
-    LOG_DEBUG(VKE, "Created position GPU buffer");
+    LOG_DEBUG(VKE, "    Created position GPU buffer of size {} bytes", positionBufferSize);
     m_gpuSceneData.normal = m_gfx.CreateBuffer(normalBufferSize, vertexBufferUsages, bufferMemoryUsage);
-    LOG_DEBUG(VKE, "Created normal GPU buffer");
+    LOG_DEBUG(VKE, "    Created normal GPU buffer of size {} bytes", normalBufferSize);
     m_gpuSceneData.uv = m_gfx.CreateBuffer(uvBufferSize, vertexBufferUsages, bufferMemoryUsage);
-    LOG_DEBUG(VKE, "Created UV GPU buffer");
+    LOG_DEBUG(VKE, "    Created UV GPU buffer of size {} bytes", uvBufferSize);
     if (bSceneHasVertexColors) {
         m_gpuSceneData.color = m_gfx.CreateBuffer(colorBufferSize, vertexBufferUsages, bufferMemoryUsage);
-        LOG_DEBUG(VKE, "Created color GPU buffer");
+        LOG_DEBUG(VKE, "    Created color GPU buffer of size {} bytes", colorBufferSize);
     }
 
     // Index buffer
-    LOG_DEBUG(VKE, "Creating index buffer");
     // We need VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT for ray tracing
     VkBufferUsageFlags indexBufferUsages = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     if (m_bRayTracingAvailable) {
         indexBufferUsages |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
     }
     m_gpuSceneData.index = m_gfx.CreateBuffer(indexBufferSize, indexBufferUsages, bufferMemoryUsage);
-    LOG_DEBUG(VKE, "Created index buffer");
+    LOG_DEBUG(VKE, "    Created index buffer of size {} bytes", indexBufferSize);
 
     // Device addresses
     VkBufferDeviceAddressInfo deviceAddressInfo{};
@@ -527,9 +534,8 @@ void VkEngine::LoadScene(const Scene *pScene) {
     }
 
     // Staging buffer
-    LOG_DEBUG(VKE, "Creating staging buffer");
     jvk::Buffer staging = m_gfx.CreateBuffer(totalSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
-    LOG_DEBUG(VKE, "Created staging buffer");
+    LOG_DEBUG(VKE, "    Created staging buffer of size {} bytes", totalSize);
 
     void *data    = staging.Map(m_gfx.allocator);
     auto dataPtr  = static_cast<char *>(data);
@@ -552,7 +558,7 @@ void VkEngine::LoadScene(const Scene *pScene) {
     }
 
     staging.Unmap(m_gfx.allocator);
-    LOG_DEBUG(VKE, "Vertex data copied to staging buffer");
+    LOG_DEBUG(VKE, "    Vertex data copied to staging buffer");
 
     // Copy to GPU
     m_gfx.imBuffer.SubmitAndWait(m_gfx.graphicsQueue, [&](const VkCommandBuffer cmd) {
@@ -581,19 +587,20 @@ void VkEngine::LoadScene(const Scene *pScene) {
             vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneData.color.buffer, 1, &copyRegion);
         }
     });
-    LOG_DEBUG(VKE, "Staging buffer copied to GPU");
     m_gfx.DestroyBuffer(staging);
+    LOG_DEBUG(VKE, "    Staging buffer copied to GPU buffers");
+    LOG_DEBUG(VKE, "Mesh data loaded");
 
     // -- Materials --
+    LOG_DEBUG(VKE, "Loading material data");
     std::vector<GPUMaterialData> gpuMaterials;
     gpuMaterials.reserve(pScene->materials.size());
 
-    LOG_DEBUG(VKE, "Creating material buffer");
-    LOG_DEBUG(VKE, "Scene has {} materials", pScene->materials.size());
+    LOG_DEBUG(VKE, "    Scene has {} materials", pScene->materials.size());
     // This is mapped so we can easily make UI material updates
     // TODO: experiment keeping a staging buffer the size of 1 GPUMaterialData persistent for copying
-    m_gpuSceneData.materialBuffer = m_gfx.CreateBuffer(sizeof(GPUMaterialData) * pScene->materials.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-    LOG_DEBUG(VKE, "Created material buffer");
+    m_gpuSceneData.materialBuffer = m_gfx.CreateBuffer(sizeof(GPUMaterialData) * pScene->materials.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+    LOG_DEBUG(VKE, "    Created material buffer of size {} bytes", sizeof(GPUMaterialData) * pScene->materials.size());
 
     void *materialData = m_gpuSceneData.materialBuffer.Map(m_gfx.allocator);
 
@@ -611,9 +618,12 @@ void VkEngine::LoadScene(const Scene *pScene) {
     }
 
     m_gpuSceneData.materialBuffer.Unmap(m_gfx.allocator);
+    LOG_DEBUG(VKE, "    Material data copied to buffer");
     writer.WriteBuffer(kL2Bindings::GPU_MATERIAL_DATA, m_gpuSceneData.materialBuffer.buffer, sizeof(GPUMaterialData) * pScene->materials.size(), 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+    LOG_DEBUG(VKE, "Material data loaded");
 
     // -- Objects --
+    LOG_DEBUG(VKE, "Loading objects");
     std::vector<GPUObjectData> gpuObjects;
     for (const auto &mesh : pScene->meshes) {
         GPUObjectData obj;
@@ -632,9 +642,14 @@ void VkEngine::LoadScene(const Scene *pScene) {
     }
     size_t objSize = sizeof(GPUObjectData) * gpuObjects.size();
     m_gpuSceneData.objectBuffer = m_gfx.CreateBuffer(objSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+    LOG_DEBUG(VKE, "   Created GPU objects buffer of size {} bytes", objSize);
 
     staging = m_gfx.CreateBuffer(objSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
+    LOG_DEBUG(VKE, "   Created staging buffer  of size {} bytes", objSize);
     memcpy(staging.GetMapping(), gpuObjects.data(), objSize);
+    LOG_DEBUG(VKE, "   Copied objects to staging buffer");
+
+
     m_gfx.imBuffer.SubmitAndWait(m_gfx.graphicsQueue, [&](const VkCommandBuffer cmd) {
         VkBufferCopy copyRegion{};
         copyRegion.dstOffset = 0;
@@ -643,9 +658,10 @@ void VkEngine::LoadScene(const Scene *pScene) {
         vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneData.objectBuffer.buffer, 1, &copyRegion);
     });
     m_gfx.DestroyBuffer(staging);
+    LOG_DEBUG(VKE, "   Copied data from staging buffer to GPU objects buffer");
 
     writer.WriteBuffer(kL2Bindings::GPU_OBJECT_DATA, m_gpuSceneData.objectBuffer.buffer, objSize, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-
+    LOG_DEBUG(VKE, "Objects loaded");
 
     // -- TLAS ==
     // TODO
@@ -668,6 +684,7 @@ void VkEngine::LoadScene(const Scene *pScene) {
 
 void VkEngine::DestroyScene() {
     if (m_bSceneLoaded) {
+        LOG_INFO(VKE, "Destroying scene");
         m_gfx.WaitIdle();
 
         // -- RT resources --
@@ -678,40 +695,45 @@ void VkEngine::DestroyScene() {
         }
 
         // -- Objects --
-        LOG_DEBUG(VKE, "Destroying GPU objects");
         m_gfx.DestroyBuffer(m_gpuSceneData.objectBuffer);
         LOG_DEBUG(VKE, "GPU objects destroyed");
 
         // -- Material resources --
-        LOG_DEBUG(VKE, "Destroying GPU material data");
         m_gfx.DestroyBuffer(m_gpuSceneData.materialBuffer);
-        LOG_DEBUG(VKE, "GPU material data destroyed");
+        LOG_DEBUG(VKE, "Material data destroyed");
 
         // -- Mesh buffers --
-        LOG_DEBUG(VKE, "Destroying GPU scene buffers");
-        LOG_DEBUG(VKE, "Destroying index buffer");
+        LOG_DEBUG(VKE, "Destroying mesh data");
+        LOG_DEBUG(VKE, "    Destroying index buffer");
         m_gfx.DestroyBuffer(m_gpuSceneData.index);
-        LOG_DEBUG(VKE, "Destroying vertex buffers");
+        LOG_DEBUG(VKE, "    Destroying vertex buffers");
         m_gfx.DestroyBuffer(m_gpuSceneData.position);
-        LOG_DEBUG(VKE, "Destroying normal buffer");
+        LOG_DEBUG(VKE, "    Destroying normal buffer");
         m_gfx.DestroyBuffer(m_gpuSceneData.normal);
-        LOG_DEBUG(VKE, "Destroying UV buffer");
+        LOG_DEBUG(VKE, "    Destroying UV buffer");
         m_gfx.DestroyBuffer(m_gpuSceneData.uv);
         if (m_gpuSceneData.color.IsValid()) {
-            LOG_DEBUG(VKE, "Destroying color buffer");
+            LOG_DEBUG(VKE, "    Destroying color buffer");
             m_gfx.DestroyBuffer(m_gpuSceneData.color);
         }
-        LOG_DEBUG(VKE, "Destroyed GPU scene buffers");
+        LOG_DEBUG(VKE, "Destroyed mesh data");
 
         // -- Textures --
-        LOG_DEBUG(VKE, "Destroying GPU scene textures");
         for (const auto &tex : m_gpuSceneData.textures) {
             m_gfx.DestroyImage(tex);
         }
         m_gpuSceneData.textures.clear();
-        LOG_DEBUG(VKE, "Destroyed GPU scene textures");
+        LOG_DEBUG(VKE, "Destroyed textures");
+
+        // -- Global data --
+        for (auto &frame : m_frameData) {
+            frame.gpuGlobalUniformData.Unmap(m_gfx.allocator);
+            m_gfx.DestroyBuffer(frame.gpuGlobalUniformData);
+        }
+        LOG_DEBUG(VKE, "Destroyed global uniform data buffers");
 
         m_pScene = nullptr;
+        LOG_INFO(VKE, "Scene destroyed");
     }
     m_bSceneLoaded = false;
 }
@@ -969,7 +991,7 @@ void VkEngine::InitRayTracingSBT() {
     LOG_DEBUG(VKE, "SBT initialized");
 }
 
-void VkEngine::DestroyRayTracingSBT() const {
+void VkEngine::DestroyRayTracingSBT() {
     LOG_DEBUG(VKE, "Destroying SBT");
 
     m_gfx.DestroyBuffer(m_SBT.buffer);

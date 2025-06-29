@@ -171,7 +171,7 @@ private:
         VkStridedDeviceAddressRegionKHR callableRegion{};
     } m_SBT;
     void InitRayTracingSBT();
-    void DestroyRayTracingSBT() const;
+    void DestroyRayTracingSBT();
 
     void RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const;
 };

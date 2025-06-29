@@ -172,7 +172,7 @@ struct GfxContext {
      * Destroys the buffer using this engine's allocator
      * @param buffer buffer to destroy
      */
-    void DestroyBuffer(const jvk::Buffer &buffer) const;
+    void DestroyBuffer(jvk::Buffer &buffer) const;
 private:
     bool m_bSwapchainOutOfDate = false;
 

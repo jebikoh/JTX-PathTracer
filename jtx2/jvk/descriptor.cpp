@@ -222,10 +222,11 @@ void DescriptorWriter::WriteImages(const int binding, const std::span<VkDescript
 }
 
 void DescriptorWriter::WriteBuffer(const int binding, const VkBuffer buffer, const size_t size, const size_t offset, const VkDescriptorType type) {
-    const VkDescriptorBufferInfo &info = buffers.emplace_back(VkDescriptorBufferInfo{
-            .buffer = buffer,
-            .offset = offset,
-            .range  = size});
+    const auto &info = buffers.emplace_back(VkDescriptorBufferInfo{
+        .buffer = buffer,
+        .offset = offset,
+        .range  = size
+    });
 
     VkWriteDescriptorSet write{};
     write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

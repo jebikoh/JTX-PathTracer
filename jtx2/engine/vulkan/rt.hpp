@@ -106,7 +106,7 @@ private:
             std::vector<AccelerationStructureBuildInfo> &buildInfo,
             VkQueryPool queryPool) const;
 
-    void DestroyNonCompactedBLAS(const std::vector<uint32_t> &BLASIndices, const std::vector<AccelerationStructureBuildInfo> &buildInfo) const;
+    void DestroyNonCompactedBLAS(const std::vector<uint32_t> &BLASIndices, std::vector<AccelerationStructureBuildInfo> &buildInfo) const;
 
     void CreateTLAS(
             VkCommandBuffer cmd,

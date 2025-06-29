@@ -447,7 +447,7 @@ jvk::Image GfxContext::CreateImage(const VkExtent3D extent, const VkFormat forma
 jvk::Image GfxContext::CreateImage(const void *pData, const VkExtent3D extent, const size_t nChannels, const VkFormat format, const VkImageUsageFlags usage, const bool bMipmapped, VkSampleCountFlagBits sampleCount) const {
     // Staging buffer, we will always assume data has 4 channels
     const size_t dataSize           = extent.width * extent.height * extent.depth * nChannels;
-    const jvk::Buffer stagingBuffer = CreateBuffer(dataSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
+    jvk::Buffer stagingBuffer = CreateBuffer(dataSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
     memcpy(stagingBuffer.info.pMappedData, pData, dataSize);
 
     VkImageUsageFlags imgUsages = VK_IMAGE_USAGE_TRANSFER_DST_BIT | usage;
@@ -502,7 +502,7 @@ jvk::Buffer GfxContext::CreateBuffer(const size_t allocSize, const VkBufferUsage
     return buffer;
 }
 
-void GfxContext::DestroyBuffer(const jvk::Buffer &buffer) const {
+void GfxContext::DestroyBuffer(jvk::Buffer &buffer) const {
     buffer.Destroy(allocator);
 }
 

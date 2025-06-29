@@ -55,8 +55,8 @@ private:
 struct DescriptorWriter {
     std::deque<VkDescriptorImageInfo> images;
     std::deque<std::vector<VkDescriptorImageInfo>> imageArrays;
-    std::vector<VkDescriptorBufferInfo> buffers;
-    std::vector<VkWriteDescriptorSetAccelerationStructureKHR> accelerationStructures;
+    std::deque<VkDescriptorBufferInfo> buffers;
+    std::deque<VkWriteDescriptorSetAccelerationStructureKHR> accelerationStructures;
 
     std::vector<VkWriteDescriptorSet> writes;
 

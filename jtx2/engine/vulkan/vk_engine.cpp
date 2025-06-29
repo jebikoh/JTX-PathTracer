@@ -15,7 +15,7 @@ namespace jtx {
 void VkEngine::Init(const bool bEnableRayTracing) {
     LOG_INFO(VKE, "Initializing Vulkan engine");
     // TODO: flip this back when ray tracing is ready
-    // m_bRayTracingAvailable = bEnableRayTracing;
+    m_bRayTracingAvailable = bEnableRayTracing;
 
     InitDescriptors();
     InitPipelines();
@@ -220,12 +220,17 @@ void VkEngine::InitDescriptors() {
     m_bindlessAllocator.InitPool(m_gfx.ctx, 4, poolSizes, VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT);
 
     // -- Bindless descriptor set layout --
-    constexpr VkShaderStageFlags bindlessShaderStages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    jvk::DescriptorLayoutBuilder builder;
-    builder.AddBinding(kL2Bindings::GPU_OBJECT_DATA, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, bindlessShaderStages);
-    builder.AddBinding(kL2Bindings::GPU_MATERIAL_DATA, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, bindlessShaderStages);
-    builder.AddBinding(kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY, 256, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, bindlessShaderStages);
+    VkShaderStageFlags shaderStages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     if (m_bRayTracingAvailable) {
+        shaderStages |= VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+    }
+
+    jvk::DescriptorLayoutBuilder builder;
+    builder.AddBinding(kL2Bindings::GPU_OBJECT_DATA, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, shaderStages);
+    builder.AddBinding(kL2Bindings::GPU_MATERIAL_DATA, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, shaderStages);
+    builder.AddBinding(kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY, 256, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, shaderStages);
+    if (m_bRayTracingAvailable) {
+        // Should NOT be available during rasterization
         builder.AddBinding(kL2Bindings::GPU_TLAS, 1, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
     }
 
@@ -256,11 +261,12 @@ void VkEngine::InitDescriptors() {
 
     builder.Clear();
 
-    auto globalShaderStages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    builder.AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, shaderStages);
+    // Raygen needs access to the draw image
     if (m_bRayTracingAvailable) {
-        globalShaderStages |= VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+        builder.AddBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_RAYGEN_BIT_KHR);
     }
-    builder.AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, globalShaderStages);
+
     m_gpuGlobalUniformDataDescriptorLayout = builder.Build(m_gfx.ctx);
 
     for (auto &frame: m_frameData) {
@@ -290,11 +296,11 @@ void VkEngine::UpdateGlobalUniformData() {
         aspectRatio = static_cast<float>(m_gfx.window.extent.width) / static_cast<float>(m_gfx.window.extent.width);
     }
 
-    const glm::mat4 view = m_camera.GetViewMatrix();
-    glm::mat4 proj       = glm::perspective(glm::radians(70.f), aspectRatio, 0.1f, 10000.0f);
-    proj[1][1] *= -1;
+    m_cache.view = m_camera.GetViewMatrix();
+    m_cache.proj = glm::perspective(glm::radians(70.f), aspectRatio, 0.1f, 10000.0f);
+    m_cache.proj[1][1] *= -1;
 
-    m_gpuGlobalUniformData.viewProj       = proj * view;
+    m_gpuGlobalUniformData.viewProj       = m_cache.proj * m_cache.view;
     m_gpuGlobalUniformData.invViewProj    = glm::inverse(m_gpuGlobalUniformData.viewProj);
     m_gpuGlobalUniformData.cameraPosition = glm::vec4(m_camera.position, 0.0f);
     m_gpuGlobalUniformData.sunDirection   = glm::vec4(-1.0f, -1.0f, -1.0f, 0.0f);
@@ -447,6 +453,7 @@ void VkEngine::LoadScene(const Scene *pScene) {
             frame.gpuGlobalUniformDataMapping = static_cast<GPUGlobalUniformData *>(frame.gpuGlobalUniformData.Map(m_gfx.allocator));
 
             writer.WriteBuffer(0, frame.gpuGlobalUniformData.buffer, sizeof(GPUGlobalUniformData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+            writer.WriteImage(1, m_gfx.drawImage.image.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
             writer.UpdateSet(m_gfx.ctx, frame.gpuGlobalUniformDataDescriptorSet);
             writer.Clear();
         }
@@ -815,17 +822,17 @@ void VkEngine::InitRayTracingPipeline() {
     LOG_DEBUG(VKE, "Initializing ray tracing pipeline");
 
     VkShaderModule raygenShader;
-    if (!jvk::LoadShaderModule("../shaders/raytrace.rgen.spv", m_gfx.ctx, &raygenShader)) {
+    if (!jvk::LoadShaderModule("spv/raytrace.rgen.spv", m_gfx.ctx, &raygenShader)) {
         LOG_FATAL(VKE, "Failed to load raygen shader");
     }
 
     VkShaderModule missShader;
-    if (!jvk::LoadShaderModule("../shaders/raytrace.rmiss.spv", m_gfx.ctx, &missShader)) {
+    if (!jvk::LoadShaderModule("spv/raytrace.rmiss.spv", m_gfx.ctx, &missShader)) {
         LOG_FATAL(VKE, "Failed to load miss shader");
     }
 
     VkShaderModule closestHitShader;
-    if (!jvk::LoadShaderModule("../shaders/raytrace.rchit.spv", m_gfx.ctx, &closestHitShader)) {
+    if (!jvk::LoadShaderModule("spv/raytrace.rchit.spv", m_gfx.ctx, &closestHitShader)) {
         LOG_FATAL(VKE, "Failed to load closest hit shader");
     }
 
@@ -918,7 +925,7 @@ void VkEngine::InitRayTracingPipeline() {
 void VkEngine::DestroyRayTracingPipeline() const {
     LOG_DEBUG(VKE, "Destroying ray tracing pipeline");
 
-    m_rayTracingPipeline.Destroy(m_gfx.ctx);
+    m_rayTracingPipeline.Destroy(m_gfx.ctx, true);
 
     LOG_DEBUG(VKE, "Ray tracing pipeline destroyed");
 }
@@ -1004,37 +1011,44 @@ void VkEngine::DestroyRayTracingSBT() {
 }
 
 void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const {
-    // if (!m_bSceneLoaded) return;
-    //
-    // jvk::TransitionImageIfNeeded(ctx.cmd, ctx.drawImage.image, ctx.layout.drawImage, VK_IMAGE_LAYOUT_GENERAL);
-    // ctx.layout.drawImage = VK_IMAGE_LAYOUT_GENERAL;
-    //
-    // GPURayTracingPushConstants pc{};
-    // pc.clearColor     = clearColor;
-    // pc.lightPosition  = glm::vec3(10.0f, 10.0f, 10.0f);
-    // pc.lightIntensity = 10.0f;
-    // pc.lightType      = 0;
-    //
-    // const auto sceneDescriptorSet = m_frameData[m_gfx.GetCurrentFrameIndex()].gpuGlobalUniformDataDescriptorSet;
-    // const std::vector descriptorSets{m_rtDescriptorSet, sceneDescriptorSet};
-    // vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rtPipeline);
-    // vkCmdBindDescriptorSets(
-    //     ctx.cmd,
-    //     VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
-    //     m_rtPipelineLayout,
-    //     0,
-    //     (uint32_t)descriptorSets.size(),
-    //     descriptorSets.data(),
-    //     0,
-    //     nullptr);
-    // vkCmdPushConstants(
-    //     ctx.cmd,
-    //     m_rtPipelineLayout,
-    //     VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR,
-    //     0,
-    //     sizeof(GPURayTracingPushConstants),
-    //     &pc);
-    // vkCmdTraceRaysKHR(ctx.cmd, &m_rayGenRegion, &m_missRegion, &m_hitRegion, &m_callableRegion, m_viewRectangle.w, m_viewRectangle.h, 1);
+    if (!m_bSceneLoaded) return;
+
+    jvk::TransitionImageIfNeeded(ctx.cmd, ctx.drawImage.image, ctx.layout.drawImage, VK_IMAGE_LAYOUT_GENERAL);
+    ctx.layout.drawImage = VK_IMAGE_LAYOUT_GENERAL;
+
+    GPURayTracingPushConstants pc{};
+    pc.invView = glm::inverse(m_cache.view);
+    pc.invProj = glm::inverse(m_cache.proj);
+
+    const auto sceneDescriptorSet = m_frameData[m_gfx.GetCurrentFrameIndex()].gpuGlobalUniformDataDescriptorSet;
+    const std::vector descriptorSets{sceneDescriptorSet, m_bindlessDescriptorSet};
+    vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rayTracingPipeline.pipeline);
+    vkCmdBindDescriptorSets(
+        ctx.cmd,
+        VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
+        m_rayTracingPipeline.layout,
+        0,
+        (uint32_t)descriptorSets.size(),
+        descriptorSets.data(),
+        0,
+        nullptr);
+
+    vkCmdPushConstants(
+        ctx.cmd,
+        m_rayTracingPipeline.layout,
+        VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR,
+        0,
+        sizeof(GPURayTracingPushConstants),
+        &pc);
+    vkCmdTraceRaysKHR(
+        ctx.cmd,
+        &m_SBT.rayGenRegion,
+        &m_SBT.missRegion,
+        &m_SBT.hitRegion,
+        &m_SBT.callableRegion,
+        m_viewRectangle.w,
+        m_viewRectangle.h,
+        1);
     return;
 }
 

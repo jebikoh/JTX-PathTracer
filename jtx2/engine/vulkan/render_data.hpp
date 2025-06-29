@@ -73,10 +73,8 @@ struct GridPushConstants {
 };
 
 struct GPURayTracingPushConstants {
-    glm::vec4 clearColor;
-    glm::vec3 lightPosition;
-    float lightIntensity;
-    int lightType;
+    glm::mat4 invProj;
+    glm::mat4 invView;
 };
 
 

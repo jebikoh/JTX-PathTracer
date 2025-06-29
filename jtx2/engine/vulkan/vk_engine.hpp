@@ -174,6 +174,12 @@ private:
     void DestroyRayTracingSBT();
 
     void RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const;
+
+    // == Cache ==
+    struct Cache {
+        glm::mat4 view;
+        glm::mat4 proj;
+    } m_cache{};
 };
 
 }// namespace jtx

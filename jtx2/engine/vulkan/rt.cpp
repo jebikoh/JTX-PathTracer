@@ -41,12 +41,18 @@ void ASManager::BuildBLAS(const std::vector<BLASInput> &inputs, const VkBuildAcc
 
     // Allocate scratch buffer
     // TODO: double check VMA flags
-    jvk::Buffer scratchBuffer = m_gfx.CreateBuffer(maxScratchSize, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+    jvk::Buffer scratchBuffer = m_gfx.CreateBuffer(
+        maxScratchSize,
+        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        VMA_MEMORY_USAGE_GPU_ONLY,
+        0,
+        0,
+        m_gfx.asProperties.minAccelerationStructureScratchOffsetAlignment);
 
     VkBufferDeviceAddressInfo bufferAddressInfo{};
     bufferAddressInfo.sType        = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-    bufferAddressInfo.buffer       = scratchBuffer.buffer;
-    VkDeviceAddress scratchAddress = vkGetBufferDeviceAddress(m_gfx.ctx, &bufferAddressInfo);
+    bufferAddressInfo.buffer             = scratchBuffer.buffer;
+    const VkDeviceAddress scratchAddress = vkGetBufferDeviceAddress(m_gfx.ctx, &bufferAddressInfo);
 
     // Setup query pool to store compaction sizes
     VkQueryPool queryPool = VK_NULL_HANDLE;
@@ -272,7 +278,13 @@ void ASManager::CreateTLAS(VkCommandBuffer cmd, uint32_t numInstances, VkDeviceA
     m_tlas           = CreateAS(createInfo);
 
     // TODO: check VMA flags
-    scratchBuffer                  = m_gfx.CreateBuffer(sizeInfo.buildScratchSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+    scratchBuffer                  = m_gfx.CreateBuffer(
+        sizeInfo.buildScratchSize,
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+        VMA_MEMORY_USAGE_GPU_ONLY,
+        0,
+        0,
+        m_gfx.asProperties.minAccelerationStructureScratchOffsetAlignment);
     VkDeviceAddress scratchAddress = scratchBuffer.GetDeviceAddress(m_gfx.ctx);
 
     buildInfo.srcAccelerationStructure  = VK_NULL_HANDLE;

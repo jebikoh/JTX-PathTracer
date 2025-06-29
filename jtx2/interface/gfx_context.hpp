@@ -60,6 +60,7 @@ struct GfxContext {
     jvk::VkContext ctx;
 
     bool bRayTracingSupported = true;
+    VkPhysicalDeviceAccelerationStructurePropertiesKHR asProperties{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR};
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtProperties{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR};
 
     VmaAllocator allocator;
@@ -166,7 +167,7 @@ struct GfxContext {
      * @param memPropFlags vulkan memory flags
      * @return empty buffer
      */
-    jvk::Buffer CreateBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, VmaAllocationCreateFlags memFlags = 0, VkMemoryPropertyFlags memPropFlags = 0) const;
+    jvk::Buffer CreateBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, VmaAllocationCreateFlags memFlags = 0, VkMemoryPropertyFlags memPropFlags = 0, VkDeviceSize minAlignment = 0) const;
 
     /**
      * Destroys the buffer using this engine's allocator

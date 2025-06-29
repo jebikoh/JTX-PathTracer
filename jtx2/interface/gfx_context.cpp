@@ -149,9 +149,10 @@ void GfxContext::InitVulkan() {
     if (bRayTracingSupported) {
         LOG_INFO(GFX, "Enabling ray tracing features");
         VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructures{};
-        accelerationStructures.sType                 = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
-        accelerationStructures.accelerationStructure = VK_TRUE;
-        accelerationStructures.pNext                 = &synchronization2;
+        accelerationStructures.sType                                                 = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+        accelerationStructures.accelerationStructure                                 = VK_TRUE;
+        accelerationStructures.descriptorBindingAccelerationStructureUpdateAfterBind = VK_TRUE;
+        accelerationStructures.pNext                                                 = &synchronization2;
 
         VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipeline{};
         rayTracingPipeline.sType              = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
@@ -172,6 +173,7 @@ void GfxContext::InitVulkan() {
     if (bRayTracingSupported) {
         VkPhysicalDeviceProperties2 props{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
         props.pNext = &rtProperties;
+        rtProperties.pNext = &asProperties;
         vkGetPhysicalDeviceProperties2(ctx.physicalDevice, &props);
 
         LOG_DEBUG(GFX, "Ray tracing properties:");
@@ -485,7 +487,14 @@ void GfxContext::DestroyImage(const jvk::Image &image) const {
     image.Destroy(ctx, allocator);
 }
 
-jvk::Buffer GfxContext::CreateBuffer(const size_t allocSize, const VkBufferUsageFlags usage, const VmaMemoryUsage memUsage, const VmaAllocationCreateFlags memFlags, const VkMemoryPropertyFlags memPropFlags) const {
+jvk::Buffer GfxContext::CreateBuffer(
+    const size_t allocSize,
+    const VkBufferUsageFlags usage,
+    const VmaMemoryUsage memUsage,
+    const VmaAllocationCreateFlags memFlags,
+    const VkMemoryPropertyFlags memPropFlags,
+    const VkDeviceSize minAlignment) const
+{
     VkBufferCreateInfo info{};
     info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     info.pNext = nullptr;
@@ -498,7 +507,11 @@ jvk::Buffer GfxContext::CreateBuffer(const size_t allocSize, const VkBufferUsage
     allocInfo.requiredFlags = memPropFlags;
 
     jvk::Buffer buffer{};
-    CHECK_VK(vmaCreateBuffer(allocator, &info, &allocInfo, &buffer.buffer, &buffer.allocation, &buffer.info));
+    if (minAlignment > 0) {
+        CHECK_VK(vmaCreateBufferWithAlignment(allocator, &info, &allocInfo, minAlignment, &buffer.buffer, &buffer.allocation, &buffer.info));
+    } else {
+        CHECK_VK(vmaCreateBuffer(allocator, &info, &allocInfo, &buffer.buffer, &buffer.allocation, &buffer.info));
+    }
     return buffer;
 }
 

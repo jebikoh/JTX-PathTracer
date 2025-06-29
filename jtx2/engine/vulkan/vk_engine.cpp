@@ -54,8 +54,8 @@ void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
 
     // Calculate viewport
     const VkRect2D renderArea{
-                    {m_viewRectangle.x, m_viewRectangle.y},
-                    {m_viewRectangle.w, m_viewRectangle.h}};
+            {m_viewRectangle.x, m_viewRectangle.y},
+            {m_viewRectangle.w, m_viewRectangle.h}};
 
     if (m_bRayTracingEnabled) {
         RayTrace(ctx, glm::vec4(0.2f, 0.2f, 0.2f, 1.0f));
@@ -71,13 +71,13 @@ void VkEngine::PopulateContext() {
     for (uint32_t i = 0; i < m_pScene->meshes.size(); ++i) {
         const auto &mesh = m_pScene->meshes[i];
         GPURenderObject obj{};
-        obj.objectID   = i;
-        obj.start      = mesh.startIndex;
-        obj.count      = mesh.numIndices;;
+        obj.objectID = i;
+        obj.start    = mesh.startIndex;
+        obj.count    = mesh.numIndices;
+        ;
         obj.materialPipeline = &m_materialPipelines.diffuse;
         m_drawContext.objects.push_back(obj);
     }
-
 }
 
 void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
@@ -150,8 +150,8 @@ void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
         // Bind index buffer
         vkCmdBindIndexBuffer(ctx.cmd, m_gpuSceneData.index, 0, VK_INDEX_TYPE_UINT32);
 
-        const VkPipeline *lastPipeline       = nullptr;
-        auto draw = [&](const GPURenderObject &r) {
+        const VkPipeline *lastPipeline = nullptr;
+        auto draw                      = [&](const GPURenderObject &r) {
             if (r.materialPipeline != lastPipeline) {
                 lastPipeline = r.materialPipeline;
 
@@ -410,7 +410,7 @@ void VkEngine::InitGridPipeline() {
     builder.DisableStencilTest();
     builder.SetColorAttachmentFormat(m_gfx.drawImage.image.imageFormat);
     builder.SetDepthAttachmentFormat(m_gfx.drawImage.depthStencilImage.imageFormat);
-    builder.pipelineLayout = m_gridPipeline.layout;
+    builder.pipelineLayout  = m_gridPipeline.layout;
     m_gridPipeline.pipeline = builder.BuildPipeline(m_gfx.ctx);
 
     vkDestroyShaderModule(m_gfx.ctx, vertexShader, nullptr);
@@ -432,13 +432,13 @@ void VkEngine::LoadScene(const Scene *pScene) {
 
     // -- Global data --
     LOG_DEBUG(VKE, "Preparing global uniform data buffers");
-    for (auto &frame : m_frameData) {
+    for (auto &frame: m_frameData) {
         if (frame.gpuGlobalUniformData.buffer == VK_NULL_HANDLE) {
             frame.gpuGlobalUniformData = m_gfx.CreateBuffer(
-                sizeof(GPUGlobalUniformData),
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                VMA_MEMORY_USAGE_CPU_TO_GPU,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+                    sizeof(GPUGlobalUniformData),
+                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                    VMA_MEMORY_USAGE_CPU_TO_GPU,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
             frame.gpuGlobalUniformDataMapping = static_cast<GPUGlobalUniformData *>(frame.gpuGlobalUniformData.Map(m_gfx.allocator));
 
             writer.WriteBuffer(0, frame.gpuGlobalUniformData.buffer, sizeof(GPUGlobalUniformData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
@@ -473,11 +473,11 @@ void VkEngine::LoadScene(const Scene *pScene) {
         }
 
         writer.WriteImage(
-            kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY,
-            index, gpuTex.imageView,
-            m_gfx.defaultSamplers.linear,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+                kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY,
+                index, gpuTex.imageView,
+                m_gfx.defaultSamplers.linear,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
         m_gpuSceneData.textures[index++] = gpuTex;
     }
 
@@ -607,13 +607,13 @@ void VkEngine::LoadScene(const Scene *pScene) {
     offset = 0;
     for (const auto &material: pScene->materials) {
         GPUMaterialData m{};
-        m.diffuse        = vec4(material.parameters.diffuse, 0.0f);
-        m.ior            = vec4(material.parameters.ior, 0.0f);
-        m.k              = vec4(material.parameters.k, 0.0f);
-        m.f0             = vec4(material.parameters.f0, 0.0f);
-        m.emission       = vec4(material.parameters.emission, 0.0f);
-        m.roughness      = vec4(vec3(material.parameters.roughness, 0.0f), 0.0f);
-        m.diffuseTexture = material.textureIndices.diffuse;
+        m.diffuse                                              = vec4(material.parameters.diffuse, 0.0f);
+        m.ior                                                  = vec4(material.parameters.ior, 0.0f);
+        m.k                                                    = vec4(material.parameters.k, 0.0f);
+        m.f0                                                   = vec4(material.parameters.f0, 0.0f);
+        m.emission                                             = vec4(material.parameters.emission, 0.0f);
+        m.roughness                                            = vec4(vec3(material.parameters.roughness, 0.0f), 0.0f);
+        m.diffuseTexture                                       = material.textureIndices.diffuse;
         static_cast<GPUMaterialData *>(materialData)[offset++] = m;
     }
 
@@ -625,11 +625,11 @@ void VkEngine::LoadScene(const Scene *pScene) {
     // -- Objects --
     LOG_DEBUG(VKE, "Loading objects");
     std::vector<GPUObjectData> gpuObjects;
-    for (const auto &mesh : pScene->meshes) {
+    for (const auto &mesh: pScene->meshes) {
         GPUObjectData obj;
         // We don't support transformation matrices for now
-        obj.world    = glm::mat4(1.0f);
-        obj.normal   = glm::mat4(1.0f);
+        obj.world  = glm::mat4(1.0f);
+        obj.normal = glm::mat4(1.0f);
         // Resource handles should align with materialIndex
         obj.material = mesh.materialIndex;
         gpuObjects.push_back(obj);
@@ -640,7 +640,7 @@ void VkEngine::LoadScene(const Scene *pScene) {
         // TODO: assign this dynamically
         rObj.materialPipeline = &m_materialPipelines.diffuse;
     }
-    size_t objSize = sizeof(GPUObjectData) * gpuObjects.size();
+    size_t objSize              = sizeof(GPUObjectData) * gpuObjects.size();
     m_gpuSceneData.objectBuffer = m_gfx.CreateBuffer(objSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
     LOG_DEBUG(VKE, "   Created GPU objects buffer of size {} bytes", objSize);
 
@@ -663,8 +663,7 @@ void VkEngine::LoadScene(const Scene *pScene) {
     writer.WriteBuffer(kL2Bindings::GPU_OBJECT_DATA, m_gpuSceneData.objectBuffer.buffer, objSize, 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
     LOG_DEBUG(VKE, "Objects loaded");
 
-    // -- TLAS ==
-    // TODO
+    // -- TLAS --
     if (m_bRayTracingAvailable) {
         LOG_DEBUG(VKE, "Initializing RT scene resources");
         BuildBLAS();
@@ -719,14 +718,14 @@ void VkEngine::DestroyScene() {
         LOG_DEBUG(VKE, "Destroyed mesh data");
 
         // -- Textures --
-        for (const auto &tex : m_gpuSceneData.textures) {
+        for (const auto &tex: m_gpuSceneData.textures) {
             m_gfx.DestroyImage(tex);
         }
         m_gpuSceneData.textures.clear();
         LOG_DEBUG(VKE, "Destroyed textures");
 
         // -- Global data --
-        for (auto &frame : m_frameData) {
+        for (auto &frame: m_frameData) {
             frame.gpuGlobalUniformData.Unmap(m_gfx.allocator);
             m_gfx.DestroyBuffer(frame.gpuGlobalUniformData);
         }
@@ -848,8 +847,8 @@ void VkEngine::InitRayTracingPipeline() {
     stages[STAGE_MISS] = stage;
 
     // Closest Hit
-    stage.module             = closestHitShader;
-    stage.stage              = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+    stage.module              = closestHitShader;
+    stage.stage               = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
     stages[STAGE_CLOSEST_HIT] = stage;
 
     // Shader groups
@@ -878,18 +877,18 @@ void VkEngine::InitRayTracingPipeline() {
 
     // Pipeline layout
     VkPushConstantRange pc{};
-    pc.stageFlags            = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
-    pc.offset                = 0;
-    pc.size                  = sizeof(GPURayTracingPushConstants);
+    pc.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
+    pc.offset     = 0;
+    pc.size       = sizeof(GPURayTracingPushConstants);
 
     const std::vector descriptorLayouts{m_gpuGlobalUniformDataDescriptorLayout, m_bindlessDescriptorSetLayout};
 
     VkPipelineLayoutCreateInfo layout{};
-    layout.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    layout.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     layout.pushConstantRangeCount = 1;
     layout.pPushConstantRanges    = &pc;
-    layout.setLayoutCount = static_cast<uint32_t>(descriptorLayouts.size());
-    layout.pSetLayouts    = descriptorLayouts.data();
+    layout.setLayoutCount         = static_cast<uint32_t>(descriptorLayouts.size());
+    layout.pSetLayouts            = descriptorLayouts.data();
 
     vkCreatePipelineLayout(m_gfx.ctx, &layout, nullptr, &m_rayTracingPipeline.layout);
 
@@ -956,12 +955,12 @@ void VkEngine::InitRayTracingSBT() {
     constexpr VkBufferUsageFlags bufferFlags      = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR;
     constexpr VmaMemoryUsage memUsage             = VMA_MEMORY_USAGE_CPU_TO_GPU;
     constexpr VmaAllocationCreateFlags allocFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-    m_SBT.buffer                                 = m_gfx.CreateBuffer(sbtSize, bufferFlags, memUsage, allocFlags);
+    m_SBT.buffer                                  = m_gfx.CreateBuffer(sbtSize, bufferFlags, memUsage, allocFlags);
 
     const VkDeviceAddress sbtAddress = m_SBT.buffer.GetDeviceAddress(m_gfx.ctx);
-    m_SBT.rayGenRegion.deviceAddress     = sbtAddress;
-    m_SBT.missRegion.deviceAddress       = sbtAddress + m_SBT.rayGenRegion.size;
-    m_SBT.hitRegion.deviceAddress        = sbtAddress + m_SBT.rayGenRegion.size + m_SBT.missRegion.size;
+    m_SBT.rayGenRegion.deviceAddress = sbtAddress;
+    m_SBT.missRegion.deviceAddress   = sbtAddress + m_SBT.rayGenRegion.size;
+    m_SBT.hitRegion.deviceAddress    = sbtAddress + m_SBT.rayGenRegion.size + m_SBT.missRegion.size;
 
     const auto GetHandle = [&](const int i) { return handles.data() + i * handleSize; };
 

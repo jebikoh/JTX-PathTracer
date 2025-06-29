@@ -251,28 +251,32 @@ JtxResult jtx::detail::LoadJtx(const std::filesystem::path &path, Scene &scene) 
 
     // -- Textures --
     std::unordered_set<uint32_t> failedTexLoads;
-    const Value& textures = d["textures"];
-    const uint32_t numTextures = textures["count"].GetUint();
+    if (d.HasMember("textures")) {
+        const Value& textures = d["textures"];
+        const uint32_t numTextures = textures["count"].GetUint();
 
-    scene.textures.resize(numTextures);
+        scene.textures.resize(numTextures);
 
-    uint32_t index = 0;
-    for (const auto& tex_json : textures["paths"].GetArray()) {
-        const std::string filename = tex_json.GetString();
-        if (filename.empty()) {
-            LOG_INFO(LOADER, "Texture at index {} is empty, skipping", index);
-            failedTexLoads.insert(index++);
-            continue;
+        uint32_t index = 0;
+        for (const auto& tex_json : textures["paths"].GetArray()) {
+            const std::string filename = tex_json.GetString();
+            if (filename.empty()) {
+                LOG_INFO(LOADER, "Texture at index {} is empty, skipping", index);
+                failedTexLoads.insert(index++);
+                continue;
+            }
+
+            const std::filesystem::path texPath = path.parent_path() / filename;
+            Image8u texture{};
+            if (Image8u::Load(texPath, texture) < 1) {
+                failedTexLoads.insert(index++);
+                continue;
+            }
+
+            scene.textures[index++] = std::move(texture);
         }
-
-        const std::filesystem::path texPath = path.parent_path() / filename;
-        Image8u texture{};
-        if (Image8u::Load(texPath, texture) < 1) {
-            failedTexLoads.insert(index++);
-            continue;
-        }
-
-        scene.textures[index++] = std::move(texture);
+    } else {
+        LOG_DEBUG(LOADER, "No textures found");
     }
 
     // -- Materials --

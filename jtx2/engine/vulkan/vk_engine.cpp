@@ -453,7 +453,9 @@ void VkEngine::LoadScene(const Scene *pScene) {
             frame.gpuGlobalUniformDataMapping = static_cast<GPUGlobalUniformData *>(frame.gpuGlobalUniformData.Map(m_gfx.allocator));
 
             writer.WriteBuffer(0, frame.gpuGlobalUniformData.buffer, sizeof(GPUGlobalUniformData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-            writer.WriteImage(1, m_gfx.drawImage.image.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+            if (m_bRayTracingAvailable) {
+                writer.WriteImage(1, m_gfx.drawImage.image.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+            }
             writer.UpdateSet(m_gfx.ctx, frame.gpuGlobalUniformDataDescriptorSet);
             writer.Clear();
         }

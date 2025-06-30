@@ -28,7 +28,7 @@ struct GPUObjectData {
     uint material;
 };
 
-layout(set = 1, binding = 0) buffer _GPUObjectDataBuffer {
+layout(set = 1, binding = 0) readonly buffer _GPUObjectDataBuffer {
     GPUObjectData objectData[];
 };
 
@@ -42,7 +42,7 @@ struct GPUMaterialData {
     int diffuseTexture;
 };
 
-layout(set = 1, binding = 1) buffer _GPUMaterialDataBuffer {
+layout(set = 1, binding = 1) readonly buffer _GPUMaterialDataBuffer {
     GPUMaterialData materialData[];
 };
 

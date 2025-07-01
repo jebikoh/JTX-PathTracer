@@ -1,5 +1,7 @@
 # JTX Path Tracer
 
+![ajax](https://github.com/user-attachments/assets/6b44f17f-84d6-46f5-9214-547d9cb30931)
+
 **Update June 2025**:
 
 I am currently in the process of rewriting the original project. The code for this can be found in JTX2.
@@ -37,8 +39,6 @@ And the far future:
  - Metropolis Light Transport
  - CUDA OptiX backend
 
-
-![ajax](https://github.com/user-attachments/assets/6b44f17f-84d6-46f5-9214-547d9cb30931)
 ---
 
 This is my physically-based Monte Carlo path tracer, based on PBRTv4, built with multithreaded and vectorized C++ 20 and a interactive UI made with SDL2, OpenGL, and ImGui.

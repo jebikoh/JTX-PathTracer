@@ -25,6 +25,10 @@ public:
     Display() : m_gfx(), m_uiRenderer(m_gfx), m_vk(m_gfx) {};
 
     void Init();
+    // Loads scene during initialization
+    // Primary meant for debugging -- will abort if scene load is unsuccessful
+    void Init(const std::filesystem::path &path);
+
     void Destroy();
 
     void Draw();
@@ -33,7 +37,7 @@ private:
     bool m_bIsInitialized   = false;
     bool m_bStopRendering   = false;
 
-    jtx::Scene m_Scene;
+    jtx::Scene m_scene;
     bool m_bSceneLoaded = false;
 
     GfxContext m_gfx;

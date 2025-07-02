@@ -60,12 +60,12 @@ inline const char* string_JtxResult(const JtxResult input_value) {
         case JTX_ERROR_FILE_LOADING:           return "JTX_ERROR_FILE_LOADING";
         case JTX_ERROR_FILE_INVALID_DATA:      return "JTX_ERROR_FILE_INVALID_DATA";
         case JTX_ERROR_FILE_WRITE:             return "JTX_ERROR_FILE_WRITE";
-        default:                                return "Unknown JtxResult value";
+        default:                               return "Unknown JtxResult value";
     }
 }
 
 inline void CheckJtxError(const JtxResult result, char const *const func, const char *const file, int const line) {
-    if (!result) {
+    if (result <= 0) {
         LOG_FATAL(VKE, "Detected JTX error at {}:{} '{}': {}", file, line, func, string_JtxResult(result));
     }
 }

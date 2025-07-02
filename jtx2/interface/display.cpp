@@ -18,12 +18,10 @@ void Display::Init() {
     pLoadedDisplay = this;
 
     m_gfx.Init();
-    m_uiRenderer.Init([this] {
-        ImportScene();
-    },
-    [this] {
-        ExportScene();
-    });
+    m_uiRenderer.Init([this] { ImportScene(); },
+                      [this] {
+                          ExportScene();
+                      });
     m_vk.Init(m_gfx.bRayTracingSupported);
 
     m_uiRenderer.RegisterViewportBackend(JTX_VIEWPORT_BACKEND_VULKAN, "Vulkan",
@@ -38,6 +36,13 @@ void Display::Init() {
     LOG_INFO(DISPLAY, "Display initialized");
 }
 
+void Display::Init(const std::filesystem::path &path) {
+    CHECK_JTX(jtx::LoadScene(path, m_scene));
+    Init();
+    m_vk.LoadScene(&m_scene);
+    m_bSceneLoaded = true;
+}
+
 void Display::Destroy() {
     LOG_INFO(DISPLAY, "Destroying display");
 
@@ -46,7 +51,7 @@ void Display::Destroy() {
 
     NFD_Quit();
     if (m_bSceneLoaded) {
-        m_Scene.Destroy();
+        m_scene.Destroy();
     }
 
     m_vk.Destroy();
@@ -129,12 +134,12 @@ void Display::ImportScene() {
 
         m_gfx.WaitIdle();
         if (m_bSceneLoaded) {
-            m_Scene.Destroy();
+            m_scene.Destroy();
         }
 
-        const auto loadResult = LoadScene(s, m_Scene);
+        const auto loadResult = LoadScene(s, m_scene);
         if (loadResult > 0) {
-            m_vk.LoadScene(&m_Scene);
+            m_vk.LoadScene(&m_scene);
             m_bSceneLoaded = true;
         } else {
             m_bSceneLoaded = false;
@@ -147,7 +152,7 @@ void Display::ImportScene() {
 }
 
 void Display::ExportScene() const {
-    const auto name = m_Scene.name.empty() ? "scene.jtx" : m_Scene.name + ".jtx";
+    const auto name = m_scene.name.empty() ? "scene.jtx" : m_scene.name + ".jtx";
 
     constexpr nfdu8filteritem_t filters[1] = {{"JTX scene file", "jtx"}};
     nfdsavedialogu8args_t args{};
@@ -162,7 +167,7 @@ void Display::ExportScene() const {
         LOG_INFO(UI, "User selected export path: {}", outPath);
         NFD_FreePathU8(outPath);
 
-        const auto exportResult = jtx::ExportScene(m_Scene, s);
+        const auto exportResult = jtx::ExportScene(m_scene, s);
     } else if (result == NFD_CANCEL) {
         LOG_DEBUG(UI, "User cancelled scene export");
     } else {

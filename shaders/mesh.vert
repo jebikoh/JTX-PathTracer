@@ -13,10 +13,10 @@ layout(location = 2) flat out uint materialId;
 
 void main() {
     vec3 v = vertices.data[gl_VertexIndex];
-    gl_Position = viewProj * objectData[objectId].world * vec4(v, 1.0f);
+    gl_Position = viewProj * vec4(v, 1.0f);
 
     vec3 n = normals.data[gl_VertexIndex];
-    outNormal = (objectData[objectId].normal * vec4(n, 0.0f)).xyz;
+    outNormal = vec4(n, 0.0f).xyz;
 
     outUV = uvs.data[gl_VertexIndex];
 }

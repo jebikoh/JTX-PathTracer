@@ -42,11 +42,13 @@ JtxResult jtx::LoadScene(const std::filesystem::path &path, Scene &scene) {
  */
 JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &scene) {
     LOG_DEBUG(LOADER,"Loading OBJ file: {}", path.string());
-    rapidobj::Result result = rapidobj::ParseFile(path.string());
+    rapidobj::Result result = rapidobj::ParseFile(path.string(), rapidobj::MaterialLibrary::Default(rapidobj::Load::Optional));
     if (result.error) {
         LOG_ERROR(LOADER,"Error loading OBJ file: {}", result.error.code.message());
         return JTX_ERROR_FILE_LOADING;
     }
+
+    bool bHasMaterials = result.materials.size() > 0;
 
     std::string baseDir = path.parent_path().string() + '/';
 
@@ -120,7 +122,7 @@ JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &sc
         newMesh.numIndices = numIndices;
 
         // We don't support meshes having multiple materials, so we just take the first material ID
-        if (mesh.material_ids.empty()) {
+        if (!bHasMaterials || mesh.material_ids[0] == -1) {
             newMesh.materialIndex = 0;
         } else {
             newMesh.materialIndex = mesh.material_ids[0];

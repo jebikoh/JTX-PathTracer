@@ -32,12 +32,10 @@ endif ()
 if (JTX_ENABLE_PERF_FLAGS)
     if (MSVC)
         message(STATUS "[JTX] Using MSVC compiler")
-#        add_compile_options(/O2 /fp:fast)
-        add_compile_options(/02)
+        add_compile_options(/O2)
     elseif (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         message(STATUS "[JTX] Using GNU or Clang compiler")
         add_compile_options(-O3)
-#        add_compile_options(-O3 -ffast-math)
     else ()
         message(WARNING "[JTX] Unknown compiler. No optimization flags added.")
     endif ()
@@ -69,9 +67,11 @@ find_package(Vulkan REQUIRED)
 add_subdirectory(ext/volk)                   # Volk
 add_subdirectory(ext/vkbootstrap)            # VkBootstrap
 add_subdirectory(ext/vma)                    # VMA
-add_subdirectory(ext/sdl EXCLUDE_FROM_ALL)   # SDL2
 add_subdirectory(ext/jtxlib)                 # JTXLib
 add_subdirectory(ext/fastgltf)               # fastglTF
+
+set(SDL_STATIC ON)
+add_subdirectory(ext/sdl EXCLUDE_FROM_ALL)   # SDL2
 
 # ImGui
 add_library(imgui STATIC)
@@ -89,7 +89,7 @@ target_sources(imgui PRIVATE
 target_compile_definitions(imgui
         PUBLIC IMGUI_IMPL_VULKAN_USE_VOLK
 )
-target_link_libraries(imgui PUBLIC volk Vulkan::Vulkan SDL2::SDL2)
+target_link_libraries(imgui PUBLIC volk Vulkan::Vulkan SDL2::SDL2-static)
 
 # GLM
 add_library(glm INTERFACE)
@@ -287,7 +287,7 @@ target_link_libraries(JTXCore PUBLIC
         volk
         jtxlib
         SDL2::SDL2main
-        SDL2::SDL2
+        SDL2::SDL2-static
         imgui
         fmt::fmt
         fastgltf::fastgltf

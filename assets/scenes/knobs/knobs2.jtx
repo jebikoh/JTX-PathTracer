@@ -1,0 +1,587 @@
+{
+    "name": "mitsuba_knobs",
+    "version": "1.0",
+    "camera": {
+        "position": [
+            0.0,
+            6.0,
+            24.0
+        ],
+        "target": [
+            0.0,
+            1.0,
+            0.0
+        ],
+        "up": [
+            0.0,
+            1.0,
+            0.0
+        ],
+        "focalLength": 0.054999999701976776,
+        "sensorWidth": 0.03500000014901161,
+        "focalDistance": 10.0,
+        "enableDOF": false,
+        "fStop": 2.799999952316284
+    },
+    "materials": [
+        {
+            "type": 0,
+            "parameters": {
+                "diffuse": [
+                    0.800000011920929,
+                    0.800000011920929,
+                    0.800000011920929
+                ],
+                "ior": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "k": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "f0": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "roughness": [
+                    0.0,
+                    0.0
+                ]
+            },
+            "textureIndices": {
+                "diffuse": -1,
+                "metallicRoughness": -1
+            }
+        },
+        {
+            "type": 0,
+            "parameters": {
+                "diffuse": [
+                    0.4860000014305115,
+                    0.6309999823570251,
+                    0.6629999876022339
+                ],
+                "ior": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "k": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "f0": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "roughness": [
+                    0.0,
+                    0.0
+                ]
+            },
+            "textureIndices": {
+                "diffuse": -1,
+                "metallicRoughness": -1
+            }
+        },
+        {
+            "type": 2,
+            "parameters": {
+                "diffuse": [
+                    0.4860000014305115,
+                    0.6309999823570251,
+                    0.6629999876022339
+                ],
+                "ior": [
+                    0.18298999965190887,
+                    0.42107999324798584,
+                    1.3733999729156494
+                ],
+                "k": [
+                    3.4242000579833984,
+                    2.345900058746338,
+                    1.770400047302246
+                ],
+                "f0": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "roughness": [
+                    0.05000000074505806,
+                    0.05000000074505806
+                ]
+            },
+            "textureIndices": {
+                "diffuse": -1,
+                "metallicRoughness": -1
+            }
+        },
+        {
+            "type": 2,
+            "parameters": {
+                "diffuse": [
+                    0.4860000014305115,
+                    0.6309999823570251,
+                    0.6629999876022339
+                ],
+                "ior": [
+                    0.18298999965190887,
+                    0.42107999324798584,
+                    1.3733999729156494
+                ],
+                "k": [
+                    3.4242000579833984,
+                    2.345900058746338,
+                    1.770400047302246
+                ],
+                "f0": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "roughness": [
+                    0.15000000596046448,
+                    0.15000000596046448
+                ]
+            },
+            "textureIndices": {
+                "diffuse": -1,
+                "metallicRoughness": -1
+            }
+        },
+        {
+            "type": 1,
+            "parameters": {
+                "diffuse": [
+                    0.4860000014305115,
+                    0.6309999823570251,
+                    0.6629999876022339
+                ],
+                "ior": [
+                    1.5,
+                    0.0,
+                    0.0
+                ],
+                "k": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "f0": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "roughness": [
+                    0.0,
+                    0.0
+                ]
+            },
+            "textureIndices": {
+                "diffuse": -1,
+                "metallicRoughness": -1
+            }
+        },
+        {
+            "type": 1,
+            "parameters": {
+                "diffuse": [
+                    0.4860000014305115,
+                    0.6309999823570251,
+                    0.6629999876022339
+                ],
+                "ior": [
+                    1.5,
+                    0.0,
+                    0.0
+                ],
+                "k": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "f0": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "roughness": [
+                    0.15000000596046448,
+                    0.15000000596046448
+                ]
+            },
+            "textureIndices": {
+                "diffuse": -1,
+                "metallicRoughness": -1
+            }
+        },
+        {
+            "type": 0,
+            "parameters": {
+                "diffuse": [
+                    0.5879999995231628,
+                    0.5879999995231628,
+                    0.5879999995231628
+                ],
+                "ior": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "k": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "f0": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "roughness": [
+                    0.0,
+                    0.0
+                ]
+            },
+            "textureIndices": {
+                "diffuse": -1,
+                "metallicRoughness": -1
+            }
+        },
+        {
+            "type": 0,
+            "parameters": {
+                "diffuse": [
+                    0.5879999995231628,
+                    0.5879999995231628,
+                    0.5879999995231628
+                ],
+                "ior": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "k": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "f0": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "roughness": [
+                    0.0,
+                    0.0
+                ]
+            },
+            "textureIndices": {
+                "diffuse": -1,
+                "metallicRoughness": -1
+            }
+        },
+        {
+            "type": 0,
+            "parameters": {
+                "diffuse": [
+                    0.5879999995231628,
+                    0.5879999995231628,
+                    0.5879999995231628
+                ],
+                "ior": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "k": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "f0": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "roughness": [
+                    0.0,
+                    0.0
+                ]
+            },
+            "textureIndices": {
+                "diffuse": -1,
+                "metallicRoughness": -1
+            }
+        },
+        {
+            "type": 0,
+            "parameters": {
+                "diffuse": [
+                    0.5879999995231628,
+                    0.5879999995231628,
+                    0.5879999995231628
+                ],
+                "ior": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "k": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "f0": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "roughness": [
+                    0.0,
+                    0.0
+                ]
+            },
+            "textureIndices": {
+                "diffuse": -1,
+                "metallicRoughness": -1
+            }
+        },
+        {
+            "type": 0,
+            "parameters": {
+                "diffuse": [
+                    0.5879999995231628,
+                    0.5879999995231628,
+                    0.5879999995231628
+                ],
+                "ior": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "k": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "f0": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "roughness": [
+                    0.0,
+                    0.0
+                ]
+            },
+            "textureIndices": {
+                "diffuse": -1,
+                "metallicRoughness": -1
+            }
+        },
+        {
+            "type": 0,
+            "parameters": {
+                "diffuse": [
+                    0.800000011920929,
+                    0.800000011920929,
+                    0.800000011920929
+                ],
+                "ior": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "k": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "f0": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "emission": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "roughness": [
+                    0.0,
+                    0.0
+                ]
+            },
+            "textureIndices": {
+                "diffuse": -1,
+                "metallicRoughness": -1
+            }
+        }
+    ],
+    "textures": {
+        "count": 0,
+        "paths": []
+    },
+    "meshes": [
+        {
+            "name": "Backdrop_Mesh",
+            "materialIndex": 0,
+            "startIndex": 0,
+            "numIndices": 512
+        },
+        {
+            "name": "Case03_Mesh",
+            "materialIndex": 1,
+            "startIndex": 512,
+            "numIndices": 57152
+        },
+        {
+            "name": "Inside03_Mesh",
+            "materialIndex": 6,
+            "startIndex": 57664,
+            "numIndices": 3936
+        },
+        {
+            "name": "Case04_Mesh",
+            "materialIndex": 2,
+            "startIndex": 61600,
+            "numIndices": 57152
+        },
+        {
+            "name": "Inside04_Mesh",
+            "materialIndex": 7,
+            "startIndex": 118752,
+            "numIndices": 3936
+        },
+        {
+            "name": "Case05_Mesh",
+            "materialIndex": 3,
+            "startIndex": 122688,
+            "numIndices": 57152
+        },
+        {
+            "name": "Inside05_Mesh",
+            "materialIndex": 8,
+            "startIndex": 179840,
+            "numIndices": 3936
+        },
+        {
+            "name": "Case02_Mesh",
+            "materialIndex": 4,
+            "startIndex": 183776,
+            "numIndices": 57152
+        },
+        {
+            "name": "Inside02_Mesh",
+            "materialIndex": 9,
+            "startIndex": 240928,
+            "numIndices": 3936
+        },
+        {
+            "name": "Case01_Mesh",
+            "materialIndex": 5,
+            "startIndex": 244864,
+            "numIndices": 57152
+        },
+        {
+            "name": "Inside01_Mesh",
+            "materialIndex": 10,
+            "startIndex": 302016,
+            "numIndices": 3936
+        },
+        {
+            "name": "Emitter_Mesh",
+            "materialIndex": 11,
+            "startIndex": 305952,
+            "numIndices": 2
+        }
+    ],
+    "vertexData": {
+        "binary": "knobs2.bin",
+        "layout": {
+            "indices": {
+                "offset": 0,
+                "count": 305954
+            },
+            "positions": {
+                "offset": 3671448,
+                "count": 917862
+            },
+            "normals": {
+                "offset": 14685792,
+                "count": 917862
+            },
+            "texCoords": {
+                "offset": 25700136,
+                "count": 917862
+            },
+            "colors": {
+                "offset": 33043032,
+                "count": 0
+            }
+        }
+    }
+}

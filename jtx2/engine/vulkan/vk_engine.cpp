@@ -14,7 +14,6 @@ namespace jtx {
 
 void VkEngine::Init(const bool bEnableRayTracing) {
     LOG_INFO(VKE, "Initializing Vulkan engine");
-    // TODO: flip this back when ray tracing is ready
     m_bRayTracingAvailable = bEnableRayTracing;
 
     InitDescriptors();
@@ -74,7 +73,6 @@ void VkEngine::PopulateContext() {
         obj.objectID = i;
         obj.start    = mesh.startIndex;
         obj.count    = mesh.numIndices;
-        ;
         obj.materialPipeline = &m_materialPipelines.diffuse;
         m_drawContext.objects.push_back(obj);
     }
@@ -256,7 +254,8 @@ void VkEngine::InitDescriptors() {
 
     // -- Global uniform data descriptor set allocator --
     std::vector<VkDescriptorPoolSize> poolSizesGlobal = {
-            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1}};
+            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
+            {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}};
     m_descriptorAllocator.InitPool(m_gfx.ctx, 2, poolSizesGlobal);
 
     builder.Clear();
@@ -509,8 +508,7 @@ void VkEngine::LoadScene(const Scene *pScene) {
 
     bool bSceneHasVertexColors = colorBufferSize > 0;
 
-    // Vertex buffers (position, normal, uv, color)'
-    // TODO: AS build input should only be applied to index and vertex buffers
+    // Vertex buffers (position, normal, uv, color)
     VkBufferUsageFlags vertexBufferUsages = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
     if (m_bRayTracingAvailable) {
         vertexBufferUsages |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
@@ -1026,31 +1024,31 @@ void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const {
     const std::vector descriptorSets{sceneDescriptorSet, m_bindlessDescriptorSet};
     vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rayTracingPipeline.pipeline);
     vkCmdBindDescriptorSets(
-        ctx.cmd,
-        VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
-        m_rayTracingPipeline.layout,
-        0,
-        (uint32_t)descriptorSets.size(),
-        descriptorSets.data(),
-        0,
-        nullptr);
+            ctx.cmd,
+            VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
+            m_rayTracingPipeline.layout,
+            0,
+            (uint32_t) descriptorSets.size(),
+            descriptorSets.data(),
+            0,
+            nullptr);
 
     vkCmdPushConstants(
-        ctx.cmd,
-        m_rayTracingPipeline.layout,
-        VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR,
-        0,
-        sizeof(GPURayTracingPushConstants),
-        &pc);
+            ctx.cmd,
+            m_rayTracingPipeline.layout,
+            VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR,
+            0,
+            sizeof(GPURayTracingPushConstants),
+            &pc);
     vkCmdTraceRaysKHR(
-        ctx.cmd,
-        &m_SBT.rayGenRegion,
-        &m_SBT.missRegion,
-        &m_SBT.hitRegion,
-        &m_SBT.callableRegion,
-        m_viewRectangle.w,
-        m_viewRectangle.h,
-        1);
+            ctx.cmd,
+            &m_SBT.rayGenRegion,
+            &m_SBT.missRegion,
+            &m_SBT.hitRegion,
+            &m_SBT.callableRegion,
+            m_viewRectangle.w,
+            m_viewRectangle.h,
+            1);
     return;
 }
 

@@ -1,8 +1,8 @@
 # JTX Path Tracer
 
-![ajax](https://github.com/user-attachments/assets/6b44f17f-84d6-46f5-9214-547d9cb30931)
-
 **Update June 2025**:
+
+![ajax](https://github.com/user-attachments/assets/6b44f17f-84d6-46f5-9214-547d9cb30931)
 
 I am currently in the process of rewriting the original project. The code for this can be found in JTX2.
 
@@ -38,6 +38,8 @@ And the far future:
  - [Vectorized Production Path Tracing](https://stg-research.dreamworks.com/wp-content/uploads/2018/07/Vectorized_Production_Path_Tracing_DWA_2017.pdf) on the CPU
  - Metropolis Light Transport
  - CUDA OptiX backend
+
+![knobs_cropped](https://github.com/user-attachments/assets/11735849-d9ba-4f7f-99b6-ea49611dd942)
 
 ---
 

@@ -1,11 +1,15 @@
 #extension GL_EXT_buffer_reference : require
 #extension GL_EXT_scalar_block_layout : require
 
-layout(buffer_reference, scalar) readonly buffer Vec3Buffer {
+layout(buffer_reference, scalar) readonly buffer ivec3buf {
+    ivec3 data[];
+};
+
+layout(buffer_reference, scalar) readonly buffer vec3buf {
     vec3 data[];
 };
 
-layout(buffer_reference, scalar) readonly buffer Vec2Buffer {
+layout(buffer_reference, scalar) readonly buffer vec2buf {
     vec2 data[];
 };
 
@@ -16,10 +20,11 @@ layout(set = 0, binding = 0) uniform _GPUGlobalUniformData {
     vec3 sunDirection;
     float sunIntensity;
 
-    Vec3Buffer vertices;
-    Vec3Buffer normals;
-    Vec2Buffer uvs;
-    Vec3Buffer colors;
+    vec3buf vertices;
+    vec3buf normals;
+    vec2buf uvs;
+    vec3buf colors;
+    ivec3buf indices;
 };
 
 struct GPUObjectData {

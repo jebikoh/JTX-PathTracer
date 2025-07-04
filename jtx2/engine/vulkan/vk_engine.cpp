@@ -313,6 +313,7 @@ void VkEngine::UpdateGlobalUniformData() {
     m_gpuGlobalUniformData.normalBuffer   = m_gpuSceneData.normalAddress;
     m_gpuGlobalUniformData.uvBuffer       = m_gpuSceneData.uvAddress;
     m_gpuGlobalUniformData.colorBuffer    = m_gpuSceneData.colorAddress;
+    m_gpuGlobalUniformData.indexBuffer    = m_gpuSceneData.indexAddress;
 }
 
 void VkEngine::InitPipelines() {

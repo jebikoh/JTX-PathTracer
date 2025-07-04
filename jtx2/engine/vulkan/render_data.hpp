@@ -35,6 +35,7 @@ struct alignas(256) GPUGlobalUniformData {
     VkDeviceAddress normalBuffer;
     VkDeviceAddress uvBuffer;
     VkDeviceAddress colorBuffer;
+    VkDeviceAddress indexBuffer; // This is needed by RT
 };
 
 // Layout 1: Bindless scene resources

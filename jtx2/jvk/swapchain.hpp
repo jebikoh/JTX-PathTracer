@@ -52,6 +52,8 @@ struct Swapchain {
     VkResult AcquireNextImage(const VkContext &context, const VkSemaphore semaphore, uint32_t *imageIndex, const uint64_t timeout = JVK_TIMEOUT) const {
         return vkAcquireNextImageKHR(context, swapchain, timeout, semaphore, VK_NULL_HANDLE, imageIndex);
     }
+
+    uint32_t GetSwapchainImageCount() const { return images.size(); }
 };
 
 }// namespace jvk

@@ -274,9 +274,16 @@ void GfxContext::InitFrameData() {
 
         // Synchronization
         CHECK_VK(frame.drawFence.Init(ctx, VK_FENCE_CREATE_SIGNALED_BIT));
-        CHECK_VK(frame.swapchainSemaphore.Init(ctx));
-        CHECK_VK(frame.drawSemaphore.Init(ctx));
+        CHECK_VK(frame.imageAvailableSemaphore.Init(ctx)); // Ignore this for now
     }
+
+    // NEW: Per swapchain-image wait semaphores
+    const uint32_t count = swapchain.GetSwapchainImageCount();
+    renderFinishedSemaphores.resize(count);
+    for (auto &sem : renderFinishedSemaphores) {
+        sem.Init(ctx);
+    }
+
     LOG_DEBUG(GFX, "Frame data Initialized");
 }
 
@@ -378,10 +385,13 @@ void GfxContext::DestroyFrameData() {
     LOG_DEBUG(GFX, "Destroying frame data");
 
     for (auto &frame: frameData) {
-        frame.drawSemaphore.Destroy();
-        frame.swapchainSemaphore.Destroy();
+        frame.imageAvailableSemaphore.Destroy();
         frame.drawFence.Destroy();
         frame.cmdPool.Destroy();
+    }
+
+    for (auto &sem : renderFinishedSemaphores) {
+        sem.Destroy();
     }
 
     LOG_DEBUG(GFX, "Frame data destroyed");
@@ -549,7 +559,7 @@ std::optional<RenderContext> GfxContext::StartFrame() {
     CHECK_VK(frame.drawFence.Reset());
 
     uint32_t swapchainIndex;
-    if (const VkResult e = swapchain.AcquireNextImage(ctx, frame.swapchainSemaphore, &swapchainIndex); e == VK_ERROR_OUT_OF_DATE_KHR || e == VK_SUBOPTIMAL_KHR) {
+    if (const VkResult e = swapchain.AcquireNextImage(ctx, frame.imageAvailableSemaphore, &swapchainIndex); e == VK_ERROR_OUT_OF_DATE_KHR || e == VK_SUBOPTIMAL_KHR) {
         m_bSwapchainOutOfDate = true;
         return {};
     }
@@ -587,8 +597,11 @@ void GfxContext::EndFrame(const RenderContext &renderCtx) {
     const auto &frame = frameData[renderCtx.frameIndex];
 
     const VkCommandBufferSubmitInfoKHR submitInfo = renderCtx.cmd.SubmitInfo();
-    const VkSemaphoreSubmitInfoKHR waitInfo       = frame.swapchainSemaphore.SubmitInfo(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR);
-    const VkSemaphoreSubmitInfoKHR signalInfo     = frame.drawSemaphore.SubmitInfo(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT_KHR);
+    // Acquire swapchain image -> start rendering
+    const VkSemaphoreSubmitInfoKHR waitInfo       = frame.imageAvailableSemaphore.SubmitInfo(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR);
+    // Finish rendering -> present image
+    const auto &rfSemaphore = renderFinishedSemaphores[renderCtx.swapchainIndex];
+    const VkSemaphoreSubmitInfoKHR signalInfo     = rfSemaphore.SubmitInfo(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT_KHR);
     graphicsQueue.Submit(&submitInfo, &waitInfo, &signalInfo, frame.drawFence);
 
     // Present the swapchain image
@@ -597,7 +610,7 @@ void GfxContext::EndFrame(const RenderContext &renderCtx) {
     presentInfo.pNext              = nullptr;
     presentInfo.swapchainCount     = 1;
     presentInfo.pSwapchains        = &swapchain.swapchain;
-    presentInfo.pWaitSemaphores    = &frame.drawSemaphore.semaphore;
+    presentInfo.pWaitSemaphores    = &rfSemaphore.semaphore;
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pImageIndices      = &renderCtx.swapchainIndex;
 

@@ -71,12 +71,12 @@ struct GfxContext {
         jvk::CommandPool cmdPool;
         jvk::CommandBuffer cmdBuffer;
 
-        jvk::Semaphore swapchainSemaphore;
-        jvk::Semaphore drawSemaphore;
+        jvk::Semaphore imageAvailableSemaphore;
         jvk::Fence drawFence;
     } frameData[JTX_MAX_FRAMES_IN_FLIGHT];
 
     jvk::Swapchain swapchain;
+    std::vector<jvk::Semaphore> renderFinishedSemaphores;
 
     jvk::Queue graphicsQueue;
     jvk::ImmediateBuffer imBuffer;

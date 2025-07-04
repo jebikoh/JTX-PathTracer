@@ -5,14 +5,14 @@
 #include <thread>
 #include <scene/scene_exporter.hpp>
 
-// #define JTX_ENABLE_UI
+#define JTX_ENABLE_UI
 
 int main(int argc, char *argv[]) {
     Logger::AddDefaultSink();
 #ifdef JTX_ENABLE_UI
     jtx::Display display;
     // display.Init();
-    display.Init("../assets/scenes/knobs/knobs.jtx");
+    display.Init("../assets/scenes/ajax/ajax.jtx");
     display.Run();
     display.Destroy();
 #else

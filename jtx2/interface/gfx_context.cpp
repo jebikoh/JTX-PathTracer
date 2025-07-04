@@ -8,8 +8,6 @@
 #include <SDL_vulkan.h>
 #include <jvk/util.hpp>
 
-#include <nfd.h>
-
 constexpr bool JTX_USE_VALIDATION_LAYERS = true;
 
 namespace jtx {
@@ -23,7 +21,7 @@ void GfxContext::Init() {
     InitVulkan();
     InitAllocator();
     InitSwapchain();
-    InitDrawImages();
+    InitRenderTarget();
     InitFrameData();
     InitImmediateBuffer();
     InitDefaultImages();
@@ -173,7 +171,7 @@ void GfxContext::InitVulkan() {
     // Query RT properties if ray tracing is supported
     if (bRayTracingSupported) {
         VkPhysicalDeviceProperties2 props{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
-        props.pNext = &rtProperties;
+        props.pNext        = &rtProperties;
         rtProperties.pNext = &asProperties;
         vkGetPhysicalDeviceProperties2(ctx.physicalDevice, &props);
 
@@ -219,49 +217,58 @@ void GfxContext::InitSwapchain() {
     LOG_DEBUG(GFX, "Swapchain Initialized");
 }
 
-void GfxContext::InitDrawImages() {
-    LOG_DEBUG(GFX, "Initializing draw image");
-    // Draw image
+void GfxContext::InitRenderTarget() {
+    LOG_DEBUG(GFX, "Initializing render target");
+    // Draw image 16f
     VkExtent3D drawExtent{};
     drawExtent.width  = window.extent.width;
     drawExtent.height = window.extent.height;
     drawExtent.depth  = 1;
 
-    drawImage.image.imageFormat = VK_FORMAT_R16G16B16A16_SFLOAT;
-    drawImage.image.imageExtent = drawExtent;
+    targets.draw16f.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+    targets.draw16f.extent = drawExtent;
 
     VkImageUsageFlags drawImageUsages = {};
     drawImageUsages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;    // Copy from image
     drawImageUsages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;    // Copy to image
     drawImageUsages |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;// Graphics pipeline
 
-    if (bRayTracingSupported) {
-        drawImageUsages |= VK_IMAGE_USAGE_STORAGE_BIT;
-    }
-
-    const VkImageCreateInfo drawImageInfo = jvk::init::Image(drawImage.image.imageFormat, drawImageUsages, drawImage.image.imageExtent);
+    VkImageCreateInfo drawImageInfo = jvk::init::Image(targets.draw16f.format, drawImageUsages, targets.draw16f.extent);
 
     VmaAllocationCreateInfo drawImageAllocInfo{};
     drawImageAllocInfo.usage         = VMA_MEMORY_USAGE_GPU_ONLY;
     drawImageAllocInfo.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    vmaCreateImage(allocator, &drawImageInfo, &drawImageAllocInfo, &drawImage.image.image, &drawImage.image.allocation, nullptr);
+    vmaCreateImage(allocator, &drawImageInfo, &drawImageAllocInfo, &targets.draw16f.image, &targets.draw16f.allocation, nullptr);
 
-    const VkImageViewCreateInfo imageViewInfo = jvk::init::ImageView(drawImage.image.imageFormat, drawImage.image.image, VK_IMAGE_ASPECT_COLOR_BIT);
-    CHECK_VK(vkCreateImageView(ctx, &imageViewInfo, nullptr, &drawImage.image.imageView));
+    VkImageViewCreateInfo imageViewInfo = jvk::init::ImageView(targets.draw16f.format, targets.draw16f.image, VK_IMAGE_ASPECT_COLOR_BIT);
+    CHECK_VK(vkCreateImageView(ctx, &imageViewInfo, nullptr, &targets.draw16f.view));
+
+    // Draw image 32f
+    if (bRayTracingSupported) {
+        drawImageUsages |= VK_IMAGE_USAGE_STORAGE_BIT;
+        targets.draw32f.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        targets.draw32f.extent = drawExtent;
+        drawImageInfo  = jvk::init::Image(targets.draw32f.format, drawImageUsages, targets.draw32f.extent);
+
+        vmaCreateImage(allocator, &drawImageInfo, &drawImageAllocInfo, &targets.draw32f.image, &targets.draw32f.allocation, nullptr);
+
+        imageViewInfo = jvk::init::ImageView(targets.draw32f.format, targets.draw32f.image, VK_IMAGE_ASPECT_COLOR_BIT);
+        CHECK_VK(vkCreateImageView(ctx, &imageViewInfo, nullptr, &targets.draw32f.view));
+    }
 
     // Depth/stencil image
-    jvk::GetSupportedDepthStencilFormat(ctx, &drawImage.depthStencilImage.imageFormat);
-    drawImage.depthStencilImage.imageExtent = drawExtent;
+    jvk::GetSupportedDepthStencilFormat(ctx, &targets.depthStencil.format);
+    targets.depthStencil.extent = drawExtent;
 
     VkImageUsageFlags depthImageUsages{};
     depthImageUsages |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-    const VkImageCreateInfo depthImageInfo = jvk::init::Image(drawImage.depthStencilImage.imageFormat, depthImageUsages, drawExtent);
-    vmaCreateImage(allocator, &depthImageInfo, &drawImageAllocInfo, &drawImage.depthStencilImage.image, &drawImage.depthStencilImage.allocation, nullptr);
+    const VkImageCreateInfo depthImageInfo = jvk::init::Image(targets.depthStencil.format, depthImageUsages, drawExtent);
+    vmaCreateImage(allocator, &depthImageInfo, &drawImageAllocInfo, &targets.depthStencil.image, &targets.depthStencil.allocation, nullptr);
 
-    const VkImageViewCreateInfo depthImageViewInfo = jvk::init::ImageView(drawImage.depthStencilImage.imageFormat, drawImage.depthStencilImage.image, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-    CHECK_VK(vkCreateImageView(ctx, &depthImageViewInfo, nullptr, &drawImage.depthStencilImage.imageView));
-    LOG_DEBUG(GFX, "Draw image Initialized");
+    const VkImageViewCreateInfo depthImageViewInfo = jvk::init::ImageView(targets.depthStencil.format, targets.depthStencil.image, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+    CHECK_VK(vkCreateImageView(ctx, &depthImageViewInfo, nullptr, &targets.depthStencil.view));
+    LOG_DEBUG(GFX, "Render target Initialized");
 }
 
 void GfxContext::InitFrameData() {
@@ -274,13 +281,13 @@ void GfxContext::InitFrameData() {
 
         // Synchronization
         CHECK_VK(frame.drawFence.Init(ctx, VK_FENCE_CREATE_SIGNALED_BIT));
-        CHECK_VK(frame.imageAvailableSemaphore.Init(ctx)); // Ignore this for now
+        CHECK_VK(frame.imageAvailableSemaphore.Init(ctx));// Ignore this for now
     }
 
     // NEW: Per swapchain-image wait semaphores
     const uint32_t count = swapchain.GetSwapchainImageCount();
     renderFinishedSemaphores.resize(count);
-    for (auto &sem : renderFinishedSemaphores) {
+    for (auto &sem: renderFinishedSemaphores) {
         sem.Init(ctx);
     }
 
@@ -333,7 +340,7 @@ void GfxContext::Destroy() {
     DestroyDefaultImages();
     DestroyImmediateBuffer();
     DestroyFrameData();
-    DestroyDrawImages();
+    DestroyRenderTarget();
     DestroySwapchain();
     DestroyAllocator();
     DestroyVulkan();
@@ -372,13 +379,15 @@ void GfxContext::DestroySwapchain() const {
     LOG_DEBUG(GFX, "Swapchain Destroyed");
 }
 
-void GfxContext::DestroyDrawImages() const {
-    LOG_DEBUG(GFX, "Destroying draw images");
+void GfxContext::DestroyRenderTarget() const {
+    LOG_DEBUG(GFX, "Destroying render target");
 
-    drawImage.image.Destroy(ctx, allocator);
-    drawImage.depthStencilImage.Destroy(ctx, allocator);
+    if (bRayTracingSupported) targets.draw32f.Destroy(ctx, allocator);
 
-    LOG_DEBUG(GFX, "Draw images destroyed");
+    targets.draw16f.Destroy(ctx, allocator);
+    targets.depthStencil.Destroy(ctx, allocator);
+
+    LOG_DEBUG(GFX, "Render target destroyed");
 }
 
 void GfxContext::DestroyFrameData() {
@@ -390,7 +399,7 @@ void GfxContext::DestroyFrameData() {
         frame.cmdPool.Destroy();
     }
 
-    for (auto &sem : renderFinishedSemaphores) {
+    for (auto &sem: renderFinishedSemaphores) {
         sem.Destroy();
     }
 
@@ -430,8 +439,8 @@ void GfxContext::DestroyDefaultSamplers() const {
 
 jvk::Image GfxContext::CreateImage(const VkExtent3D extent, const VkFormat format, const VkImageUsageFlags usage, const bool bMipmapped, const VkSampleCountFlagBits sampleCount) const {
     jvk::Image image;
-    image.imageFormat         = format;
-    image.imageExtent         = extent;
+    image.format              = format;
+    image.extent              = extent;
     VkImageCreateInfo imgInfo = jvk::init::Image(format, usage, extent, sampleCount);
     if (bMipmapped) {
         imgInfo.mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(extent.width, extent.height))) + 1);
@@ -443,7 +452,7 @@ jvk::Image GfxContext::CreateImage(const VkExtent3D extent, const VkFormat forma
     CHECK_VK(vmaCreateImage(allocator, &imgInfo, &allocInfo, &image.image, &image.allocation, nullptr));
 
     VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
-    if (jvk::FormatHasDepth(image.imageFormat)) {
+    if (jvk::FormatHasDepth(image.format)) {
         aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
         if (format > VK_FORMAT_D16_UNORM_S8_UINT) {
             aspectFlags |= VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -452,14 +461,14 @@ jvk::Image GfxContext::CreateImage(const VkExtent3D extent, const VkFormat forma
 
     VkImageViewCreateInfo viewInfo       = jvk::init::ImageView(format, image.image, aspectFlags);
     viewInfo.subresourceRange.levelCount = imgInfo.mipLevels;
-    CHECK_VK(vkCreateImageView(ctx, &viewInfo, nullptr, &image.imageView));
+    CHECK_VK(vkCreateImageView(ctx, &viewInfo, nullptr, &image.view));
 
     return image;
 }
 
 jvk::Image GfxContext::CreateImage(const void *pData, const VkExtent3D extent, const size_t nChannels, const VkFormat format, const VkImageUsageFlags usage, const bool bMipmapped, VkSampleCountFlagBits sampleCount) const {
     // Staging buffer, we will always assume data has 4 channels
-    const size_t dataSize           = extent.width * extent.height * extent.depth * nChannels;
+    const size_t dataSize     = extent.width * extent.height * extent.depth * nChannels;
     jvk::Buffer stagingBuffer = CreateBuffer(dataSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
     memcpy(stagingBuffer.info.pMappedData, pData, dataSize);
 
@@ -484,7 +493,7 @@ jvk::Image GfxContext::CreateImage(const void *pData, const VkExtent3D extent, c
         vkCmdCopyBufferToImage(cmd, stagingBuffer.buffer, image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
         if (bMipmapped) {
-            jvk::GenerateMipmaps(cmd, image.image, {image.imageExtent.width, image.imageExtent.height});
+            jvk::GenerateMipmaps(cmd, image.image, {image.extent.width, image.extent.height});
         }
 
         jvk::TransitionImage(cmd, image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -499,13 +508,12 @@ void GfxContext::DestroyImage(const jvk::Image &image) const {
 }
 
 jvk::Buffer GfxContext::CreateBuffer(
-    const size_t allocSize,
-    const VkBufferUsageFlags usage,
-    const VmaMemoryUsage memUsage,
-    const VmaAllocationCreateFlags memFlags,
-    const VkMemoryPropertyFlags memPropFlags,
-    const VkDeviceSize minAlignment) const
-{
+        const size_t allocSize,
+        const VkBufferUsageFlags usage,
+        const VmaMemoryUsage memUsage,
+        const VmaAllocationCreateFlags memFlags,
+        const VkMemoryPropertyFlags memPropFlags,
+        const VkDeviceSize minAlignment) const {
     VkBufferCreateInfo info{};
     info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     info.pNext = nullptr;
@@ -566,9 +574,6 @@ std::optional<RenderContext> GfxContext::StartFrame() {
 
     CHECK_VK(frame.cmdBuffer.Reset());
 
-    drawImage.extent.width  = static_cast<uint32_t>(static_cast<float>(std::min(swapchain.extent.width, drawImage.image.imageExtent.width)) * drawImage.renderScale);
-    drawImage.extent.height = static_cast<uint32_t>(static_cast<float>(std::min(swapchain.extent.height, drawImage.image.imageExtent.height)) * drawImage.renderScale);
-
     CHECK_VK(frame.cmdBuffer.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT));
 
     return RenderContext{
@@ -578,13 +583,13 @@ std::optional<RenderContext> GfxContext::StartFrame() {
             .swapchain      = {
                          .image  = swapchain.images[swapchainIndex],
                          .view   = swapchain.views[swapchainIndex],
-                         .extent = swapchain.extent},
-            .drawImage         = drawImage.image,
-            .depthStencilImage = drawImage.depthStencilImage,
-            .layout            = {
-                               .swapchain         = VK_IMAGE_LAYOUT_UNDEFINED,
-                               .drawImage         = VK_IMAGE_LAYOUT_UNDEFINED,
-                               .depthStencilImage = VK_IMAGE_LAYOUT_UNDEFINED,
+                         .extent = swapchain.extent
+            },
+            .layout  = {
+                    .swapchain    = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .draw16f      = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .draw32f      = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .depthStencil = VK_IMAGE_LAYOUT_UNDEFINED,
             }};
 }
 
@@ -598,10 +603,10 @@ void GfxContext::EndFrame(const RenderContext &renderCtx) {
 
     const VkCommandBufferSubmitInfoKHR submitInfo = renderCtx.cmd.SubmitInfo();
     // Acquire swapchain image -> start rendering
-    const VkSemaphoreSubmitInfoKHR waitInfo       = frame.imageAvailableSemaphore.SubmitInfo(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR);
+    const VkSemaphoreSubmitInfoKHR waitInfo = frame.imageAvailableSemaphore.SubmitInfo(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR);
     // Finish rendering -> present image
-    const auto &rfSemaphore = renderFinishedSemaphores[renderCtx.swapchainIndex];
-    const VkSemaphoreSubmitInfoKHR signalInfo     = rfSemaphore.SubmitInfo(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT_KHR);
+    const auto &rfSemaphore                   = renderFinishedSemaphores[renderCtx.swapchainIndex];
+    const VkSemaphoreSubmitInfoKHR signalInfo = rfSemaphore.SubmitInfo(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT_KHR);
     graphicsQueue.Submit(&submitInfo, &waitInfo, &signalInfo, frame.drawFence);
 
     // Present the swapchain image
@@ -622,13 +627,33 @@ void GfxContext::EndFrame(const RenderContext &renderCtx) {
 }
 
 void GfxContext::ResolveToSwapchain(RenderContext &renderCtx, const ResolveRegion &region) const {
-    jvk::TransitionImageIfNeeded(renderCtx.cmd, renderCtx.drawImage.image, renderCtx.layout.drawImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+    const jvk::Image *renderTarget;
+    VkImageLayout *layout;
+    switch (region.target) {
+        case kRenderTarget::DRAW16f:
+            renderTarget = &targets.draw16f;
+            layout = &renderCtx.layout.draw16f;
+            break;
+        case kRenderTarget::DRAW32f:
+            renderTarget = &targets.draw32f;
+            layout = &renderCtx.layout.draw32f;
+            break;
+        case kRenderTarget::DEPTH_STENCIL:
+            renderTarget = &targets.depthStencil;
+            layout = &renderCtx.layout.depthStencil;
+            break;
+        default:
+            LOG_FATAL(GFX, "Invalid swapchain resolve");
+            return;
+    }
+
+    jvk::TransitionImageIfNeeded(renderCtx.cmd, *renderTarget, *layout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
     jvk::TransitionImageIfNeeded(renderCtx.cmd, renderCtx.swapchain.image, renderCtx.layout.swapchain, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-    jvk::CopyImageToImage(renderCtx.cmd, renderCtx.drawImage.image, renderCtx.swapchain.image, region.src, region.dst);
+    jvk::CopyImageToImage(renderCtx.cmd, *renderTarget, renderCtx.swapchain.image, region.src, region.dst);
 
-    renderCtx.layout.drawImage = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-    renderCtx.layout.swapchain = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    *layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    renderCtx.layout.swapchain            = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 }
 
 #pragma endregion

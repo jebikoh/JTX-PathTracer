@@ -2,7 +2,6 @@
 #include <jvk/buffer.hpp>
 #include <jvk/commands.hpp>
 #include <jvk/context.hpp>
-#include <jvk/descriptor.hpp>
 #include <jvk/fence.hpp>
 #include <jvk/image.hpp>
 #include <jvk/immediate_buffer.hpp>
@@ -16,6 +15,11 @@ struct SDL_Window;
 
 namespace jtx {
 
+enum class kRenderTarget {
+    DRAW16f,
+    DRAW32f,
+    DEPTH_STENCIL
+};
 struct RenderContext {
     const jvk::CommandBuffer cmd;
 
@@ -23,23 +27,23 @@ struct RenderContext {
     const uint32_t frameIndex     = 0;
 
     const struct SwapchainContext {
-        VkImage image = VK_NULL_HANDLE;
-        VkImageView view = VK_NULL_HANDLE;
+        VkImage image     = VK_NULL_HANDLE;
+        VkImageView view  = VK_NULL_HANDLE;
         VkExtent2D extent = {0, 0};
     } swapchain;
-    const jvk::Image &drawImage;
-    const jvk::Image &depthStencilImage;
 
     struct LayoutState {
-        VkImageLayout swapchain = VK_IMAGE_LAYOUT_UNDEFINED;
-        VkImageLayout drawImage = VK_IMAGE_LAYOUT_UNDEFINED;
-        VkImageLayout depthStencilImage = VK_IMAGE_LAYOUT_UNDEFINED;
+        VkImageLayout swapchain    = VK_IMAGE_LAYOUT_UNDEFINED;
+        VkImageLayout draw16f      = VK_IMAGE_LAYOUT_UNDEFINED;
+        VkImageLayout draw32f      = VK_IMAGE_LAYOUT_UNDEFINED;
+        VkImageLayout depthStencil = VK_IMAGE_LAYOUT_UNDEFINED;
     } layout;
 };
 
 struct ResolveRegion {
     VkExtent2D src[2];
     VkExtent2D dst[2];
+    kRenderTarget target;
 };
 
 /**
@@ -81,12 +85,12 @@ struct GfxContext {
     jvk::Queue graphicsQueue;
     jvk::ImmediateBuffer imBuffer;
 
-    struct DrawImage {
-        jvk::Image image;
-        jvk::Image depthStencilImage;
-        VkExtent2D extent{};
-        float renderScale = 1.0f;
-    } drawImage;
+    // draw32f only initialized if ray tracing is available
+    struct RenderTarget {
+        jvk::Image draw16f;
+        jvk::Image draw32f;
+        jvk::Image depthStencil;
+    } targets;
 
     struct DefaultImages {
         jvk::Image white;
@@ -165,6 +169,7 @@ struct GfxContext {
      * @param memUsage memory usage
      * @param memFlags memory flags
      * @param memPropFlags vulkan memory flags
+     * @param minAlignment minimum alignment
      * @return empty buffer
      */
     jvk::Buffer CreateBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memUsage, VmaAllocationCreateFlags memFlags = 0, VkMemoryPropertyFlags memPropFlags = 0, VkDeviceSize minAlignment = 0) const;
@@ -174,6 +179,7 @@ struct GfxContext {
      * @param buffer buffer to destroy
      */
     void DestroyBuffer(jvk::Buffer &buffer) const;
+
 private:
     bool m_bSwapchainOutOfDate = false;
 
@@ -181,7 +187,7 @@ private:
     void InitVulkan();
     void InitAllocator();
     void InitSwapchain();
-    void InitDrawImages();
+    void InitRenderTarget();
     void InitFrameData();
     void InitImmediateBuffer();
     void InitDefaultImages();
@@ -191,7 +197,7 @@ private:
     void DestroyVulkan() const;
     void DestroyAllocator() const;
     void DestroySwapchain() const;
-    void DestroyDrawImages() const;
+    void DestroyRenderTarget() const;
     void DestroyFrameData();
     void DestroyImmediateBuffer() const;
     void DestroyDefaultImages() const;

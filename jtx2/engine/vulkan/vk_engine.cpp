@@ -57,8 +57,10 @@ void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
             {m_viewRectangle.w, m_viewRectangle.h}};
 
     if (m_bRayTracingEnabled) {
+        region.target = kRenderTarget::DRAW32f;
         RayTrace(ctx, glm::vec4(0.2f, 0.2f, 0.2f, 1.0f));
     } else {
+        region.target = kRenderTarget::DRAW16f;
         Rasterize(ctx, renderArea);
     }
 }
@@ -83,20 +85,23 @@ void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
     VkClearValue drawImageClearValue{};
     drawImageClearValue.color = {0.255f, 0.247f, 0.255f, 1.0f};
 
+    const auto &drawImage = m_gfx.targets.draw16f;
+    const auto &depthStencil = m_gfx.targets.depthStencil;
+
     // Transition if needed
-    jvk::TransitionImageIfNeeded(ctx.cmd, ctx.drawImage.image, ctx.layout.drawImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-    ctx.layout.drawImage = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    jvk::TransitionImageIfNeeded(ctx.cmd, drawImage, ctx.layout.draw16f, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    ctx.layout.draw16f = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    jvk::TransitionImageIfNeeded(ctx.cmd, ctx.depthStencilImage.image, ctx.layout.depthStencilImage, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-    ctx.layout.depthStencilImage = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    jvk::TransitionImageIfNeeded(ctx.cmd, depthStencil.image, ctx.layout.depthStencil, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    ctx.layout.depthStencil = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    const VkRenderingAttachmentInfo colorAttachment = jvk::init::RenderingAttachment(ctx.drawImage.imageView, &drawImageClearValue, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    const VkRenderingAttachmentInfo colorAttachment = jvk::init::RenderingAttachment(drawImage.view, &drawImageClearValue, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
     VkClearValue dsClearValue{};
     dsClearValue.depthStencil.depth   = 1.0f;
     dsClearValue.depthStencil.stencil = 0;
 
-    const VkRenderingAttachmentInfo depthAttachment = jvk::init::DepthRenderingAttachment(ctx.depthStencilImage.imageView, &dsClearValue, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    const VkRenderingAttachmentInfo depthAttachment = jvk::init::DepthRenderingAttachment(depthStencil.view, &dsClearValue, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
     VkRenderingInfo renderingInfo                   = jvk::init::Rendering(ctx.swapchain.extent, &colorAttachment, &depthAttachment);
     renderingInfo.renderArea                        = renderArea;
 
@@ -368,8 +373,8 @@ void VkEngine::InitMaterialPipelines() {
     builder.DisableBlending();
     builder.EnableDepthTest(true, VK_COMPARE_OP_LESS_OR_EQUAL);
     builder.DisableStencilTest();
-    builder.SetColorAttachmentFormat(m_gfx.drawImage.image.imageFormat);
-    builder.SetDepthAttachmentFormat(m_gfx.drawImage.depthStencilImage.imageFormat);
+    builder.SetColorAttachmentFormat(m_gfx.targets.draw16f.format);
+    builder.SetDepthAttachmentFormat(m_gfx.targets.depthStencil.format);
     builder.pipelineLayout = m_materialPipelines.layout;
 
     m_materialPipelines.diffuse = builder.BuildPipeline(m_gfx.ctx);
@@ -418,8 +423,8 @@ void VkEngine::InitGridPipeline() {
     builder.EnableBlendingAdditive();
     builder.EnableDepthTest(true, VK_COMPARE_OP_LESS_OR_EQUAL);
     builder.DisableStencilTest();
-    builder.SetColorAttachmentFormat(m_gfx.drawImage.image.imageFormat);
-    builder.SetDepthAttachmentFormat(m_gfx.drawImage.depthStencilImage.imageFormat);
+    builder.SetColorAttachmentFormat(m_gfx.targets.draw16f.format);
+    builder.SetDepthAttachmentFormat(m_gfx.targets.depthStencil.format);
     builder.pipelineLayout  = m_gridPipeline.layout;
     m_gridPipeline.pipeline = builder.BuildPipeline(m_gfx.ctx);
 
@@ -453,7 +458,7 @@ void VkEngine::LoadScene(const Scene *pScene) {
 
             writer.WriteBuffer(0, frame.gpuGlobalUniformData.buffer, sizeof(GPUGlobalUniformData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
             if (m_bRayTracingAvailable) {
-                writer.WriteImage(1, m_gfx.drawImage.image.imageView, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+                writer.WriteImage(1, m_gfx.targets.draw32f.view, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
             }
             writer.UpdateSet(m_gfx.ctx, frame.gpuGlobalUniformDataDescriptorSet);
             writer.Clear();
@@ -487,7 +492,7 @@ void VkEngine::LoadScene(const Scene *pScene) {
 
         writer.WriteImage(
                 kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY,
-                index, gpuTex.imageView,
+                index, gpuTex.view,
                 m_gfx.defaultSamplers.linear,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
@@ -1013,8 +1018,10 @@ void VkEngine::DestroyRayTracingSBT() {
 void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const {
     if (!m_bSceneLoaded) return;
 
-    jvk::TransitionImageIfNeeded(ctx.cmd, ctx.drawImage.image, ctx.layout.drawImage, VK_IMAGE_LAYOUT_GENERAL);
-    ctx.layout.drawImage = VK_IMAGE_LAYOUT_GENERAL;
+    const auto &drawImage = m_gfx.targets.draw32f;
+
+    jvk::TransitionImageIfNeeded(ctx.cmd, drawImage.image, ctx.layout.draw32f, VK_IMAGE_LAYOUT_GENERAL);
+    ctx.layout.draw32f = VK_IMAGE_LAYOUT_GENERAL;
 
     GPURayTracingPushConstants pc{};
     pc.invView = glm::inverse(m_cache.view);

@@ -11,8 +11,7 @@ int main(int argc, char *argv[]) {
     Logger::AddDefaultSink();
 #ifdef JTX_ENABLE_UI
     jtx::Display display;
-    // display.Init();
-    display.Init("../assets/scenes/ajax/ajax.jtx");
+    display.Init();
     display.Run();
     display.Destroy();
 #else

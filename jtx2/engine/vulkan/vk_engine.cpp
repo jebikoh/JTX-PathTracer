@@ -311,7 +311,7 @@ void VkEngine::UpdateGlobalUniformData() {
     m_gpuGlobalUniformData.sunIntensity   = 10.0f;
     m_gpuGlobalUniformData.vertexBuffer   = m_gpuSceneData.positionAddress;
     m_gpuGlobalUniformData.normalBuffer   = m_gpuSceneData.normalAddress;
-    m_gpuGlobalUniformData.uvBuffer       = m_gpuSceneData.uvAddress;
+    m_gpuGlobalUniformData.texCoordBuffer       = m_gpuSceneData.uvAddress;
     m_gpuGlobalUniformData.colorBuffer    = m_gpuSceneData.colorAddress;
     m_gpuGlobalUniformData.indexBuffer    = m_gpuSceneData.indexAddress;
 }
@@ -615,8 +615,6 @@ void VkEngine::LoadScene(const Scene *pScene) {
     gpuMaterials.reserve(pScene->materials.size());
 
     LOG_DEBUG(VKE, "    Scene has {} materials", pScene->materials.size());
-    // This is mapped so we can easily make UI material updates
-    // TODO: experiment keeping a staging buffer the size of 1 GPUMaterialData persistent for copying
     m_gpuSceneData.materialBuffer = m_gfx.CreateBuffer(sizeof(GPUMaterialData) * pScene->materials.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
     LOG_DEBUG(VKE, "    Created material buffer of size {} bytes", sizeof(GPUMaterialData) * pScene->materials.size());
 
@@ -649,6 +647,7 @@ void VkEngine::LoadScene(const Scene *pScene) {
         obj.world  = glm::mat4(1.0f);
         obj.normal = glm::mat4(1.0f);
         // Resource handles should align with materialIndex
+        obj.startIndex = mesh.startIndex;
         obj.material = mesh.materialIndex;
         gpuObjects.push_back(obj);
 

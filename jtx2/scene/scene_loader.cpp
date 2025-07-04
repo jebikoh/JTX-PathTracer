@@ -104,7 +104,7 @@ JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &sc
 
     const auto &positions = result.attributes.positions;
     const auto &normals   = result.attributes.normals;
-    const auto &uvs       = result.attributes.texcoords;
+    const auto &texCoords       = result.attributes.texcoords;
 
     // Process meshes
     // All mesh data is stored into buffers on the scene struct
@@ -172,9 +172,9 @@ JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &sc
                     scene.texCoords.emplace_back(0, 0);
                 } else {
                     // V coordinates are flipped in OBJ files
-                    scene.texCoords.emplace_back(uvs[i0.texcoord_index * 2 + 0], 1-uvs[i0.texcoord_index * 2 + 1]);
-                    scene.texCoords.emplace_back(uvs[i1.texcoord_index * 2 + 0], 1-uvs[i1.texcoord_index * 2 + 1]);
-                    scene.texCoords.emplace_back(uvs[i2.texcoord_index * 2 + 0], 1-uvs[i2.texcoord_index * 2 + 1]);
+                    scene.texCoords.emplace_back(texCoords[i0.texcoord_index * 2 + 0], 1-texCoords[i0.texcoord_index * 2 + 1]);
+                    scene.texCoords.emplace_back(texCoords[i1.texcoord_index * 2 + 0], 1-texCoords[i1.texcoord_index * 2 + 1]);
+                    scene.texCoords.emplace_back(texCoords[i2.texcoord_index * 2 + 0], 1-texCoords[i2.texcoord_index * 2 + 1]);
                 }
             }
 

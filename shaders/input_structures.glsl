@@ -22,7 +22,7 @@ layout(set = 0, binding = 0) uniform _GPUGlobalUniformData {
 
     vec3buf vertices;
     vec3buf normals;
-    vec2buf uvs;
+    vec2buf texCoords;
     vec3buf colors;
     ivec3buf indices;
 };
@@ -30,10 +30,11 @@ layout(set = 0, binding = 0) uniform _GPUGlobalUniformData {
 struct GPUObjectData {
     mat4 world;
     mat4 normal;
+    uint startIndex;
     uint material;
 };
 
-layout(set = 1, binding = 0) readonly buffer _GPUObjectDataBuffer {
+layout(std430, set = 1, binding = 0) readonly buffer _GPUObjectDataBuffer {
     GPUObjectData objectData[];
 };
 
@@ -47,7 +48,7 @@ struct GPUMaterialData {
     int diffuseTexture;
 };
 
-layout(set = 1, binding = 1) readonly buffer _GPUMaterialDataBuffer {
+layout(std430, set = 1, binding = 1) readonly buffer _GPUMaterialDataBuffer {
     GPUMaterialData materialData[];
 };
 

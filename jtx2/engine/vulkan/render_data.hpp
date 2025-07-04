@@ -33,7 +33,7 @@ struct alignas(256) GPUGlobalUniformData {
 
     VkDeviceAddress vertexBuffer;
     VkDeviceAddress normalBuffer;
-    VkDeviceAddress uvBuffer;
+    VkDeviceAddress texCoordBuffer;
     VkDeviceAddress colorBuffer;
     VkDeviceAddress indexBuffer; // This is needed by RT
 };
@@ -43,7 +43,10 @@ struct alignas(256) GPUGlobalUniformData {
 struct GPUObjectData {
     glm::mat4 world;
     glm::mat4 normal;
+    uint32_t startIndex;
     ResourceHandle material;
+
+    uint32_t _padding[2];
 };
 
 // Binding 1 (SSBO): GPUMaterialData[]
@@ -55,6 +58,8 @@ struct GPUMaterialData {
     vec4 emission;
     vec4 roughness;
     TextureHandle diffuseTexture;
+
+    TextureHandle _padding[3];
 };
 
 // Binding 2 (Combined Image Samplers): scene texture/sampler array

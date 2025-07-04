@@ -7,7 +7,7 @@ layout(push_constant) uniform _PushConstants {
     uint objectId;
 };
 
-layout(location = 0) out vec2 outUV;
+layout(location = 0) out vec2 outTexCoord;
 layout(location = 1) out vec3 outNormal;
 layout(location = 2) flat out uint materialId;
 
@@ -18,5 +18,7 @@ void main() {
     vec3 n = normals.data[gl_VertexIndex];
     outNormal = vec4(n, 0.0f).xyz;
 
-    outUV = uvs.data[gl_VertexIndex];
+    outTexCoord = texCoords.data[gl_VertexIndex];
+
+    materialId = objectData[objectId].material;
 }

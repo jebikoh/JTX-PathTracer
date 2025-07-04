@@ -7,7 +7,7 @@
 #include "raycommon.glsl"
 
 layout(location = 0) rayPayloadInEXT HitPayload prd;
-hitAttributeEXT vec3 attribs;
+hitAttributeEXT vec2 attribs;
 
 void main()
 {
@@ -16,7 +16,7 @@ void main()
 
   const vec3 b = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
 
-  ivec3 idx = indices.data[gl_PrimitiveID];
+  ivec3 idx = indices.data[obj.startIndex + gl_PrimitiveID];
 
   vec3 v0 = vertices.data[idx.x];
   vec3 v1 = vertices.data[idx.y];
@@ -32,7 +32,21 @@ void main()
   const vec3 n = n0 * b.x + n1 * b.y + n2 * b.z;
   const vec3 worldN = normalize(vec3(n * gl_WorldToObjectEXT));
 
-  vec3 L = normalize(vec3(1, 1, 1));
+  const vec3 L = normalize(vec3(1, 1, 1));
+  vec3 intensity = vec3(max(dot(worldN, L), 0.2));
 
-  prd.hitValue = vec3(max(dot(n, L), 0.2));
+  vec3 outColor;
+  if (mat.diffuseTexture >= 0) {
+    vec2 tx0 = texCoords.data[idx.x];
+    vec2 tx1 = texCoords.data[idx.y];
+    vec2 tx2 = texCoords.data[idx.z];
+
+    const vec2 tx = tx0 * b.x + tx1 * b.y + tx2 * b.z;
+    outColor = texture(textures[mat.diffuseTexture], tx).rgb;
+  } else {
+    outColor = mat.diffuse.rgb;
+  }
+  outColor = outColor * intensity;
+
+  prd.hitValue = outColor;
 }

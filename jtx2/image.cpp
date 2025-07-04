@@ -57,7 +57,7 @@ void jtx::Image8u::Destroy() {
 }
 
 JtxResult jtx::Image8u::Load(const std::filesystem::path &path, Image8u &out, bool bApplyEOTF) {
-    LOG_INFO(TEXTURE, "Loading 8-bit texture: {}", path.string());
+    LOG_DEBUG(TEXTURE, "Loading 8-bit texture: {}", path.string());
 
     auto fileExt = path.extension().string();
     std::ranges::transform(fileExt, fileExt.begin(), [](const unsigned char c) { return std::tolower(c); });
@@ -76,12 +76,11 @@ JtxResult jtx::Image8u::Load(const std::filesystem::path &path, Image8u &out, bo
     memcpy(out.pData, data, out.width * out.height * out.channels);
     stbi_image_free(data);
 
-    LOG_INFO(TEXTURE, "Loaded 8-bit texture: {}", path.string());
     return JTX_SUCCESS;
 }
 
 JtxResult jtx::Image8u::Load(const uint8_t *buffer, const size_t size, Image8u &out, bool bApplyEOTF) {
-    LOG_INFO(TEXTURE, "Loading 8-bit texture from memory");
+    LOG_DEBUG(TEXTURE, "Loading 8-bit texture from memory");
 
     if (!buffer || size == 0) {
         LOG_ERROR(TEXTURE, "Invalid buffer provided");
@@ -98,7 +97,6 @@ JtxResult jtx::Image8u::Load(const uint8_t *buffer, const size_t size, Image8u &
     memcpy(out.pData, data, out.width * out.height * out.channels);
     stbi_image_free(data);
 
-    LOG_INFO(TEXTURE, "Loaded 8-bit texture from memory");
     return JTX_SUCCESS;
 }
 

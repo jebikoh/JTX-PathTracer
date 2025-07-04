@@ -8,9 +8,9 @@
 namespace jtx {
 
 static const std::set<std::string> JTX_IMAGE_SUPPORTED_FORMATS_8BIT = {
-        ".jpeg", ".png", ".bmp", ".hdr", ".psd", ".tga", ".gif", ".pic", ".pgm", ".ppm"};
+        ".jpeg", ".jpg", ".png", ".bmp", ".hdr", ".psd", ".tga", ".gif", ".pic", ".pgm", ".ppm"};
 static const std::set<std::string> JTX_IMAGE_SUPPORTED_FORMATS_32BIT = {
-        ".jpeg", ".png", ".bmp", ".hdr", ".psd", ".tga", ".gif", ".pic", ".pgm", ".ppm", ".exr"};
+        ".jpeg", ".jpg", ".png", ".bmp", ".hdr", ".psd", ".tga", ".gif", ".pic", ".pgm", ".ppm", ".exr"};
 
 // Image formats
 struct RGBA8u {

@@ -19,8 +19,14 @@ bool SampleBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3
 
     switch (material.mType) {
         case Material::DIFFUSE: {
-            // Skip texture for now
-            const auto bxdf = DiffuseBRDF(material.parameters.diffuse);
+            vec3 diffuse;
+            if (material.textureIndices.diffuse >= 0) {
+                const auto &tex = scene.textures[material.textureIndices.diffuse];
+                diffuse = tex.SampleRGB(surface.texCoords);
+            } else {
+                diffuse = material.parameters.diffuse;
+            }
+            const auto bxdf = DiffuseBRDF(diffuse);
             if (bxdf.Sample(woLocal, s0, s1, s)) {
                 if (s.pdf == 0.0f) return false;
                 s.wi = frame.ToWorld(s.wi);
@@ -68,10 +74,16 @@ vec3 EvalBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &
 
     const Material &material = *surface.material;
 
-    switch (surface.material->mType) {
+    switch (material.mType) {
         case Material::DIFFUSE: {
-            // Skip texture for now
-            const auto bxdf = DiffuseBRDF(material.parameters.diffuse);
+            vec3 diffuse;
+            if (material.textureIndices.diffuse >= 0) {
+                const auto &tex = scene.textures[material.textureIndices.diffuse];
+                diffuse = tex.SampleRGB(surface.texCoords);
+            } else {
+                diffuse = material.parameters.diffuse;
+            }
+            const auto bxdf = DiffuseBRDF(diffuse);
             return bxdf.Evaluate(woLocal, wiLocal);
         }
         case Material::CONDUCTOR: {
@@ -99,10 +111,16 @@ float PDFBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &
 
     const Material &material = *surface.material;
 
-    switch (surface.material->mType) {
+    switch (material.mType) {
         case Material::DIFFUSE: {
-            // Skip texture for now
-            const auto bxdf = DiffuseBRDF(material.parameters.diffuse);
+            vec3 diffuse;
+            if (material.textureIndices.diffuse >= 0) {
+                const auto &tex = scene.textures[material.textureIndices.diffuse];
+                diffuse = tex.SampleRGB(surface.texCoords);
+            } else {
+                diffuse = material.parameters.diffuse;
+            }
+            const auto bxdf = DiffuseBRDF(diffuse);
             return bxdf.PDF(woLocal, wiLocal);
         }
         case Material::CONDUCTOR: {

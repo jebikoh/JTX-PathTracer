@@ -182,7 +182,7 @@ JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &sc
         }
     }
 
-    LOG_INFO(LOADER,"OBJ file loaded with {} meshes, {} triangles, {} materials", scene.meshes.size(), scene.indices.size(), scene.materials.size());
+    LOG_INFO(LOADER, "OBJ file loaded with {} meshes, {} triangles, {} materials, {} textures", scene.meshes.size(), scene.indices.size(), scene.materials.size(), scene.textures.size());
     return JTX_SUCCESS;
 }
 
@@ -368,6 +368,6 @@ JtxResult jtx::detail::LoadJtx(const std::filesystem::path &path, Scene &scene) 
         }
     }
 
-    LOG_INFO(LOADER, "JTX file loaded with {} meshes, {} triangles, {} materials", scene.meshes.size(), scene.indices.size(), scene.materials.size());
+    LOG_INFO(LOADER, "JTX file loaded with {} meshes, {} triangles, {} materials, {} textures", scene.meshes.size(), scene.indices.size(), scene.materials.size(), scene.textures.size());
     return JTX_SUCCESS;
 }

@@ -7,27 +7,22 @@
 
 namespace jtx {
 
+JTX_FORCE_INLINE float UNORM8ToFloat(const uint8_t c) {
+    constexpr float inv255 = 1.0f / 255.0f;
+    return c * inv255;
+}
+
+// https://learn.microsoft.com/en-us/windows/win32/direct3d10/d3d10-graphics-programming-guide-resources-data-conversion#conververting-from-a-higher-range-representation-to-a-lower-range-representation
+JTX_FORCE_INLINE uint8_t FloatToUNORM8(const float c) {
+    return static_cast<uint8_t>(std::clamp(c, 0.0f, 1.0f) * 255.0f + 0.5f);
+}
+
+// TODO: merge these into a unified format
+
 static const std::set<std::string> JTX_IMAGE_SUPPORTED_FORMATS_8BIT = {
         ".jpeg", ".jpg", ".png", ".bmp", ".hdr", ".psd", ".tga", ".gif", ".pic", ".pgm", ".ppm"};
 static const std::set<std::string> JTX_IMAGE_SUPPORTED_FORMATS_32BIT = {
         ".jpeg", ".jpg", ".png", ".bmp", ".hdr", ".psd", ".tga", ".gif", ".pic", ".pgm", ".ppm", ".exr"};
-
-// Image formats
-struct RGBA8u {
-    uint8_t r, g, b, a;
-};
-
-struct RGB8u {
-    uint8_t r, g, b;
-};
-
-struct RGBA32f {
-    float r, g, b, a;
-};
-
-struct RGB32f {
-    float r, g, b;
-};
 
 // Image classes
 
@@ -112,22 +107,6 @@ public:
 
     JtxResult Save(const std::filesystem::path &path, bool bFlip = true) const;
 
-    /**
-     * Retrieves pixel value at given coordinates. If the requested format has more channels
-     * than the image's format (RGB8u vs RGBA8u), the remaining channels will be set to 1.
-     *
-     * Using a wider pixel format (RGB32f, RGBA32f) will cast the values to the requested format
-     *
-     * This does not perform any bounds check--invalid coordinates will trigger a segfault
-     * If you are retrieving data in a tight-loop, consider using the pointer macros instead
-     * @tparam T pixel format. Must be a format of 8-bit or higher precision
-     * @param row row
-     * @param col column
-     * @return pixel value at given coordinates in given format
-     */
-    template<typename T>
-    T GetPixel(int row, int col);
-
     const uint8_t &operator[](const int index) const { return pData[index]; }
     uint8_t &operator[](const int index) { return pData[index]; }
 
@@ -152,42 +131,9 @@ public:
         channels = c;
         pData = new uint8_t[w * h * c]();
     }
+
+    vec3 SampleRGB(const vec2 &tx) const;
 };
-
-template<typename T>
-T Image8u::GetPixel(int row, int col) {
-    LOG_ERROR(TEXTURE, "Attempted to retrieve pixel in unsupported format");
-    return T::unimplemented;
-}
-
-template<>
-inline RGB8u Image8u::GetPixel<RGB8u>(const int row, const int col) {
-    const int i = (row * width + col) * channels;
-    return {pData[i], pData[i + 1], pData[i + 2]};
-}
-
-template<>
-inline RGBA8u Image8u::GetPixel<RGBA8u>(const int row, const int col) {
-    const int i   = (row * width + col) * channels;
-    RGBA8u result = {pData[i], pData[i + 1], pData[i + 2], 1};
-    if (channels == 4) { result.a = pData[i + 3]; }
-    return result;
-}
-
-template<>
-inline RGB32f Image8u::GetPixel<RGB32f>(const int row, const int col) {
-    const int i = (row * width + col) * channels;
-    return {static_cast<float>(pData[i]), static_cast<float>(pData[i + 1]), static_cast<float>(pData[i + 2])};
-}
-
-template<>
-inline RGBA32f Image8u::GetPixel<RGBA32f>(const int row, const int col) {
-    const int i    = (row * width + col) * channels;
-    RGBA32f result = {
-            static_cast<float>(pData[i]), static_cast<float>(pData[i + 1]), static_cast<float>(pData[i + 2]), 1.0f};
-    if (channels == 4) { result.a = static_cast<float>(pData[i + 3]); }
-    return result;
-}
 
 /**
  * Represents an image with 32-bit float channels: RGBA32f and RGB32f
@@ -252,20 +198,6 @@ public:
      */
     static JtxResult Load(const uint8_t *buffer, size_t size, Image32f &out);
 
-    /**
-     * Retrieves pixel value at given coordinate. If the requested format has more channels
-     * than the image's format (RGB32f vs RGBA32f), the remaining channels will be set to 1.0f
-     *
-     * This does not perform any bounds check--invalid coordinates will trigger a segfault
-     * If you are retrieving data in a tight-loop, consider using the pointer macros instead
-     * @tparam T pixel format. Must be a 32-bit float format (RGB32f or RGBA32f)
-     * @param row row
-     * @param col column
-     * @return pixel value at given coordinates in given format
-     */
-    template<typename T>
-    T GetPixel(int row, int col);
-
     const float &operator[](const int index) const { return pData[index]; }
     float &operator[](const int index) { return pData[index]; }
 
@@ -285,26 +217,6 @@ public:
         pData = new float[w * h * c]();
     }
 };
-
-template<typename T>
-T Image32f::GetPixel(int row, int col) {
-    LOG_ERROR(TEXTURE, "Attempted to retrieve pixel in unsupported format");
-    return T::unimplemented;
-}
-
-template<>
-inline RGB32f Image32f::GetPixel<RGB32f>(const int row, const int col) {
-    const int i = (row * width + col) * channels;
-    return {pData[i], pData[i + 1], pData[i + 2]};
-}
-
-template<>
-inline RGBA32f Image32f::GetPixel<RGBA32f>(const int row, const int col) {
-    const int i    = (row * width + col) * channels;
-    RGBA32f result = {pData[i], pData[i + 1], pData[i + 2], 1.0f};
-    if (channels == 4) { result.a = pData[i + 3]; }
-    return result;
-}
 
 /**
  * Calculates the Mean Squared Error (MSE) between two images.

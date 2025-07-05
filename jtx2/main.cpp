@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
     display.Destroy();
 #else
     jtx::Scene scene;
-    CHECK_JTX(jtx::LoadScene("../assets/scenes/knobs/knobs2.jtx", scene));
+    CHECK_JTX(jtx::LoadScene("../assets/scenes/knobs/knob.jtx", scene));
 
     jtx::RenderSettings rs;
     rs.maxDepth = 32;
@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
     backend.Init(1920, 1080, rs);
     backend.LoadScene(&scene);
     backend.StartOfflineRender();
-    CHECK_JTX(backend.SaveRenderOutput("knobsv2.png"));
+    CHECK_JTX(backend.SaveRenderOutput("knob.png"));
     backend.Destroy();
 #endif
 

@@ -83,7 +83,7 @@ vec3 EvalBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &
             return bxdf.Evaluate(woLocal, wiLocal);
         }
         case Material::DIELECTRIC: {
-            const auto bxdf = DielectricBxDF(material.parameters.ior.x);
+            const auto bxdf = DielectricBxDF(material.parameters.roughness, material.parameters.ior.x);
             return bxdf.Evaluate(woLocal, wiLocal);
         }
         default:
@@ -114,7 +114,7 @@ float PDFBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &
             return bxdf.PDF(woLocal, wiLocal);
         }
         case Material::DIELECTRIC: {
-            const auto bxdf = DielectricBxDF(material.parameters.ior.x);
+            const auto bxdf = DielectricBxDF(material.parameters.roughness, material.parameters.ior.x);
             return bxdf.PDF(woLocal, wiLocal);
         }
         default:

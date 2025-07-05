@@ -5,7 +5,7 @@
 #include <thread>
 #include <scene/scene_exporter.hpp>
 
-#define JTX_ENABLE_UI
+// #define JTX_ENABLE_UI
 
 int main(int argc, char *argv[]) {
     Logger::AddDefaultSink();
@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
     backend.Init(1920, 1080, rs);
     backend.LoadScene(&scene);
     backend.StartOfflineRender();
-    CHECK_JTX(backend.SaveRenderOutput("knobs.png"));
+    CHECK_JTX(backend.SaveRenderOutput("knobsv2.png"));
     backend.Destroy();
 #endif
 

@@ -53,7 +53,7 @@ public:
         if (denominator < 1e-7f) return {};
 
         const float numerator = m_ggx.EvaluateNDF(wm)  * T * m_ggx.EvaluateShadowingMasking(wo, wi) * Abs(Dot(wi, wm) * Dot(wo, wm));
-        return vec3(numerator / denominator / (eta * eta));
+        return vec3(numerator / denominator);
     }
 
     bool Sample(const vec3 &wo, const float s0, const vec2 &s1, BxDFSample &s) const {
@@ -120,7 +120,7 @@ public:
             denominator *= Abs(CosTheta(s.wi) * CosTheta(wo));
             if (denominator < 1e-7f) return false;
 
-            s.f = vec3(numerator / denominator / (s.eta * s.eta));
+            s.f = vec3(numerator / denominator);
             s.bTransmission = true;
         }
         s.bSpecular = false;

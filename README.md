@@ -41,6 +41,8 @@ And the far future:
 
 ![knobs](https://github.com/user-attachments/assets/8299adf3-f817-4477-82d3-45d28a46ed80)
 
+![knob](https://github.com/user-attachments/assets/b756c618-eca3-493a-a609-a1003155a4a6)
+
 ---
 
 This is my physically-based Monte Carlo path tracer, based on PBRTv4, built with multithreaded and vectorized C++ 20 and a interactive UI made with SDL2, OpenGL, and ImGui.

@@ -39,7 +39,7 @@ And the far future:
  - Metropolis Light Transport
  - CUDA OptiX backend
 
-![knobs_cropped](https://github.com/user-attachments/assets/11735849-d9ba-4f7f-99b6-ea49611dd942)
+![knobs](https://github.com/user-attachments/assets/8299adf3-f817-4477-82d3-45d28a46ed80)
 
 ---
 

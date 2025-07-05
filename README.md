@@ -2,8 +2,6 @@
 
 **Update June 2025**:
 
-![ajax](https://github.com/user-attachments/assets/6b44f17f-84d6-46f5-9214-547d9cb30931)
-
 I am currently in the process of rewriting the original project. The code for this can be found in JTX2.
 
 My original version (for which everything below this point is for) was becoming too unwieldy to work with as it was very much a learning project. I also wanted to incorporate my Vulkan path tracer projects (and eventually, my CUDA OptiX projects) into one project.
@@ -39,9 +37,13 @@ And the far future:
  - Metropolis Light Transport
  - CUDA OptiX backend
 
+![ajax](https://github.com/user-attachments/assets/6b44f17f-84d6-46f5-9214-547d9cb30931)
+
 ![knobs](https://github.com/user-attachments/assets/8299adf3-f817-4477-82d3-45d28a46ed80)
 
 ![knob](https://github.com/user-attachments/assets/b756c618-eca3-493a-a609-a1003155a4a6)
+
+![knob](https://github.com/user-attachments/assets/86913d61-663d-4254-91e1-03062a4fb8b1)
 
 ---
 

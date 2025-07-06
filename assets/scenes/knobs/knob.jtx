@@ -129,8 +129,8 @@
                     0.0
                 ],
                 "roughness": [
-                    0.0,
-                    0.0
+                    0.15,
+                    0.15
                 ]
             },
             "textureIndices": {

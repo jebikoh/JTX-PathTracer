@@ -210,15 +210,37 @@ void VkEngine::SkipEvent() {
 
 void VkEngine::DrawSettingsPanel(UiDrawContext &ctx) {
     ctx.StartRectangleBackground();
-    if (ctx.StartTable("WingViewportTable")) {
+    if (ctx.StartTable("VkRasterizationTable")) {
+        ctx.NewRow("Rasterization");
         ctx.NewRow("Draw grid");
         ImGui::Checkbox("##Grid", &m_bDrawGrid);
-
-        ctx.NewRow("Ray Tracing");
-        ImGui::Checkbox("##RT", &m_bRayTracingEnabled);
-
         ctx.EndTable();
     }
+
+    ImGui::Separator();
+
+    if (ctx.StartTable("VkRayTracingTable")) {
+        if (!m_bRayTracingAvailable) ImGui::BeginDisabled();
+        ctx.NewRow("Ray Tracing");
+        ctx.NewRow("Enable");
+        ImGui::Checkbox("##RT", &m_bRayTracingEnabled);
+
+        ctx.NewRow("Max frames");
+        int32_t maxFrames = m_rtMaxFrames;
+        if (ImGui::DragInt("##MaxFrames", &maxFrames)) {
+            m_rtMaxFrames = static_cast<uint32_t>(maxFrames);
+        }
+
+        ctx.NewRow("Samples Per Frame");
+        int32_t samplePerFrame = m_rtSamplesPerFrame;
+        if (ImGui::DragInt("##SamplesPerFrame", &samplePerFrame, 1, 1, 32)) {
+            m_rtSamplesPerFrame = static_cast<uint32_t>(samplePerFrame);
+        }
+
+        if (!m_bRayTracingAvailable) ImGui::EndDisabled();
+        ctx.EndTable();
+    }
+
     ctx.EndRectangleBackground();
 }
 
@@ -1034,9 +1056,10 @@ void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const {
     ctx.layout.draw32f = VK_IMAGE_LAYOUT_GENERAL;
 
     RayTracingPushConstants pc{};
-    pc.invView = glm::inverse(m_cache.view);
-    pc.invProj = glm::inverse(m_cache.proj);
-    pc.frame   = m_rtFrameNumber;
+    pc.invView         = glm::inverse(m_cache.view);
+    pc.invProj         = glm::inverse(m_cache.proj);
+    pc.frame           = m_rtFrameNumber;
+    pc.samplesPerFrame = m_rtSamplesPerFrame;
 
     const auto sceneDescriptorSet = m_frameData[m_gfx.GetCurrentFrameIndex()].gpuGlobalUniformDataDescriptorSet;
     const std::vector descriptorSets{sceneDescriptorSet, m_bindlessDescriptorSet};

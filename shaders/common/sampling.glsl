@@ -1,12 +1,12 @@
 vec3 SampleUniformSphere(vec2 s) {
     const float z = 1 - 2 * s.x;
     const float a = sqrt(1.0f - z * z);
-    const float phi = TWO_PI * s.y;
+    const float phi = TAU * s.y;
     return vec3(cos(phi) * a, sin(phi) * a, z);
 }
 
 float UniformSpherePDF() {
-    return INV_FOUR_PI;
+    return INV_4_PI;
 }
 
 vec2 UniformDiscPolar(vec2 s) {
@@ -40,7 +40,7 @@ vec3 UniformHemisphere(vec2 s) {
 }
 
 float UniformHemispherePDF() {
-    return INV_TWO_PI;
+    return INV_2_PI;
 }
 
 vec3 CosineHemisphere(vec2 s) {

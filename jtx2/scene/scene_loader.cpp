@@ -6,6 +6,9 @@
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/rapidjson.h>
 #include <rapidobj.hpp>
+
+#include <fastgltf/core.hpp>
+
 #include <unordered_set>
 
 JtxResult jtx::LoadScene(const std::filesystem::path &path, Scene &scene) {

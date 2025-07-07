@@ -1,9 +1,12 @@
 struct HitPayload {
-    float hitT;
-    
+    bool bIsMiss;
+    vec2 s1;
 
+    vec3 emission;    
+    vec3 f;
+    float pdf;
+    vec3 direction;
+
+    vec3 position;
     vec3 normal;
-    vec3 albedo;
-    vec3 emission;
-    vec3 hitValue;
 };

@@ -4,6 +4,7 @@
 
 #include "input_structures.glsl"
 #include "raycommon.glsl"
+#include "common/global.glsl"
 
 layout(set = 0, binding = 1, rgba32f) uniform image2D image;
 layout(set = 1, binding = 3) uniform accelerationStructureEXT topLevelAS;
@@ -11,13 +12,61 @@ layout(set = 1, binding = 3) uniform accelerationStructureEXT topLevelAS;
 layout(push_constant) uniform _PushConstants {
     mat4 invProj;
     mat4 invView;
+    uint frame;
+    uint samplesPerFrame;
+};
+
+struct ray {
+    vec4 position;
+    vec4 direction;
 };
 
 layout(location = 0) rayPayloadEXT HitPayload prd;
 
 void main() 
 {
-    const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
+    uint start = frame * samplesPerFrame;
+    uint stop  = start + samplesPerFrame;
+
+    for (int sample = start; sample < stop; sample++) {
+        InitRNG(gl_LaunchIDEXT.x, gl_LaunchIDEXT.y, sample);
+
+        // Camera ray
+        const float d1 = UniformFloat();
+        const float d2 = UniformFloat();
+        const vec2 jitter = vec2(d1, d2);
+
+        const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + jitter;
+        const vec2 inUV        = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
+        const vec2 d           = inUV * 2.0 - 1.0;
+
+        vec4 rayPosition  = invView * vec4(0, 0, 0, 1);
+        vec4 target    = invProj * vec4(d.x, d.y, 1, 1);
+        vec4 rayDirection = invView * vec4(normalize(target.xyz), 0.0);
+
+        uint rayFlags = gl_RayFlagsOpaqueEXT;
+        float tMin    = 0.001;
+        float tMax    = 10000.0;
+
+        // Integration
+        vec3 radiance = vec3(0.0f);
+        vec3 beta     = vec3(1.0f);
+        int depth     = 0;
+
+        while (true) {
+            
+        }
+    }
+
+
+    // TODO: update seed when we do more than one per frame
+    InitRNG(gl_LaunchIDEXT.x, gl_LaunchIDEXT.y, );
+    float r1 = UniformFloat();
+    float r2 = UniformFloat();
+
+    vec2 jitter = frame == 0 ? vec2(0.5f, 0.5f) : vec2(r1, r2);
+
+    const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + jitter;
     const vec2 inUV = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
     vec2 d = inUV * 2.0 - 1.0;
 
@@ -43,5 +92,11 @@ void main()
         0
     );
 
-    imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(prd.hitValue, 1.0));
+    if (frame > 0) {
+        float a = 1.0f / float(frame + 1);
+        vec3 oldColor = imageLoad(image, ivec2(gl_LaunchIDEXT.xy)).xyz;
+        imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(mix(oldColor, prd.hitValue, a), 1.0f));
+    } else {
+        imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(prd.hitValue, 1.0));
+    }
 }

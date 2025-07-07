@@ -68,7 +68,7 @@ struct GPUMaterialData {
 
 
 // == Push constants ==
-struct GPUDrawPushConstants {
+struct DrawPushConstants {
     ResourceHandle objectID;
 };
 
@@ -78,9 +78,11 @@ struct GridPushConstants {
     glm::vec4 cameraPos;
 };
 
-struct GPURayTracingPushConstants {
+struct RayTracingPushConstants {
     glm::mat4 invProj;
     glm::mat4 invView;
+    uint32_t frame;
+    uint32_t samplesPerFrame;
 };
 
 

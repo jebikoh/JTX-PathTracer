@@ -76,14 +76,16 @@ private:
     const GfxContext &m_gfx;
     jvk::ViewRectangle m_viewRectangle{};
 
+
     const Scene *m_pScene = nullptr;
     OrbitCamera m_camera{};
 
     // == State ==
-    bool m_bSceneLoaded         = false;
-    bool m_bDrawGrid            = true;
-    bool m_bRayTracingAvailable = false;
-    bool m_bRayTracingEnabled   = false;
+    bool m_bSceneLoaded                    = false;
+    bool m_bDrawGrid                       = true;
+    bool m_bRayTracingAvailable            = false;
+    bool m_bRayTracingEnabled              = false;
+    bool m_bRayTracingEnabledPreviousFrame = false;
 
     // == Descriptor Sets ==
     void InitDescriptors();
@@ -174,6 +176,10 @@ private:
     void DestroyRayTracingSBT();
 
     void RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const;
+
+    uint32_t m_rtFrameNumber     = 0;
+    uint32_t m_rtSamplesPerFrame = 10;
+    uint32_t m_rtMaxFrames       = 100;// TODO: temporary
 
     // == Cache ==
     struct Cache {

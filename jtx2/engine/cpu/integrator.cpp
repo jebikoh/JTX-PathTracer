@@ -4,7 +4,7 @@
 #include <util/sampling.hpp>
 #include <engine/cpu/bxdf/bxdf.hpp>
 
-// Basic path tracer without MIS or NEE
+// Basic path tracer without MIS, NEE, or RR
 vec3 jtx::Integrate(ray r, const Scene &scene, const BVH &bvh, int maxDepth, Sampler &rng) {
     auto radiance = vec3(0.0f);
     auto beta     = vec3(1.0f);

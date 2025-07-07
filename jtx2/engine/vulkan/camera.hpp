@@ -25,6 +25,10 @@ public:
     float dollySpeed = 1.1f;
     float panSpeed   = 1.0f;
 
+    bool HasChanged() const {
+        return m_bCameraChanged;
+    }
+
     glm::vec3 GetFrontVector() const { return orientation * glm::vec3(0, 0, -1); }
     glm::vec3 GetRightVector() const { return orientation * glm::vec3(1, 0, 0); }
     glm::vec3 GetUpVector() const { return orientation * glm::vec3(0, 1, 0); }
@@ -83,6 +87,7 @@ public:
             if (e.wheel.y != 0) {
                 const float zoomFactor = (e.wheel.y > 0) ? (1.0f / dollySpeed) : dollySpeed;
                 distance               = std::max(0.01f, distance * std::powf(zoomFactor, std::abs(e.wheel.y)));
+                m_bCameraChanged = true;
             }
             return;
         }
@@ -104,6 +109,7 @@ public:
                 glm::vec3 right = orientation * glm::vec3(1, 0, 0);
                 orientation = glm::angleAxis(dPitch, right) * orientation;
             }
+            m_bCameraChanged = true;
             return;
         }
 
@@ -112,6 +118,7 @@ public:
             if (e.type == SDL_MULTIGESTURE && std::abs(e.mgesture.dDist) > 0.002f) {
                 const float zoomFactor = e.mgesture.dDist > 0.0f ? 1.0f / dollySpeed : dollySpeed;
                 distance               = std::max(0.01f, distance * zoomFactor);
+                m_bCameraChanged = true;
             }
             return;
         }
@@ -138,6 +145,8 @@ public:
                 glm::vec3 right = orientation * glm::vec3(1, 0, 0);
                 orientation = glm::angleAxis(dPitch, right) * orientation;
             }
+
+            m_bCameraChanged = true;
         }
     }
 
@@ -154,15 +163,14 @@ public:
         m_bMmbHeld     = false;
     }
 
-    /**
-     * This should be called once per frame after input has been handled
-     */
+
     void Update() {
         position = target - GetFrontVector() * distance;
-        // LOG_DEBUG(RASTERIZER, "Camera Position: ({}, {}, {})", position.x, position.y, position.z);
+        m_bCameraChanged = false;
     }
 
 private:
+    bool m_bCameraChanged = false;
     std::unordered_map<SDL_FingerID, glm::vec2> m_fingers;
     glm::vec2 m_lastCenter{0.0f};
     glm::vec2 m_lastMousePos{0.0f};

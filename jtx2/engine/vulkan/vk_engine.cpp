@@ -40,7 +40,18 @@ void VkEngine::Destroy() {
 }
 
 void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
+    // Reset frame count if ray tracing was just enabled
+    if (m_bRayTracingEnabled && !m_bRayTracingEnabledPreviousFrame) m_rtFrameNumber = -1;
+    m_bRayTracingEnabledPreviousFrame = m_bRayTracingEnabled;
+
+    if (m_camera.HasChanged()) {
+        m_camera.Update();
+        m_rtFrameNumber = -1;
+    }
+    m_rtFrameNumber++;
+
     UpdateGlobalUniformData();
+
     if (m_bSceneLoaded) {
         PopulateContext();
     }
@@ -161,7 +172,7 @@ void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
                 vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, *r.materialPipeline);
             }
 
-            GPUDrawPushConstants pushConstants{};
+            DrawPushConstants pushConstants{};
             pushConstants.objectID = r.objectID;
             vkCmdPushConstants(ctx.cmd, m_materialPipelines.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConstants), &pushConstants);
 
@@ -291,8 +302,6 @@ void VkEngine::DestroyDescriptors() const {
 }
 
 void VkEngine::UpdateGlobalUniformData() {
-    m_camera.Update();
-
     float aspectRatio;
     if (m_viewRectangle.w > 0 && m_viewRectangle.h > 0) {
         aspectRatio = static_cast<float>(m_viewRectangle.w) / static_cast<float>(m_viewRectangle.h);
@@ -353,7 +362,7 @@ void VkEngine::InitMaterialPipelines() {
 
     VkPushConstantRange pc{};
     pc.offset     = 0;
-    pc.size       = sizeof(GPUDrawPushConstants);
+    pc.size       = sizeof(DrawPushConstants);
     pc.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
     const VkDescriptorSetLayout descriptorSetLayouts[] = {m_gpuGlobalUniformDataDescriptorLayout, m_bindlessDescriptorSetLayout};
@@ -896,7 +905,7 @@ void VkEngine::InitRayTracingPipeline() {
     VkPushConstantRange pc{};
     pc.stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR;
     pc.offset     = 0;
-    pc.size       = sizeof(GPURayTracingPushConstants);
+    pc.size       = sizeof(RayTracingPushConstants);
 
     const std::vector descriptorLayouts{m_gpuGlobalUniformDataDescriptorLayout, m_bindlessDescriptorSetLayout};
 
@@ -1017,15 +1026,17 @@ void VkEngine::DestroyRayTracingSBT() {
 
 void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const {
     if (!m_bSceneLoaded) return;
+    if (m_rtFrameNumber >= m_rtMaxFrames) return;
 
     const auto &drawImage = m_gfx.targets.draw32f;
 
     jvk::TransitionImageIfNeeded(ctx.cmd, drawImage.image, ctx.layout.draw32f, VK_IMAGE_LAYOUT_GENERAL);
     ctx.layout.draw32f = VK_IMAGE_LAYOUT_GENERAL;
 
-    GPURayTracingPushConstants pc{};
+    RayTracingPushConstants pc{};
     pc.invView = glm::inverse(m_cache.view);
     pc.invProj = glm::inverse(m_cache.proj);
+    pc.frame   = m_rtFrameNumber;
 
     const auto sceneDescriptorSet = m_frameData[m_gfx.GetCurrentFrameIndex()].gpuGlobalUniformDataDescriptorSet;
     const std::vector descriptorSets{sceneDescriptorSet, m_bindlessDescriptorSet};
@@ -1045,7 +1056,7 @@ void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const {
             m_rayTracingPipeline.layout,
             VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR,
             0,
-            sizeof(GPURayTracingPushConstants),
+            sizeof(RayTracingPushConstants),
             &pc);
     vkCmdTraceRaysKHR(
             ctx.cmd,
@@ -1056,7 +1067,6 @@ void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const {
             m_viewRectangle.w,
             m_viewRectangle.h,
             1);
-    return;
 }
 
 }// namespace jtx

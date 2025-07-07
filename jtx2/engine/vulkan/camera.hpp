@@ -23,7 +23,7 @@ public:
 
     float orbitSpeed = 1.0f;
     float dollySpeed = 1.1f;
-    float panSpeed   = 1.0f;
+    float panSpeed   = 4.0f;
 
     bool HasChanged() const {
         return m_bCameraChanged;

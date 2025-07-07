@@ -56,21 +56,26 @@ void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
         PopulateContext();
     }
 
-    // Calculate resolve region
-    region.src[0].width = region.dst[0].width = m_viewRectangle.x;
-    region.src[0].height = region.dst[0].height = m_viewRectangle.y;
-    region.src[1].width = region.dst[1].width = m_viewRectangle.x + m_viewRectangle.w;
-    region.src[1].height = region.dst[1].height = m_viewRectangle.y + m_viewRectangle.h;
-
     // Calculate viewport
     const VkRect2D renderArea{
             {m_viewRectangle.x, m_viewRectangle.y},
             {m_viewRectangle.w, m_viewRectangle.h}};
 
+    region.dst[0].width = m_viewRectangle.x;
+    region.dst[0].height = m_viewRectangle.y;
+    region.dst[1].width = m_viewRectangle.x + m_viewRectangle.w;
+    region.dst[1].height = m_viewRectangle.y + m_viewRectangle.h;
+
+    // TODO: rework ResolveRegion
     if (m_bRayTracingEnabled) {
+        region.src[0] = {0, 0};
+        region.src[1].width = m_viewRectangle.w;
+        region.src[1].height = m_viewRectangle.h;
         region.target = kRenderTarget::DRAW32f;
         RayTrace(ctx, glm::vec4(0.2f, 0.2f, 0.2f, 1.0f));
     } else {
+        region.src[0] = region.dst[0];
+        region.src[1] = region.dst[1];
         region.target = kRenderTarget::DRAW16f;
         Rasterize(ctx, renderArea);
     }

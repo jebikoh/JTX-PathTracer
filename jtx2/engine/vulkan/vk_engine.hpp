@@ -178,8 +178,8 @@ private:
     void RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const;
 
     uint32_t m_rtFrameNumber     = 0;
-    uint32_t m_rtSamplesPerFrame = 10;
-    uint32_t m_rtMaxFrames       = 100;// TODO: temporary
+    uint32_t m_rtSamplesPerFrame = 16;
+    uint32_t m_rtMaxFrames       = 128; // TODO: parameterize by samples
 
     // == Cache ==
     struct Cache {

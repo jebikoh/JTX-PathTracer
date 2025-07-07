@@ -560,7 +560,7 @@
         }
     ],
     "vertexData": {
-        "binary": "knobs2.bin",
+        "binary": "knobs.bin",
         "layout": {
             "indices": {
                 "offset": 0,

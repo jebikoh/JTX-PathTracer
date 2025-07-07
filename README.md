@@ -2,11 +2,11 @@
 
 **Update June 2025**:
 
-I am currently in the process of rewriting the original project. The code for this can be found in JTX2.
+I am currently in the process of rewriting the original project. The code for this can be found in `jtx2/`.
 
 My original version (for which everything below this point is for) was becoming too unwieldy to work with as it was very much a learning project. I also wanted to incorporate my Vulkan path tracer projects (and eventually, my CUDA OptiX projects) into one project.
 
-Here a rough overview of what is currently implemented:
+Currently implemented:
 - Unidirectional (backwards) Monte-Carlo Path Tracing
 - Multiple-Importance Sampling (MIS) with uniform light sampling
 - Russian Roulette
@@ -14,10 +14,9 @@ Here a rough overview of what is currently implemented:
 - Vulkan/SDL2 interactive display
 - Forward rasterization pipeline for scene preview
 - SSE4.2/NEON QBVH Trees: [Shallow Bounding Volume Hierarchies for Fast SIMD Ray Tracing of Incoherent Rays](https://www.uni-ulm.de/fileadmin/website_uni_ulm/iui.inst.100/institut/Papers/QBVH.pdf)
-- Working hardware RT pipeline on compatible hardware
+- Interactive Vulkan RT pipeline
 
-Here is what I am currently working on/researching:
- - Interactive progressive rending RT pipeline (Vulkan)
+Currently working on/researching:
  - Ashikhmin-Shirley BRDF: [An anisotrphic phong BRDF model](https://www.researchgate.net/publication/2523875_An_anisotropic_phong_BRDF_model)
  - Layered BSDFs: [Position-free monte carlo simulation for arbitrary layered BSDFs](https://dl.acm.org/doi/10.1145/3272127.3275053#supplementary-materials)
  - d'Eon Diffuse BRDF: [An analytic BRDF for materials with spherical Lambertian scatterers](https://research.nvidia.com/publication/2021-06_analytic-brdf-materials-spherical-lambertian-scatterers)
@@ -26,16 +25,18 @@ Here is what I am currently working on/researching:
      - [Practical multiple scattering compensation for microfacet models](https://blog.selfshadow.com/publications/turquin/ms_comp_final.pdf)
  - [Disney BSDF](https://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_slides.pdf)
 
-Here is what I plan on integrating in the near future:
+Future features:
  - Single/multiple scattering homogeneous participating media
  - Radiance caching
  - BSSRDF
 
-And the far future:
+Far future features:
  - CPU bidirectional path tracing
  - [Vectorized Production Path Tracing](https://stg-research.dreamworks.com/wp-content/uploads/2018/07/Vectorized_Production_Path_Tracing_DWA_2017.pdf) on the CPU
  - Metropolis Light Transport
  - CUDA OptiX backend
+
+https://github.com/user-attachments/assets/69ecdfaf-d2df-4946-abe9-26715a2f2ede
 
 ![ajax](https://github.com/user-attachments/assets/6b44f17f-84d6-46f5-9214-547d9cb30931)
 
@@ -46,6 +47,10 @@ And the far future:
 ![knob](https://github.com/user-attachments/assets/86913d61-663d-4254-91e1-03062a4fb8b1)
 
 ---
+
+## OLD VERSION
+
+(Code can be found in the `src/` directory)
 
 This is my physically-based Monte Carlo path tracer, based on PBRTv4, built with multithreaded and vectorized C++ 20 and a interactive UI made with SDL2, OpenGL, and ImGui.
 

@@ -22,7 +22,7 @@ namespace jtx {
  */
 class Display {
 public:
-    Display() : m_gfx(), m_uiRenderer(m_gfx), m_vk(m_gfx) {};
+    Display() : m_gfx(), m_ui(m_gfx), m_vk(m_gfx) {};
 
     void Init();
     // Loads scene during initialization
@@ -41,7 +41,7 @@ private:
     bool m_bSceneLoaded = false;
 
     GfxContext m_gfx;
-    UIRenderer m_uiRenderer;
+    UIRenderer m_ui;
     VkEngine m_vk;
 
     void ImportScene();

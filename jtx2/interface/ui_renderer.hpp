@@ -82,9 +82,14 @@ public:
     bool GetViewportRectangle(jvk::ViewRectangle &out) const;
 
     void RegisterViewportBackend(ViewportBackend id, const char *name, const std::function<void(UiDrawContext &)> &settings);
+
+    void LoadScene(Scene *scene);
 private:
     const GfxContext &m_gfx;
     VkDescriptorPool m_descriptorPool{};
+
+    Scene *m_pScene{};
+    std::vector<std::string> objects{};
 
     // We need to store the central node so we can easily retrieve its dimensions
     ImGuiDockNode *m_pCentralNode{};

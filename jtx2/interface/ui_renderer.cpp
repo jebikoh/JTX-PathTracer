@@ -1,6 +1,5 @@
 #include "nfd.h"
 
-
 #include <interface/display.hpp>
 #include <interface/ui_renderer.hpp>
 
@@ -158,7 +157,14 @@ bool UIRenderer::GetViewportRectangle(jvk::ViewRectangle &out) const {
 }
 void UIRenderer::RegisterViewportBackend(const ViewportBackend id, const char *name, const std::function<void(UiDrawContext &)> &settings) {
     m_viewportBackendSettings[id] = settings;
-    m_viewportBackendNames[id] = name;
+    m_viewportBackendNames[id]    = name;
+}
+
+void UIRenderer::LoadScene(Scene *scene) {
+    this->m_pScene = scene;
+    for (const auto &mesh : scene->meshes) {
+        objects.push_back(mesh.name);
+    }
 }
 
 void UIRenderer::NewFrame() {
@@ -231,8 +237,130 @@ void UIRenderer::NewFrame() {
 
     // Draw scene settings window
     {
-        ImGui::Begin("Scene Settings");
-        ImGui::Text("Scene Settings");
+        ImGui::Begin("Scene Editor");
+
+        UiDrawContext ctx;
+        ctx.Init();
+
+        if (m_pScene) {
+            char buffer[256];
+            strncpy(buffer, m_pScene->name.c_str(), sizeof(buffer) - 1);
+            buffer[sizeof(buffer) - 1] = '\0';
+
+            ImGui::Text("Scene:");
+            ImGui::SameLine();
+            if (ImGui::InputText("##SceneName", buffer, sizeof(buffer))) {
+                m_pScene->name = buffer;
+            }
+        } else {
+            ImGui::Text("Scene: No scene loaded");
+        }
+
+
+        ImGui::Text("Scene Hierarchy");
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+        static int selectionIndex = 0;
+        if (ImGui::BeginListBox("##SceneHierarchy")) {
+            for (int i = 0; i < objects.size(); i++) {
+                const bool bIsSelected = (selectionIndex == i);
+                if (ImGui::Selectable(objects[i].c_str(), bIsSelected)) selectionIndex = i;
+                if (bIsSelected) ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndListBox();
+        }
+
+        if (m_pScene != nullptr) {
+            char buffer[256];
+            strncpy(buffer, m_pScene->meshes[selectionIndex].name.c_str(), sizeof(buffer) - 1);
+            buffer[sizeof(buffer) - 1] = '\0';
+
+            ImGui::Text("Mesh:");
+            ImGui::SameLine();
+            if (ImGui::InputText("##MeshName", buffer, sizeof(buffer))) {
+                m_pScene->name = buffer;
+            }
+
+            if (ImGui::CollapsingHeader("Transform")) {
+                ctx.StartRectangleBackground();
+
+                if (ctx.StartTable("TransformEditor")) {
+                    auto &mesh = m_pScene->meshes[selectionIndex];
+
+                    vec3 position;
+                    vec3 rotation;
+                    vec3 scale;
+
+                    ctx.NewRow("Position");
+                    ImGui::DragFloat3("##Position", &position.x);
+
+                    ctx.NewRow("Rotation");
+                    ImGui::DragFloat3("##Rotation", &rotation.x);
+
+                    ctx.NewRow("Scale");
+                    ImGui::DragFloat3("##Scale", &scale.x);
+
+                    ctx.EndTable();
+                }
+
+                ctx.EndRectangleBackground();
+            }
+
+            if (ImGui::CollapsingHeader("Material")) {
+                ctx.StartRectangleBackground();
+
+                if (ctx.StartTable("MaterialEditor")) {
+                    auto &mat = m_pScene->materials[m_pScene->meshes[selectionIndex].materialIndex];
+                    const char *materialTypes[] = {"Diffuse", "Dielectric", "C. Conductor", "Conductor"};
+                    int currentType = mat.mType;
+
+                    ctx.NewRow("BxDF");
+                    if (ImGui::Combo("##BxDF", &currentType, materialTypes, IM_ARRAYSIZE(materialTypes))) {
+                        mat.mType = static_cast<Material::Type>(currentType);
+                    }
+
+                    switch (mat.mType) {
+                        case Material::Type::DIFFUSE:
+                            ctx.NewRow("Diffuse");
+                            ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
+
+                            ctx.NewRow("Emission");
+                            ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
+                            break;
+                        case Material::Type::DIELECTRIC:
+                            ctx.NewRow("IOR");
+                            ImGui::DragFloat("##ior", &mat.parameters.ior.x);
+
+                            ctx.NewRow("Roughness");
+                            ImGui::DragFloat("##roughness", &mat.parameters.roughness.x);
+                            break;
+                        case Material::Type::COMPLEX_CONDUCTOR:
+                            ctx.NewRow("IOR");
+                            ImGui::DragFloat3("##ior", &mat.parameters.ior.x);
+
+                            ctx.NewRow("Absorption");
+                            ImGui::DragFloat3("##absorption", &mat.parameters.k.x);
+
+                            ctx.NewRow("Roughness");
+                            ImGui::DragFloat("##roughness", &mat.parameters.roughness.x);
+                            break;
+                        case Material::Type::CONDUCTOR:
+                            ctx.NewRow("F0");
+                            ImGui::DragFloat3("##f0", &mat.parameters.f0.x);
+
+                            ctx.NewRow("Roughness");
+                            ImGui::DragFloat("##roughness", &mat.parameters.roughness.x);
+                            break;
+                        default:
+                            break;
+                    }
+
+                    ctx.EndTable();
+                }
+                ctx.EndRectangleBackground();
+            }
+        }
+
+        ctx.Destroy();
         ImGui::End();
     }
 
@@ -308,7 +436,6 @@ void UIRenderer::NewFrame() {
         }
 
         ctx.Destroy();
-
         ImGui::End();
     }
 
@@ -474,7 +601,7 @@ void UIRenderer::SetLayout(const ImGuiID dockSpaceId, const ImGuiViewport *viewp
     const ImGuiID dockBottomId = ImGui::DockBuilderSplitNode(dockMainId, ImGuiDir_Down, 0.25f, nullptr, &dockMainId);
 
     ImGui::DockBuilderDockWindow("Render Settings", dockRightId);
-    ImGui::DockBuilderDockWindow("Scene Settings", dockRightId);
+    ImGui::DockBuilderDockWindow("Scene Editor", dockRightId);
 
     ImGui::DockBuilderFinish(dockSpaceId);
 }

@@ -263,7 +263,6 @@ target_include_directories(JTXCore PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/rapidobj
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/tinyexr
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/IconsLucide
-        ${CMAKE_CURRENT_SOURCE_DIR}/ext/imfilebrowser
         ${CMAKE_CURRENT_SOURCE_DIR}/ext/rapidjson
 )
 

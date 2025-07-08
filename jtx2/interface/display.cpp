@@ -1,7 +1,6 @@
 #include <nfd.h>
 #include "scene/scene_loader.hpp"
 
-
 #include <SDL_events.h>
 #include <interface/display.hpp>
 #include <scene/scene_exporter.hpp>
@@ -18,13 +17,13 @@ void Display::Init() {
     pLoadedDisplay = this;
 
     m_gfx.Init();
-    m_uiRenderer.Init([this] { ImportScene(); },
+    m_ui.Init([this] { ImportScene(); },
                       [this] {
                           ExportScene();
                       });
     m_vk.Init(m_gfx.bRayTracingSupported);
 
-    m_uiRenderer.RegisterViewportBackend(JTX_VIEWPORT_BACKEND_VULKAN, "Vulkan",
+    m_ui.RegisterViewportBackend(JTX_VIEWPORT_BACKEND_VULKAN, "Vulkan",
                                          [this](UiDrawContext &ctx) {
                                              m_vk.DrawSettingsPanel(ctx);
                                          });
@@ -40,6 +39,7 @@ void Display::Init(const std::filesystem::path &path) {
     CHECK_JTX(jtx::LoadScene(path, m_scene));
     Init();
     m_vk.LoadScene(&m_scene);
+    m_ui.LoadScene(&m_scene);
     m_bSceneLoaded = true;
 }
 
@@ -55,7 +55,7 @@ void Display::Destroy() {
     }
 
     m_vk.Destroy();
-    m_uiRenderer.Destroy();
+    m_ui.Destroy();
     m_gfx.Destroy();
     pLoadedDisplay = nullptr;
 
@@ -63,14 +63,14 @@ void Display::Destroy() {
 }
 
 void Display::Draw() {
-    m_uiRenderer.NewFrame();
+    m_ui.NewFrame();
 
     auto res = m_gfx.StartFrame();
     if (!res.has_value()) return;
     auto &ctx = res.value();
 
     jvk::ViewRectangle rect;
-    if (m_uiRenderer.GetViewportRectangle(rect)) {
+    if (m_ui.GetViewportRectangle(rect)) {
         m_vk.SetViewportRectangle(rect);
     }
 
@@ -78,7 +78,7 @@ void Display::Draw() {
     m_vk.Draw(ctx, region);
     m_gfx.ResolveToSwapchain(ctx, region);
 
-    m_uiRenderer.Draw(ctx);
+    m_ui.Draw(ctx);
 
     m_gfx.EndFrame(ctx);
 }
@@ -100,7 +100,7 @@ void Display::Run() {
                 }
             }
 
-            if (m_uiRenderer.ProcessEvent(e)) {
+            if (m_ui.ProcessEvent(e)) {
                 m_vk.SkipEvent();
             } else {
                 m_vk.ProcessEvent(e);
@@ -140,6 +140,7 @@ void Display::ImportScene() {
         const auto loadResult = LoadScene(s, m_scene);
         if (loadResult > 0) {
             m_vk.LoadScene(&m_scene);
+            m_ui.LoadScene(&m_scene);
             m_bSceneLoaded = true;
         } else {
             m_bSceneLoaded = false;

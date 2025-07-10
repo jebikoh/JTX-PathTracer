@@ -63,7 +63,8 @@ void Display::Destroy() {
 }
 
 void Display::Draw() {
-    m_ui.NewFrame();
+    SceneUpdate update;
+    m_ui.NewFrame(update);
 
     auto res = m_gfx.StartFrame();
     if (!res.has_value()) return;
@@ -75,7 +76,7 @@ void Display::Draw() {
     }
 
     ResolveRegion region;
-    m_vk.Draw(ctx, region);
+    m_vk.Draw(ctx, region, update);
     m_gfx.ResolveToSwapchain(ctx, region);
 
     m_ui.Draw(ctx);

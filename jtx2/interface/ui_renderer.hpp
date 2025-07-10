@@ -6,6 +6,7 @@
 #include <engine/backends.hpp>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
+#include <scene/scene.hpp>
 
 struct ImGuiDockNode;
 
@@ -65,7 +66,7 @@ public:
      * Creates a new draw frame and generates draw data for the UI.
      * Should be called prior to draw(), after input has been handled
      */
-    void NewFrame();
+    void NewFrame(SceneUpdate &update);
 
     /**
      * Submits draw commands for the UI. Expects image to be in VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL

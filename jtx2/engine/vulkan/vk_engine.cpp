@@ -39,7 +39,7 @@ void VkEngine::Destroy() {
     LOG_INFO(VKE, "Vulkan engine destroyed");
 }
 
-void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
+void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region, SceneUpdate &update) {
     // Reset frame count if ray tracing was just enabled
     if (m_bRayTracingEnabled && !m_bRayTracingEnabledPreviousFrame) m_rtFrameNumber = -1;
     m_bRayTracingEnabledPreviousFrame = m_bRayTracingEnabled;
@@ -54,6 +54,9 @@ void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region) {
 
     if (m_bSceneLoaded) {
         PopulateContext();
+        if (UpdateScene(ctx, update)) {
+            m_rtFrameNumber = -1;
+        }
     }
 
     // Calculate viewport
@@ -499,6 +502,14 @@ void VkEngine::LoadScene(const Scene *pScene) {
             }
             writer.UpdateSet(m_gfx.ctx, frame.gpuGlobalUniformDataDescriptorSet);
             writer.Clear();
+
+            // Staging buffers for live material updates
+            // >1 material being updated per frame is highly unlikely
+            frame.materialStagingBuffer = m_gfx.CreateBuffer(
+                sizeof(GPUMaterialData),
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VMA_MEMORY_USAGE_CPU_TO_GPU,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         }
         *frame.gpuGlobalUniformDataMapping = {};
     }
@@ -651,11 +662,14 @@ void VkEngine::LoadScene(const Scene *pScene) {
     gpuMaterials.reserve(pScene->materials.size());
 
     LOG_DEBUG(VKE, "    Scene has {} materials", pScene->materials.size());
-    m_gpuSceneData.materialBuffer = m_gfx.CreateBuffer(sizeof(GPUMaterialData) * pScene->materials.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+    const auto materialBufferSize = sizeof(GPUMaterialData) * pScene->materials.size();
+    m_gpuSceneData.materialBuffer = m_gfx.CreateBuffer(materialBufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+    staging = m_gfx.CreateBuffer(materialBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
     LOG_DEBUG(VKE, "    Created material buffer of size {} bytes", sizeof(GPUMaterialData) * pScene->materials.size());
 
-    void *materialData = m_gpuSceneData.materialBuffer.Map(m_gfx.allocator);
-
+    void *materialData = staging.Map(m_gfx.allocator);
     offset = 0;
     for (const auto &material: pScene->materials) {
         GPUMaterialData m{};
@@ -669,8 +683,22 @@ void VkEngine::LoadScene(const Scene *pScene) {
         static_cast<GPUMaterialData *>(materialData)[offset++] = m;
     }
 
-    m_gpuSceneData.materialBuffer.Unmap(m_gfx.allocator);
-    LOG_DEBUG(VKE, "    Material data copied to buffer");
+    LOG_DEBUG(VKE, "    Material data copied to staging buffer");
+
+    VkBufferCopy copyRegion{};
+    copyRegion.dstOffset = 0;
+    copyRegion.srcOffset = 0;
+    copyRegion.size      = materialBufferSize;
+
+    m_gfx.imBuffer.SubmitAndWait(m_gfx.graphicsQueue, [&](const VkCommandBuffer cmd) {
+        vkCmdCopyBuffer(cmd, staging.buffer, m_gpuSceneData.materialBuffer.buffer, 1, &copyRegion);
+    });
+
+    staging.Unmap(m_gfx.allocator);
+    m_gfx.DestroyBuffer(staging);
+
+    LOG_DEBUG(VKE, "    Material data copied to GPU buffer");
+
     writer.WriteBuffer(kL2Bindings::GPU_MATERIAL_DATA, m_gpuSceneData.materialBuffer.buffer, sizeof(GPUMaterialData) * pScene->materials.size(), 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
     LOG_DEBUG(VKE, "Material data loaded");
 
@@ -781,6 +809,7 @@ void VkEngine::DestroyScene() {
         for (auto &frame: m_frameData) {
             frame.gpuGlobalUniformData.Unmap(m_gfx.allocator);
             m_gfx.DestroyBuffer(frame.gpuGlobalUniformData);
+            m_gfx.DestroyBuffer(frame.materialStagingBuffer);
         }
         LOG_DEBUG(VKE, "Destroyed global uniform data buffers");
 
@@ -788,6 +817,59 @@ void VkEngine::DestroyScene() {
         LOG_INFO(VKE, "Scene destroyed");
     }
     m_bSceneLoaded = false;
+}
+
+bool VkEngine::UpdateScene(const RenderContext &ctx, const SceneUpdate &update) const {
+    bool bUpdated = false;
+
+    if (update.materialIndex > -1) {
+        bUpdated = true;
+        const auto &frame = m_frameData[ctx.frameIndex];
+
+        const auto &material = m_pScene->materials[update.materialIndex];
+        const auto data = static_cast<GPUMaterialData *>(frame.materialStagingBuffer.GetMapping());
+        data->diffuse                                              = vec4(material.parameters.diffuse, 0.0f);
+        data->ior                                                  = vec4(material.parameters.ior, 0.0f);
+        data->k                                                    = vec4(material.parameters.k, 0.0f);
+        data->f0                                                   = vec4(material.parameters.f0, 0.0f);
+        data->emission                                             = vec4(material.parameters.emission, 0.0f);
+        data->roughness                                            = vec4(vec3(material.parameters.roughness, 0.0f), 0.0f);
+        data->diffuseTexture                                       = material.textureIndices.diffuse;
+
+        VkBufferCopy copyRegion{};
+        copyRegion.srcOffset = 0;
+        copyRegion.dstOffset = sizeof(GPUMaterialData) * update.materialIndex;
+        copyRegion.size      = sizeof(GPUMaterialData);
+
+        vkCmdCopyBuffer(ctx.cmd, frame.materialStagingBuffer.buffer, m_gpuSceneData.materialBuffer.buffer, 1, &copyRegion);
+
+        // Make sure this copy finishes before anything draws
+        VkMemoryBarrier2 barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+        barrier.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
+        if (m_bRayTracingEnabled) {
+            barrier.dstStageMask = VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR;
+        } else {
+            barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+        }
+
+        barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT;
+
+        VkDependencyInfo dep{};
+        dep.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        dep.memoryBarrierCount = 1;
+        dep.pMemoryBarriers    = &barrier;
+
+        vkCmdPipelineBarrier2KHR(ctx.cmd, &dep);
+    }
+
+    // TODO: object transform update
+    if (update.objectIndex > -1) {
+        bUpdated = true;
+    }
+
+    return bUpdated;
 }
 
 void VkEngine::BuildBLAS() {

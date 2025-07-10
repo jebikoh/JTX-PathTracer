@@ -18,6 +18,7 @@
 
 
 namespace jtx {
+struct SceneUpdate;
 struct UiDrawContext;
 struct Scene;
 
@@ -60,7 +61,7 @@ public:
 
     void Destroy();
 
-    void Draw(RenderContext &ctx, ResolveRegion &region);
+    void Draw(RenderContext &ctx, ResolveRegion &region, SceneUpdate &update);
 
     void ProcessEvent(const SDL_Event &event);
 
@@ -102,6 +103,8 @@ private:
         jvk::Buffer gpuGlobalUniformData;
         GPUGlobalUniformData *gpuGlobalUniformDataMapping = nullptr;
         VkDescriptorSet gpuGlobalUniformDataDescriptorSet = VK_NULL_HANDLE;
+
+        jvk::Buffer materialStagingBuffer;
     } m_frameData[JTX_MAX_FRAMES_IN_FLIGHT];
     VkDescriptorSetLayout m_gpuGlobalUniformDataDescriptorLayout = VK_NULL_HANDLE;
 
@@ -135,6 +138,7 @@ private:
     // == Scene data ==
     // LoadScene is public
     void DestroyScene();
+    bool UpdateScene(const RenderContext &ctx, const SceneUpdate &update) const;
 
     struct GPUSceneData {
         jvk::Buffer index{};

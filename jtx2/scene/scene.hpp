@@ -9,6 +9,11 @@
 // TODO: add TRS transform and basic scene graph
 namespace jtx {
 
+struct SceneUpdate {
+    int32_t materialIndex = -1;
+    int32_t objectIndex   = -1;
+};
+
 struct Triangle {
     int triangleIndex;
     AABB bbox;
@@ -25,7 +30,7 @@ struct Triangle {
 struct Mesh {
     std::string name;
     uint32_t startIndex;
-    uint32_t numIndices; // In triangles, not vertices
+    uint32_t numIndices;// In triangles, not vertices
     uint32_t materialIndex;
 };
 
@@ -63,18 +68,18 @@ struct Scene {
         //                    (i.e. distance from lens to image sensor)
         //                    shorter length -> wider FOV
         //                    larger length  -> narrow FOV
-        float focalLength = 0.05f; // 50mm
+        float focalLength = 0.05f;// 50mm
         // Sensor width (mm): physical width of image sensor.
-        float sensorWidth = 0.036f; // 36mm
+        float sensorWidth = 0.036f;// 36mm
         // Focal distance (m): distance from lens to point in plane of perfect focus
         float focalDistance = 10.0f;
 
         // Enable/disable depth of field
-        bool bEnableDof     = false;
+        bool bEnableDof = false;
         // F-Stop: ratio of len's focalLength to diameter of aperture
         //         larger f-stop -> smaller aperture -> deeper depth of field
         //         smaller f-stop -> larger aperture -> shallower depth of field
-        float fStop         = 2.8f; // Aperture size (f-stop)
+        float fStop = 2.8f;// Aperture size (f-stop)
 
         // TODO: these should be moved elsewhere -- not camera related
         // - Exposure (ISO100)
@@ -101,7 +106,7 @@ struct Scene {
     vec3 skyColor;
 
     // Lights
-    std::vector<uint32_t> emissiveTriangles; // Indices of triangles that are emissive
+    std::vector<uint32_t> emissiveTriangles;// Indices of triangles that are emissive
 
     size_t AddMaterial(const Material &material) {
         materials.push_back(material);
@@ -109,7 +114,7 @@ struct Scene {
     }
 
     void UpdateMeshMaterial(const size_t meshIndex, const size_t materialIndex) {
-        auto &mesh = meshes[meshIndex];
+        auto &mesh         = meshes[meshIndex];
         mesh.materialIndex = materialIndex;
         for (int i = mesh.startIndex; i < mesh.startIndex + mesh.numIndices; ++i) {
             materialIndices[i] = materialIndex;
@@ -134,7 +139,7 @@ struct Scene {
         materials.clear();
         materials.shrink_to_fit();
 
-        for (auto &texture : textures) {
+        for (auto &texture: textures) {
             texture.Destroy();
         }
         textures.clear();
@@ -152,9 +157,9 @@ struct Scene {
 
         for (int i = 0; i < indices.size(); ++i) {
             Triangle tri;
-            const vec3u idx = indices[i];
+            const vec3u idx   = indices[i];
             tri.triangleIndex = i;
-            tri.bbox = AABB(positions[idx.x], positions[idx.y], positions[idx.z]);
+            tri.bbox          = AABB(positions[idx.x], positions[idx.y], positions[idx.z]);
             triangles.emplace_back(tri);
         }
 
@@ -166,12 +171,12 @@ struct Scene {
 
         const vec3u tri = indices[index];
 
-        const vec3 p0 = positions[tri.x];
-        const vec3 p1 = positions[tri.y];
-        const vec3 p2 = positions[tri.z];
+        const vec3 p0   = positions[tri.x];
+        const vec3 p1   = positions[tri.y];
+        const vec3 p2   = positions[tri.z];
         sample.position = b.x * p0 + b.y * p1 + b.z * p2;
 
-        const vec3 n = Normalize(Cross(p1 - p0, p2 - p0));
+        const vec3 n  = Normalize(Cross(p1 - p0, p2 - p0));
         const vec3 n0 = normals[tri.x];
         const vec3 n1 = normals[tri.y];
         const vec3 n2 = normals[tri.z];
@@ -179,7 +184,7 @@ struct Scene {
         sample.normal = Dot(n, sn) < 0.0f ? -n : n;
 
         sample.emission = materials[materialIndices[index]].parameters.emission;
-        sample.pdf = 1.0f / (0.5f * Cross(p1 - p0, p2 - p0).Length());
+        sample.pdf      = 1.0f / (0.5f * Cross(p1 - p0, p2 - p0).Length());
     }
 
     /**
@@ -189,9 +194,9 @@ struct Scene {
      */
     float TrianglePDF(const uint32_t index) const {
         const vec3u tri = indices[index];
-        const vec3 p0 = positions[tri.x];
-        const vec3 p1 = positions[tri.y];
-        const vec3 p2 = positions[tri.z];
+        const vec3 p0   = positions[tri.x];
+        const vec3 p1   = positions[tri.y];
+        const vec3 p2   = positions[tri.z];
         return 1.0f / (0.5f * Cross(p1 - p0, p2 - p0).Length());
     }
 };

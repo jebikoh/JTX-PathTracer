@@ -1,5 +1,3 @@
-#include "nfd.h"
-
 #include <interface/display.hpp>
 #include <interface/ui_renderer.hpp>
 
@@ -167,7 +165,7 @@ void UIRenderer::LoadScene(Scene *scene) {
     }
 }
 
-void UIRenderer::NewFrame() {
+void UIRenderer::NewFrame(SceneUpdate &update) {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
@@ -277,7 +275,9 @@ void UIRenderer::NewFrame() {
             ImGui::Text("Mesh:");
             ImGui::SameLine();
             if (ImGui::InputText("##MeshName", buffer, sizeof(buffer))) {
-                m_pScene->name = buffer;
+                // Get rid of "objects" -- not necessary
+                objects[selectionIndex] = buffer;
+                m_pScene->meshes[selectionIndex].name = buffer;
             }
 
             if (ImGui::CollapsingHeader("Transform")) {
@@ -313,45 +313,55 @@ void UIRenderer::NewFrame() {
                     const char *materialTypes[] = {"Diffuse", "Dielectric", "C. Conductor", "Conductor"};
                     int currentType = mat.mType;
 
+                    bool bMaterialUpdated = false;
+
                     ctx.NewRow("BxDF");
                     if (ImGui::Combo("##BxDF", &currentType, materialTypes, IM_ARRAYSIZE(materialTypes))) {
                         mat.mType = static_cast<Material::Type>(currentType);
+                        bMaterialUpdated = true;
                     }
 
                     switch (mat.mType) {
                         case Material::Type::DIFFUSE:
                             ctx.NewRow("Diffuse");
-                            ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
+                            bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
 
                             ctx.NewRow("Emission");
-                            ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
+                            bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
                             break;
                         case Material::Type::DIELECTRIC:
                             ctx.NewRow("IOR");
-                            ImGui::DragFloat("##ior", &mat.parameters.ior.x);
+                            bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x);
 
                             ctx.NewRow("Roughness");
-                            ImGui::DragFloat("##roughness", &mat.parameters.roughness.x);
+                            bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x);
                             break;
                         case Material::Type::COMPLEX_CONDUCTOR:
                             ctx.NewRow("IOR");
-                            ImGui::DragFloat3("##ior", &mat.parameters.ior.x);
+                            bMaterialUpdated |= ImGui::DragFloat3("##ior", &mat.parameters.ior.x);
 
                             ctx.NewRow("Absorption");
-                            ImGui::DragFloat3("##absorption", &mat.parameters.k.x);
+                            bMaterialUpdated |= ImGui::DragFloat3("##absorption", &mat.parameters.k.x);
 
                             ctx.NewRow("Roughness");
-                            ImGui::DragFloat("##roughness", &mat.parameters.roughness.x);
+                            bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x);
                             break;
                         case Material::Type::CONDUCTOR:
                             ctx.NewRow("F0");
-                            ImGui::DragFloat3("##f0", &mat.parameters.f0.x);
+                            bMaterialUpdated |= ImGui::DragFloat3("##f0", &mat.parameters.f0.x);
 
                             ctx.NewRow("Roughness");
-                            ImGui::DragFloat("##roughness", &mat.parameters.roughness.x);
+                            bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x);
                             break;
                         default:
                             break;
+                    }
+
+                    if (bMaterialUpdated) {
+                        update.materialIndex = m_pScene->meshes[selectionIndex].materialIndex;
+                        LOG_DEBUG(UI, "Material updated: {}", update.materialIndex);
+                    } else {
+                        update.materialIndex = -1;
                     }
 
                     ctx.EndTable();

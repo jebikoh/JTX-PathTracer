@@ -73,7 +73,7 @@ public:
                 s.eta                 = m_eta;
                 const bool bRefracted = Refract(wo, vec3(0.0f, 0.0f, 1.0f), s.eta, s.wi);
                 if (!bRefracted) return false;
-                s.f             = vec3(T) / AbsCosTheta(s.wi) / (s.eta * s.eta);
+                s.f             = vec3(T) / AbsCosTheta(s.wi);
                 s.pdf           = T;
                 s.bTransmission = true;
             }

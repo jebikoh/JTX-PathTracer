@@ -139,11 +139,14 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
     matrix<float, 3, 3> frame = CreateONB(worldN);
     float3 wo = mul(prd.wi, transpose(frame));
 
-    // Conductor
-    BxDFSample sample;
+
+    Optional<BxDFSample> sample;
     if (mat.type == 3) {
         ConductorBRDF brdf = ConductorBRDF(mat.f0.rgb);
         sample = brdf.Sample(wo, prd.sample);
+    } else if (mat.type == 1) {
+        DielectricBSDF bsdf = DielectricBSDF(mat.ior.x);
+        sample = bsdf.Sample(wo, prd.sample);
     } else {
         float3 diffuse;
         if (mat.diffuseTexture >= 0) {
@@ -161,9 +164,13 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
         sample = brdf.Sample(wo, prd.sample);
     }
 
-    prd.wi  = mul(sample.wi, frame);
-    prd.f   = sample.f;
-    prd.pdf = sample.pdf;
+    if (sample == none) {
+        prd.pdf = 0;
+    } else {
+        prd.wi  = mul(sample.value.wi, frame);
+        prd.f   = sample.value.f;
+        prd.pdf = sample.value.pdf;
+    }
 }
 
 [shader("miss")]

@@ -43,7 +43,6 @@ inline bool Refract(const vec3 &wi, vec3 n, float &eta, vec3 &wt) {
     float cosThetaI = jtx::Dot(wi, n);
 
     // Ray is exiting, flip parameters
-    //
     if (cosThetaI < 0.0f) {
         eta = 1 / eta;
         cosThetaI = -cosThetaI;

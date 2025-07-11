@@ -18,3 +18,39 @@ public float3 Schlick(float3 wo, float3 n, float3 f0) {
     const float m2 = m * m;
     return f0 + (float3(1, 1, 1) - f0) * m2 * m2 * m;
 }
+
+public float Fresnel(float cosTheta, float eta) {
+    cosTheta = clamp(cosTheta, -1.0, 1.0);
+    if (cosTheta < 0) {
+        eta = 1 / eta;
+        cosTheta = -cosTheta;
+    }
+
+    const float r = max(0.0f, 1 - cosTheta * cosTheta) / (eta * eta);
+    if (r >= 1) return 1.0f; // Total internal reflection
+    const float cosThetaT = sqrt(max(0.0, 1.0 - r));
+
+    const float rParallel = (eta * cosTheta - cosThetaT) / (eta * cosTheta + cosThetaT);
+    const float rPerpendicular = (cosTheta - eta * cosThetaT) / (cosTheta + eta * cosThetaT);
+
+    return (rParallel * rParallel + rPerpendicular * rPerpendicular) / 2.0f;
+}
+
+public bool Refract(float3 wi, float3 n, inout float eta, inout float3 wt) {
+    float cosThetaI = dot(wi, n);
+
+    // Ray is exiting, flip parameters
+    if (cosThetaI < 0.0f) {
+        eta = 1 / eta;
+        cosThetaI = -cosThetaI;
+        n = -n;
+    }
+
+    // Compute Snell's law
+    const float r = max(0.0f, 1 - (cosThetaI * cosThetaI)) / (eta * eta);
+    if (r >= 1) return false; // TIR
+    const float cosThetaT = sqrt(max(0.0, 1 - r));
+
+    wt = -wi / eta + (cosThetaI / eta - cosThetaT) * n;
+    return true;
+}

@@ -11,7 +11,7 @@ public struct BxDFSample {
 }
 
 interface IBxDF {
-    BxDFSample Sample(float3 wo, float2 s);
+    Optional<BxDFSample> Sample(float3 wo, float2 s);
     float3 Evaluate(float3 wo, float3 wi);
     float PDF(float3 wo, float wi);
 }
@@ -23,7 +23,7 @@ public struct DiffuseBRDF : IBxDF {
         m_R = reflectance;
     }
 
-    public BxDFSample Sample(float3 wo, float2 s) {
+    public Optional<BxDFSample> Sample(float3 wo, float2 s) {
         BxDFSample out;
         out.wi = CosineHemisphere(s);
         if (wo.z < 0) out.wi.z = -1;
@@ -48,13 +48,46 @@ public struct ConductorBRDF : IBxDF {
         m_f0 = f0;
     }
 
-    public BxDFSample Sample(float3 wo, float2 s) {
+    public Optional<BxDFSample> Sample(float3 wo, float2 s) {
         BxDFSample out;
         
         out.wi = float3(-wo.x, -wo.y, wo.z);
         const float absCosTheta = abs(out.wi.z);
         out.f = Schlick(wo, float3(0, 0, 1), m_f0) / absCosTheta;
         out.pdf = 1.0f;
+
+        return out;
+    }
+
+    float3 Evaluate(float3 wo, float3 wi);
+    float PDF(float3 wo, float wi);
+}
+
+// TODO
+public struct DielectricBSDF : IBxDF {
+    private float m_eta;
+
+    public __init(float eta) {
+        m_eta = eta;
+    }
+
+    public Optional<BxDFSample> Sample(float3 wo, float2 s) {
+        BxDFSample out;
+
+        const float R = Fresnel(wo.z, m_eta);
+        const float T = 1.0 - R;
+
+        if (s.x < R) {
+            out.wi  = float3(-wo.x, -wo.y, wo.z);
+            out.f   = float3(R / abs(out.wi.z));
+            out.pdf = R;
+        } else {
+            float eta = m_eta;
+            const bool bRefracted = Refract(wo, float3(0, 0, 1), eta, out.wi);
+            if (!bRefracted) return none; // TIR
+            out.f = float3(T) / abs(out.wi.z);
+            out.pdf = T;
+        }
 
         return out;
     }

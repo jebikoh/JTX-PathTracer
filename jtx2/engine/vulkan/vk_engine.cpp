@@ -1,12 +1,12 @@
+#include <editor/editor.hpp>
+#include <editor/ui_renderer.hpp>
 #include <engine/vulkan/vk_engine.hpp>
-#include <interface/display.hpp>
-#include <interface/ui_renderer.hpp>
 #include <jvk/shaders.hpp>
 #include <scene/scene.hpp>
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
-#include <engine/vulkan/rt.hpp>
+#include <engine/vulkan/accel.hpp>
 
 #include <glm/gtx/transform.hpp>
 

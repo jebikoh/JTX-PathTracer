@@ -2,15 +2,15 @@
 #include "scene/scene_loader.hpp"
 
 #include <SDL_events.h>
-#include <interface/display.hpp>
+#include <editor/editor.hpp>
 #include <scene/scene_exporter.hpp>
 #include <thread>
 
 namespace jtx {
 
-Display *pLoadedDisplay = nullptr;
+Editor *pLoadedDisplay = nullptr;
 
-void Display::Init() {
+void Editor::Init() {
     LOG_INFO(DISPLAY, "Initializing display");
 
     assert(pLoadedDisplay == nullptr);
@@ -35,7 +35,7 @@ void Display::Init() {
     LOG_INFO(DISPLAY, "Display initialized");
 }
 
-void Display::Init(const std::filesystem::path &path) {
+void Editor::Init(const std::filesystem::path &path) {
     CHECK_JTX(jtx::LoadScene(path, m_scene));
     Init();
     m_vk.LoadScene(&m_scene);
@@ -43,7 +43,7 @@ void Display::Init(const std::filesystem::path &path) {
     m_bSceneLoaded = true;
 }
 
-void Display::Destroy() {
+void Editor::Destroy() {
     LOG_INFO(DISPLAY, "Destroying display");
 
     m_gfx.WaitIdle();
@@ -62,7 +62,7 @@ void Display::Destroy() {
     LOG_INFO(DISPLAY, "Display destroyed");
 }
 
-void Display::Draw() {
+void Editor::Draw() {
     SceneUpdate update;
     m_ui.NewFrame(update);
 
@@ -84,7 +84,7 @@ void Display::Draw() {
     m_gfx.EndFrame(ctx);
 }
 
-void Display::Run() {
+void Editor::Run() {
     SDL_Event e;
     bool bQuit = false;
 
@@ -119,7 +119,7 @@ void Display::Run() {
     }
 }
 
-void Display::ImportScene() {
+void Editor::ImportScene() {
     constexpr nfdu8filteritem_t filters[1] = {{"Scene file", "jtx,obj,gltf,glb"}};
     nfdopendialogu8args_t args{};
     args.filterList  = filters;
@@ -153,7 +153,7 @@ void Display::ImportScene() {
     }
 }
 
-void Display::ExportScene() const {
+void Editor::ExportScene() const {
     const auto name = m_scene.name.empty() ? "scene.jtx" : m_scene.name + ".jtx";
 
     constexpr nfdu8filteritem_t filters[1] = {{"JTX scene file", "jtx"}};

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rt.hpp"
+#include "accel.hpp"
 
 
 #include <jvk/buffer.hpp>
@@ -10,9 +10,9 @@
 #include <jvk/pipeline.hpp>
 #include <jvk/util.hpp>
 
+#include <editor/gfx_context.hpp>
 #include <engine/vulkan/camera.hpp>
 #include <engine/vulkan/render_data.hpp>
-#include <interface/gfx_context.hpp>
 
 #include <fastgltf/types.hpp>
 

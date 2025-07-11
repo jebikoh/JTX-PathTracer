@@ -1,19 +1,19 @@
 #include <bvh/bvh.hpp>
+#include <editor/editor.hpp>
 #include <engine/cpu/backend_cpu.hpp>
-#include <interface/display.hpp>
+#include <scene/scene_exporter.hpp>
 #include <scene/scene_loader.hpp>
 #include <thread>
-#include <scene/scene_exporter.hpp>
 
-// #define JTX_ENABLE_UI
+#define JTX_ENABLE_UI
 
 int main(int argc, char *argv[]) {
     Logger::AddDefaultSink();
 #ifdef JTX_ENABLE_UI
-    jtx::Display display;
-    display.Init();
-    display.Run();
-    display.Destroy();
+    jtx::Editor editor;
+    editor.Init();
+    editor.Run();
+    editor.Destroy();
 #else
     jtx::Scene scene;
     CHECK_JTX(jtx::LoadScene("../assets/scenes/knobs/knob.jtx", scene));

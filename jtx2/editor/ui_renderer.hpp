@@ -13,7 +13,7 @@ struct ImGuiDockNode;
 namespace jtx {
 struct RenderContext;
 
-class Display;
+class Editor;
 struct GfxContext;
 
 struct UiDrawContext {

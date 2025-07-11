@@ -1,5 +1,5 @@
-#include <interface/display.hpp>
-#include <interface/ui_renderer.hpp>
+#include <editor/editor.hpp>
+#include <editor/ui_renderer.hpp>
 
 #include <jvk/init.hpp>
 

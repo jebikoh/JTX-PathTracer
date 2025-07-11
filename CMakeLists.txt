@@ -197,12 +197,12 @@ set(JTX_UTIL
 )
 
 set(JTX_INTERFACE
-        jtx2/interface/display.hpp
-        jtx2/interface/display.cpp
-        jtx2/interface/ui_renderer.hpp
-        jtx2/interface/ui_renderer.cpp
-        jtx2/interface/gfx_context.cpp
-        jtx2/interface/gfx_context.hpp
+        jtx2/editor/editor.hpp
+        jtx2/editor/editor.cpp
+        jtx2/editor/ui_renderer.hpp
+        jtx2/editor/ui_renderer.cpp
+        jtx2/editor/gfx_context.cpp
+        jtx2/editor/gfx_context.hpp
 )
 
 set(JTX_BVH
@@ -234,8 +234,9 @@ set(JTX_WING
         jtx2/engine/vulkan/vk_engine.cpp
         jtx2/engine/vulkan/camera.hpp
         jtx2/engine/vulkan/render_data.hpp
-        jtx2/engine/vulkan/rt.hpp
-        jtx2/engine/vulkan/rt.cpp
+        jtx2/engine/vulkan/accel.hpp
+        jtx2/engine/vulkan/accel.cpp
+        jtx2/scene/light.hpp
 )
 
 # ──────────────────────────────────────────────────────────────────────────────

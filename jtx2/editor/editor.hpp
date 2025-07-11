@@ -1,15 +1,14 @@
 #pragma once
 
+#include <editor/gfx_context.hpp>
+#include <editor/ui_renderer.hpp>
 #include <engine/vulkan/vk_engine.hpp>
-#include <interface/gfx_context.hpp>
-#include <interface/ui_renderer.hpp>
 #include <scene/scene.hpp>
 
 namespace jtx {
 
 /**
- * This class is responsible for the UI and handling high-level rendering
- * and state-management
+ * This class is responsible for the UI and high-level rendering logic of the editor.
  *
  * It consists of three sub-renderers:
  *  - Rasterizer:  draws the scene using rasterized PBR.
@@ -20,9 +19,9 @@ namespace jtx {
  * All the high-level Vulkan structures are stored in this class and the sub-renderers
  * operate on them. This only for logical organization and readability.
  */
-class Display {
+class Editor {
 public:
-    Display() : m_gfx(), m_ui(m_gfx), m_vk(m_gfx) {};
+    Editor() : m_gfx(), m_ui(m_gfx), m_vk(m_gfx) {};
 
     void Init();
     // Loads scene during initialization

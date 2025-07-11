@@ -1,5 +1,5 @@
-#include <engine/vulkan/rt.hpp>
-#include <interface/gfx_context.hpp>
+#include <editor/gfx_context.hpp>
+#include <engine/vulkan/accel.hpp>
 
 namespace jtx {
 

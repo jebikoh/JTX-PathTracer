@@ -1,5 +1,5 @@
 #define VOLK_IMPLEMENTATION
-#include <interface/gfx_context.hpp>
+#include <editor/gfx_context.hpp>
 
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
@@ -80,6 +80,12 @@ void GfxContext::InitVulkan() {
     // SDL surface
     SDL_Vulkan_CreateSurface(window.pWindow, ctx, &ctx.surface);
 
+    // The slang shaders for metal need these
+    VkPhysicalDeviceVulkan11Features features11{};
+    features11.sType                         = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+    features11.variablePointers              = VK_TRUE;
+    features11.variablePointersStorageBuffer = VK_TRUE;
+
     // Vulkan physical device
     VkPhysicalDeviceVulkan12Features features12{};
     features12.sType                                         = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
@@ -105,6 +111,7 @@ void GfxContext::InitVulkan() {
                                .add_required_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
                                .add_required_extension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)
                                .set_required_features_12(features12)
+                               .set_required_features_11(features11)
                                .set_surface(ctx)
                                .select();
     if (!vkbPdResult) {
@@ -116,6 +123,7 @@ void GfxContext::InitVulkan() {
                               .add_required_extension(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)
                               .add_required_extension(VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME)
                               .set_required_features_12(features12)
+                              .set_required_features_11(features11)
                               .set_surface(ctx)
                               .select();
         if (!vkbPdResult) {

@@ -9,7 +9,7 @@
 
 namespace jtx {
 
-class Display;
+class Editor;
 
 using ResourceHandle = uint32_t;
 using TextureHandle  = int32_t;

@@ -29,7 +29,7 @@ VSOutput vertexMain(VSInput input) {
     out.position   = mul(globalData.viewProj, float4(globalData.vertices[input.vertexIndex], 1.0f));
     out.normal     = globalData.normals[input.vertexIndex];
     out.texCoord   = globalData.texCoords[input.vertexIndex];
-    out.materialId = objects[pc.objectId].matrialIndex;
+    out.materialId = objects[pc.objectId].materialIndex;
     return out;
 }
 

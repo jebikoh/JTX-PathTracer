@@ -18,7 +18,7 @@ public struct ObjectData {
     public matrix<float, 4, 4> world;
     public matrix<float, 4, 4> normal;
     public uint32_t startIndex;
-    public uint32_t matrialIndex;
+    public uint32_t materialIndex;
 }
 
 public struct MaterialData {

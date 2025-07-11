@@ -442,9 +442,9 @@ message(STATUS "[JTX] Found Slang compiler: ${SLANG_COMPILER}")
 set(GLSL_SOURCE_FILES
         "${PROJECT_SOURCE_DIR}/shaders/grid.frag"
         "${PROJECT_SOURCE_DIR}/shaders/grid.vert"
-        "${PROJECT_SOURCE_DIR}/shaders/raytrace.rchit"
-        "${PROJECT_SOURCE_DIR}/shaders/raytrace.rgen"
-        "${PROJECT_SOURCE_DIR}/shaders/raytrace.rmiss"
+#        "${PROJECT_SOURCE_DIR}/shaders/raytrace.rchit"
+#        "${PROJECT_SOURCE_DIR}/shaders/raytrace.rgen"
+#        "${PROJECT_SOURCE_DIR}/shaders/raytrace.rmiss"
 )
 
 foreach (GLSL ${GLSL_SOURCE_FILES})
@@ -486,6 +486,15 @@ list(APPEND SPIRV_BINARY_FILES ${MESH_VERTEX_SPV})
 
 compile_slang_shader("${PROJECT_SOURCE_DIR}/shaders/mesh.slang" fragmentMain MESH_FRAG_SPV)
 list(APPEND SPIRV_BINARY_FILES ${MESH_FRAG_SPV})
+
+compile_slang_shader("${PROJECT_SOURCE_DIR}/shaders/raytrace.slang" rayGenMain RT_RAYGEN_SPV)
+list(APPEND SPIRV_BINARY_FILES ${RT_RAYGEN_SPV})
+
+compile_slang_shader("${PROJECT_SOURCE_DIR}/shaders/raytrace.slang" closestHitMain RT_CLOSEST_SPV)
+list(APPEND SPIRV_BINARY_FILES ${RT_CLOSEST_SPV})
+
+compile_slang_shader("${PROJECT_SOURCE_DIR}/shaders/raytrace.slang" missMain RT_MISS_SPV)
+list(APPEND SPIRV_BINARY_FILES ${RT_MISS_SPV})
 
 add_custom_target(
         Shaders

@@ -945,17 +945,17 @@ void VkEngine::InitRayTracingPipeline() {
     LOG_DEBUG(VKE, "Initializing ray tracing pipeline");
 
     VkShaderModule raygenShader;
-    if (!jvk::LoadShaderModule("spv/raytrace.rgen.spv", m_gfx.ctx, &raygenShader)) {
+    if (!jvk::LoadShaderModule("spv/raytrace_rayGenMain.spv", m_gfx.ctx, &raygenShader)) {
         LOG_FATAL(VKE, "Failed to load raygen shader");
     }
 
     VkShaderModule missShader;
-    if (!jvk::LoadShaderModule("spv/raytrace.rmiss.spv", m_gfx.ctx, &missShader)) {
+    if (!jvk::LoadShaderModule("spv/raytrace_missMain.spv", m_gfx.ctx, &missShader)) {
         LOG_FATAL(VKE, "Failed to load miss shader");
     }
 
     VkShaderModule closestHitShader;
-    if (!jvk::LoadShaderModule("spv/raytrace.rchit.spv", m_gfx.ctx, &closestHitShader)) {
+    if (!jvk::LoadShaderModule("spv/raytrace_closestHitMain.spv", m_gfx.ctx, &closestHitShader)) {
         LOG_FATAL(VKE, "Failed to load closest hit shader");
     }
 

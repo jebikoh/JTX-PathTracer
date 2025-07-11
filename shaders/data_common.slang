@@ -7,11 +7,11 @@ public struct GlobalUniformData {
     public float3 sunDirection;
     public float sunIntensity;
     
-    public ConstBufferPointer<float3> vertices;
-    public ConstBufferPointer<float3> normals;
-    public ConstBufferPointer<float2> texCoords;
-    public ConstBufferPointer<float3> colors;
-    public ConstBufferPointer<uint32_t3> indices;
+    public float3 *vertices;
+    public float3 *normals;
+    public float2 *texCoords;
+    public float3 *colors;
+    public uint32_t3 *indices;
 }
 
 public struct ObjectData {

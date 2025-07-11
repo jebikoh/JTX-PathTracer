@@ -381,13 +381,13 @@ void VkEngine::DestroyPipelines() const {
 
 void VkEngine::InitMaterialPipelines() {
     VkShaderModule vertexShader;
-    if (!jvk::LoadShaderModule("spv/mesh.vert.spv", m_gfx.ctx, &vertexShader)) {
-        LOG_FATAL(VKE, "Failed to load vertex shader");
+    if (!jvk::LoadShaderModule("spv/mesh_vertexMain.spv", m_gfx.ctx, &vertexShader)) {
+        LOG_FATAL(VKE, "Failed to load mesh vertex shader");
     }
 
     VkShaderModule diffuseFragmentShader;
-    if (!jvk::LoadShaderModule("spv/diffuse.frag.spv", m_gfx.ctx, &diffuseFragmentShader)) {
-        LOG_FATAL(VKE, "Failed to load diffuse fragment shader");
+    if (!jvk::LoadShaderModule("spv/mesh_fragmentMain.spv", m_gfx.ctx, &diffuseFragmentShader)) {
+        LOG_FATAL(VKE, "Failed to load mesh fragment shader");
     }
 
     VkPushConstantRange pc{};

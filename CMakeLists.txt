@@ -422,14 +422,24 @@ endif()
 # ──────────────────────────────────────────────────────────────────────────────
 #  Shader compilation
 # ──────────────────────────────────────────────────────────────────────────────
-find_program(GLSL_VALIDATOR glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
-
 set(SPIRV_OUTPUT_DIR "${CMAKE_BINARY_DIR}/spv")
 file(MAKE_DIRECTORY "${SPIRV_OUTPUT_DIR}")
 
+# TEMPORARY UNTIL ALL GLSL FILES ARE REMOVED
+find_program(GLSL_VALIDATOR glslangValidator HINTS /usr/bin /usr/local/bin $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
+if(NOT GLSL_VALIDATOR)
+    message(FATAL_ERROR "[JTX] Slang compiler (slangc) not found.")
+endif()
+message(STATUS "[JTX] Found GLSL compiler: ${GLSL_VALIDATOR}")
+
+find_program(SLANG_COMPILER slangc HINTS $ENV{SLANG_DIR}/bin/ $ENV{VULKAN_SDK}/Bin/ $ENV{VULKAN_SDK}/Bin32/)
+if(NOT SLANG_COMPILER)
+    message(FATAL_ERROR "[JTX] Slang compiler (slangc) not found.")
+endif()
+message(STATUS "[JTX] Found Slang compiler: ${SLANG_COMPILER}")
+
+
 set(GLSL_SOURCE_FILES
-        "${PROJECT_SOURCE_DIR}/shaders/diffuse.frag"
-        "${PROJECT_SOURCE_DIR}/shaders/mesh.vert"
         "${PROJECT_SOURCE_DIR}/shaders/grid.frag"
         "${PROJECT_SOURCE_DIR}/shaders/grid.vert"
         "${PROJECT_SOURCE_DIR}/shaders/raytrace.rchit"
@@ -438,11 +448,9 @@ set(GLSL_SOURCE_FILES
 )
 
 foreach (GLSL ${GLSL_SOURCE_FILES})
-    message(STATUS "[JTX] Building shader")
+    message(STATUS "[JTX] GLSL Shader: ${GLSL}")
     get_filename_component(FILE_NAME ${GLSL} NAME)
     set(SPIRV "${SPIRV_OUTPUT_DIR}/${FILE_NAME}.spv")
-    message(STATUS ${GLSL})
-    message(STATUS COMMAND ${GLSL_VALIDATOR} -V ${GLSL} -o ${SPIRV})
     add_custom_command(
             OUTPUT ${SPIRV}
             COMMAND ${GLSL_VALIDATOR} -V --target-env vulkan1.2 ${GLSL} -o ${SPIRV}
@@ -450,7 +458,37 @@ foreach (GLSL ${GLSL_SOURCE_FILES})
     list(APPEND SPIRV_BINARY_FILES ${SPIRV})
 endforeach (GLSL)
 
+set(SLANG_SOURCE_FILES
+        "${PROJECT_SOURCE_DIR}/shaders/mesh.slang"
+)
+
+function(compile_slang_shader SOURCE_FILE ENTRY_POINT OUTPUT_VAR)
+    get_filename_component(SOURCE_NAME ${SOURCE_FILE} NAME_WE)
+
+    set(OUTPUT_SPIRV "${SPIRV_OUTPUT_DIR}/${SOURCE_NAME}_${ENTRY_POINT}.spv")
+    add_custom_command(
+            OUTPUT ${OUTPUT_SPIRV}
+            COMMAND ${SLANG_COMPILER}
+            ${SOURCE_FILE}
+            -profile glsl_450
+            -target spirv
+            -entry ${ENTRY_POINT}
+            -o ${OUTPUT_SPIRV}
+            DEPENDS ${SOURCE_FILE}
+            COMMENT "Compiling Slang shader: ${SOURCE_FILE} -> ${ENTRY_POINT}"
+    )
+    message(STATUS "[JTX] Slang Shader: ${SOURCE_NAME}::${ENTRY_POINT}")
+    set(${OUTPUT_VAR} ${OUTPUT_SPIRV} PARENT_SCOPE)
+endfunction()
+
+compile_slang_shader("${PROJECT_SOURCE_DIR}/shaders/mesh.slang" vertexMain MESH_VERTEX_SPV)
+list(APPEND SPIRV_BINARY_FILES ${MESH_VERTEX_SPV})
+
+compile_slang_shader("${PROJECT_SOURCE_DIR}/shaders/mesh.slang" fragmentMain MESH_FRAG_SPV)
+list(APPEND SPIRV_BINARY_FILES ${MESH_FRAG_SPV})
+
 add_custom_target(
         Shaders
         DEPENDS ${SPIRV_BINARY_FILES}
 )
+add_dependencies(JTX Shaders)

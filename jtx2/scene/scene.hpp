@@ -5,9 +5,40 @@
 #include <material.h>
 #include <util/aabb.hpp>
 #include <util/sampling.hpp>
-
 // TODO: add TRS transform and basic scene graph
 namespace jtx {
+
+struct LightSample {
+    vec3 position;
+    vec3 normal;
+    vec3 emission;
+    vec3 direction;
+    float distance;
+    float pdf;
+};
+
+struct EnvMap {
+    enum kType {
+        SOLID = 0,
+        IMAGE = 1,
+    } type = SOLID;
+
+    vec3 solid{0.0f};
+    float intensity = 0.0f;
+    Image32f IBL;
+
+    vec3 Evaluate(const ray &r) const {
+        return solid * intensity;
+    }
+
+    void Sample(const vec2 &s, LightSample &sample) const {
+        sample.pdf = 0.0f;
+    }
+
+    float PDF() const {
+        return 0.0f;
+    }
+};
 
 struct SceneUpdate {
     int32_t materialIndex = -1;
@@ -32,15 +63,6 @@ struct Mesh {
     uint32_t startIndex;
     uint32_t numIndices;// In triangles, not vertices
     uint32_t materialIndex;
-};
-
-struct LightSample {
-    vec3 position;
-    vec3 normal;
-    vec3 emission;
-    vec3 direction;
-    float distance;
-    float pdf;
 };
 
 /**
@@ -104,9 +126,15 @@ struct Scene {
 
     // Skybox color
     vec3 skyColor;
+    EnvMap envMap;
 
     // Lights
     std::vector<uint32_t> emissiveTriangles;// Indices of triangles that are emissive
+
+    uint32_t GetNumLights() const {
+        // 1 + for envmap
+        return static_cast<uint32_t>(emissiveTriangles.size() + 1);
+    }
 
     size_t AddMaterial(const Material &material) {
         materials.push_back(material);

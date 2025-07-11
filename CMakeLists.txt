@@ -236,7 +236,6 @@ set(JTX_WING
         jtx2/engine/vulkan/render_data.hpp
         jtx2/engine/vulkan/accel.hpp
         jtx2/engine/vulkan/accel.cpp
-        jtx2/scene/light.hpp
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -443,9 +442,6 @@ message(STATUS "[JTX] Found Slang compiler: ${SLANG_COMPILER}")
 set(GLSL_SOURCE_FILES
         "${PROJECT_SOURCE_DIR}/shaders/grid.frag"
         "${PROJECT_SOURCE_DIR}/shaders/grid.vert"
-#        "${PROJECT_SOURCE_DIR}/shaders/raytrace.rchit"
-#        "${PROJECT_SOURCE_DIR}/shaders/raytrace.rgen"
-#        "${PROJECT_SOURCE_DIR}/shaders/raytrace.rmiss"
 )
 
 foreach (GLSL ${GLSL_SOURCE_FILES})

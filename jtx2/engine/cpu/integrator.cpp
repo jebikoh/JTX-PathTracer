@@ -14,7 +14,7 @@ vec3 jtx::Integrate(ray r, const Scene &scene, const BVH &bvh, int maxDepth, Sam
     while (beta) {
         const bool bHit = bvh.ClosestHit(r, 0.001f, JTX_INFINITY_F, triIsect);
         if (!bHit) {
-            radiance += beta * scene.skyColor;
+            radiance += beta * scene.envMap.Evaluate(r);
             break;
         }
 
@@ -51,7 +51,7 @@ vec3 jtx::IntegrateRR(ray r, const Scene &scene, const BVH &bvh, int maxDepth, S
     while (beta) {
         const bool bHit = bvh.ClosestHit(r, 0.001f, JTX_INFINITY_F, triIsect);
         if (!bHit) {
-            radiance += beta * scene.skyColor;
+            radiance += beta * scene.envMap.Evaluate(r);
             break;
         }
 
@@ -197,7 +197,14 @@ vec3 jtx::IntegrateMIS(ray r, const Scene &scene, const BVH &bvh, int maxDepth, 
     while (true) {
         const bool bHit = bvh.ClosestHit(r, 0.001f, JTX_INFINITY_F, triIsect);
         if (!bHit) {
-            radiance += vec3(0.0f, 0.0f, 0.0f); // No contribution if no hit (sky is only black for now)
+            vec3 Le = scene.envMap.Evaluate(r);
+            if (depth == 0 || bSpecularBounce) {
+                radiance += beta * Le;
+            } else {
+                float probLight = scene.envMap.PDF() * (1.0f / scene.GetNumLights());
+                float wb = BalanceHeuristic(probBRDF, probLight);
+                radiance += beta * Le * wb;
+            }
             break;
         }
 
@@ -210,14 +217,14 @@ vec3 jtx::IntegrateMIS(ray r, const Scene &scene, const BVH &bvh, int maxDepth, 
             if (depth == 0 || bSpecularBounce) {
                 radiance += beta * parameters.emission;
             } else {
-                // Since we hit a light source, we need to apply MIS to figure out how to weigh it
+                // Since we hit a light source, we need to apply MIS to figure out how to weigh5 it
                 //
                 // We need to calculate the light weight, which is the product of
                 // P(selecting this light) * P(sampling that point on the light)
                 // Note, the scattering PDF, BSDF, and cosine factors already included in beta
                 const float cosTheta = AbsDot(surface.normal, -r.dir);
                 const float dist2 = (r.origin - surface.point).LengthSquared();
-                float probLight = 1.0f / static_cast<float>(scene.emissiveTriangles.size()) * scene.TrianglePDF(triIsect.index) * dist2 / cosTheta;
+                float probLight = 1.0f / scene.GetNumLights() * scene.TrianglePDF(triIsect.index) * dist2 / cosTheta;
 
                 float wb = BalanceHeuristic(probBRDF, probLight);
                 radiance += beta * parameters.emission * wb;
@@ -235,43 +242,49 @@ vec3 jtx::IntegrateMIS(ray r, const Scene &scene, const BVH &bvh, int maxDepth, 
         auto Ld = vec3(0.0f);
         if (!bSpecularBounce) {
             // Randomly select a light
-            const auto index         = rng.Sample(scene.emissiveTriangles.size());
-            const auto emissiveIndex = scene.emissiveTriangles[index];
+            const auto index = static_cast<int32_t>(rng.Sample(scene.GetNumLights())) - 1; // -1 -> EnvMap
 
-            // Sample a point on that light
             LightSample lightSample;
-            scene.SampleTriangle(rng.Uniform<vec2>(), emissiveIndex, lightSample);
+            if (index < 0) {
+                scene.envMap.Sample(rng.Uniform<vec2>(), lightSample);
+            } else {
+                const auto emissiveIndex = scene.emissiveTriangles[index];
+                scene.SampleTriangle(rng.Uniform<vec2>(), emissiveIndex, lightSample);
+            }
 
-            // Calculate the incident light direction
-            vec3 wi           = lightSample.position - surface.point; // surface -> light
-            const float dist2 = wi.LengthSquared();
-            const float dist  = jtx::SafeSqrt(dist2);
-            wi /= dist;
+            // Some lights have their PDFs set to 0.0f for MIS compensation (e.g. solid color env maps)
+            if (lightSample.pdf > 0.0f) {
+                // Calculate the incident light direction
+                vec3 wi           = lightSample.position - surface.point; // surface -> light
+                const float dist2 = wi.LengthSquared();
+                const float dist  = jtx::SafeSqrt(dist2);
+                wi /= dist;
 
-            // Evaluate visibility term
-            // For larger scenes, the delta might need to be adjusted to be bigger
-            // When the vertex distances start exceeding the 100s, <=0.001f leads to artifacts
-            ray shadowRay(surface.point + surface.normal * 0.001f, wi);
-            bool bOccluded = bvh.AnyHit(shadowRay, 0.0f, dist - 0.01f);
-            if (!bOccluded) {
-                // Ray was not obscured, V = 1.0f
-                const auto f = EvalBxDF(scene, surface, wo, wi) * AbsDot(wi, surface.normal);
-                if (f) {
-                    vec3 Le = lightSample.emission;
+                // Evaluate visibility term
+                // For larger scenes, the delta might need to be adjusted to be bigger
+                // When the vertex distances start exceeding the 100s, <=0.001f leads to artifacts
+                ray shadowRay(surface.point + surface.normal * 0.001f, wi);
+                bool bOccluded = bvh.AnyHit(shadowRay, 0.0f, dist - 0.01f);
+                if (!bOccluded) {
+                    // Ray was not obscured, V = 1.0f
+                    const auto f = EvalBxDF(scene, surface, wo, wi) * AbsDot(wi, surface.normal);
+                    if (f) {
+                        vec3 Le = lightSample.emission;
 
-                    // Incident angle cosine factor from surface
-                    const float cosThetaL = AbsDot(-wi, lightSample.normal);
+                        // Incident angle cosine factor from surface
+                        const float cosThetaL = AbsDot(-wi, lightSample.normal);
 
-                    // P of selecting this light * P of selecting that point
-                    // Note, P of selecting that point needs to be converted to solid angle
-                    const float nProbLight_Area = 1.0f / static_cast<float>(scene.emissiveTriangles.size()) * lightSample.pdf;
-                    const float nProbLight_SolidAngle = nProbLight_Area * dist2 / cosThetaL;
-                    const float nProbBRDF = PDFBxDF(scene, surface, wo, wi);
+                        // P of selecting this light * P of selecting that point
+                        // Note, P of selecting that point needs to be converted to solid angle
+                        const float nProbLight_Area = 1.0f / static_cast<float>(scene.emissiveTriangles.size()) * lightSample.pdf;
+                        const float nProbLight_SolidAngle = nProbLight_Area * dist2 / cosThetaL;
+                        const float nProbBRDF = PDFBxDF(scene, surface, wo, wi);
 
-                    const float wl = BalanceHeuristic(nProbLight_SolidAngle, nProbBRDF);
+                        const float wl = BalanceHeuristic(nProbLight_SolidAngle, nProbBRDF);
 
-                    // Compute the contribution of this light sample
-                    Ld = wl * f * Le / nProbLight_SolidAngle;
+                        // Compute the contribution of this light sample
+                        Ld = wl * f * Le / nProbLight_SolidAngle;
+                    }
                 }
             }
         }

@@ -134,27 +134,32 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
 
     prd.position = worldPos;
     prd.normal   = worldN;
-
-    float3 diffuse;
-    if (mat.diffuseTexture >= 0) {
-        float2 tx0 = globalData.texCoords[idx.x];
-        float2 tx1 = globalData.texCoords[idx.y];
-        float2 tx2 = globalData.texCoords[idx.z];
-    
-        const float2 tx = tx0 * b.x + tx1 * b.y + tx2 * b.z;
-        diffuse = textures[mat.diffuseTexture].SampleLevel(tx, 0.0).rgb;
-    } else {
-        diffuse = mat.diffuse.rgb;
-    }
-
     prd.emission = mat.emission.rgb;
 
     matrix<float, 3, 3> frame = CreateONB(worldN);
-
     float3 wo = mul(prd.wi, transpose(frame));
 
-    DiffuseBRDF brdf = DiffuseBRDF(diffuse);
-    BxDFSample sample = brdf.Sample(wo, prd.sample);
+    // Conductor
+    BxDFSample sample;
+    if (mat.type == 3) {
+        ConductorBRDF brdf = ConductorBRDF(mat.f0.rgb);
+        sample = brdf.Sample(wo, prd.sample);
+    } else {
+        float3 diffuse;
+        if (mat.diffuseTexture >= 0) {
+            float2 tx0 = globalData.texCoords[idx.x];
+            float2 tx1 = globalData.texCoords[idx.y];
+            float2 tx2 = globalData.texCoords[idx.z];
+        
+            const float2 tx = tx0 * b.x + tx1 * b.y + tx2 * b.z;
+            diffuse = textures[mat.diffuseTexture].SampleLevel(tx, 0.0).rgb;
+        } else {
+            diffuse = mat.diffuse.rgb;
+        }
+
+        DiffuseBRDF brdf = DiffuseBRDF(diffuse);
+        sample = brdf.Sample(wo, prd.sample);
+    }
 
     prd.wi  = mul(sample.wi, frame);
     prd.f   = sample.f;

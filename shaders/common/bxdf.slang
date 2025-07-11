@@ -2,6 +2,7 @@ module bxdf;
 
 import sampling;
 import constants;
+import util;
 
 public struct BxDFSample {
     public float3 f;
@@ -16,10 +17,10 @@ interface IBxDF {
 }
 
 public struct DiffuseBRDF : IBxDF {
-    private float3 R;
+    private float3 m_R;
 
     public __init(float3 reflectance) {
-        R = reflectance;
+        m_R = reflectance;
     }
 
     public BxDFSample Sample(float3 wo, float2 s) {
@@ -27,7 +28,7 @@ public struct DiffuseBRDF : IBxDF {
         out.wi = CosineHemisphere(s);
         if (wo.z < 0) out.wi.z = -1;
         out.pdf = CosineHemispherePDF(abs(out.wi.z));
-        out.f = R * INV_PI;
+        out.f = m_R * INV_PI;
         return out;
     }
 
@@ -38,4 +39,26 @@ public struct DiffuseBRDF : IBxDF {
     public float PDF(float3 wo, float wi) {
         return 0;
     }
+}
+
+public struct ConductorBRDF : IBxDF {
+    private float3 m_f0;
+
+    public __init(float3 f0) {
+        m_f0 = f0;
+    }
+
+    public BxDFSample Sample(float3 wo, float2 s) {
+        BxDFSample out;
+        
+        out.wi = float3(-wo.x, -wo.y, wo.z);
+        const float absCosTheta = abs(out.wi.z);
+        out.f = Schlick(wo, float3(0, 0, 1), m_f0) / absCosTheta;
+        out.pdf = 1.0f;
+
+        return out;
+    }
+
+    float3 Evaluate(float3 wo, float3 wi);
+    float PDF(float3 wo, float wi);
 }

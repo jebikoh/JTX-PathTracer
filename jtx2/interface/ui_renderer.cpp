@@ -348,7 +348,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                             break;
                         case Material::Type::CONDUCTOR:
                             ctx.NewRow("F0");
-                            bMaterialUpdated |= ImGui::DragFloat3("##f0", &mat.parameters.f0.x);
+                            bMaterialUpdated |= ImGui::ColorEdit3("##f0", &mat.parameters.f0.x);
 
                             ctx.NewRow("Roughness");
                             bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x);

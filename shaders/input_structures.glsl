@@ -45,6 +45,7 @@ struct GPUMaterialData {
     vec4 f0;
     vec4 emission;
     vec4 roughness;
+    uint type;
     int diffuseTexture;
 };
 

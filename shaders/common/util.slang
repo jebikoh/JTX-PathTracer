@@ -11,3 +11,10 @@ public matrix<float, 3, 3> CreateONB(float3 n) {
         n
     };
 }
+
+public float3 Schlick(float3 wo, float3 n, float3 f0) {
+    const float cosTheta = abs(dot(wo, n));
+    const float m = 1 - cosTheta;
+    const float m2 = m * m;
+    return f0 + (float3(1, 1, 1) - f0) * m2 * m2 * m;
+}

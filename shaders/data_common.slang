@@ -28,5 +28,6 @@ public struct MaterialData {
     public float4 f0;
     public float4 emission;
     public float4 roughness;
+    public uint32_t type;
     public int32_t diffuseTexture;
 }

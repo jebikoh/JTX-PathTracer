@@ -680,6 +680,7 @@ void VkEngine::LoadScene(const Scene *pScene) {
         m.emission                                             = vec4(material.parameters.emission, 0.0f);
         m.roughness                                            = vec4(vec3(material.parameters.roughness, 0.0f), 0.0f);
         m.diffuseTexture                                       = material.textureIndices.diffuse;
+        m.type                                                 = material.mType;
         static_cast<GPUMaterialData *>(materialData)[offset++] = m;
     }
 
@@ -835,6 +836,7 @@ bool VkEngine::UpdateScene(const RenderContext &ctx, const SceneUpdate &update) 
         data->emission                                             = vec4(material.parameters.emission, 0.0f);
         data->roughness                                            = vec4(vec3(material.parameters.roughness, 0.0f), 0.0f);
         data->diffuseTexture                                       = material.textureIndices.diffuse;
+        data->type                                                 = material.mType;
 
         VkBufferCopy copyRegion{};
         copyRegion.srcOffset = 0;

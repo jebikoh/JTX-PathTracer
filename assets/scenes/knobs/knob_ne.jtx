@@ -1,11 +1,11 @@
 {
-    "name": "knob",
+    "name": "knob_ne",
     "version": "1.0",
     "camera": {
         "position": [
             0.0,
             5.0,
-            8.0
+            6.0
         ],
         "target": [
             0.0,
@@ -24,44 +24,6 @@
         "fStop": 2.799999952316284
     },
     "materials": [
-        {
-            "type": 0,
-            "parameters": {
-                "diffuse": [
-                    0.800000011920929,
-                    0.800000011920929,
-                    0.800000011920929
-                ],
-                "ior": [
-                    0.0,
-                    0.0,
-                    0.0
-                ],
-                "k": [
-                    0.0,
-                    0.0,
-                    0.0
-                ],
-                "f0": [
-                    0.0,
-                    0.0,
-                    0.0
-                ],
-                "emission": [
-                    3.0,
-                    3.0,
-                    3.0
-                ],
-                "roughness": [
-                    0.0,
-                    0.0
-                ]
-            },
-            "textureIndices": {
-                "diffuse": -1,
-                "metallicRoughness": -1
-            }
-        },
         {
             "type": 0,
             "parameters": {
@@ -186,50 +148,44 @@
     "meshes": [
         {
             "name": "Case",
-            "materialIndex": 2,
+            "materialIndex": 1,
             "startIndex": 0,
             "numIndices": 57152
         },
         {
             "name": "Backdrop",
-            "materialIndex": 1,
+            "materialIndex": 0,
             "startIndex": 57152,
             "numIndices": 512
         },
         {
             "name": "Core",
-            "materialIndex": 3,
+            "materialIndex": 2,
             "startIndex": 57664,
             "numIndices": 3936
-        },
-        {
-            "name": "Emitter",
-            "materialIndex": 0,
-            "startIndex": 61600,
-            "numIndices": 2
         }
     ],
     "vertexData": {
-        "binary": "knob.bin",
+        "binary": "knob_ne.bin",
         "layout": {
             "indices": {
                 "offset": 0,
-                "count": 61602
+                "count": 61600
             },
             "positions": {
-                "offset": 739224,
-                "count": 184806
+                "offset": 739200,
+                "count": 184800
             },
             "normals": {
-                "offset": 2956896,
-                "count": 184806
+                "offset": 2956800,
+                "count": 184800
             },
             "texCoords": {
-                "offset": 5174568,
-                "count": 184806
+                "offset": 5174400,
+                "count": 184800
             },
             "colors": {
-                "offset": 6653016,
+                "offset": 6652800,
                 "count": 0
             }
         }

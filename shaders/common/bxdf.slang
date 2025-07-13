@@ -2,7 +2,7 @@ module bxdf;
 
 import sampling;
 import constants;
-import util;
+import math;
 
 public struct BxDFSample {
     public float3 f;
@@ -74,19 +74,21 @@ public struct DielectricBSDF : IBxDF {
     public Optional<BxDFSample> Sample(float3 wo, float2 s) {
         BxDFSample out;
 
-        const float R = Fresnel(wo.z, m_eta);
-        const float T = 1.0 - R;
+        const float R = Fresnel(CosTheta(wo), m_eta);
+        const float T = 1.0f - R;
 
         if (s.x < R) {
-            out.wi  = float3(-wo.x, -wo.y, wo.z);
-            out.f   = float3(R / abs(out.wi.z));
-            out.pdf = R;
+                // Reflection (BRDF)
+                out.wi  = float3(-wo.x, -wo.y, wo.z);
+                out.f   = float3(R / AbsCosTheta(out.wi));
+                out.pdf = R;
         } else {
+            // Transmission (BTDF)
             float eta = m_eta;
-            const bool bRefracted = Refract(wo, float3(0, 0, 1), eta, out.wi);
-            if (!bRefracted) return none; // TIR
-            out.f = float3(T) / abs(out.wi.z);
-            out.pdf = T;
+            const bool bRefracted = Refract(wo, float3(0.0f, 0.0f, 1.0f), eta, out.wi);
+            if (!bRefracted) return none;
+            out.f             = float3(T) / AbsCosTheta(out.wi) / (eta * eta); // Non-symmetry
+            out.pdf           = T;
         }
 
         return out;

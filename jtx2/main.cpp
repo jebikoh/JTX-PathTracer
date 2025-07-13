@@ -7,18 +7,23 @@
 
 #define JTX_ENABLE_UI
 
+using namespace jtx;
+
 int main(int argc, char *argv[]) {
     Logger::AddDefaultSink();
 #ifdef JTX_ENABLE_UI
-    jtx::Editor editor;
+    Editor editor;
     editor.Init();
     editor.Run();
     editor.Destroy();
 #else
-    jtx::Scene scene;
-    CHECK_JTX(jtx::LoadScene("../assets/scenes/knobs/knob.jtx", scene));
+    Scene scene;
+    CHECK_JTX(LoadScene("../assets/scenes/knobs/knob.jtx", scene));
+    // scene.envMap.uniform = vec3(0.733, 0.949, 1);
+    // scene.envMap.intensity = 0.5f;
+    // scene.envMap.type  = EnvMap::kType::UNIFORM;
 
-    jtx::RenderSettings rs;
+    RenderSettings rs;
     rs.maxDepth = 32;
     rs.sppRow = 32;
     rs.sppCol = 32;
@@ -27,11 +32,11 @@ int main(int argc, char *argv[]) {
     rs.seed = 419;
     rs.samplesPerPass = 1;
 
-    jtx::BackendCPU backend;
-    backend.Init(1920, 1080, rs);
+    BackendCPU backend;
+    backend.Init(800, 800, rs);
     backend.LoadScene(&scene);
     backend.StartOfflineRender();
-    CHECK_JTX(backend.SaveRenderOutput("knob.png"));
+    CHECK_JTX(backend.SaveRenderOutput("knob_e.png"));
     backend.Destroy();
 #endif
 

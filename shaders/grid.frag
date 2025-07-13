@@ -1,6 +1,5 @@
 #version 450
 
-
 layout(push_constant) uniform PushConstants {
     mat4 viewProj;
     mat4 invViewProj;

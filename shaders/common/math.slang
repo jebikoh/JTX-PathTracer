@@ -1,4 +1,40 @@
-module util;
+module math;
+
+[ForceInline]
+public float CosTheta(float3 w) { return w.z; }
+
+[ForceInline]
+public float Cos2Theta(float3 w) { return w.z * w.z; }
+
+[ForceInline]
+public float AbsCosTheta(float3 w) { return abs(w.z); }
+
+[ForceInline]
+public float Sin2Theta(float3 w) { return max(0.0f, 1.0f - Cos2Theta(w)); }
+
+[ForceInline]
+public float SinTheta(float3 w) { return sqrt(Sin2Theta(w)); }
+
+[ForceInline]
+public float TanTheta(float3 w) { return SinTheta(w) / CosTheta(w); }
+
+[ForceInline]
+public float Tan2Theta(float3 w) {
+    const float cos2Theta = Cos2Theta(w);
+    const float sin2Theta = max(0.0f, 1.0f - cos2Theta);
+    return sin2Theta / cos2Theta;
+}
+
+[ForceInline]
+public float Tan2Theta(float3 w, const float cos2Theta) {
+    const float sin2Theta = max(0.0f, 1.0f - cos2Theta);
+    return sin2Theta / cos2Theta;
+}
+
+[ForceInline]
+public float SafeSqrt(float x) {
+    return sqrt(max(0, x));
+}
 
 public matrix<float, 3, 3> CreateONB(float3 n) {
     float sign = (n.z >= 0.0) ? 1.0 : -1.0;
@@ -49,7 +85,7 @@ public bool Refract(float3 wi, float3 n, inout float eta, inout float3 wt) {
     // Compute Snell's law
     const float r = max(0.0f, 1 - (cosThetaI * cosThetaI)) / (eta * eta);
     if (r >= 1) return false; // TIR
-    const float cosThetaT = sqrt(max(0.0, 1 - r));
+    const float cosThetaT = SafeSqrt(1 - r);
 
     wt = -wi / eta + (cosThetaI / eta - cosThetaT) * n;
     return true;

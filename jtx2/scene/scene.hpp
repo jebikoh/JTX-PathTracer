@@ -18,17 +18,17 @@ struct LightSample {
 };
 
 struct EnvMap {
-    enum kType {
-        SOLID = 0,
-        IMAGE = 1,
-    } type = SOLID;
+    enum class kType {
+        UNIFORM,
+        IBL
+    } type = kType::UNIFORM;
 
-    vec3 solid{0.0f};
+    vec3 uniform{0.0f};
     float intensity = 0.0f;
     Image32f IBL;
 
     vec3 Evaluate(const ray &r) const {
-        return solid * intensity;
+        return uniform * intensity;
     }
 
     void Sample(const vec2 &s, LightSample &sample) const {
@@ -124,17 +124,10 @@ struct Scene {
     std::vector<Image8u> textures;
     std::vector<Mesh> meshes;
 
-    // Skybox color
-    vec3 skyColor;
     EnvMap envMap;
 
     // Lights
     std::vector<uint32_t> emissiveTriangles;// Indices of triangles that are emissive
-
-    uint32_t GetNumLights() const {
-        // 1 + for envmap
-        return static_cast<uint32_t>(emissiveTriangles.size() + 1);
-    }
 
     size_t AddMaterial(const Material &material) {
         materials.push_back(material);

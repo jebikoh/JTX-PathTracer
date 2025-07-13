@@ -1,5 +1,5 @@
 import data_common;
-import common.util;
+import common.math;
 import common.bxdf;
 import common.random;
 
@@ -90,7 +90,7 @@ void rayGenMain() {
 
             if (isinf(beta.x) || isnan(beta.x)) break;
 
-            ray.Origin    = prd.position + prd.normal * 0.001;
+            ray.Origin    = prd.position + prd.wi * 0.001;
             ray.Direction = prd.wi;
         }
 

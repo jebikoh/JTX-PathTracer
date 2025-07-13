@@ -34,7 +34,9 @@ struct Payload {
 
     float3 position;
     float3 normal;
-    float2 sample;
+
+    float s0;
+    float2 s1;
 };
 
 [shader("raygeneration")]
@@ -71,7 +73,9 @@ void rayGenMain() {
         while(true) {
             prd.bMiss  = true;
             prd.wi     = -ray.Direction;
-            prd.sample = rng.UniformFloat2();
+            // TODO: just pass the seed
+            prd.s0     = rng.UniformFloat();
+            prd.s1     = rng.UniformFloat2();
 
             TraceRay(topLevelAS, RAY_FLAG_FORCE_OPAQUE, 0xFF, 0, 0, 0, ray, prd);
 
@@ -143,10 +147,10 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
     Optional<BxDFSample> sample;
     if (mat.type == 3) {
         ConductorBRDF brdf = ConductorBRDF(mat.f0.rgb, mat.roughness.xy);
-        sample = brdf.Sample(wo, prd.sample);
+        sample = brdf.Sample(wo, prd.s0, prd.s1);
     } else if (mat.type == 1) {
-        DielectricBSDF bsdf = DielectricBSDF(mat.ior.x);
-        sample = bsdf.Sample(wo, prd.sample);
+        DielectricBSDF bsdf = DielectricBSDF(mat.ior.x, mat.roughness.xy);
+        sample = bsdf.Sample(wo, prd.s0, prd.s1);
     } else {
         float3 diffuse;
         if (mat.diffuseTexture >= 0) {
@@ -161,7 +165,7 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
         }
 
         DiffuseBRDF brdf = DiffuseBRDF(diffuse);
-        sample = brdf.Sample(wo, prd.sample);
+        sample = brdf.Sample(wo, prd.s0, prd.s1);
     }
 
     if (sample == none) {

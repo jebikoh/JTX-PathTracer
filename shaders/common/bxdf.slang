@@ -9,6 +9,10 @@ static const float GGX_THRESHOLD    = 1e-3;
 struct GGX {
     private float2 m_alpha;
 
+    __init() {
+        m_alpha = float2(0, 0);
+    }
+
     __init(float2 alpha) {
         m_alpha = alpha;
     }
@@ -85,7 +89,7 @@ public struct BxDFSample {
 }
 
 interface IBxDF {
-    Optional<BxDFSample> Sample(float3 wo, float2 s);
+    Optional<BxDFSample> Sample(float3 wo, float s0, float2 s1);
     float3 Evaluate(float3 wo, float3 wi);
     float PDF(float3 wo, float wi);
 }
@@ -97,9 +101,9 @@ public struct DiffuseBRDF : IBxDF {
         m_R = reflectance;
     }
 
-    public Optional<BxDFSample> Sample(float3 wo, float2 s) {
+    public Optional<BxDFSample> Sample(float3 wo, float s0, float2 s1) {
         BxDFSample out;
-        out.wi = CosineHemisphere(s);
+        out.wi = CosineHemisphere(s1);
         if (wo.z < 0) out.wi.z = -1;
         out.pdf = CosineHemispherePDF(abs(out.wi.z));
         out.f = m_R * INV_PI;
@@ -121,7 +125,7 @@ public struct ConductorBRDF : IBxDF {
 
     public __init(float3 f0) {
         m_f0 = f0;
-        m_ggx = GGX(float2(0, 0));
+        m_ggx = GGX();
     }
 
     public __init(float3 f0, float2 alpha) {
@@ -129,7 +133,7 @@ public struct ConductorBRDF : IBxDF {
         m_ggx = GGX(alpha);
     }
 
-    public Optional<BxDFSample> Sample(float3 wo, float2 s) {
+    public Optional<BxDFSample> Sample(float3 wo, float s0, float2 s1) {
         BxDFSample out;
         if (m_ggx.IsSmooth()) {
             out.wi = float3(-wo.x, -wo.y, wo.z);
@@ -142,7 +146,7 @@ public struct ConductorBRDF : IBxDF {
         
         if (wo.z == 0.0f) return none;
 
-        const float3 wm = m_ggx.SampleWm(wo, s);
+        const float3 wm = m_ggx.SampleWm(wo, s1);
         out.wi = Reflect(wo, wm);
         if (!SameHemisphere(wo, out.wi)) return none;
 
@@ -167,29 +171,78 @@ public struct ConductorBRDF : IBxDF {
 
 public struct DielectricBSDF : IBxDF {
     private float m_eta;
+    private GGX m_ggx;
 
     public __init(float eta) {
         m_eta = eta;
+        m_ggx = GGX();
     }
 
-    public Optional<BxDFSample> Sample(float3 wo, float2 s) {
+    public __init(float eta, float2 alpha) {
+        m_eta = eta;
+        m_ggx = GGX(alpha);
+    }
+
+    public Optional<BxDFSample> Sample(float3 wo, float s0, float2 s1) {
         BxDFSample out;
 
-        const float R = Fresnel(CosTheta(wo), m_eta);
-        const float T = 1.0f - R;
+        if (m_eta == 1 || m_ggx.IsSmooth()) {
+            const float R = Fresnel(CosTheta(wo), m_eta);
+            const float T = 1.0f - R;
 
-        if (s.x < R) {
-                // Reflection (BRDF)
-                out.wi  = float3(-wo.x, -wo.y, wo.z);
-                out.f   = float3(R / AbsCosTheta(out.wi));
-                out.pdf = R;
+            if (s0 < R) {
+                    // Reflection (BRDF)
+                    out.wi  = float3(-wo.x, -wo.y, wo.z);
+                    out.f   = float3(R / AbsCosTheta(out.wi));
+                    out.pdf = R;
+            } else {
+                // Transmission (BTDF)
+                float eta = m_eta;
+                const bool bRefracted = Refract(wo, float3(0.0f, 0.0f, 1.0f), eta, out.wi);
+                if (!bRefracted) return none;
+                out.f             = float3(T) / AbsCosTheta(out.wi) / (eta * eta); // Non-symmetry
+                out.pdf           = T;
+            }
+
+            return out;
+        }
+
+        const float3 wm = m_ggx.SampleWm(wo, s1);
+
+        const float R = Fresnel(dot(wo, wm), m_eta);
+        const float T = 1 - R;
+
+        if (s0 < R) {
+            // Reflection (BRDF)
+            out.wi = Reflect(wo, wm);
+            if (!SameHemisphere(wo, out.wi)) return none;
+
+            const float cosThetaO = AbsCosTheta(wo);
+            const float cosThetaI = AbsCosTheta(out.wi);
+            if (cosThetaO == 0 || cosThetaI == 0) return none;
+
+            out.pdf = m_ggx.PDF(wo, wm) / (4 * AbsDot(wo, wm)) * R;
+
+            const float D = m_ggx.EvaluateNDF(wm);
+            const float G = m_ggx.EvaluateShadowingMasking(wo, out.wi);
+            out.f = float3(D * G * R / (4 * cosThetaO * cosThetaI));
         } else {
             // Transmission (BTDF)
             float eta = m_eta;
-            const bool bRefracted = Refract(wo, float3(0.0f, 0.0f, 1.0f), eta, out.wi);
-            if (!bRefracted) return none;
-            out.f             = float3(T) / AbsCosTheta(out.wi) / (eta * eta); // Non-symmetry
-            out.pdf           = T;
+            const bool bRefracted = Refract(wo, wm, eta, out.wi);
+            if (SameHemisphere(wo, out.wi) || out.wi.z == 0 || !bRefracted) return none;
+
+            float denominator = Sqr(dot(out.wi, wm) + dot(wo, wm) / eta);
+            float numerator = m_ggx.PDF(wo, wm) * AbsDot(out.wi, wm);
+            out.pdf =  numerator / denominator * T;
+
+            const float D = m_ggx.EvaluateNDF(wm);
+            const float G = m_ggx.EvaluateShadowingMasking(wo, out.wi);
+
+            numerator = D * T * G * abs(dot(out.wi, wm) * dot(wo, wm));
+            denominator *= abs(CosTheta(out.wi) * CosTheta(wo));
+
+            out.f = float3(numerator / denominator);
         }
 
         return out;

@@ -333,8 +333,19 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                             ctx.NewRow("IOR");
                             bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x);
 
-                            ctx.NewRow("Roughness");
-                            bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x);
+                            ctx.NewRow("Anisotropy");
+                            bMaterialUpdated |= ImGui::Checkbox("##anisotropic", &mat.parameters.bAnisotropic);
+
+                            if (mat.parameters.bAnisotropic) {
+                                ctx.NewRow("Roughness");
+                                bMaterialUpdated |= ImGui::DragFloat2("##roughness", &mat.parameters.roughness.x, 0.01);
+                            } else {
+                                bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x, 0.01);
+                                mat.parameters.roughness.y = mat.parameters.roughness.x;
+                            }
+
+                            ctx.NewRow("Emission");
+                            bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
                             break;
                         case Material::Type::COMPLEX_CONDUCTOR:
                             ctx.NewRow("IOR");
@@ -343,15 +354,39 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                             ctx.NewRow("Absorption");
                             bMaterialUpdated |= ImGui::DragFloat3("##absorption", &mat.parameters.k.x);
 
-                            ctx.NewRow("Roughness");
-                            bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x);
+                            ctx.NewRow("Anisotropy");
+                            bMaterialUpdated |= ImGui::Checkbox("##anisotropic", &mat.parameters.bAnisotropic);
+
+                            if (mat.parameters.bAnisotropic) {
+                                ctx.NewRow("Roughness");
+                                bMaterialUpdated |= ImGui::DragFloat2("##roughness", &mat.parameters.roughness.x, 0.01);
+                            } else {
+                                bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x, 0.01);
+                                mat.parameters.roughness.y = mat.parameters.roughness.x;
+                            }
+
+                            ctx.NewRow("Emission");
+                            bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
+
                             break;
                         case Material::Type::CONDUCTOR:
                             ctx.NewRow("F0");
                             bMaterialUpdated |= ImGui::ColorEdit3("##f0", &mat.parameters.f0.x);
 
-                            ctx.NewRow("Roughness");
-                            bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x);
+                            ctx.NewRow("Anisotropy");
+                            bMaterialUpdated |= ImGui::Checkbox("##anisotropic", &mat.parameters.bAnisotropic);
+
+                            if (mat.parameters.bAnisotropic) {
+                                ctx.NewRow("Roughness");
+                                bMaterialUpdated |= ImGui::DragFloat2("##roughness", &mat.parameters.roughness.x, 0.01);
+                            } else {
+                                bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x, 0.01);
+                                mat.parameters.roughness.y = mat.parameters.roughness.x;
+                            }
+
+                            ctx.NewRow("Emission");
+                            bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
+
                             break;
                         default:
                             break;

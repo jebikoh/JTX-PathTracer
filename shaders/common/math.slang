@@ -32,8 +32,35 @@ public float Tan2Theta(float3 w, const float cos2Theta) {
 }
 
 [ForceInline]
+public float CosPhi(float3 w) {
+    const float s = SinTheta(w);
+    return (s == 0) ? 1 : clamp(w.x / s, -1.0f, 1.0f);
+}
+
+[ForceInline]
+public float SinPhi(float3 w) {
+    const float s = SinTheta(w);
+    return (s == 0) ? 0 : clamp(w.y / s, -1.0f, 1.0f);
+}
+
+[ForceInline]
 public float SafeSqrt(float x) {
     return sqrt(max(0, x));
+}
+
+[ForceInline]
+public float Sqr(float x) {
+    return x * x;
+}
+
+[ForceInline]
+public float AbsDot(float3 a, float3 b) {
+    return abs(dot(a, b));
+}
+
+[ForceInline]
+public bool SameHemisphere(float3 w, float3 wp) {
+    return w.z * wp.z > 0;
 }
 
 public matrix<float, 3, 3> CreateONB(float3 n) {
@@ -89,4 +116,9 @@ public bool Refract(float3 wi, float3 n, inout float eta, inout float3 wt) {
 
     wt = -wi / eta + (cosThetaI / eta - cosThetaT) * n;
     return true;
+}
+
+[ForceInline]
+public float3 Reflect(float3 wo, float3 n) {
+    return -wo + 2.0f * dot(wo, n) * n;
 }

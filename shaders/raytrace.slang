@@ -142,7 +142,7 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
 
     Optional<BxDFSample> sample;
     if (mat.type == 3) {
-        ConductorBRDF brdf = ConductorBRDF(mat.f0.rgb);
+        ConductorBRDF brdf = ConductorBRDF(mat.f0.rgb, mat.roughness.xy);
         sample = brdf.Sample(wo, prd.sample);
     } else if (mat.type == 1) {
         DielectricBSDF bsdf = DielectricBSDF(mat.ior.x);

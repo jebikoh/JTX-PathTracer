@@ -49,12 +49,12 @@ public:
         // TODO: explore optimization from toggling fast math for this function
         if (IsInf(tan2Theta)) return 0.0f;
 
-        const float cos4Theta = Sqr(cos2Theta);
+        const float cos4Theta = cos2Theta * cos2Theta;
 
         const float a = JTX_PI_F * m_alpha.x * m_alpha.y * cos4Theta;
         const float b = 1.0f + tan2Theta * (Sqr(CosPhi(wm) / m_alpha.x) + Sqr(SinPhi(wm) / m_alpha.y));
 
-        return 1 / (a * Sqr(b));
+        return 1 / (a * b * b);
     }
 
     /**

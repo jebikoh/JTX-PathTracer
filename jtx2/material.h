@@ -24,6 +24,7 @@ struct Material {
         vec3 f0;
         vec3 emission;
         vec2 roughness;
+        bool bAnisotropic;
     } parameters;
 
     struct TextureIndices {

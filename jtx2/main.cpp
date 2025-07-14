@@ -5,7 +5,7 @@
 #include <scene/scene_loader.hpp>
 #include <thread>
 
-#define JTX_ENABLE_UI
+// #define JTX_ENABLE_UI
 
 using namespace jtx;
 
@@ -25,6 +25,7 @@ int main(int argc, char *argv[]) {
     scene.envmap.type  = EnvMap::kType::HDRI;
 
     scene.cameraSettings.position.z = 24.0f;
+    scene.cameraSettings.target = vec3(0, 2, 48.0f);
 
     RenderSettings rs;
     rs.maxDepth = 32;

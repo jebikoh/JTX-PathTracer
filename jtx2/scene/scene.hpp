@@ -116,10 +116,9 @@ struct Scene {
         //         smaller f-stop -> larger aperture -> shallower depth of field
         float fStop = 2.8f;// Aperture size (f-stop)
 
-        // TODO: these should be moved elsewhere -- not camera related
-        // - Exposure (ISO100)
-        // - Tone mapping: ACES, Reinhard, Uncharted2
-        // - Display device: sRGB, Display P3
+        // These are only for exposure control
+        float shutterSpeed = 0.01f; // Shutter speed in seconds (1/100s)
+        float ISO = 100.0f; // ISO sensitivity
     } cameraSettings;
 
     // Triangle data

@@ -196,7 +196,7 @@ vec3 IntegrateMIS(ray r, const Scene &scene, const BVH &bvh, int maxDepth, Sampl
 
     // We only sample the envmap if an image is being used
     const bool bSampleEnvMap = scene.envmap.type == EnvMap::kType::HDRI;
-    const uint32_t nLights   = scene.emissiveTriangles.size() + bSampleEnvMap;
+    const uint32_t nLights   = scene.emissiveTriangles.size(); // + bSampleEnvMap; (TODO: add this back when MIS for IBL is implemented)
 
     TriangleIntersection triIsect;
     while (true) {

@@ -198,25 +198,54 @@ namespace jtx::detail {
 namespace {
     using namespace rapidjson;
 
-    void FromJson(const Value &arr, vec2 &v) {
-        assert(arr.IsArray() && arr.Size() == 2);
-        v.x = arr[0].GetFloat();
-        v.y = arr[1].GetFloat();
+    template<typename T>
+    void FromJson(const rapidjson::Value &parent, const char *field, T& value, const T& defaultValue = T()) {
+        if (parent.HasMember(field)) {
+            if constexpr(std::is_same_v<T, vec2>) {
+                const auto &arr = parent[field];
+                assert(arr.IsArray() && arr.Size() == 2);
+                value = {arr[0].GetFloat(), arr[1].GetFloat()};
+            } else if constexpr(std::is_same_v<T, vec3>) {
+                const auto &arr = parent[field];
+                assert(arr.IsArray() && arr.Size() == 3);
+                value = {arr[0].GetFloat(), arr[1].GetFloat(), arr[2].GetFloat()};
+            } else if constexpr(std::is_same_v<T, vec4>) {
+                const auto &arr = parent[field];
+                assert(arr.IsArray() && arr.Size() == 4);
+                value = {arr[0].GetFloat(), arr[1].GetFloat(), arr[2].GetFloat(), arr[3].GetFloat()};
+            } else if constexpr(std::is_same_v<T, float>) {
+                value = parent[field].GetFloat();
+            } else if constexpr(std::is_same_v<T, double>) {
+                value = parent[field].GetDouble();
+            } else if constexpr(std::is_same_v<T, bool>) {
+                value = parent[field].GetBool();
+            } else {
+                value = defaultValue;
+            }
+        } else {
+            value = defaultValue;
+        }
     }
 
-    void FromJson(const Value &arr, vec3 &v) {
-        assert(arr.IsArray() && arr.Size() == 3);
-        v.x = arr[0].GetFloat();
-        v.y = arr[1].GetFloat();
-        v.z = arr[2].GetFloat();
-    }
-
-    void FromJson(const Value &arr, vec3u &v) {
-        assert(arr.IsArray() && arr.Size() == 3);
-        v.x = arr[0].GetUint();
-        v.y = arr[1].GetUint();
-        v.z = arr[2].GetUint();
-    }
+    // void FromJson(const Value &arr, vec2 &v) {
+    //     assert(arr.IsArray() && arr.Size() == 2);
+    //     v.x = arr[0].GetFloat();
+    //     v.y = arr[1].GetFloat();
+    // }
+    //
+    // void FromJson(const Value &arr, vec3 &v) {
+    //     assert(arr.IsArray() && arr.Size() == 3);
+    //     v.x = arr[0].GetFloat();
+    //     v.y = arr[1].GetFloat();
+    //     v.z = arr[2].GetFloat();
+    // }
+    //
+    // void FromJson(const Value &arr, vec3u &v) {
+    //     assert(arr.IsArray() && arr.Size() == 3);
+    //     v.x = arr[0].GetUint();
+    //     v.y = arr[1].GetUint();
+    //     v.z = arr[2].GetUint();
+    // }
 }
 }
 
@@ -245,14 +274,20 @@ JtxResult jtx::detail::LoadJtx(const std::filesystem::path &path, Scene &scene) 
 
     // -- Camera settings --
     const Value& cs = d["camera"];
-    FromJson(cs["position"], scene.cameraSettings.position);
-    FromJson(cs["target"], scene.cameraSettings.target);
-    FromJson(cs["up"], scene.cameraSettings.up);
-    scene.cameraSettings.focalLength = cs["focalLength"].GetFloat();
-    scene.cameraSettings.sensorWidth = cs["sensorWidth"].GetFloat();
-    scene.cameraSettings.focalDistance = cs["focalDistance"].GetFloat();
-    scene.cameraSettings.bEnableDof = cs["enableDOF"].GetBool();
-    scene.cameraSettings.fStop = cs["fStop"].GetFloat();
+    FromJson(cs, "position", scene.cameraSettings.position);
+    FromJson(cs, "target", scene.cameraSettings.target);
+    FromJson(cs, "up", scene.cameraSettings.up);
+    FromJson(cs, "focalLength", scene.cameraSettings.focalLength, 0.05f);
+    FromJson(cs, "sensorWidth", scene.cameraSettings.sensorWidth, 0.036f);
+    FromJson(cs, "focalDistance", scene.cameraSettings.focalDistance, 10.0f);
+    FromJson(cs, "enableDOF", scene.cameraSettings.bEnableDof, false);
+    FromJson(cs, "fStop", scene.cameraSettings.fStop, 2.8f);
+
+    // scene.cameraSettings.focalLength = cs["focalLength"].GetFloat();
+    // scene.cameraSettings.sensorWidth = cs["sensorWidth"].GetFloat();
+    // scene.cameraSettings.focalDistance = cs["focalDistance"].GetFloat();
+    // scene.cameraSettings.bEnableDof = cs["enableDOF"].GetBool();
+    // scene.cameraSettings.fStop = cs["fStop"].GetFloat();
 
     // -- Textures --
     std::unordered_set<uint32_t> failedTexLoads;
@@ -292,12 +327,13 @@ JtxResult jtx::detail::LoadJtx(const std::filesystem::path &path, Scene &scene) 
         mat.mType = (Material::Type)m_json["type"].GetInt();
 
         const Value& params = m_json["parameters"];
-        FromJson(params["diffuse"], mat.parameters.diffuse);
-        FromJson(params["ior"], mat.parameters.ior);
-        FromJson(params["k"], mat.parameters.k);
-        FromJson(params["f0"], mat.parameters.f0);
-        FromJson(params["emission"], mat.parameters.emission);
-        FromJson(params["roughness"], mat.parameters.roughness);
+        FromJson(params, "diffuse", mat.parameters.diffuse);
+        FromJson(params, "ior", mat.parameters.ior);
+        FromJson(params, "k", mat.parameters.k);
+        FromJson(params, "f0", mat.parameters.f0);
+        FromJson(params, "emission", mat.parameters.emission);
+        FromJson(params, "emissionStrength", mat.parameters.emissionStrength, 1.0f);
+        FromJson(params, "roughness", mat.parameters.roughness);
 
         const Value& tex = m_json["textureIndices"];
         mat.textureIndices.diffuse = tex["diffuse"].GetInt();

@@ -678,6 +678,7 @@ void VkEngine::LoadScene(const Scene *pScene) {
         m.k                                                    = vec4(material.parameters.k, 0.0f);
         m.f0                                                   = vec4(material.parameters.f0, 0.0f);
         m.emission                                             = vec4(material.parameters.emission, 0.0f);
+        m.emissionStrength                                     = material.parameters.emissionStrength;
         m.roughness                                            = vec4(vec3(material.parameters.roughness, 0.0f), 0.0f);
         m.diffuseTexture                                       = material.textureIndices.diffuse;
         m.type                                                 = material.mType;
@@ -834,6 +835,7 @@ bool VkEngine::UpdateScene(const RenderContext &ctx, const SceneUpdate &update) 
         data->k                                                    = vec4(material.parameters.k, 0.0f);
         data->f0                                                   = vec4(material.parameters.f0, 0.0f);
         data->emission                                             = vec4(material.parameters.emission, 0.0f);
+        data->emissionStrength                                     = material.parameters.emissionStrength;
         data->roughness                                            = vec4(vec3(material.parameters.roughness, 0.0f), 0.0f);
         data->diffuseTexture                                       = material.textureIndices.diffuse;
         data->type                                                 = material.mType;

@@ -138,7 +138,7 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
 
     prd.position = worldPos;
     prd.normal   = worldN;
-    prd.emission = mat.emission.rgb;
+    prd.emission = mat.emission.rgb * mat.emissionStrength;
 
     matrix<float, 3, 3> frame = CreateONB(worldN);
     float3 wo = mul(prd.wi, transpose(frame));

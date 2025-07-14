@@ -328,6 +328,9 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
                             ctx.NewRow("Emission");
                             bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
+
+                            ctx.NewRow("Emission Strength");
+                            bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0);
                             break;
                         case Material::Type::DIELECTRIC:
                             ctx.NewRow("IOR");
@@ -338,14 +341,17 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
                             if (mat.parameters.bAnisotropic) {
                                 ctx.NewRow("Roughness");
-                                bMaterialUpdated |= ImGui::DragFloat2("##roughness", &mat.parameters.roughness.x, 0.01);
+                                bMaterialUpdated |= ImGui::DragFloat2("##roughness", &mat.parameters.roughness.x, 0.01, 0, 1);
                             } else {
-                                bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x, 0.01);
+                                bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x, 0.01, 0, 1);
                                 mat.parameters.roughness.y = mat.parameters.roughness.x;
                             }
 
                             ctx.NewRow("Emission");
                             bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
+
+                            ctx.NewRow("Emission Strength");
+                            bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0);
                             break;
                         case Material::Type::COMPLEX_CONDUCTOR:
                             ctx.NewRow("IOR");
@@ -359,14 +365,17 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
                             if (mat.parameters.bAnisotropic) {
                                 ctx.NewRow("Roughness");
-                                bMaterialUpdated |= ImGui::DragFloat2("##roughness", &mat.parameters.roughness.x, 0.01);
+                                bMaterialUpdated |= ImGui::DragFloat2("##roughness", &mat.parameters.roughness.x, 0.01, 0, 1);
                             } else {
-                                bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x, 0.01);
+                                bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x, 0.01, 0, 1);
                                 mat.parameters.roughness.y = mat.parameters.roughness.x;
                             }
 
                             ctx.NewRow("Emission");
                             bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
+
+                            ctx.NewRow("Emission Strength");
+                            bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0);
 
                             break;
                         case Material::Type::CONDUCTOR:
@@ -378,14 +387,17 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
                             if (mat.parameters.bAnisotropic) {
                                 ctx.NewRow("Roughness");
-                                bMaterialUpdated |= ImGui::DragFloat2("##roughness", &mat.parameters.roughness.x, 0.01);
+                                bMaterialUpdated |= ImGui::DragFloat2("##roughness", &mat.parameters.roughness.x, 0.01, 0, 1);
                             } else {
-                                bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x, 0.01);
+                                bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x, 0.01, 0, 1);
                                 mat.parameters.roughness.y = mat.parameters.roughness.x;
                             }
 
                             ctx.NewRow("Emission");
                             bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
+
+                            ctx.NewRow("Emission Strength");
+                            bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0);
 
                             break;
                         default:

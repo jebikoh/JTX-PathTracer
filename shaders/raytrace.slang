@@ -80,7 +80,7 @@ void rayGenMain() {
             TraceRay(topLevelAS, RAY_FLAG_FORCE_OPAQUE, 0xFF, 0, 0, 0, ray, prd);
 
             if (prd.bMiss) {
-                radiance += beta * float3(0, 0, 0);
+                radiance += beta * globalData.skyColor * globalData.skyIntensity;
                 break;
             }
 

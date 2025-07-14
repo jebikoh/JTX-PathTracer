@@ -15,7 +15,7 @@ vec3 Integrate(ray r, const Scene &scene, const BVH &bvh, int maxDepth, Sampler 
     while (beta) {
         const bool bHit = bvh.ClosestHit(r, 0.001f, JTX_INFINITY_F, triIsect);
         if (!bHit) {
-            radiance += beta * scene.envMap.Evaluate(r);
+            radiance += beta * scene.envmap.Evaluate(r.dir);
             break;
         }
 
@@ -52,7 +52,7 @@ vec3 IntegrateRR(ray r, const Scene &scene, const BVH &bvh, int maxDepth, Sample
     while (beta) {
         const bool bHit = bvh.ClosestHit(r, 0.001f, JTX_INFINITY_F, triIsect);
         if (!bHit) {
-            radiance += beta * scene.envMap.Evaluate(r);
+            radiance += beta * scene.envmap.Evaluate(r.dir);
             break;
         }
 
@@ -101,7 +101,7 @@ vec3 IntegrateNEE(ray r, const Scene &scene, const BVH &bvh, int maxDepth, Sampl
     while (true) {
         const bool bHit = bvh.ClosestHit(r, 0.001f, JTX_INFINITY_F, triIsect);
         if (!bHit) {
-            radiance += beta * scene.envMap.uniform;
+            radiance += beta * scene.envmap.uniform;
             break;
         }
 
@@ -195,14 +195,14 @@ vec3 IntegrateMIS(ray r, const Scene &scene, const BVH &bvh, int maxDepth, Sampl
     float etaScale       = 1.0f;
 
     // We only sample the envmap if an image is being used
-    const bool bSampleEnvMap = scene.envMap.type == EnvMap::kType::IBL;
+    const bool bSampleEnvMap = scene.envmap.type == EnvMap::kType::HDRI;
     const uint32_t nLights   = scene.emissiveTriangles.size() + bSampleEnvMap;
 
     TriangleIntersection triIsect;
     while (true) {
         const bool bHit = bvh.ClosestHit(r, 0.001f, JTX_INFINITY_F, triIsect);
         if (!bHit) {
-            const vec3 Le = scene.envMap.Evaluate(r);
+            const vec3 Le = scene.envmap.Evaluate(r.dir);
             if (!bSampleEnvMap || depth == 0 || bSpecularBounce) {
                 radiance += beta * Le;
             } else {

@@ -17,8 +17,6 @@ layout(set = 0, binding = 0) uniform _GPUGlobalUniformData {
     mat4 viewProj;
     mat4 invViewProj;
     vec4 cameraPos;
-    vec3 sunDirection;
-    float sunIntensity;
 
     vec3buf vertices;
     vec3buf normals;

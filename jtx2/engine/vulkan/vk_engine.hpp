@@ -61,7 +61,7 @@ public:
 
     void Destroy();
 
-    void Draw(RenderContext &ctx, ResolveRegion &region, SceneUpdate &update);
+    void Draw(RenderContext &ctx, ResolveRegion &region, const SceneUpdate &update);
 
     void ProcessEvent(const SDL_Event &event);
 

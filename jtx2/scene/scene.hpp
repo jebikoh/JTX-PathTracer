@@ -20,15 +20,25 @@ struct LightSample {
 struct EnvMap {
     enum class kType {
         UNIFORM,
-        IBL
+        HDRI
     } type = kType::UNIFORM;
 
     vec3 uniform{0.0f};
     float intensity = 0.0f;
-    Image32f IBL;
+    Image32f HDRI;
 
-    vec3 Evaluate(const ray &r) const {
-        return uniform * intensity;
+    vec3 Evaluate(const vec3 &r) const {
+        if (type == kType::UNIFORM) return uniform * intensity;
+
+        // This method is actually non-uniform
+        // For true uniform, we would need to do an equal area mapping
+        const float theta = ClampAcos(r.z);
+        const float phi = std::atan2(r.y, r.x);
+
+        const float u = phi * INV_TWO_PI + 0.5f;
+        const float v = theta * INV_PI;
+
+        return HDRI.SampleRGB(vec2(u, v));
     }
 
     void Sample(const vec2 &s, LightSample &sample) const {
@@ -41,8 +51,11 @@ struct EnvMap {
 };
 
 struct SceneUpdate {
-    int32_t materialIndex = -1;
-    int32_t objectIndex   = -1;
+    int32_t materialIndex   = -1;
+    int32_t objectIndex     = -1;
+    // If either of the two above are >=, accumulation will be reset
+    // Can be manually reset via flipping this flag (for HDRI/sky/camera ETC)
+    bool bResetAccumulation = false;
 };
 
 struct Triangle {
@@ -124,7 +137,7 @@ struct Scene {
     std::vector<Image8u> textures;
     std::vector<Mesh> meshes;
 
-    EnvMap envMap;
+    EnvMap envmap;
 
     // Lights
     std::vector<uint32_t> emissiveTriangles;// Indices of triangles that are emissive

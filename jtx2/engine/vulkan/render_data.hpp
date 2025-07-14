@@ -27,9 +27,10 @@ enum kL2Bindings {
 struct alignas(256) GPUGlobalUniformData {
     glm::mat4 viewProj;
     glm::mat4 invViewProj;
-    glm::vec4 cameraPosition;
-    glm::vec3 sunDirection;
-    float sunIntensity;
+    glm::vec3 cameraPosition;
+    TextureHandle envmap;
+    glm::vec3 skyColor;
+    float skyIntensity;
 
     VkDeviceAddress vertexBuffer;
     VkDeviceAddress normalBuffer;

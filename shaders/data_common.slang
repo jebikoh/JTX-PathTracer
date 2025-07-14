@@ -3,15 +3,17 @@ module data_common;
 public struct GlobalUniformData {
     public matrix<float, 4, 4> viewProj;
     public matrix<float, 4, 4> invViewProj;
-    public float4 cameraPos;
-    public float3 sunDirection;
-    public float sunIntensity;
+    public float3 cameraPos;
+
+    public int32_t envmap;
+    public float3 skyColor;
+    public float skyIntensity;
     
     public float3 *vertices;
     public float3 *normals;
     public float2 *texCoords;
     public float3 *colors;
-    public uint32_t3 *indices;
+    public uint3  *indices;
 }
 
 public struct ObjectData {

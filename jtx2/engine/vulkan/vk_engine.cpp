@@ -39,7 +39,7 @@ void VkEngine::Destroy() {
     LOG_INFO(VKE, "Vulkan engine destroyed");
 }
 
-void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region, SceneUpdate &update) {
+void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region, const SceneUpdate &update) {
     // Reset frame count if ray tracing was just enabled
     if (m_bRayTracingEnabled && !m_bRayTracingEnabledPreviousFrame) m_rtFrameNumber = -1;
     m_bRayTracingEnabledPreviousFrame = m_bRayTracingEnabled;
@@ -57,7 +57,10 @@ void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region, SceneUpdate &upda
         if (UpdateScene(ctx, update)) {
             m_rtFrameNumber = -1;
         }
+        *m_frameData[ctx.frameIndex].gpuGlobalUniformDataMapping = m_gpuGlobalUniformData;
     }
+
+    // Update scene data UBO
 
     // Calculate viewport
     const VkRect2D renderArea{
@@ -162,9 +165,6 @@ void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
             return a.materialPipeline < b.materialPipeline;
         });
 
-        // Update scene data UBO
-        *frame.gpuGlobalUniformDataMapping = m_gpuGlobalUniformData;
-
         // Bind layouts
         vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_materialPipelines.layout, 0, 1, &frame.gpuGlobalUniformDataDescriptorSet, 0, nullptr);
         vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_materialPipelines.layout, 1, 1, &m_bindlessDescriptorSet, 0, nullptr);
@@ -198,7 +198,7 @@ void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
 
         GridPushConstants pushConstants{};
         pushConstants.viewProj    = m_gpuGlobalUniformData.viewProj;
-        pushConstants.cameraPos   = m_gpuGlobalUniformData.cameraPosition;
+        pushConstants.cameraPos   = glm::vec4(m_gpuGlobalUniformData.cameraPosition, 0.0f);
         pushConstants.invViewProj = m_gpuGlobalUniformData.invViewProj;
         vkCmdPushConstants(ctx.cmd, m_gridPipeline.layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pushConstants), &pushConstants);
 
@@ -346,11 +346,16 @@ void VkEngine::UpdateGlobalUniformData() {
     m_gpuGlobalUniformData.viewProj       = m_cache.proj * m_cache.view;
     m_gpuGlobalUniformData.invViewProj    = glm::inverse(m_gpuGlobalUniformData.viewProj);
     m_gpuGlobalUniformData.cameraPosition = glm::vec4(m_camera.position, 0.0f);
-    m_gpuGlobalUniformData.sunDirection   = glm::vec4(-1.0f, -1.0f, -1.0f, 0.0f);
-    m_gpuGlobalUniformData.sunIntensity   = 10.0f;
+
+    if (m_pScene) {
+        const auto &uniform         = m_pScene->envmap.uniform;
+        m_gpuGlobalUniformData.skyColor       = glm::vec3(uniform[0], uniform[1], uniform[2]);
+        m_gpuGlobalUniformData.skyIntensity   = m_pScene->envmap.intensity;
+    }
+
     m_gpuGlobalUniformData.vertexBuffer   = m_gpuSceneData.positionAddress;
     m_gpuGlobalUniformData.normalBuffer   = m_gpuSceneData.normalAddress;
-    m_gpuGlobalUniformData.texCoordBuffer       = m_gpuSceneData.uvAddress;
+    m_gpuGlobalUniformData.texCoordBuffer = m_gpuSceneData.uvAddress;
     m_gpuGlobalUniformData.colorBuffer    = m_gpuSceneData.colorAddress;
     m_gpuGlobalUniformData.indexBuffer    = m_gpuSceneData.indexAddress;
 }
@@ -822,7 +827,7 @@ void VkEngine::DestroyScene() {
 }
 
 bool VkEngine::UpdateScene(const RenderContext &ctx, const SceneUpdate &update) const {
-    bool bUpdated = false;
+    bool bUpdated = update.bResetAccumulation;
 
     if (update.materialIndex > -1) {
         bUpdated = true;

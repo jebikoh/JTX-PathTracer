@@ -216,6 +216,8 @@ public:
         channels = c;
         pData = new float[w * h * c]();
     }
+
+    vec3 SampleRGB(const vec2 &tx) const;
 };
 
 /**

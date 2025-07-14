@@ -1,15 +1,15 @@
-#include "image.hpp"
+#include <image.hpp>
+#include <jvk/init.hpp>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
+#include <stb_image_write.h>
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include <stb_image.h>
 
 #define TINYEXR_USE_MINIZ 0
 #define TINYEXR_USE_STB_ZLIB 1
 #define TINYEXR_IMPLEMENTATION
-#include "jvk/init.hpp"
-#include "tinyexr.h"
+#include <tinyexr.h>
 
 #include <filesystem>
 
@@ -211,15 +211,33 @@ JtxResult Image32f::Load(const std::filesystem::path &path, Image32f &out) {
         return JTX_ERROR_INVALID_FILE_EXTENSION;
     }
 
-    float *data = stbi_loadf(reinterpret_cast<const char *>(path.c_str()), &out.width, &out.height, &out.channels, 0);
-    if (!data) {
-        LOG_ERROR(TEXTURE, "Failed to load image or image was empty: {}", path.string());
-        return JTX_ERROR_FILE_LOADING;
-    }
+    if (fileExt == ".exr") {
+        LOG_DEBUG(TEXTURE, "Loading EXR");
+        const char *err = nullptr;
+        const int ret = LoadEXR(&out.pData, &out.width, &out.height, path.string().c_str(), &err);
 
-    out.pData = new float[out.width * out.height * out.channels];
-    memcpy(out.pData, data, out.width * out.height * out.channels);
-    stbi_image_free(data);
+        if (ret != TINYEXR_SUCCESS) {
+            if (err) {
+                LOG_ERROR(TEXTURE, "Failed to load EXR: {}", err);
+                FreeEXRErrorMessage(err);
+                return JTX_ERROR_FILE_LOADING;
+            }
+            return JTX_FAILURE;
+        }
+
+        out.channels = 4;
+        return JTX_SUCCESS;
+    } else {
+        float *data = stbi_loadf(reinterpret_cast<const char *>(path.c_str()), &out.width, &out.height, &out.channels, 0);
+        if (!data) {
+            LOG_ERROR(TEXTURE, "Failed to load image or image was empty: {}", path.string());
+            return JTX_ERROR_FILE_LOADING;
+        }
+
+        out.pData = new float[out.width * out.height * out.channels];
+        memcpy(out.pData, data, out.width * out.height * out.channels);
+        stbi_image_free(data);
+    }
 
     LOG_INFO(TEXTURE, "Loaded 32-bit float texture: {}", path.string());
     return JTX_SUCCESS;
@@ -245,6 +263,17 @@ JtxResult Image32f::Load(const uint8_t *buffer, const size_t size, Image32f &out
 
     LOG_INFO(TEXTURE, "Loaded 32-bit float texture from memory");
     return JTX_SUCCESS;
+}
+
+vec3 Image32f::SampleRGB(const vec2 &tx) const {
+    auto wx = static_cast<int32_t>(tx.x * width);
+    auto wy = static_cast<int32_t>(tx.y * height);
+
+    wx = std::clamp(wx, 0, width - 1);
+    wy = std::clamp(wy, 0, height - 1);
+
+    const auto *pixel = pData + (wy * width + wx) * channels;
+    return vec3(pixel);
 }
 
 float CalculateMSE(const Image8u &img, const Image8u &ref) {

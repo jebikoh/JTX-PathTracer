@@ -415,6 +415,32 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                 }
                 ctx.EndRectangleBackground();
             }
+
+            if (ImGui::CollapsingHeader("Sky")) {
+                ctx.StartRectangleBackground();
+
+                bool bReset = false;
+
+                if (ctx.StartTable("SkyEditor")) {
+                    if (m_pScene) {
+                        auto &envmap = m_pScene->envmap;
+
+                        ctx.NewRow("HDRI");
+                        bool bHDRI = envmap.type == EnvMap::kType::HDRI;
+                        bReset |= ImGui::Checkbox("##HDRI", &bHDRI);
+
+                        ctx.NewRow("Sky Color");
+                        bReset |= ImGui::ColorEdit3("##Sky", &envmap.uniform.x);
+
+                        ctx.NewRow("Intensity");
+                        bReset |= ImGui::DragFloat("##Intensity", &envmap.intensity, 0.1);
+                    }
+                    ctx.EndTable();
+                }
+                ctx.EndRectangleBackground();
+
+                update.bResetAccumulation = bReset;
+            }
         }
 
         ctx.Destroy();

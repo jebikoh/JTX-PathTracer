@@ -18,15 +18,15 @@ struct LightSample {
 };
 
 struct EnvMap {
-    enum class kType {
-        UNIFORM,
-        HDRI
-    } type = kType::UNIFORM;
+    enum kType {
+        UNIFORM = 0,
+        HDRI = 1
+    } type = UNIFORM;
 
     vec3 uniform{0.0f};
     float intensity = 1.0f;
 
-    Image32f HDRI;
+    Image32f image;
     float horizontalOffset = 0.0f; // Phi offset in radians
     float verticalOffset = 0.0f;   // Theta offset in radians
 
@@ -41,7 +41,7 @@ struct EnvMap {
         const float u = phi * INV_TWO_PI + 0.5f;
         const float v = theta * INV_PI;
 
-        return HDRI.SampleRGB(vec2(u, v));
+        return image.SampleRGB(vec2(u, v));
     }
 
     void Sample(const vec2 &s, LightSample &sample) const {
@@ -180,6 +180,8 @@ struct Scene {
         }
         textures.clear();
         textures.shrink_to_fit();
+
+        envmap.image.Destroy();
 
         meshes.clear();
         meshes.shrink_to_fit();

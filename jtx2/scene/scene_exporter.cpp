@@ -59,6 +59,15 @@ JtxResult ExportScene(const Scene &scene, const std::filesystem::path &path) {
     cs.AddMember("fStop", scene.cameraSettings.fStop, allocator);
     d.AddMember("camera", cs, allocator);
 
+    Value envmap(kObjectType);
+    envmap.AddMember("type", scene.envmap.type, allocator);
+    envmap.AddMember("uniform", ToJson(scene.envmap.uniform, allocator), allocator);
+    envmap.AddMember("intensity", scene.envmap.intensity, allocator);
+    envmap.AddMember("hdri", Value(scene.envmap.image.path.c_str(), allocator).Move(), allocator);
+    envmap.AddMember("horizontalOffset", scene.envmap.horizontalOffset, allocator);
+    envmap.AddMember("verticalOffset", scene.envmap.verticalOffset, allocator);
+    d.AddMember("Envmap", envmap, allocator);
+
     // Materials
     Value materials(kArrayType);
     for (const auto &material : scene.materials) {

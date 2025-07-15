@@ -5,7 +5,7 @@
 #include <scene/scene_loader.hpp>
 #include <thread>
 
-#define JTX_ENABLE_UI
+// #define JTX_ENABLE_UI
 
 using namespace jtx;
 
@@ -20,16 +20,18 @@ int main(int argc, char *argv[]) {
     Image32f img;
 
     Scene scene;
-    CHECK_JTX(LoadScene("../assets/scenes/knobs/knob_ne.jtx", scene));
-    CHECK_JTX(Image32f::Load("../assets/hdri/envmap.exr", scene.envmap.HDRI));
-    scene.envmap.type             = EnvMap::kType::HDRI;
-    scene.envmap.horizontalOffset = Radians(90);
-    scene.cameraSettings.position.z = 8.0f;
+    CHECK_JTX(LoadScene("../assets/scenes/knobs/knob_hdri.jtx", scene));
+    // CHECK_JTX(Image32f::Load("../assets/hdri/envmap.exr", scene.envmap.image));
+    // scene.envmap.type             = EnvMap::kType::HDRI;
+    // scene.envmap.horizontalOffset = Radians(90);
+    // scene.cameraSettings.position.z = 8.0f;
+    // ExportScene(scene, "../assets/scenes/knobs/knob_hdri.jtx");
+    // scene.Destroy();
 
     RenderSettings rs;
     rs.maxDepth = 32;
-    rs.sppRow = 64;
-    rs.sppCol = 64;
+    rs.sppRow = 8;
+    rs.sppCol = 8;
     rs.tileSize = 32;
     rs.numThreads = std::thread::hardware_concurrency() - 1;
     rs.seed = 419;
@@ -39,8 +41,9 @@ int main(int argc, char *argv[]) {
     backend.Init(1920, 1080, rs);
     backend.LoadScene(&scene);
     backend.StartOfflineRender();
-    CHECK_JTX(backend.SaveRenderOutput("knob_e.png"));
+    CHECK_JTX(backend.SaveRenderOutput("knob_d.png"));
     backend.Destroy();
+    scene.Destroy();
 #endif
 
     return 0;

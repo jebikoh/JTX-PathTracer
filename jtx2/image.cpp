@@ -214,7 +214,7 @@ JtxResult Image32f::Load(const std::filesystem::path &path, Image32f &out) {
     if (fileExt == ".exr") {
         LOG_DEBUG(TEXTURE, "Loading EXR");
         const char *err = nullptr;
-        const int ret = LoadEXR(&out.pData, &out.width, &out.height, path.string().c_str(), &err);
+        const int ret   = LoadEXR(&out.pData, &out.width, &out.height, path.string().c_str(), &err);
 
         if (ret != TINYEXR_SUCCESS) {
             if (err) {
@@ -226,42 +226,22 @@ JtxResult Image32f::Load(const std::filesystem::path &path, Image32f &out) {
         }
 
         out.channels = 4;
+        out.path = path.string();
         return JTX_SUCCESS;
-    } else {
-        float *data = stbi_loadf(reinterpret_cast<const char *>(path.c_str()), &out.width, &out.height, &out.channels, 0);
-        if (!data) {
-            LOG_ERROR(TEXTURE, "Failed to load image or image was empty: {}", path.string());
-            return JTX_ERROR_FILE_LOADING;
-        }
-
-        out.pData = new float[out.width * out.height * out.channels];
-        memcpy(out.pData, data, out.width * out.height * out.channels);
-        stbi_image_free(data);
     }
 
-    LOG_INFO(TEXTURE, "Loaded 32-bit float texture: {}", path.string());
-    return JTX_SUCCESS;
-}
-
-JtxResult Image32f::Load(const uint8_t *buffer, const size_t size, Image32f &out) {
-    LOG_INFO(TEXTURE, "Loading 32-bit float texture from memory");
-
-    if (!buffer || size == 0) {
-        LOG_ERROR(TEXTURE, "Invalid buffer provided");
-        return JTX_ERROR_INVALID_DATA;
-    }
-
-    float *data = stbi_loadf_from_memory(buffer, size, &out.width, &out.height, &out.channels, 0);
+    float *data = stbi_loadf(reinterpret_cast<const char *>(path.c_str()), &out.width, &out.height, &out.channels, 0);
     if (!data) {
-        LOG_ERROR(TEXTURE, "Failed to load image from memory");
+        LOG_ERROR(TEXTURE, "Failed to load image or image was empty: {}", path.string());
         return JTX_ERROR_FILE_LOADING;
     }
 
     out.pData = new float[out.width * out.height * out.channels];
+    out.path = path.string();
     memcpy(out.pData, data, out.width * out.height * out.channels);
     stbi_image_free(data);
 
-    LOG_INFO(TEXTURE, "Loaded 32-bit float texture from memory");
+    LOG_INFO(TEXTURE, "Loaded 32-bit float texture: {}", path.string());
     return JTX_SUCCESS;
 }
 

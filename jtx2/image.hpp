@@ -142,6 +142,7 @@ class Image32f {
 public:
     int width, height, channels;
     float *pData;
+    std::string path;
 
     /**
      * Creates an empty image (0x0x0)
@@ -188,15 +189,6 @@ public:
      * @return JTX_SUCCESS if successful, failure otherwise
      */
     static JtxResult Load(const std::filesystem::path &path, Image32f &out);
-
-    /**
-     * Loads an image from a provided buffer
-     * @param buffer 32-bit float buffer
-     * @param size buffer size
-     * @param out output image
-     * @return JTX_SUCCESS if successful, failure otherwise
-     */
-    static JtxResult Load(const uint8_t *buffer, size_t size, Image32f &out);
 
     const float &operator[](const int index) const { return pData[index]; }
     float &operator[](const int index) { return pData[index]; }

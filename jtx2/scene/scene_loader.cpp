@@ -219,6 +219,12 @@ namespace {
                 value = parent[field].GetDouble();
             } else if constexpr(std::is_same_v<T, bool>) {
                 value = parent[field].GetBool();
+            } else if constexpr(std::is_same_v<T, uint32_t>) {
+                value = parent[field].GetUint();
+            } else if constexpr(std::is_same_v<T, int32_t>) {
+                value = parent[field].GetInt();
+            } else if constexpr(std::is_same_v<T, std::string>) {
+                value = parent[field].GetString();
             } else {
                 value = defaultValue;
             }
@@ -283,11 +289,28 @@ JtxResult jtx::detail::LoadJtx(const std::filesystem::path &path, Scene &scene) 
     FromJson(cs, "enableDOF", scene.cameraSettings.bEnableDof, false);
     FromJson(cs, "fStop", scene.cameraSettings.fStop, 2.8f);
 
-    // scene.cameraSettings.focalLength = cs["focalLength"].GetFloat();
-    // scene.cameraSettings.sensorWidth = cs["sensorWidth"].GetFloat();
-    // scene.cameraSettings.focalDistance = cs["focalDistance"].GetFloat();
-    // scene.cameraSettings.bEnableDof = cs["enableDOF"].GetBool();
-    // scene.cameraSettings.fStop = cs["fStop"].GetFloat();
+    // -- Envmap --
+    if (d.HasMember("Envmap")) {
+        const Value &envmap = d["Envmap"];
+        int type;
+        FromJson(envmap, "type", type, 0);
+        scene.envmap.type = (EnvMap::kType)type;
+        FromJson(envmap, "uniform", scene.envmap.uniform);
+        FromJson(envmap, "intensity", scene.envmap.intensity, 1.0f);
+
+        std::string hdriPath;
+        FromJson(envmap, "hdri", hdriPath);
+        if (!hdriPath.empty()) {
+            Image32f::Load(hdriPath, scene.envmap.image);
+        }
+
+        FromJson(envmap, "horizontalOffset", scene.envmap.horizontalOffset, 0.0f);
+        FromJson(envmap, "verticalOffset", scene.envmap.verticalOffset, 0.0f);
+    } else {
+        scene.envmap.type      = EnvMap::UNIFORM;
+        scene.envmap.uniform   = vec3(0.0f);
+        scene.envmap.intensity = 1.0f;
+    }
 
     // -- Textures --
     std::unordered_set<uint32_t> failedTexLoads;

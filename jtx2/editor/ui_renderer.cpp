@@ -3,6 +3,7 @@
 
 #include <jvk/init.hpp>
 
+#include <IconsLucide.h>
 #include <SDL.h>
 #include <SDL_vulkan.h>
 #include <imgui_impl_vulkan.h>
@@ -46,6 +47,10 @@ void UiDrawContext::EndRectangleBackground() const {
             m_bgState.rnd,
             ImDrawFlags_RoundCornersAll);
     SetChannelForeground();
+}
+
+ImVec2 UiDrawContext::GetAvailWidth() const {
+    return ImVec2(ImGui::GetContentRegionAvail().x, 0);
 }
 
 bool UiDrawContext::StartTable(const char *id, const float col0, const float col1) const {
@@ -153,6 +158,7 @@ bool UIRenderer::GetViewportRectangle(jvk::ViewRectangle &out) const {
     out.h = size.y * scale.y;
     return true;
 }
+
 void UIRenderer::RegisterViewportBackend(const ViewportBackend id, const char *name, const std::function<void(UiDrawContext &)> &settings) {
     m_viewportBackendSettings[id] = settings;
     m_viewportBackendNames[id]    = name;
@@ -160,9 +166,6 @@ void UIRenderer::RegisterViewportBackend(const ViewportBackend id, const char *n
 
 void UIRenderer::LoadScene(Scene *scene) {
     this->m_pScene = scene;
-    for (const auto &mesh : scene->meshes) {
-        objects.push_back(mesh.name);
-    }
 }
 
 void UIRenderer::NewFrame(SceneUpdate &update) {
@@ -196,10 +199,16 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ImGui::PopStyleColor();
 
         // Setup dockspace
-        const ImGuiID dockSpaceId                   = ImGui::GetID("JTX_DockSpace");
+        const ImGuiID dockSpaceId = ImGui::GetID("JTX_DockSpace");
+        bool bDockSpaceNotCreated = ImGui::DockBuilderGetNode(dockSpaceId) == nullptr;
+
         constexpr ImGuiDockNodeFlags dockSpaceFlags = ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoDockingInCentralNode;
         ImGui::DockSpace(dockSpaceId, ImVec2(0.0f, 0.0f), dockSpaceFlags);
         m_pCentralNode = ImGui::DockBuilderGetCentralNode(dockSpaceId);
+
+        if (bDockSpaceNotCreated) {
+            SetLayout(dockSpaceId, viewport, dockSpaceFlags);
+        }
 
         // Draw menubar
         {
@@ -233,9 +242,9 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ImGui::End();
     }
 
-    // Draw scene settings window
+    static int selectionIndex = 0;
     {
-        ImGui::Begin("Scene Editor");
+        ImGui::Begin(ICON_LC_LIST_TREE);
 
         UiDrawContext ctx;
         ctx.Init();
@@ -255,17 +264,104 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         }
 
 
-        ImGui::Text("Scene Hierarchy");
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-        static int selectionIndex = 0;
         if (ImGui::BeginListBox("##SceneHierarchy")) {
-            for (int i = 0; i < objects.size(); i++) {
-                const bool bIsSelected = (selectionIndex == i);
-                if (ImGui::Selectable(objects[i].c_str(), bIsSelected)) selectionIndex = i;
-                if (bIsSelected) ImGui::SetItemDefaultFocus();
+            if (m_pScene) {
+                const auto &meshes = m_pScene->meshes;
+                for (int i = 0; i < meshes.size(); i++) {
+                    const bool bIsSelected = (selectionIndex == i);
+                    if (ImGui::Selectable(meshes[i].name.c_str(), bIsSelected)) selectionIndex = i;
+                    if (bIsSelected) ImGui::SetItemDefaultFocus();
+                }
             }
             ImGui::EndListBox();
         }
+
+        ctx.Destroy();
+        ImGui::End();
+    }
+
+    // Draw render settings window
+    {
+        ImGui::Begin(ICON_LC_SETTINGS);
+
+        UiDrawContext ctx;
+        ctx.Init();
+
+        // Backend table
+        if (ctx.StartTable("BackendTable")) {
+            const char *renderBackends[]    = {"JTX"};
+            static int currentRenderBackend = 0;
+            ctx.NewRow("Render Backend");
+            ImGui::Combo("##RenderBackend", &currentRenderBackend, renderBackends, IM_ARRAYSIZE(renderBackends));
+
+            ctx.NewRow("Viewport Backend");
+            ImGui::Combo("##ViewportBackend", &m_currentViewportBackend, m_viewportBackendNames, IM_ARRAYSIZE(m_viewportBackendNames));
+
+            ctx.EndTable();
+        }
+
+
+#ifdef JTX_UI_DRAW_DEMO_WINDOW
+        ImGui::ShowDemoWindow();
+#endif
+
+        // Sampling settings
+        if (ImGui::CollapsingHeader("Sampling")) {
+            static int xPixelSamples = 16;
+            static int yPixelSamples = 16;
+            static int maxDepth      = 32;
+
+            ctx.StartRectangleBackground();
+            if (ctx.StartTable("SamplingTable")) {
+                ctx.NewRow("SPP X");
+                ImGui::DragInt("##XSamples", &xPixelSamples, 1);
+
+                ctx.NewRow("SPP Y");
+                ImGui::DragInt("##YSamples", &yPixelSamples, 1);
+
+                ctx.NewRow("Max Depth");
+                ImGui::DragInt("##MaxDepth", &maxDepth, 1);
+                ctx.EndTable();
+            }
+            ctx.EndRectangleBackground();
+        }
+
+        if (ImGui::CollapsingHeader("Performance")) {
+            static int tileSize       = 32;
+            static int numThreads     = 32;
+            static int samplesPerPass = 1;
+
+            ctx.StartRectangleBackground();
+            if (ctx.StartTable("Performance")) {
+                ctx.NewRow("Tile Size");
+                ImGui::DragInt("##TileSize", &tileSize, 0);
+
+                ctx.NewRow("Thread Count");
+                ImGui::DragInt("##NumThreads", &numThreads, 0);
+
+                ctx.NewRow("Samples Per Pass");
+                ImGui::DragInt("##SamplesPerPass", &samplesPerPass, 0);
+
+                ctx.EndTable();
+            }
+            ctx.EndRectangleBackground();
+        }
+
+        if (ImGui::CollapsingHeader("Viewport")) {
+            m_viewportBackendSettings[m_currentViewportBackend](ctx);
+        }
+
+        ctx.Destroy();
+        ImGui::End();
+    }
+
+    // Draw scene settings window
+    {
+        ImGui::Begin(ICON_LC_BOX);
+
+        UiDrawContext ctx;
+        ctx.Init();
 
         if (m_pScene != nullptr) {
             char buffer[256];
@@ -275,8 +371,6 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
             ImGui::Text("Mesh:");
             ImGui::SameLine();
             if (ImGui::InputText("##MeshName", buffer, sizeof(buffer))) {
-                // Get rid of "objects" -- not necessary
-                objects[selectionIndex] = buffer;
                 m_pScene->meshes[selectionIndex].name = buffer;
             }
 
@@ -309,15 +403,15 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                 ctx.StartRectangleBackground();
 
                 if (ctx.StartTable("MaterialEditor")) {
-                    auto &mat = m_pScene->materials[m_pScene->meshes[selectionIndex].materialIndex];
+                    auto &mat                   = m_pScene->materials[m_pScene->meshes[selectionIndex].materialIndex];
                     const char *materialTypes[] = {"Diffuse", "Dielectric", "C. Conductor", "Conductor"};
-                    int currentType = mat.mType;
+                    int currentType             = mat.mType;
 
                     bool bMaterialUpdated = false;
 
                     ctx.NewRow("BxDF");
                     if (ImGui::Combo("##BxDF", &currentType, materialTypes, IM_ARRAYSIZE(materialTypes))) {
-                        mat.mType = static_cast<Material::Type>(currentType);
+                        mat.mType        = static_cast<Material::Type>(currentType);
                         bMaterialUpdated = true;
                     }
 
@@ -416,106 +510,61 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                 ctx.EndRectangleBackground();
             }
 
-            if (ImGui::CollapsingHeader("Sky")) {
+            if (ImGui::CollapsingHeader("Environment Map")) {
                 ctx.StartRectangleBackground();
 
                 bool bReset = false;
+                auto &envmap = m_pScene->envmap;
+                bool bHDRI = envmap.type == EnvMap::HDRI;
 
                 if (ctx.StartTable("SkyEditor")) {
-                    if (m_pScene) {
-                        auto &envmap = m_pScene->envmap;
 
-                        ctx.NewRow("HDRI");
-                        bool bHDRI = envmap.type == EnvMap::kType::HDRI;
-                        bReset |= ImGui::Checkbox("##HDRI", &bHDRI);
-
-                        ctx.NewRow("Sky Color");
+                        if (bHDRI) ImGui::BeginDisabled();
+                        ctx.NewRow("Uniform Color");
                         bReset |= ImGui::ColorEdit3("##Sky", &envmap.uniform.x);
 
                         ctx.NewRow("Intensity");
                         bReset |= ImGui::DragFloat("##Intensity", &envmap.intensity, 0.1);
-                    }
+                        if (bHDRI) ImGui::EndDisabled();
+
+                        ctx.NewRow("HDRI");
+                        bReset |= ImGui::Checkbox("##HDRI", &bHDRI);
+                        envmap.type = bHDRI ? EnvMap::HDRI : EnvMap::UNIFORM;
+
+                        if (!bHDRI) ImGui::BeginDisabled();
+
+                        ctx.NewRow("");
+                        bReset |= ImGui::Button("Select Image", ctx.GetAvailWidth());
+
+                        ctx.NewRow("Map");
+                        if (envmap.image.path.empty()) {
+                            ImGui::Text("No map loaded");
+                        } else {
+                            ImGui::Text(envmap.image.path.c_str());
+                        }
+
+                        float hOffset = Degrees(envmap.horizontalOffset);
+                        ctx.NewRow("Horizontal Offset");
+                        if (ImGui::DragFloat("##HorizontalOffset", &hOffset, 1, 0)) {
+                            bReset = true;
+                            envmap.horizontalOffset = Radians(hOffset);
+                        }
+
+                        float vOffset = Degrees(envmap.verticalOffset);
+                        ctx.NewRow("Vertical Offset");
+                        if (ImGui::DragFloat("##VerticalOffset", &vOffset, 1, 0)) {
+                            bReset = true;
+                            envmap.verticalOffset = Radians(vOffset);
+                        }
+                        if (!bHDRI) ImGui::EndDisabled();
+
                     ctx.EndTable();
                 }
+
                 ctx.EndRectangleBackground();
 
                 update.bResetAccumulation = bReset;
             }
-        }
-
-        ctx.Destroy();
-        ImGui::End();
-    }
-
-    // Draw render settings window
-    {
-        ImGui::Begin("Render Settings");
-
-        UiDrawContext ctx;
-        ctx.Init();
-
-        // Backend table
-        if (ctx.StartTable("BackendTable")) {
-            const char *renderBackends[]    = {"JTX"};
-            static int currentRenderBackend = 0;
-            ctx.NewRow("Render Backend");
-            ImGui::Combo("##RenderBackend", &currentRenderBackend, renderBackends, IM_ARRAYSIZE(renderBackends));
-
-            ctx.NewRow("Viewport Backend");
-            ImGui::Combo("##ViewportBackend", &m_currentViewportBackend, m_viewportBackendNames, IM_ARRAYSIZE(m_viewportBackendNames));
-
-            ctx.EndTable();
-        }
-
-
-#ifdef JTX_UI_DRAW_DEMO_WINDOW
-        ImGui::ShowDemoWindow();
-#endif
-
-        // Sampling settings
-        if (ImGui::CollapsingHeader("Sampling")) {
-            static int xPixelSamples = 16;
-            static int yPixelSamples = 16;
-            static int maxDepth      = 32;
-
-            ctx.StartRectangleBackground();
-            if (ctx.StartTable("SamplingTable")) {
-                ctx.NewRow("SPP X");
-                ImGui::DragInt("##XSamples", &xPixelSamples, 1);
-
-                ctx.NewRow("SPP Y");
-                ImGui::DragInt("##YSamples", &yPixelSamples, 1);
-
-                ctx.NewRow("Max Depth");
-                ImGui::DragInt("##MaxDepth", &maxDepth, 1);
-                ctx.EndTable();
-            }
-            ctx.EndRectangleBackground();
-        }
-
-        if (ImGui::CollapsingHeader("Performance")) {
-            static int tileSize       = 32;
-            static int numThreads     = 32;
-            static int samplesPerPass = 1;
-
-            ctx.StartRectangleBackground();
-            if (ctx.StartTable("Performance")) {
-                ctx.NewRow("Tile Size");
-                ImGui::DragInt("##TileSize", &tileSize, 0);
-
-                ctx.NewRow("Thread Count");
-                ImGui::DragInt("##NumThreads", &numThreads, 0);
-
-                ctx.NewRow("Samples Per Pass");
-                ImGui::DragInt("##SamplesPerPass", &samplesPerPass, 0);
-
-                ctx.EndTable();
-            }
-            ctx.EndRectangleBackground();
-        }
-
-        if (ImGui::CollapsingHeader("Viewport")) {
-            m_viewportBackendSettings[m_currentViewportBackend](ctx);
         }
 
         ctx.Destroy();
@@ -548,7 +597,7 @@ void UIRenderer::SetupStyle() const {
     ImGuiStyle *style = &ImGui::GetStyle();
 
     style->WindowPadding     = ImVec2(12, 8);
-    style->FramePadding      = ImVec2(4, 3);
+    style->FramePadding      = ImVec2(8, 3);
     style->CellPadding       = ImVec2(4, 2);
     style->ItemSpacing       = ImVec2(7, 3);
     style->ItemInnerSpacing  = ImVec2(4, 4);
@@ -573,7 +622,7 @@ void UIRenderer::SetupStyle() const {
     style->TabRounding       = 2.0f;
 
     style->TabBarOverlineSize   = 0.0f;
-    style->DockingSeparatorSize = 0.0f;
+    style->DockingSeparatorSize = 2.0f;
 
     // Color palette taken from: https://github.com/ocornut/imgui/issues/5886#issuecomment-1553902053
     constexpr auto TRANSPARENT = ImVec4(0.0, 0.0, 0.0, 0.0);// #00000000
@@ -597,7 +646,8 @@ void UIRenderer::SetupStyle() const {
     constexpr auto DARKER_A2 = ImVec4(0.178, 0.191, 0.199, 0.7);
     constexpr auto DARKER_A3 = ImVec4(0.178, 0.191, 0.199, 0.4);
 
-    constexpr auto BACKGROUND = ImVec4(0.086, 0.086, 0.086, 1.0);// #151515
+    constexpr auto BACKGROUND         = ImVec4(0.086, 0.086, 0.086, 1.0);// #151515
+    constexpr auto BACKGROUND_LIGHTER = ImVec4(0.2, 0.2, 0.2, 1.0);      // #212222
 
     style->Colors[ImGuiCol_Text]         = BRIGHT;
     style->Colors[ImGuiCol_TextDisabled] = LOW;
@@ -606,15 +656,15 @@ void UIRenderer::SetupStyle() const {
     style->Colors[ImGuiCol_ChildBg]  = BACKGROUND;
     style->Colors[ImGuiCol_PopupBg]  = BACKGROUND;
 
-    style->Colors[ImGuiCol_Border]       = DARK;
+    style->Colors[ImGuiCol_Border]       = BLACK;
     style->Colors[ImGuiCol_BorderShadow] = TRANSPARENT;
 
     style->Colors[ImGuiCol_FrameBg]        = ImVec4(0, 0, 0, 0.85);
     style->Colors[ImGuiCol_FrameBgHovered] = ImVec4(0, 0, 0, 0.95);
     style->Colors[ImGuiCol_FrameBgActive]  = ImVec4(0, 0, 0, 1);
 
-    style->Colors[ImGuiCol_TitleBg]          = DARKER;
-    style->Colors[ImGuiCol_TitleBgActive]    = ImVec4(0.159, 0.170, 0.176, 1.0);
+    style->Colors[ImGuiCol_TitleBg]          = BACKGROUND;
+    style->Colors[ImGuiCol_TitleBgActive]    = BACKGROUND;
     style->Colors[ImGuiCol_TitleBgCollapsed] = BACKGROUND;
 
     style->Colors[ImGuiCol_MenuBarBg] = BACKGROUND;
@@ -649,12 +699,12 @@ void UIRenderer::SetupStyle() const {
     // style->Colors[ImGuiCol_TabHovered] = DARKER_A1;
     // style->Colors[ImGuiCol_TabActive]  = DARKER_A3;
 
-    style->Colors[ImGuiCol_Tab]        = DARK;
-    style->Colors[ImGuiCol_TabHovered] = DARKER;
-    style->Colors[ImGuiCol_TabActive]  = BACKGROUND;
+    style->Colors[ImGuiCol_Tab]        = BACKGROUND;
+    style->Colors[ImGuiCol_TabHovered] = BACKGROUND_LIGHTER;
+    style->Colors[ImGuiCol_TabActive]  = DARKER;
 
-    style->Colors[ImGuiCol_TabDimmed]         = DARK;
-    style->Colors[ImGuiCol_TabDimmedSelected] = BACKGROUND;
+    style->Colors[ImGuiCol_TabDimmed]         = BACKGROUND;
+    style->Colors[ImGuiCol_TabDimmedSelected] = DARKER;
 
     style->Colors[ImGuiCol_TextSelectedBg] = MEDIUM_A;
 
@@ -669,9 +719,17 @@ void UIRenderer::SetupStyle() const {
 
     ImGuiIO &io = ImGui::GetIO();
     io.Fonts->AddFontFromFileTTF(
-            "assets/inter.ttf",
+            "assets/jb_mono.ttf",
             16.0f * dpiScale);
     io.FontGlobalScale = 1.0f / dpiScale;
+
+    const float iconSize                    = 16.0f * dpiScale * 2.0f / 3.0f;
+    static constexpr ImWchar icons_ranges[] = {ICON_MIN_LC, ICON_MAX_16_LC, 0};
+    ImFontConfig icons_config;
+    icons_config.MergeMode        = true;
+    icons_config.PixelSnapH       = true;
+    icons_config.GlyphMinAdvanceX = iconSize;
+    io.Fonts->AddFontFromFileTTF("assets/lucide.ttf", iconSize, &icons_config, icons_ranges);
 }
 
 void UIRenderer::SetLayout(const ImGuiID dockSpaceId, const ImGuiViewport *viewport, const ImGuiDockNodeFlags dockSpaceFlags) {
@@ -679,12 +737,13 @@ void UIRenderer::SetLayout(const ImGuiID dockSpaceId, const ImGuiViewport *viewp
     ImGui::DockBuilderAddNode(dockSpaceId, dockSpaceFlags | ImGuiDockNodeFlags_DockSpace);
     ImGui::DockBuilderSetNodeSize(dockSpaceId, viewport->Size);
 
-    ImGuiID dockMainId         = dockSpaceId;
-    const ImGuiID dockRightId  = ImGui::DockBuilderSplitNode(dockMainId, ImGuiDir_Right, 0.2f, nullptr, &dockMainId);
-    const ImGuiID dockBottomId = ImGui::DockBuilderSplitNode(dockMainId, ImGuiDir_Down, 0.25f, nullptr, &dockMainId);
+    ImGuiID dockMainId           = dockSpaceId;
+    ImGuiID dockRightId          = ImGui::DockBuilderSplitNode(dockMainId, ImGuiDir_Right, 0.2f, nullptr, &dockMainId);
+    const ImGuiID dockRightTopId = ImGui::DockBuilderSplitNode(dockRightId, ImGuiDir_Up, 0.25f, nullptr, &dockRightId);
 
-    ImGui::DockBuilderDockWindow("Render Settings", dockRightId);
-    ImGui::DockBuilderDockWindow("Scene Editor", dockRightId);
+    ImGui::DockBuilderDockWindow(ICON_LC_SETTINGS, dockRightId);
+    ImGui::DockBuilderDockWindow(ICON_LC_BOX, dockRightId);
+    ImGui::DockBuilderDockWindow(ICON_LC_LIST_TREE, dockRightTopId);
 
     ImGui::DockBuilderFinish(dockSpaceId);
 }

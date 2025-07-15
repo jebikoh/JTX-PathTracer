@@ -28,6 +28,8 @@ struct UiDrawContext {
     void StartRectangleBackground();
     void EndRectangleBackground() const;
 
+    ImVec2 GetAvailWidth() const;
+
 private:
     ImDrawList *m_drawList = nullptr;
     bool m_bTableActive = false;

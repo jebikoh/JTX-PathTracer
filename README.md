@@ -40,6 +40,6 @@ https://github.com/user-attachments/assets/69ecdfaf-d2df-4946-abe9-26715a2f2ede
 
 ![knobs](https://github.com/user-attachments/assets/8299adf3-f817-4477-82d3-45d28a46ed80)
 
-![knob](https://github.com/user-attachments/assets/b756c618-eca3-493a-a609-a1003155a4a6)
+<img width="1920" height="1080" alt="knob_e" src="https://github.com/user-attachments/assets/1c310f08-4890-4c2a-9531-9cd26da1ffdc" />
 
 ![knob](https://github.com/user-attachments/assets/86913d61-663d-4254-91e1-03062a4fb8b1)

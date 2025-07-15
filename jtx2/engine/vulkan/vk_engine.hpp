@@ -169,6 +169,8 @@ private:
     void BuildBLAS();
     void BuildTLAS();
 
+    jvk::Image m_accumulationImage;
+
     struct ShaderBindingTable {
         jvk::Buffer buffer{};
         VkStridedDeviceAddressRegionKHR rayGenRegion{};

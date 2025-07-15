@@ -301,7 +301,7 @@ void VkEngine::InitDescriptors() {
     // -- Global uniform data descriptor set allocator --
     std::vector<VkDescriptorPoolSize> poolSizesGlobal = {
             {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1},
-            {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1}};
+            {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 2}};
     m_descriptorAllocator.InitPool(m_gfx.ctx, 2, poolSizesGlobal);
 
     builder.Clear();
@@ -310,6 +310,7 @@ void VkEngine::InitDescriptors() {
     // Raygen needs access to the draw image
     if (m_bRayTracingAvailable) {
         builder.AddBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_RAYGEN_BIT_KHR);
+        builder.AddBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_RAYGEN_BIT_KHR);
     }
 
     m_gpuGlobalUniformDataDescriptorLayout = builder.Build(m_gfx.ctx);
@@ -503,13 +504,13 @@ void VkEngine::LoadScene(const Scene *pScene) {
 
             writer.WriteBuffer(0, frame.gpuGlobalUniformData.buffer, sizeof(GPUGlobalUniformData), 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
             if (m_bRayTracingAvailable) {
-                writer.WriteImage(1, m_gfx.targets.draw32f.view, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+                writer.WriteImage(1, m_accumulationImage.view, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+                writer.WriteImage(2, m_gfx.targets.draw32f.view, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
             }
             writer.UpdateSet(m_gfx.ctx, frame.gpuGlobalUniformDataDescriptorSet);
             writer.Clear();
 
             // Staging buffers for live material updates
-            // >1 material being updated per frame is highly unlikely
             frame.materialStagingBuffer = m_gfx.CreateBuffer(
                 sizeof(GPUMaterialData),
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -1069,6 +1070,27 @@ inline uint32_t AlignUp(const uint32_t size, const uint32_t alignment) {
 void VkEngine::InitRayTracingSBT() {
     LOG_DEBUG(VKE, "Initializing SBT");
 
+    VkImageUsageFlags usages = {};
+    usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    usages |= VK_IMAGE_USAGE_STORAGE_BIT;
+
+    const VkFormat format   = m_gfx.targets.draw32f.format;
+    const VkExtent3D extent = m_gfx.targets.draw32f.extent;
+
+    m_accumulationImage.format = format;
+    m_accumulationImage.extent = extent;
+
+    const VkImageCreateInfo imgInfo = jvk::init::Image(format, usages, extent);
+
+    VmaAllocationCreateInfo vmaInfo{};
+    vmaInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+    vmaInfo.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    vmaCreateImage(m_gfx.allocator, &imgInfo, &vmaInfo, &m_accumulationImage.image, &m_accumulationImage.allocation, nullptr);
+
+    const VkImageViewCreateInfo viewInfo = jvk::init::ImageView(format, m_accumulationImage.image, VK_IMAGE_ASPECT_COLOR_BIT);
+    CHECK_VK(vkCreateImageView(m_gfx.ctx, &viewInfo, nullptr, &m_accumulationImage.view));
+
     constexpr uint32_t rayGenCount = 1;
     constexpr uint32_t missCount   = 1;
     constexpr uint32_t hitCount    = 1;
@@ -1138,6 +1160,7 @@ void VkEngine::DestroyRayTracingSBT() {
     LOG_DEBUG(VKE, "Destroying SBT");
 
     m_gfx.DestroyBuffer(m_SBT.buffer);
+    m_gfx.DestroyImage(m_accumulationImage);
 
     LOG_DEBUG(VKE, "SBT destroyed");
 }
@@ -1146,8 +1169,9 @@ void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const {
     if (!m_bSceneLoaded) return;
     if (m_rtFrameNumber >= m_rtMaxFrames) return;
 
-    const auto &drawImage = m_gfx.targets.draw32f;
+    jvk::TransitionImageIfNeeded(ctx.cmd, m_accumulationImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
+    const auto &drawImage = m_gfx.targets.draw32f;
     jvk::TransitionImageIfNeeded(ctx.cmd, drawImage.image, ctx.layout.draw32f, VK_IMAGE_LAYOUT_GENERAL);
     ctx.layout.draw32f = VK_IMAGE_LAYOUT_GENERAL;
 

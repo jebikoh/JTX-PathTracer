@@ -24,7 +24,7 @@ struct EnvMap {
     } type = kType::UNIFORM;
 
     vec3 uniform{0.0f};
-    float intensity = 0.0f;
+    float intensity = 1.0f;
 
     Image32f HDRI;
     float horizontalOffset = 0.0f; // Phi offset in radians

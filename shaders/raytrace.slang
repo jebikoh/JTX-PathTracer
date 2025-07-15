@@ -2,6 +2,7 @@ import data_common;
 import common.math;
 import common.bxdf;
 import common.random;
+import common.color;
 
 struct PushConstant {
     matrix<float, 4, 4> invProj;
@@ -13,7 +14,9 @@ struct PushConstant {
 
 [[vk::binding(0, 0)]] ConstantBuffer<GlobalUniformData> globalData;
 [format("rgba32f")]
-[[vk::binding(1, 0)]] RWTexture2D<float4> image;
+[[vk::binding(1, 0)]] RWTexture2D<float4> accumulationImage;
+[format("rgba32f")]
+[[vk::binding(2, 0)]] RWTexture2D<float4> outputImage;
 
 [[vk::binding(0, 1)]] StructuredBuffer<ObjectData> objects;
 [[vk::binding(1, 1)]] StructuredBuffer<MaterialData> materials;
@@ -101,13 +104,18 @@ void rayGenMain() {
         accumulatedRadiance += radiance;
     }
 
-    float3 finalColor = accumulatedRadiance / float(pc.samplesPerFrame);
-    if (pc.frame > 0) {
-        float a = 1.0f / float(pc.frame + 1);
-        float3 oldColor = image[int2(launchID.xy)].xyz;
-        finalColor = lerp(oldColor, finalColor, a);
+    float4 totalAccumulation = float4(accumulatedRadiance, 1.0);
+    if (pc.frame == 0) {
+        accumulationImage[int2(launchID.xy)] = totalAccumulation;
+    } else {
+        totalAccumulation += accumulationImage[int2(launchID.xy)];
+        accumulationImage[int2(launchID.xy)] = totalAccumulation;
     }
-    image[int2(launchID.xy)] = float4(finalColor, 1.0);
+
+    float3 finalColor = (totalAccumulation / (float((pc.frame + 1) * pc.samplesPerFrame))).xyz;
+    finalColor = Reinhard(finalColor);
+
+    outputImage[int2(launchID.xy)] = float4(finalColor, 1.0);
 }
 
 [shader("closesthit")]

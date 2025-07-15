@@ -5,7 +5,7 @@
 #include <scene/scene_loader.hpp>
 #include <thread>
 
-// #define JTX_ENABLE_UI
+#define JTX_ENABLE_UI
 
 using namespace jtx;
 

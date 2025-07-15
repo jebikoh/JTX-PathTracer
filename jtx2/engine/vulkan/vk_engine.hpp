@@ -73,6 +73,8 @@ public:
 
     void DrawSettingsPanel(UiDrawContext &ctx);
 
+    void LoadHDRI();
+
 private:
     const GfxContext &m_gfx;
     jvk::ViewRectangle m_viewRectangle{};

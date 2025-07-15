@@ -8,6 +8,7 @@
 #include <SDL_vulkan.h>
 #include <imgui_impl_vulkan.h>
 #include <imgui_internal.h>
+#include <nfd.h>
 
 // #define JTX_UI_DRAW_DEMO_WINDOW
 
@@ -81,11 +82,12 @@ void UiDrawContext::NewRow(const char *label) {
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 }
 
-void UIRenderer::Init(const std::function<void()> &importSceneCallback, const std::function<void()> &exportSceneCallback) {
+void UIRenderer::Init(const std::function<void()> &importSceneCallback, const std::function<void()> &exportSceneCallback, const std::function<void()> &loadHDRICallback) {
     LOG_INFO(UI, "Initializing UI renderer");
 
     m_importSceneCallback = importSceneCallback;
     m_exportSceneCallback = exportSceneCallback;
+    m_loadHDRICallback    = loadHDRICallback;
 
     constexpr VkDescriptorPoolSize poolSizes[] =
             {
@@ -534,7 +536,10 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                         if (!bHDRI) ImGui::BeginDisabled();
 
                         ctx.NewRow("");
-                        bReset |= ImGui::Button("Select Image", ctx.GetAvailWidth());
+                        if (ImGui::Button("Select Image", ctx.GetAvailWidth())) {
+                            bReset = true;
+                            m_loadHDRICallback();
+                        }
 
                         ctx.NewRow("Map");
                         if (envmap.image.path.empty()) {

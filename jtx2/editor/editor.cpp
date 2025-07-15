@@ -1,5 +1,5 @@
-#include <nfd.h>
 #include "scene/scene_loader.hpp"
+#include <nfd.h>
 
 #include <SDL_events.h>
 #include <editor/editor.hpp>
@@ -18,15 +18,18 @@ void Editor::Init() {
 
     m_gfx.Init();
     m_ui.Init([this] { ImportScene(); },
-                      [this] {
-                          ExportScene();
-                      });
+              [this] {
+                  ExportScene();
+              },
+              [this] {
+                  LoadHDRI();
+              });
     m_vk.Init(m_gfx.bRayTracingSupported);
 
     m_ui.RegisterViewportBackend(JTX_VIEWPORT_BACKEND_VULKAN, "Vulkan",
-                                         [this](UiDrawContext &ctx) {
-                                             m_vk.DrawSettingsPanel(ctx);
-                                         });
+                                 [this](UiDrawContext &ctx) {
+                                     m_vk.DrawSettingsPanel(ctx);
+                                 });
 
     if (NFD_Init() != NFD_OKAY) {
         LOG_FATAL(DISPLAY, "Failed to initialize NFD");
@@ -174,6 +177,32 @@ void Editor::ExportScene() const {
         LOG_DEBUG(UI, "User cancelled scene export");
     } else {
         LOG_ERROR(UI, "Error while opening save dialog: {}", NFD_GetError());
+    }
+}
+
+void Editor::LoadHDRI() {
+    constexpr nfdu8filteritem_t filters[1] = {{"HDR image", "hdr,exr"}};
+    nfdopendialogu8args_t args{};
+    args.filterList  = filters;
+    args.filterCount = 1;
+
+    nfdu8char_t *imgPath;
+    const nfdresult_t result = NFD_OpenDialogU8_With(&imgPath, &args);
+
+    if (result == NFD_OKAY) {
+        const auto s = std::string(imgPath);
+        LOG_INFO(UI, "User selected path: {}", imgPath);
+        NFD_FreePathU8(imgPath);
+
+        m_scene.envmap.image.Destroy();
+        const auto res = Image32f::Load(s, m_scene.envmap.image);
+        if (res > 0) {
+            m_vk.LoadHDRI();
+        }
+    } else if (result == NFD_CANCEL) {
+        LOG_DEBUG(UI, "User cancelled envmap import");
+    } else {
+        LOG_ERROR(UI, "Error while opening file dialog: {}", NFD_GetError());
     }
 }
 

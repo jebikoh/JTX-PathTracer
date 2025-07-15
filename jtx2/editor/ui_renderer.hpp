@@ -53,7 +53,7 @@ public:
     explicit UIRenderer(const GfxContext &gfx)
         : m_gfx(gfx) {}
 
-    void Init(const std::function<void()> &importSceneCallback, const std::function<void()> &exportSceneCallback);
+    void Init(const std::function<void()> &importSceneCallback, const std::function<void()> &exportSceneCallback, const std::function<void()> &loadHDRICallback);
     void Destroy() const;
 
     /**
@@ -111,6 +111,7 @@ private:
 
     std::function<void()> m_importSceneCallback;
     std::function<void()> m_exportSceneCallback;
+    std::function<void()> m_loadHDRICallback;
 };
 
 }// namespace jtx

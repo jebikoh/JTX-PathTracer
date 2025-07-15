@@ -45,6 +45,8 @@ private:
 
     void ImportScene();
     void ExportScene() const;
+
+    void LoadHDRI();
 };
 
 }// namespace jtx

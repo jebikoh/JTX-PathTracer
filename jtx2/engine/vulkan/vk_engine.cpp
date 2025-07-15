@@ -252,6 +252,49 @@ void VkEngine::DrawSettingsPanel(UiDrawContext &ctx) {
     ctx.EndRectangleBackground();
 }
 
+void VkEngine::LoadHDRI() {
+    if (m_gpuSceneData.envmapIndex >= 0) {
+        m_gfx.DestroyImage(m_gpuSceneData.textures[m_gpuSceneData.envmapIndex]);
+        LOG_DEBUG(VKE, "Destroyed previously loaded HDRI texture");
+    }
+
+    if (!m_pScene->envmap.image.IsEmpty()) {
+        LOG_DEBUG(VKE, "Loading HDRI envmap");
+        const auto &tex = m_pScene->envmap.image;
+
+        int32_t index;
+        bool bPushBack = false;
+        if (m_gpuSceneData.envmapIndex >= 0) {
+            index = m_gpuSceneData.envmapIndex;
+        } else {
+            index = m_gpuSceneData.textures.size();
+            bPushBack = true;
+        }
+
+        constexpr VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        const VkExtent3D extent   = {static_cast<uint32_t>(tex.width), static_cast<uint32_t>(tex.height), 1};
+        const jvk::Image gpuTex = m_gfx.CreateImage(tex.pData, extent, tex.channels, format, VK_IMAGE_USAGE_SAMPLED_BIT, 4);
+
+        jvk::DescriptorWriter writer;
+        writer.WriteImage(
+        kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY,
+            index, gpuTex.view,
+            m_gfx.defaultSamplers.linear,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        writer.UpdateSet(m_gfx.ctx, m_bindlessDescriptorSet);
+
+        m_gpuSceneData.envmapIndex = index;
+        if (bPushBack) m_gpuSceneData.textures.push_back(gpuTex);
+        else m_gpuSceneData.textures[index] = gpuTex;
+
+        LOG_DEBUG(VKE, "HDRI envmap loaded");
+    } else {
+        m_gpuSceneData.envmapIndex = -1;
+        LOG_DEBUG(VKE, "No HDRI texture found");
+    }
+}
+
 void VkEngine::InitDescriptors() {
     // -- Bindless descriptor pool --
     std::vector<VkDescriptorPoolSize> poolSizes = {
@@ -559,26 +602,8 @@ void VkEngine::LoadScene(const Scene *pScene) {
 
     LOG_DEBUG(VKE, "Textures loaded");
 
-    if (pScene->envmap.type == EnvMap::kType::HDRI) {
-        LOG_DEBUG(VKE, "Loading HDRI envmap");
-
-        const auto &tex = pScene->envmap.image;
-
-        constexpr VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT;
-        const VkExtent3D extent = {static_cast<uint32_t>(tex.width), static_cast<uint32_t>(tex.height), 1};
-
-        jvk::Image gpuTex = m_gfx.CreateImage(tex.pData, extent, tex.channels, format, VK_IMAGE_USAGE_SAMPLED_BIT, 4);
-        writer.WriteImage(
-        kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY,
-            index, gpuTex.view,
-            m_gfx.defaultSamplers.linear,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-        m_gpuSceneData.envmapIndex = m_gpuSceneData.textures.size();
-        m_gpuSceneData.textures.push_back(gpuTex);
-
-        LOG_DEBUG(VKE, "HDRI envmap loaded");
-    }
+    m_gpuSceneData.envmapIndex = -1; // Reset to avoid double-delete
+    LoadHDRI();
 
     // -- Mesh buffers --
     // Calculate non-interleaved buffer sizes

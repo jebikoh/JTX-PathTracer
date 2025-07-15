@@ -1,5 +1,6 @@
 #include <engine/cpu/backend_cpu.hpp>
 #include <engine/cpu/integrator.hpp>
+#include <util/color.hpp>
 
 #include <barrier>
 #include <filesystem>
@@ -20,23 +21,6 @@ struct WorkQueue {
 
     void Reset() { nextJobIndex = 0; }
 };
-
-inline float ApplyGamma(const float x) {
-    if (x > 0) return jtx::Sqrt(x);
-    return 0.0f;
-}
-
-inline vec3 ApplyGamma(const vec3 &x) {
-    return vec3(ApplyGamma(x.x), ApplyGamma(x.y), ApplyGamma(x.z));
-}
-
-inline float ClampIntensity(const float x) {
-    return jtx::Clamp(x, 0.0f, 0.999f);
-}
-
-inline vec3 ClampIntensity(const vec3 &x) {
-    return vec3(ClampIntensity(x.x), ClampIntensity(x.y), ClampIntensity(x.z));
-}
 
 void BackendCPU::StartProgressiveRender() {
     LOG_INFO(RENDER, "Starting progressive rendering with CPU backend");
@@ -204,13 +188,15 @@ void BackendCPU::StartOfflineRender() {
         thread.join();
     }
 
+    const float fspp = static_cast<float>(spp);
     // Apply tonemapping and OETF
     for (uint32_t row = 0; row < m_height; ++row) {
         for (uint32_t col = 0; col < m_width; ++col) {
             const float *acc = JTX_IMAGE_PIXEL_PTR(m_accBuffer, row, col);
             vec3 accIntensity(acc);
 
-            accIntensity = ApplyGamma(accIntensity / static_cast<float>(spp));
+            accIntensity = Reinhard(accIntensity / fspp);
+            accIntensity = ApplyGamma(accIntensity);
             accIntensity = ClampIntensity(accIntensity) * 255.999f;
 
             uint8_t *img = JTX_IMAGE_PIXEL_PTR(m_imgBuffer, row, col);

@@ -25,15 +25,18 @@ struct EnvMap {
 
     vec3 uniform{0.0f};
     float intensity = 0.0f;
+
     Image32f HDRI;
+    float horizontalOffset = 0.0f; // Phi offset in radians
+    float verticalOffset = 0.0f;   // Theta offset in radians
 
     vec3 Evaluate(const vec3 &r) const {
         if (type == kType::UNIFORM) return uniform * intensity;
 
         // This method is actually non-uniform
         // For true uniform, we would need to do an equal area mapping
-        const float theta = ClampAcos(r.z);
-        const float phi = std::atan2(r.y, r.x);
+        const float theta = ClampAcos(r.y) + verticalOffset;
+        const float phi = std::atan2(r.z, r.x) + horizontalOffset;
 
         const float u = phi * INV_TWO_PI + 0.5f;
         const float v = theta * INV_PI;

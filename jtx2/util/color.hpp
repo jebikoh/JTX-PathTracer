@@ -28,7 +28,7 @@ inline vec3 Reinhard(const vec3 &v) {
     return v / (1.0f + L1);
 }
 
-inline vec3 ReinhardExt(const vec3 &v, float whitePoint) {
+inline vec3 ReinhardExt(const vec3 &v, const float whitePoint) {
     const float L1 = Luminance(v);
     const float n = L1 * (1.0f + L1 / (whitePoint * whitePoint));
     const float d = 1 + L1;
@@ -38,11 +38,20 @@ inline vec3 ReinhardExt(const vec3 &v, float whitePoint) {
 
 inline float ApplyGamma(const float x) {
     if (x > 0) return jtx::Sqrt(x);
-    return 0;
+    return 0.0f;
 }
 
-inline float ClampIntensity(float i) {
-    return jtx::Clamp(i, 0.0f, 0.999f);
+inline vec3 ApplyGamma(const vec3 &x) {
+    return vec3(ApplyGamma(x.x), ApplyGamma(x.y), ApplyGamma(x.z));
+}
+
+
+inline float ClampIntensity(const float x) {
+    return jtx::Clamp(x, 0.0f, 0.999f);
+}
+
+inline vec3 ClampIntensity(const vec3 &x) {
+    return vec3(ClampIntensity(x.x), ClampIntensity(x.y), ClampIntensity(x.z));
 }
 
 inline vec3 SRGBToLinear(const vec3 &srgb) {

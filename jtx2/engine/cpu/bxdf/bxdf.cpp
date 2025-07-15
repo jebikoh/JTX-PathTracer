@@ -1,10 +1,9 @@
-#include "conductor.hpp"
-#include "dielectric.hpp"
-
-
 #include <bvh/isect.hpp>
 #include <engine/cpu/bxdf/bxdf.hpp>
 #include <engine/cpu/bxdf/diffuse.hpp>
+#include <engine/cpu/bxdf/conductor.hpp>
+#include <engine/cpu/bxdf/dielectric.hpp>
+#include <engine/cpu/bxdf/plastic.hpp>
 
 namespace jtx {
 

@@ -236,6 +236,7 @@ set(JTX_WING
         jtx2/engine/vulkan/render_data.hpp
         jtx2/engine/vulkan/accel.hpp
         jtx2/engine/vulkan/accel.cpp
+        jtx2/engine/cpu/bxdf/plastic.hpp
 )
 
 # ──────────────────────────────────────────────────────────────────────────────

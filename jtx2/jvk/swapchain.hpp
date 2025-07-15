@@ -1,14 +1,14 @@
 #pragma once
 
+#include <VkBootstrap.h>
 #include <jvk/context.hpp>
 #include <jvk/jvk.hpp>
-#include <VkBootstrap.h>
 
 namespace jvk {
 
 struct Swapchain {
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
-    VkFormat format     = VK_FORMAT_UNDEFINED;
+    VkFormat format          = VK_FORMAT_UNDEFINED;
     std::vector<VkImage> images{};
     std::vector<VkImageView> views{};
     VkExtent2D extent = {0, 0};
@@ -19,7 +19,7 @@ struct Swapchain {
             const VkContext &context,
             const uint32_t width,
             const uint32_t height,
-            const VkFormat format_              = VK_FORMAT_B8G8R8A8_UNORM,
+            const VkFormat format_             = VK_FORMAT_R8G8B8A8_UNORM,
             const VkColorSpaceKHR colorSpace   = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
             const VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR,
             const VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
@@ -27,7 +27,7 @@ struct Swapchain {
         vkb::Swapchain vkbSwapchain = swapchainBuilder
                                               .set_desired_format(
                                                       VkSurfaceFormatKHR{
-                                                              .format     = format,
+                                                              .format     = format_,
                                                               .colorSpace = colorSpace})
                                               .set_desired_present_mode(presentMode)
                                               .set_desired_extent(width, height)
@@ -35,11 +35,11 @@ struct Swapchain {
                                               .build()
                                               .value();
 
-        swapchain   = vkbSwapchain.swapchain;
-        format = format_;
-        images      = vkbSwapchain.get_images().value();
-        views  = vkbSwapchain.get_image_views().value();
-        extent      = vkbSwapchain.extent;
+        swapchain = vkbSwapchain.swapchain;
+        format    = vkbSwapchain.image_format;
+        images    = vkbSwapchain.get_images().value();
+        views     = vkbSwapchain.get_image_views().value();
+        extent    = vkbSwapchain.extent;
     }
 
     void Destroy(const VkContext &context) const {

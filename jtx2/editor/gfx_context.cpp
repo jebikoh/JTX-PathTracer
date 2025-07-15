@@ -474,9 +474,8 @@ jvk::Image GfxContext::CreateImage(const VkExtent3D extent, const VkFormat forma
     return image;
 }
 
-jvk::Image GfxContext::CreateImage(const void *pData, const VkExtent3D extent, const size_t nChannels, const VkFormat format, const VkImageUsageFlags usage, const bool bMipmapped, VkSampleCountFlagBits sampleCount) const {
-    // Staging buffer, we will always assume data has 4 channels
-    const size_t dataSize     = extent.width * extent.height * extent.depth * nChannels;
+jvk::Image GfxContext::CreateImage(const void *pData, const VkExtent3D extent, const size_t nChannels, const VkFormat format, const VkImageUsageFlags usage, const size_t bytesPerPixel, const bool bMipmapped, VkSampleCountFlagBits sampleCount) const {
+    const size_t dataSize     = extent.width * extent.height * extent.depth * nChannels * bytesPerPixel;
     jvk::Buffer stagingBuffer = CreateBuffer(dataSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
     memcpy(stagingBuffer.info.pMappedData, pData, dataSize);
 
@@ -570,7 +569,7 @@ void GfxContext::ResizeSwapchain() {
 
 std::optional<RenderContext> GfxContext::StartFrame() {
     const uint32_t frameIndex = GetCurrentFrameIndex();
-    const auto &frame         = frameData[frameIndex];
+    const auto &frame          = frameData[frameIndex];
     CHECK_VK(frame.drawFence.Wait());
     CHECK_VK(frame.drawFence.Reset());
 

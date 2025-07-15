@@ -19,7 +19,7 @@ void VkEngine::Init(const bool bEnableRayTracing) {
     InitDescriptors();
     InitPipelines();
     if (m_bRayTracingAvailable) {
-        InitRayTracingSBT();
+        InitRayTracingResources();
     }
 
     LOG_INFO(VKE, "Vulkan engine initialized");
@@ -29,7 +29,7 @@ void VkEngine::Destroy() {
     LOG_INFO(VKE, "Destroying Vulkan engine");
 
     if (m_bRayTracingAvailable) {
-        DestroyRayTracingSBT();
+        DestroyRayTracingResources();
     }
 
     DestroyScene();
@@ -349,9 +349,13 @@ void VkEngine::UpdateGlobalUniformData() {
     m_gpuGlobalUniformData.cameraPosition = glm::vec4(m_camera.position, 0.0f);
 
     if (m_pScene) {
-        const auto &uniform         = m_pScene->envmap.uniform;
-        m_gpuGlobalUniformData.skyColor       = glm::vec3(uniform[0], uniform[1], uniform[2]);
-        m_gpuGlobalUniformData.skyIntensity   = m_pScene->envmap.intensity;
+        const auto &envmap = m_pScene->envmap;
+        m_gpuGlobalUniformData.envmapType       = envmap.type;
+        m_gpuGlobalUniformData.envmapTexture    = m_gpuSceneData.envmapIndex;
+        m_gpuGlobalUniformData.envmapColor      = glm::vec3(envmap.uniform[0], envmap.uniform[1], envmap.uniform[2]);
+        m_gpuGlobalUniformData.envmapIntensity  = envmap.intensity;
+        m_gpuGlobalUniformData.horizontalOffset = envmap.horizontalOffset;
+        m_gpuGlobalUniformData.verticalOffset   = envmap.verticalOffset;
     }
 
     m_gpuGlobalUniformData.vertexBuffer   = m_gpuSceneData.positionAddress;
@@ -554,6 +558,27 @@ void VkEngine::LoadScene(const Scene *pScene) {
     }
 
     LOG_DEBUG(VKE, "Textures loaded");
+
+    if (pScene->envmap.type == EnvMap::kType::HDRI) {
+        LOG_DEBUG(VKE, "Loading HDRI envmap");
+
+        const auto &tex = pScene->envmap.image;
+
+        constexpr VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        const VkExtent3D extent = {static_cast<uint32_t>(tex.width), static_cast<uint32_t>(tex.height), 1};
+
+        jvk::Image gpuTex = m_gfx.CreateImage(tex.pData, extent, tex.channels, format, VK_IMAGE_USAGE_SAMPLED_BIT, 4);
+        writer.WriteImage(
+        kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY,
+            index, gpuTex.view,
+            m_gfx.defaultSamplers.linear,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        m_gpuSceneData.envmapIndex = m_gpuSceneData.textures.size();
+        m_gpuSceneData.textures.push_back(gpuTex);
+
+        LOG_DEBUG(VKE, "HDRI envmap loaded");
+    }
 
     // -- Mesh buffers --
     // Calculate non-interleaved buffer sizes
@@ -1067,8 +1092,8 @@ inline uint32_t AlignUp(const uint32_t size, const uint32_t alignment) {
     return (size + (alignment - 1)) & ~(alignment - 1);
 }
 
-void VkEngine::InitRayTracingSBT() {
-    LOG_DEBUG(VKE, "Initializing SBT");
+void VkEngine::InitRayTracingResources() {
+    LOG_DEBUG(VKE, "Initializing RT resources");
 
     VkImageUsageFlags usages = {};
     usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
@@ -1153,16 +1178,16 @@ void VkEngine::InitRayTracingSBT() {
 
     m_SBT.buffer.Unmap(m_gfx.allocator);
 
-    LOG_DEBUG(VKE, "SBT initialized");
+    LOG_DEBUG(VKE, "RT resources initialized");
 }
 
-void VkEngine::DestroyRayTracingSBT() {
-    LOG_DEBUG(VKE, "Destroying SBT");
+void VkEngine::DestroyRayTracingResources() {
+    LOG_DEBUG(VKE, "Destroying RT resources");
 
     m_gfx.DestroyBuffer(m_SBT.buffer);
     m_gfx.DestroyImage(m_accumulationImage);
 
-    LOG_DEBUG(VKE, "SBT destroyed");
+    LOG_DEBUG(VKE, "RT resources destroyed");
 }
 
 void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const {

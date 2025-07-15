@@ -66,6 +66,18 @@ inline vec3 SRGBToLinear(const vec3 &srgb) {
     return linear;
 }
 
+inline vec3 LinearToSRGB(const vec3 &linear) {
+    vec3 srgb;
+    for (int i = 0; i < 3; ++i) {
+        if (linear[i] <= 0.0031308) {
+            srgb[i] = 12.92f * linear[i];
+        } else {
+            srgb[i] = 1.055 * jtx::pow(linear[i], 1.0f / 2.4f) - 0.055f;
+        }
+    }
+    return srgb;
+}
+
 namespace color {
     static const auto WHITE = vec3(1.0f, 1.0f, 1.0f);
     static const auto BLACK = vec3(0.0f, 0.0f, 0.0f);

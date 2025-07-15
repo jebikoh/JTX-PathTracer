@@ -28,9 +28,13 @@ struct alignas(256) GPUGlobalUniformData {
     glm::mat4 viewProj;
     glm::mat4 invViewProj;
     glm::vec3 cameraPosition;
-    TextureHandle envmap;
-    glm::vec3 skyColor;
-    float skyIntensity;
+
+    TextureHandle envmapTexture;
+    glm::vec3 envmapColor;
+    float envmapIntensity;
+    uint32_t envmapType;
+    float horizontalOffset;
+    float verticalOffset;
 
     VkDeviceAddress vertexBuffer;
     VkDeviceAddress normalBuffer;

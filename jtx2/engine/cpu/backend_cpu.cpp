@@ -196,7 +196,7 @@ void BackendCPU::StartOfflineRender() {
             vec3 accIntensity(acc);
 
             accIntensity = Reinhard(accIntensity / fspp);
-            accIntensity = ApplyGamma(accIntensity);
+            accIntensity = LinearToSRGB(accIntensity);
             accIntensity = ClampIntensity(accIntensity) * 255.999f;
 
             uint8_t *img = JTX_IMAGE_PIXEL_PTR(m_imgBuffer, row, col);

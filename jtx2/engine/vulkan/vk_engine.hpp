@@ -154,6 +154,8 @@ private:
         VkDeviceAddress colorAddress    = 0;
 
         std::vector<jvk::Image> textures;
+        int32_t envmapIndex = -1;
+
         jvk::Buffer materialBuffer;
         jvk::Buffer objectBuffer;
     } m_gpuSceneData;
@@ -178,8 +180,8 @@ private:
         VkStridedDeviceAddressRegionKHR hitRegion{};
         VkStridedDeviceAddressRegionKHR callableRegion{};
     } m_SBT;
-    void InitRayTracingSBT();
-    void DestroyRayTracingSBT();
+    void InitRayTracingResources();
+    void DestroyRayTracingResources();
 
     void RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const;
 

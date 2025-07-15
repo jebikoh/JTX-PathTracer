@@ -5,10 +5,13 @@ public struct GlobalUniformData {
     public matrix<float, 4, 4> invViewProj;
     public float3 cameraPos;
 
-    public int32_t envmap;
-    public float3 skyColor;
-    public float skyIntensity;
-    
+    public int32_t envmapTexture;
+    public float3 envmapColor;
+    public float envmapIntensity;
+    public uint32_t envmapType;
+    public float horizontalOffset;
+    public float verticalOffset;
+
     public float3 *vertices;
     public float3 *normals;
     public float2 *texCoords;

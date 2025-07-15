@@ -3,6 +3,7 @@ import common.math;
 import common.bxdf;
 import common.random;
 import common.color;
+import common.constants;
 
 struct PushConstant {
     matrix<float, 4, 4> invProj;
@@ -51,6 +52,8 @@ void rayGenMain() {
     uint32_t start = pc.frame * pc.samplesPerFrame;
     uint32_t stop  = start + pc.samplesPerFrame;
 
+    bool bSampleHDRI = globalData.envmapType == 1 && globalData.envmapTexture >= 0;
+
     for (uint32_t s = start; s < stop; s++) {
         RNG rng = RNG(launchID.x, launchID.y, s);
         
@@ -83,7 +86,19 @@ void rayGenMain() {
             TraceRay(topLevelAS, RAY_FLAG_FORCE_OPAQUE, 0xFF, 0, 0, 0, ray, prd);
 
             if (prd.bMiss) {
-                radiance += beta * globalData.skyColor * globalData.skyIntensity;
+                if (bSampleHDRI) {
+                    float3 r = ray.Direction;
+                    float theta = acos(clamp(r.y, -1.0, 1.0)) + globalData.verticalOffset;
+                    float phi   = atan2(r.z, r.x) + globalData.horizontalOffset;
+
+                    const float u = phi * INV_2_PI + 0.5f;
+                    const float v = theta * INV_PI;
+
+                    radiance += beta * textures[globalData.envmapTexture].SampleLevel(float2(u, v), 0.0).rgb;
+                } else {
+                    radiance += beta * globalData.envmapColor * globalData.envmapIntensity;
+                }
+
                 break;
             }
 
@@ -115,7 +130,7 @@ void rayGenMain() {
     float3 finalColor = (totalAccumulation / (float((pc.frame + 1) * pc.samplesPerFrame))).xyz;
     finalColor = Reinhard(finalColor);
 
-    outputImage[int2(launchID.xy)] = float4(finalColor, 1.0);
+    outputImage[int2(launchID.xy)] = float4(LinearToSRGB(finalColor), 1.0);
 }
 
 [shader("closesthit")]

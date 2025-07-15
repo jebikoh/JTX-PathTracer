@@ -5,7 +5,7 @@
 #include <scene/scene_loader.hpp>
 #include <thread>
 
-// #define JTX_ENABLE_UI
+#define JTX_ENABLE_UI
 
 using namespace jtx;
 
@@ -24,7 +24,8 @@ int main(int argc, char *argv[]) {
     // CHECK_JTX(Image32f::Load("../assets/hdri/envmap.exr", scene.envmap.image));
     // scene.envmap.type             = EnvMap::kType::HDRI;
     // scene.envmap.horizontalOffset = Radians(90);
-    // scene.cameraSettings.position.z = 8.0f;
+    scene.cameraSettings.position.z = 24.0f;
+    scene.cameraSettings.focalLength = 0.01f;
     // ExportScene(scene, "../assets/scenes/knobs/knob_hdri.jtx");
     // scene.Destroy();
 

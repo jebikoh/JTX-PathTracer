@@ -150,11 +150,12 @@ struct GfxContext {
      * @param nChannels data channel count (TODO: have this be auto-detected from the format)
      * @param format image format
      * @param usage image memory usage
+     * @param bytesPerPixel bytes per single pixel
      * @param bMipmapped true if the image should be mipmapped
      * @param sampleCount sample count
      * @return image containing provided data
      */
-    jvk::Image CreateImage(const void *pData, VkExtent3D extent, size_t nChannels, VkFormat format, VkImageUsageFlags usage, bool bMipmapped = false, VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT) const;
+    jvk::Image CreateImage(const void *pData, VkExtent3D extent, size_t nChannels, VkFormat format, VkImageUsageFlags usage, size_t bytesPerPixel = 1, bool bMipmapped = false, VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT) const;
 
     /**
      * Destroys the image using this engine's context and allocator

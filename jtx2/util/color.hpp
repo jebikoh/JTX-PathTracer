@@ -9,8 +9,9 @@ namespace jtx {
 
 // -- Tonemapping --
 enum kTonemapping {
-    REINHARD,
-    REINHARD_EXT
+    TMO_NONE = 0,
+    TMO_REINHARD = 1,
+    TMO_REINHARD_EXT = 2
 };
 
 inline float Luminance(const vec3 &color) {

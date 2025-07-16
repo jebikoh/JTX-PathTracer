@@ -245,6 +245,16 @@ void VkEngine::DrawSettingsPanel(UiDrawContext &ctx) {
             m_rtSamplesPerFrame = static_cast<uint32_t>(samplePerFrame);
         }
 
+        ctx.NewRow("Exposure");
+        ImGui::InputFloat("##Exposure", &m_rtPostProcessingPC.exposure, 1);
+
+        const char *tmo[]    = {"None", "Reinhard"};
+        static int selectedTmo = m_rtPostProcessingPC.tonemappingOp;
+        ctx.NewRow("Tonemapping");
+        if (ImGui::Combo("##TMO", &selectedTmo, tmo, IM_ARRAYSIZE(tmo))) {
+            m_rtPostProcessingPC.tonemappingOp = selectedTmo;
+        }
+
         if (!m_bRayTracingAvailable) ImGui::EndDisabled();
         ctx.EndTable();
     }
@@ -353,7 +363,7 @@ void VkEngine::InitDescriptors() {
     // Raygen needs access to the draw image
     if (m_bRayTracingAvailable) {
         builder.AddBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_RAYGEN_BIT_KHR);
-        builder.AddBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_RAYGEN_BIT_KHR);
+        builder.AddBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT);
     }
 
     m_gpuGlobalUniformDataDescriptorLayout = builder.Build(m_gfx.ctx);
@@ -415,6 +425,7 @@ void VkEngine::InitPipelines() {
     InitGridPipeline();
     if (m_bRayTracingAvailable) {
         InitRayTracingPipeline();
+        InitRTPostProcessingPipeline();
     }
 
     LOG_DEBUG(VKE, "Pipelines initialized");
@@ -425,6 +436,7 @@ void VkEngine::DestroyPipelines() const {
 
     if (m_bRayTracingAvailable) {
         DestroyRayTracingPipeline();
+        DestroyRTPostProcessingPipeline();
     }
     DestroyGridPipeline();
     DestroyMaterialPipelines();
@@ -1112,6 +1124,46 @@ void VkEngine::DestroyRayTracingPipeline() const {
     LOG_DEBUG(VKE, "Ray tracing pipeline destroyed");
 }
 
+void VkEngine::InitRTPostProcessingPipeline() {
+    VkShaderModule computeShader;
+    if (!jvk::LoadShaderModule("spv/postprocessing_computeMain.spv", m_gfx.ctx, &computeShader)) {
+        LOG_FATAL(VKE, "Failed to load post-processing compute shader");
+    }
+
+    VkPushConstantRange pc{};
+    pc.offset     = 0;
+    pc.size       = sizeof(PostProcessingPushConstants);
+    pc.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+    const std::vector descriptorLayouts{m_gpuGlobalUniformDataDescriptorLayout, m_bindlessDescriptorSetLayout};
+
+    VkPipelineLayoutCreateInfo layoutInfo = jvk::init::PipelineLayout();
+    layoutInfo.pushConstantRangeCount     = 1;
+    layoutInfo.pPushConstantRanges        = &pc;
+    layoutInfo.setLayoutCount             = static_cast<uint32_t>(descriptorLayouts.size());
+    layoutInfo.pSetLayouts                = descriptorLayouts.data();
+
+    CHECK_VK(vkCreatePipelineLayout(m_gfx.ctx, &layoutInfo, nullptr, &m_rtPostProcessingPipeline.layout));
+
+    const VkPipelineShaderStageCreateInfo stage = jvk::init::PipelineShaderStage(VK_SHADER_STAGE_COMPUTE_BIT, computeShader);
+    VkComputePipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType  = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    pipelineInfo.pNext  = nullptr;
+    pipelineInfo.layout = m_rtPostProcessingPipeline.layout;
+    pipelineInfo.stage  = stage;
+    CHECK_VK(vkCreateComputePipelines(m_gfx.ctx, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_rtPostProcessingPipeline.pipeline));
+
+    vkDestroyShaderModule(m_gfx.ctx, computeShader, nullptr);
+}
+
+void VkEngine::DestroyRTPostProcessingPipeline() const {
+    LOG_DEBUG(VKE, "Destroying post processing pipeline");
+
+    m_rtPostProcessingPipeline.Destroy(m_gfx.ctx, true);
+
+    LOG_DEBUG(VKE, "Post processing pipeline destroyed");
+}
+
 inline uint32_t AlignUp(const uint32_t size, const uint32_t alignment) {
     return (size + (alignment - 1)) & ~(alignment - 1);
 }
@@ -1232,6 +1284,7 @@ void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const {
 
     const auto sceneDescriptorSet = m_frameData[m_gfx.GetCurrentFrameIndex()].gpuGlobalUniformDataDescriptorSet;
     const std::vector descriptorSets{sceneDescriptorSet, m_bindlessDescriptorSet};
+
     vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rayTracingPipeline.pipeline);
     vkCmdBindDescriptorSets(
             ctx.cmd,
@@ -1259,6 +1312,50 @@ void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const {
             m_viewRectangle.w,
             m_viewRectangle.h,
             1);
+
+    // The RT shaders output the HDR color to the fp32 draw image.
+    // The compute shader will read the color, apply tonemapping/exposure/EOTF/etc
+    // and then write it back to the fp32 draw image.
+    VkImageMemoryBarrier2 barrier{};
+    barrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+    barrier.srcStageMask        = VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR;
+    barrier.srcAccessMask       = VK_ACCESS_2_SHADER_WRITE_BIT;
+    barrier.dstStageMask        = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    barrier.dstAccessMask       = VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT;
+    barrier.oldLayout           = VK_IMAGE_LAYOUT_GENERAL;
+    barrier.newLayout           = VK_IMAGE_LAYOUT_GENERAL;
+    barrier.image               = m_gfx.targets.draw32f.image;
+    barrier.subresourceRange    = jvk::init::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
+
+    VkDependencyInfo dependency{};
+    dependency.sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dependency.imageMemoryBarrierCount = 1;
+    dependency.pImageMemoryBarriers    = &barrier;
+
+    vkCmdPipelineBarrier2KHR(ctx.cmd, &dependency);
+
+    // TODO: update logic to re-apply post-processing without resetting accumulation
+    vkCmdPushConstants(ctx.cmd,
+        m_rtPostProcessingPipeline.layout,
+        VK_SHADER_STAGE_COMPUTE_BIT,
+        0,
+        sizeof(m_rtPostProcessingPC),
+        &m_rtPostProcessingPC);
+
+    vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_rtPostProcessingPipeline.pipeline);
+
+    // TODO: make a new descriptor set for compute
+    vkCmdBindDescriptorSets(
+        ctx.cmd,
+        VK_PIPELINE_BIND_POINT_COMPUTE,
+        m_rtPostProcessingPipeline.layout,
+        0,
+        (uint32_t) descriptorSets.size(),
+        descriptorSets.data(),
+        0,
+        nullptr);
+
+    vkCmdDispatch(ctx.cmd, std::ceil(m_viewRectangle.w / 8.0), std::ceil(m_viewRectangle.h / 8.0), 1);
 }
 
 }// namespace jtx

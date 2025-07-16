@@ -1,4 +1,4 @@
-import data_common;
+import common.data;
 
 struct PushConstant {
     uint32_t objectId;

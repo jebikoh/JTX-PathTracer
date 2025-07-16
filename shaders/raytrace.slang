@@ -1,4 +1,4 @@
-import data_common;
+import common.data;
 import common.math;
 import common.bxdf;
 import common.random;
@@ -127,10 +127,7 @@ void rayGenMain() {
         accumulationImage[int2(launchID.xy)] = totalAccumulation;
     }
 
-    float3 finalColor = (totalAccumulation / (float((pc.frame + 1) * pc.samplesPerFrame))).xyz;
-    finalColor = Reinhard(finalColor);
-
-    outputImage[int2(launchID.xy)] = float4(LinearToSRGB(finalColor), 1.0);
+    outputImage[int2(launchID.xy)] = (totalAccumulation / (float((pc.frame + 1) * pc.samplesPerFrame)));
 }
 
 [shader("closesthit")]

@@ -79,7 +79,6 @@ private:
     const GfxContext &m_gfx;
     jvk::ViewRectangle m_viewRectangle{};
 
-
     const Scene *m_pScene = nullptr;
     OrbitCamera m_camera{};
 
@@ -136,6 +135,11 @@ private:
     void DestroyRayTracingPipeline() const;
     jvk::Pipeline m_rayTracingPipeline;
     std::vector<VkRayTracingShaderGroupCreateInfoKHR> m_rtShaderGroups;
+
+    void InitRTPostProcessingPipeline();
+    void DestroyRTPostProcessingPipeline() const;
+    jvk::Pipeline m_rtPostProcessingPipeline;
+    PostProcessingPushConstants m_rtPostProcessingPC{};
 
     // == Scene data ==
     // LoadScene is public

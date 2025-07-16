@@ -223,6 +223,7 @@ set(JTX_BACKEND_CPU
         jtx2/engine/cpu/bxdf/microfacet.hpp
         jtx2/engine/cpu/bxdf/conductor.hpp
         jtx2/engine/cpu/bxdf/dielectric.hpp
+        jtx2/engine/cpu/bxdf/plastic.hpp
 )
 
 set(JTX_BACKEND
@@ -236,7 +237,6 @@ set(JTX_WING
         jtx2/engine/vulkan/render_data.hpp
         jtx2/engine/vulkan/accel.hpp
         jtx2/engine/vulkan/accel.cpp
-        jtx2/engine/cpu/bxdf/plastic.hpp
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -498,9 +498,31 @@ list(APPEND SPIRV_BINARY_FILES ${RT_CLOSEST_SPV})
 compile_slang_shader("${PROJECT_SOURCE_DIR}/shaders/raytrace.slang" missMain RT_MISS_SPV)
 list(APPEND SPIRV_BINARY_FILES ${RT_MISS_SPV})
 
+compile_slang_shader("${PROJECT_SOURCE_DIR}/shaders/postprocessing.slang" computeMain POST_FX_SPV)
+list(APPEND SPIRV_BINARY_FILES ${POST_FX_SPV})
+
 add_custom_target(
         Shaders
         DEPENDS ${SPIRV_BINARY_FILES}
 )
 add_dependencies(JTX Shaders)
 add_dependencies(JTXEditor Shaders)
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  Packaging
+# ──────────────────────────────────────────────────────────────────────────────
+INSTALL(TARGETS JTXEditor RUNTIME DESTINATION bin)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/jtx2/assets DESTINATION .)
+if (JTX_USE_EMBREE AND embree_FOUND AND WIN32)
+    set(EMBREE_BIN_DIR "${CMAKE_SOURCE_DIR}/ext/embree4/bin")
+    install(FILES
+            "${EMBREE_BIN_DIR}/embree4.dll"
+            "${EMBREE_BIN_DIR}/tbb12.dll"
+            "${EMBREE_BIN_DIR}/tbbmalloc.dll"
+            DESTINATION bin
+            COMPONENT Runtime
+    )
+endif()
+install(DIRECTORY ${SPIRV_OUTPUT_DIR}/ DESTINATION bin/spv)
+
+include(CPack)

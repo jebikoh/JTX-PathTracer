@@ -92,6 +92,10 @@ struct RayTracingPushConstants {
     uint32_t samplesPerFrame;
 };
 
+struct PostProcessingPushConstants {
+    float exposure;
+    uint32_t tonemappingOp;
+};
 
 // == Draw Context ==
 /**

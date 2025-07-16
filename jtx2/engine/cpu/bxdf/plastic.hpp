@@ -1,4 +1,5 @@
 #pragma once
+#include <jtx.hpp>
 
 namespace jtx {
 
@@ -24,7 +25,7 @@ public:
         return {};
     }
 
-    bool Sample(const vec3 &wo, float s0, const vec2 &s1, BxDFSample &s) const {
+    bool Sample(const vec3 &wo, const float s0, const vec2 &s1, BxDFSample &s) const {
         const float R = Fresnel(CosTheta(wo), m_eta);
         const float T = 1.0f - R;
 

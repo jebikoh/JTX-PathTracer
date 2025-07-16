@@ -1,4 +1,4 @@
-module data_common;
+module data;
 
 public struct GlobalUniformData {
     public matrix<float, 4, 4> viewProj;

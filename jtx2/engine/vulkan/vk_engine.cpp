@@ -790,7 +790,6 @@ void VkEngine::LoadScene(const Scene *pScene) {
 
 
     m_gfx.imBuffer.SubmitAndWait(m_gfx.graphicsQueue, [&](const VkCommandBuffer cmd) {
-        VkBufferCopy copyRegion{};
         copyRegion.dstOffset = 0;
         copyRegion.srcOffset = 0;
         copyRegion.size      = objSize;

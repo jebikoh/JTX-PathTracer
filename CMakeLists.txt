@@ -334,10 +334,13 @@ if (JTX_ENABLE_SIMD)
 endif ()
 
 # ──────────────────────────────────────────────────────────────────────────────
-#  Main executable
+#  Executables
 # ──────────────────────────────────────────────────────────────────────────────
 add_executable(JTX jtx2/main.cpp)
 target_link_libraries(JTX PRIVATE JTXCore)
+
+add_executable(JTXEditor jtx2/editor_main.cpp)
+target_link_libraries(JTXEditor PRIVATE JTXCore)
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  Post-build
@@ -378,6 +381,7 @@ function(jtx_post_build target)
     )
 endfunction()
 jtx_post_build(JTX)
+jtx_post_build(JTXEditor)
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  Unit tests
@@ -499,3 +503,4 @@ add_custom_target(
         DEPENDS ${SPIRV_BINARY_FILES}
 )
 add_dependencies(JTX Shaders)
+add_dependencies(JTXEditor Shaders)

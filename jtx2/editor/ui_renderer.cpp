@@ -426,11 +426,11 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                             bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
 
                             ctx.NewRow("Emission Strength");
-                            bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0);
+                            bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0, 10000);
                             break;
                         case Material::Type::DIELECTRIC:
                             ctx.NewRow("IOR");
-                            bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x);
+                            bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x, 0.01, 0, 100);
 
                             ctx.NewRow("Anisotropy");
                             bMaterialUpdated |= ImGui::Checkbox("##anisotropic", &mat.parameters.bAnisotropic);
@@ -447,11 +447,11 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                             bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
 
                             ctx.NewRow("Emission Strength");
-                            bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0);
+                            bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0, 10000);
                             break;
                         case Material::Type::COMPLEX_CONDUCTOR:
                             ctx.NewRow("IOR");
-                            bMaterialUpdated |= ImGui::DragFloat3("##ior", &mat.parameters.ior.x);
+                            bMaterialUpdated |= ImGui::DragFloat3("##ior", &mat.parameters.ior.x, 0.01);
 
                             ctx.NewRow("Absorption");
                             bMaterialUpdated |= ImGui::DragFloat3("##absorption", &mat.parameters.k.x);
@@ -471,7 +471,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                             bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
 
                             ctx.NewRow("Emission Strength");
-                            bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0);
+                            bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0, 10000);
 
                             break;
                         case Material::Type::CONDUCTOR:
@@ -493,7 +493,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                             bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
 
                             ctx.NewRow("Emission Strength");
-                            bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0);
+                            bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0, 10000);
 
                             break;
                         default:

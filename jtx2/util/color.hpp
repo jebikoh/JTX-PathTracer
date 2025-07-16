@@ -5,13 +5,27 @@
 namespace jtx {
 
 // -- Exposure --
+enum kExposureType {
+    EXPOSURE_MANUAL = 0,
+    EXPOSURE_CAMERA = 1,
+};
 
+// https://seblagarde.wordpress.com/wp-content/uploads/2015/07/course_notes_moving_frostbite_to_pbr_v32.pdf
+inline float ComputeManualEV100(const float aperture, const float shutterSpeed, const float ISO) {
+    return log2(Sqr(aperture) / shutterSpeed * 100 / ISO);
+}
+
+inline float EV100ToExposure(const float EV100) {
+    return 1.2f * jtx::pow(2.0f, EV100);
+}
 
 // -- Tonemapping --
-enum kTonemapping {
+enum kTonemapOp {
     TMO_NONE = 0,
     TMO_REINHARD = 1,
-    TMO_REINHARD_EXT = 2
+    TMO_ACES = 2,
+    TMO_AGX = 3,
+	TMO_HABLE = 4
 };
 
 inline float Luminance(const vec3 &color) {

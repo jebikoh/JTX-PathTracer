@@ -193,16 +193,43 @@ void BackendCPU::StartOfflineRender() {
     for (uint32_t row = 0; row < m_height; ++row) {
         for (uint32_t col = 0; col < m_width; ++col) {
             const float *acc = JTX_IMAGE_PIXEL_PTR(m_accBuffer, row, col);
-            vec3 accIntensity(acc);
+            vec3 intensity = vec3(acc) / fspp;
 
-            accIntensity = Reinhard(accIntensity / fspp);
-            accIntensity = LinearToSRGB(accIntensity);
-            accIntensity = ClampIntensity(accIntensity) * 255.999f;
+            float exposure = 1.0f;
+            switch (m_renderSettings.exposureType) {
+                case EXPOSURE_MANUAL:
+                    exposure = EV100ToExposure(m_renderSettings.EV);
+                    break;
+                case EXPOSURE_CAMERA:
+                    float ev100 = ComputeManualEV100(m_camera.settings.fStop, m_camera.settings.shutterSpeed, m_camera.settings.ISO);
+                    ev100 -= m_renderSettings.EC;
+                    exposure = EV100ToExposure(ev100);
+                    break;
+                default:
+                    LOG_FATAL(RENDER, "Unknown exposure type");
+            }
+            intensity *= exposure;
+
+            switch (m_renderSettings.tonemapOp) {
+
+                case TMO_NONE:
+                    break;
+                case TMO_REINHARD:
+                    // Reinhard tonemapping
+                    intensity = Reinhard(intensity);
+                    break;
+                default:
+                    LOG_FATAL(RENDER, "Unknown tonemap op");
+                    break;
+            }
+
+            intensity = LinearToSRGB(intensity);
+            intensity = ClampIntensity(intensity) * 255.999f;
 
             uint8_t *img = JTX_IMAGE_PIXEL_PTR(m_imgBuffer, row, col);
-            img[0]       = static_cast<uint8_t>(accIntensity[0]);
-            img[1]       = static_cast<uint8_t>(accIntensity[1]);
-            img[2]       = static_cast<uint8_t>(accIntensity[2]);
+            img[0]       = static_cast<uint8_t>(intensity[0]);
+            img[1]       = static_cast<uint8_t>(intensity[1]);
+            img[2]       = static_cast<uint8_t>(intensity[2]);
         }
     }
 

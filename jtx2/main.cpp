@@ -13,12 +13,15 @@ int main(int argc, char *argv[]) {
     CHECK_JTX(LoadScene("../assets/scenes/knobs/knob_hdri.jtx", scene));
 
     RenderSettings rs;
-    rs.maxDepth = 32;
-    rs.sppRow = 8;
-    rs.sppCol = 8;
-    rs.tileSize = 32;
+    rs.maxDepth   = 32;
+    rs.sppRow     = 8;
+    rs.sppCol     = 8;
+    rs.tileSize   = 32;
     rs.numThreads = std::thread::hardware_concurrency() - 1;
-    rs.seed = 419;
+    rs.seed       = 419;
+    rs.tonemapOp        = TMO_REINHARD;
+    rs.EV         = 0.0f;
+    rs.EC         = 0.0f;
 
     BackendCPU backend;
     backend.Init(1920, 1080, rs);

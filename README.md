@@ -8,14 +8,15 @@ Currently implemented:
 - Unidirectional (backwards) Monte-Carlo Path Tracing
 - Multiple-Importance Sampling (MIS) with uniform light sampling
 - Russian Roulette
-- Diffuse, Dielectric, Conductor (Schlick), Complex Conductor BxDFs on the CPU
+- Diffuse, Dielectric, Conductor (Schlick), Complex Conductor BxDFs
 - HDRI Envmap sampling
 - Physically based camera
 - Post-processing: manual/camera-based exposure, tonemapping (ACES, AgX, Hable)
 - Vulkan/SDL2 interactive display
-- Forward rasterization pipeline for scene preview
+  - Forward rasterization pipeline for scene preview
+  - Vulkan RT pipeline for realtime path tracing
+- Offline Vulkan RT pipeline
 - SSE4.2/NEON QBVH Trees: [Shallow Bounding Volume Hierarchies for Fast SIMD Ray Tracing of Incoherent Rays](https://www.uni-ulm.de/fileadmin/website_uni_ulm/iui.inst.100/institut/Papers/QBVH.pdf)
-- Interactive Vulkan RT pipeline
 
 Currently working on/researching:
  - Ashikhmin-Shirley BRDF: [An anisotrphic phong BRDF model](https://www.researchgate.net/publication/2523875_An_anisotropic_phong_BRDF_model)

@@ -139,7 +139,12 @@ private:
     void InitRTPostProcessingPipeline();
     void DestroyRTPostProcessingPipeline() const;
     jvk::Pipeline m_rtPostProcessingPipeline;
-    PostProcessingPushConstants m_rtPostProcessingPC{};
+
+    struct PostProcessingSettings {
+        uint32_t tonemappingOp = 1;
+        float EV               = 0.0f;
+        bool bSettingsChanged  = false;
+    } m_rtpp{};
 
     // == Scene data ==
     // LoadScene is public
@@ -189,7 +194,7 @@ private:
     void InitRayTracingResources();
     void DestroyRayTracingResources();
 
-    void RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const;
+    void RayTrace(RenderContext &ctx, const glm::vec4 &clearColor);
 
     uint32_t m_rtFrameNumber     = 0;
     uint32_t m_rtSamplesPerFrame = 16;

@@ -283,81 +283,6 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ImGui::End();
     }
 
-    // Draw render settings window
-    {
-        ImGui::Begin(ICON_LC_SETTINGS);
-
-        UiDrawContext ctx;
-        ctx.Init();
-
-        // Backend table
-        if (ctx.StartTable("BackendTable")) {
-            const char *renderBackends[]    = {"JTX"};
-            static int currentRenderBackend = 0;
-            ctx.NewRow("Render Backend");
-            ImGui::Combo("##RenderBackend", &currentRenderBackend, renderBackends, IM_ARRAYSIZE(renderBackends));
-
-            ctx.NewRow("Viewport Backend");
-            ImGui::Combo("##ViewportBackend", &m_currentViewportBackend, m_viewportBackendNames, IM_ARRAYSIZE(m_viewportBackendNames));
-
-            ctx.EndTable();
-        }
-
-
-#ifdef JTX_UI_DRAW_DEMO_WINDOW
-        ImGui::ShowDemoWindow();
-#endif
-
-        // Sampling settings
-        if (ImGui::CollapsingHeader("Sampling")) {
-            static int xPixelSamples = 16;
-            static int yPixelSamples = 16;
-            static int maxDepth      = 32;
-
-            ctx.StartRectangleBackground();
-            if (ctx.StartTable("SamplingTable")) {
-                ctx.NewRow("SPP X");
-                ImGui::DragInt("##XSamples", &xPixelSamples, 1);
-
-                ctx.NewRow("SPP Y");
-                ImGui::DragInt("##YSamples", &yPixelSamples, 1);
-
-                ctx.NewRow("Max Depth");
-                ImGui::DragInt("##MaxDepth", &maxDepth, 1);
-                ctx.EndTable();
-            }
-            ctx.EndRectangleBackground();
-        }
-
-        if (ImGui::CollapsingHeader("Performance")) {
-            static int tileSize       = 32;
-            static int numThreads     = 32;
-            static int samplesPerPass = 1;
-
-            ctx.StartRectangleBackground();
-            if (ctx.StartTable("Performance")) {
-                ctx.NewRow("Tile Size");
-                ImGui::DragInt("##TileSize", &tileSize, 0);
-
-                ctx.NewRow("Thread Count");
-                ImGui::DragInt("##NumThreads", &numThreads, 0);
-
-                ctx.NewRow("Samples Per Pass");
-                ImGui::DragInt("##SamplesPerPass", &samplesPerPass, 0);
-
-                ctx.EndTable();
-            }
-            ctx.EndRectangleBackground();
-        }
-
-        if (ImGui::CollapsingHeader("Viewport")) {
-            m_viewportBackendSettings[m_currentViewportBackend](ctx);
-        }
-
-        ctx.Destroy();
-        ImGui::End();
-    }
-
     // Draw scene settings window
     {
         ImGui::Begin(ICON_LC_BOX);
@@ -570,6 +495,81 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
                 update.bResetAccumulation = bReset;
             }
+        }
+
+        ctx.Destroy();
+        ImGui::End();
+    }
+
+        // Draw render settings window
+    {
+        ImGui::Begin(ICON_LC_SETTINGS);
+
+        UiDrawContext ctx;
+        ctx.Init();
+
+        // Backend table
+        if (ctx.StartTable("BackendTable")) {
+            const char *renderBackends[]    = {"JTX"};
+            static int currentRenderBackend = 0;
+            ctx.NewRow("Render Backend");
+            ImGui::Combo("##RenderBackend", &currentRenderBackend, renderBackends, IM_ARRAYSIZE(renderBackends));
+
+            ctx.NewRow("Viewport Backend");
+            ImGui::Combo("##ViewportBackend", &m_currentViewportBackend, m_viewportBackendNames, IM_ARRAYSIZE(m_viewportBackendNames));
+
+            ctx.EndTable();
+        }
+
+
+#ifdef JTX_UI_DRAW_DEMO_WINDOW
+        ImGui::ShowDemoWindow();
+#endif
+
+        // Sampling settings
+        if (ImGui::CollapsingHeader("Sampling")) {
+            static int xPixelSamples = 16;
+            static int yPixelSamples = 16;
+            static int maxDepth      = 32;
+
+            ctx.StartRectangleBackground();
+            if (ctx.StartTable("SamplingTable")) {
+                ctx.NewRow("SPP X");
+                ImGui::DragInt("##XSamples", &xPixelSamples, 1);
+
+                ctx.NewRow("SPP Y");
+                ImGui::DragInt("##YSamples", &yPixelSamples, 1);
+
+                ctx.NewRow("Max Depth");
+                ImGui::DragInt("##MaxDepth", &maxDepth, 1);
+                ctx.EndTable();
+            }
+            ctx.EndRectangleBackground();
+        }
+
+        if (ImGui::CollapsingHeader("Performance")) {
+            static int tileSize       = 32;
+            static int numThreads     = 32;
+            static int samplesPerPass = 1;
+
+            ctx.StartRectangleBackground();
+            if (ctx.StartTable("Performance")) {
+                ctx.NewRow("Tile Size");
+                ImGui::DragInt("##TileSize", &tileSize, 0);
+
+                ctx.NewRow("Thread Count");
+                ImGui::DragInt("##NumThreads", &numThreads, 0);
+
+                ctx.NewRow("Samples Per Pass");
+                ImGui::DragInt("##SamplesPerPass", &samplesPerPass, 0);
+
+                ctx.EndTable();
+            }
+            ctx.EndRectangleBackground();
+        }
+
+        if (ImGui::CollapsingHeader("Viewport")) {
+            m_viewportBackendSettings[m_currentViewportBackend](ctx);
         }
 
         ctx.Destroy();

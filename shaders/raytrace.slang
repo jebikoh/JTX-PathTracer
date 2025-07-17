@@ -126,8 +126,6 @@ void rayGenMain() {
         totalAccumulation += accumulationImage[int2(launchID.xy)];
         accumulationImage[int2(launchID.xy)] = totalAccumulation;
     }
-
-    outputImage[int2(launchID.xy)] = (totalAccumulation / (float((pc.frame + 1) * pc.samplesPerFrame)));
 }
 
 [shader("closesthit")]

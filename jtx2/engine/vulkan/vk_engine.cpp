@@ -48,6 +48,7 @@ void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region, const SceneUpdate
         m_camera.Update();
         m_rtFrameNumber = -1;
     }
+    // TODO: stop counting if we are done
     m_rtFrameNumber++;
 
     UpdateGlobalUniformData();
@@ -225,14 +226,15 @@ void VkEngine::DrawSettingsPanel(UiDrawContext &ctx) {
         ctx.EndTable();
     }
 
-    ImGui::Separator();
+    ImGui::SeparatorText("Ray Tracing");
 
     if (ctx.StartTable("VkRayTracingTable")) {
         if (!m_bRayTracingAvailable) ImGui::BeginDisabled();
-        ctx.NewRow("Ray Tracing");
+        // ctx.NewRow("Ray Tracing");
         ctx.NewRow("Enable");
         ImGui::Checkbox("##RT", &m_bRayTracingEnabled);
 
+        if (!m_bRayTracingEnabled && m_bRayTracingAvailable) ImGui::BeginDisabled();
         ctx.NewRow("Max frames");
         int32_t maxFrames = m_rtMaxFrames;
         if (ImGui::DragInt("##MaxFrames", &maxFrames)) {
@@ -246,16 +248,19 @@ void VkEngine::DrawSettingsPanel(UiDrawContext &ctx) {
         }
 
         ctx.NewRow("Exposure");
-        ImGui::InputFloat("##Exposure", &m_rtPostProcessingPC.exposure, 1);
-
-        const char *tmo[]    = {"None", "Reinhard"};
-        static int selectedTmo = m_rtPostProcessingPC.tonemappingOp;
-        ctx.NewRow("Tonemapping");
-        if (ImGui::Combo("##TMO", &selectedTmo, tmo, IM_ARRAYSIZE(tmo))) {
-            m_rtPostProcessingPC.tonemappingOp = selectedTmo;
+        if (ImGui::InputFloat("##Exposure", &m_rtpp.EV, 1)) {
+            m_rtpp.bSettingsChanged = true;
         }
 
-        if (!m_bRayTracingAvailable) ImGui::EndDisabled();
+        const char *tmo[]    = {"None", "Reinhard"};
+        static int selectedTmo = m_rtpp.tonemappingOp;
+        ctx.NewRow("Tonemapping");
+        if (ImGui::Combo("##TMO", &selectedTmo, tmo, IM_ARRAYSIZE(tmo))) {
+            m_rtpp.tonemappingOp = selectedTmo;
+            m_rtpp.bSettingsChanged = true;
+        }
+
+        if (!m_bRayTracingAvailable || !m_bRayTracingEnabled) ImGui::EndDisabled();
         ctx.EndTable();
     }
 
@@ -362,7 +367,7 @@ void VkEngine::InitDescriptors() {
     builder.AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, shaderStages);
     // Raygen needs access to the draw image
     if (m_bRayTracingAvailable) {
-        builder.AddBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_RAYGEN_BIT_KHR);
+        builder.AddBinding(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT);
         builder.AddBinding(2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT);
     }
 
@@ -1266,96 +1271,108 @@ void VkEngine::DestroyRayTracingResources() {
     LOG_DEBUG(VKE, "RT resources destroyed");
 }
 
-void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) const {
+void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) {
     if (!m_bSceneLoaded) return;
-    if (m_rtFrameNumber >= m_rtMaxFrames) return;
 
-    jvk::TransitionImageIfNeeded(ctx.cmd, m_accumulationImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    const bool bRayTrace            = m_rtFrameNumber < m_rtMaxFrames;
+    const bool bApplyPostProcessing = m_rtpp.bSettingsChanged || bRayTrace;
 
-    const auto &drawImage = m_gfx.targets.draw32f;
-    jvk::TransitionImageIfNeeded(ctx.cmd, drawImage.image, ctx.layout.draw32f, VK_IMAGE_LAYOUT_GENERAL);
-    ctx.layout.draw32f = VK_IMAGE_LAYOUT_GENERAL;
-
-    RayTracingPushConstants pc{};
-    pc.invView         = glm::inverse(m_cache.view);
-    pc.invProj         = glm::inverse(m_cache.proj);
-    pc.frame           = m_rtFrameNumber;
-    pc.samplesPerFrame = m_rtSamplesPerFrame;
+    if (bApplyPostProcessing) {
+        jvk::TransitionImageIfNeeded(ctx.cmd, m_accumulationImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+        jvk::TransitionImageIfNeeded(ctx.cmd, m_gfx.targets.draw32f.image, ctx.layout.draw32f, VK_IMAGE_LAYOUT_GENERAL);
+        ctx.layout.draw32f = VK_IMAGE_LAYOUT_GENERAL;
+    }
 
     const auto sceneDescriptorSet = m_frameData[m_gfx.GetCurrentFrameIndex()].gpuGlobalUniformDataDescriptorSet;
     const std::vector descriptorSets{sceneDescriptorSet, m_bindlessDescriptorSet};
+    if (bRayTrace) {
+        RayTracingPushConstants rtpc{};
+        rtpc.invView         = glm::inverse(m_cache.view);
+        rtpc.invProj         = glm::inverse(m_cache.proj);
+        rtpc.frame           = m_rtFrameNumber;
+        rtpc.samplesPerFrame = m_rtSamplesPerFrame;
 
-    vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rayTracingPipeline.pipeline);
-    vkCmdBindDescriptorSets(
+        vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rayTracingPipeline.pipeline);
+        vkCmdBindDescriptorSets(
+                ctx.cmd,
+                VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
+                m_rayTracingPipeline.layout,
+                0,
+                (uint32_t) descriptorSets.size(),
+                descriptorSets.data(),
+                0,
+                nullptr);
+
+        vkCmdPushConstants(
+                ctx.cmd,
+                m_rayTracingPipeline.layout,
+                VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR,
+                0,
+                sizeof(RayTracingPushConstants),
+                &rtpc);
+        vkCmdTraceRaysKHR(
+                ctx.cmd,
+                &m_SBT.rayGenRegion,
+                &m_SBT.missRegion,
+                &m_SBT.hitRegion,
+                &m_SBT.callableRegion,
+                m_viewRectangle.w,
+                m_viewRectangle.h,
+                1);
+
+        // The RT shaders output the HDR color to the fp32 draw image.
+        // The compute shader will read the color, apply tonemapping/exposure/EOTF/etc
+        // and then write it back to the fp32 draw image.
+        VkImageMemoryBarrier2 barrier{};
+        barrier.sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+        barrier.srcStageMask     = VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR;
+        barrier.srcAccessMask    = VK_ACCESS_2_SHADER_WRITE_BIT;
+        barrier.dstStageMask     = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+        barrier.dstAccessMask    = VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT;
+        barrier.oldLayout        = VK_IMAGE_LAYOUT_GENERAL;
+        barrier.newLayout        = VK_IMAGE_LAYOUT_GENERAL;
+        barrier.image            = m_gfx.targets.draw32f.image;
+        barrier.subresourceRange = jvk::init::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
+
+        VkDependencyInfo dependency{};
+        dependency.sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        dependency.imageMemoryBarrierCount = 1;
+        dependency.pImageMemoryBarriers    = &barrier;
+
+        vkCmdPipelineBarrier2KHR(ctx.cmd, &dependency);
+    }
+
+    // Post-processing only applied if RT pipeline was invoked or relevant settings changed
+    if (bApplyPostProcessing) {
+        m_rtpp.bSettingsChanged = false;
+
+        PostProcessingPushConstants pppc;
+        pppc.exposure      = EV100ToExposure(m_rtpp.EV);
+        pppc.tonemappingOp = m_rtpp.tonemappingOp;
+        pppc.numSamples    = std::min(m_rtFrameNumber + 1, m_rtMaxFrames) * m_rtSamplesPerFrame;
+
+        vkCmdPushConstants(ctx.cmd,
+            m_rtPostProcessingPipeline.layout,
+            VK_SHADER_STAGE_COMPUTE_BIT,
+            0,
+            sizeof(pppc),
+            &pppc);
+
+        vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_rtPostProcessingPipeline.pipeline);
+
+        // TODO: make a new descriptor set for compute
+        vkCmdBindDescriptorSets(
             ctx.cmd,
-            VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
-            m_rayTracingPipeline.layout,
+            VK_PIPELINE_BIND_POINT_COMPUTE,
+            m_rtPostProcessingPipeline.layout,
             0,
             (uint32_t) descriptorSets.size(),
             descriptorSets.data(),
             0,
             nullptr);
 
-    vkCmdPushConstants(
-            ctx.cmd,
-            m_rayTracingPipeline.layout,
-            VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR,
-            0,
-            sizeof(RayTracingPushConstants),
-            &pc);
-    vkCmdTraceRaysKHR(
-            ctx.cmd,
-            &m_SBT.rayGenRegion,
-            &m_SBT.missRegion,
-            &m_SBT.hitRegion,
-            &m_SBT.callableRegion,
-            m_viewRectangle.w,
-            m_viewRectangle.h,
-            1);
-
-    // The RT shaders output the HDR color to the fp32 draw image.
-    // The compute shader will read the color, apply tonemapping/exposure/EOTF/etc
-    // and then write it back to the fp32 draw image.
-    VkImageMemoryBarrier2 barrier{};
-    barrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-    barrier.srcStageMask        = VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR;
-    barrier.srcAccessMask       = VK_ACCESS_2_SHADER_WRITE_BIT;
-    barrier.dstStageMask        = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
-    barrier.dstAccessMask       = VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT;
-    barrier.oldLayout           = VK_IMAGE_LAYOUT_GENERAL;
-    barrier.newLayout           = VK_IMAGE_LAYOUT_GENERAL;
-    barrier.image               = m_gfx.targets.draw32f.image;
-    barrier.subresourceRange    = jvk::init::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
-
-    VkDependencyInfo dependency{};
-    dependency.sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-    dependency.imageMemoryBarrierCount = 1;
-    dependency.pImageMemoryBarriers    = &barrier;
-
-    vkCmdPipelineBarrier2KHR(ctx.cmd, &dependency);
-
-    // TODO: update logic to re-apply post-processing without resetting accumulation
-    vkCmdPushConstants(ctx.cmd,
-        m_rtPostProcessingPipeline.layout,
-        VK_SHADER_STAGE_COMPUTE_BIT,
-        0,
-        sizeof(m_rtPostProcessingPC),
-        &m_rtPostProcessingPC);
-
-    vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_rtPostProcessingPipeline.pipeline);
-
-    // TODO: make a new descriptor set for compute
-    vkCmdBindDescriptorSets(
-        ctx.cmd,
-        VK_PIPELINE_BIND_POINT_COMPUTE,
-        m_rtPostProcessingPipeline.layout,
-        0,
-        (uint32_t) descriptorSets.size(),
-        descriptorSets.data(),
-        0,
-        nullptr);
-
-    vkCmdDispatch(ctx.cmd, std::ceil(m_viewRectangle.w / 8.0), std::ceil(m_viewRectangle.h / 8.0), 1);
+        vkCmdDispatch(ctx.cmd, std::ceil(m_viewRectangle.w / 8.0), std::ceil(m_viewRectangle.h / 8.0), 1);
+    }
 }
 
 }// namespace jtx

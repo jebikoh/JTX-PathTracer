@@ -193,18 +193,19 @@ void BackendCPU::StartOfflineRender() {
     for (uint32_t row = 0; row < m_height; ++row) {
         for (uint32_t col = 0; col < m_width; ++col) {
             const float *acc = JTX_IMAGE_PIXEL_PTR(m_accBuffer, row, col);
-            vec3 intensity = vec3(acc) / fspp;
+            vec3 intensity   = vec3(acc) / fspp;
 
             float exposure = 1.0f;
             switch (m_renderSettings.exposureType) {
                 case EXPOSURE_MANUAL:
                     exposure = EV100ToExposure(m_renderSettings.EV);
                     break;
-                case EXPOSURE_CAMERA:
+                case EXPOSURE_CAMERA: {
                     float ev100 = ComputeManualEV100(m_camera.settings.fStop, m_camera.settings.shutterSpeed, m_camera.settings.ISO);
                     ev100 -= m_renderSettings.EC;
                     exposure = EV100ToExposure(ev100);
                     break;
+                }
                 default:
                     LOG_FATAL(RENDER, "Unknown exposure type");
             }

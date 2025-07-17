@@ -2,31 +2,43 @@ import common.data;
 import common.color;
 
 struct PushConstant {
-    float exposure;
+    float exposure; // Calculated once on the CPU
     uint32_t tonemapOp;
+    uint32_t nSamples;
 };
 [[vk::push_constant]] PushConstant pc;
 
+[format("rgba32f")]
+[[vk::binding(1, 0)]] RWTexture2D<float4> accumulationImage;
 [format("rgba32f")]
 [[vk::binding(2, 0)]] RWTexture2D<float4> outputImage;
 
 [shader("compute")]
 [numthreads(8, 8, 1)]
 void computeMain(uint3 threadID : SV_DispatchThreadID) {
-    // For testing purposes, we will skip exposure and just apply Reinhard
     uint2 dimensions;
-    outputImage.GetDimensions(dimensions.x, dimensions.y);
+    accumulationImage.GetDimensions(dimensions.x, dimensions.y);
 
     uint2 coords = threadID.xy;
     if (coords.x >= dimensions.x || coords.y >= dimensions.y) return;
-    float3 hdr = outputImage[coords].rgb;
 
+    float3 hdr = accumulationImage[coords].rgb / pc.nSamples;
+
+    // Exposure
+    hdr *= pc.exposure;
+
+    // Tonemapping
     float3 tonemapped;
-    if (pc.tonemapOp == 0) {
-        tonemapped = hdr;
-    } else {
-        tonemapped = Reinhard(hdr);
+    switch(pc.tonemapOp) {
+        case 1:
+            tonemapped = Reinhard(hdr);
+            break;
+        default:
+            tonemapped = hdr;
+            break;
     }
+
+    // EOTF
     float3 finalColor = LinearToSRGB(tonemapped);
 
     outputImage[coords] = float4(finalColor, 1.0);

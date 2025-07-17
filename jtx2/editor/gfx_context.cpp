@@ -40,8 +40,8 @@ void GfxContext::InitWindow() {
             "JTX",
             SDL_WINDOWPOS_UNDEFINED,
             SDL_WINDOWPOS_UNDEFINED,
-            static_cast<int>(window.extent.width),
-            static_cast<int>(window.extent.height),
+            1700,
+            800,
             windowFlags);
     window.id = SDL_GetWindowID(window.pWindow);
 
@@ -222,11 +222,11 @@ void GfxContext::InitAllocator() {
 
 void GfxContext::InitSwapchain() {
     LOG_DEBUG(GFX, "Initializing swapchain");
-    swapchain.Init(ctx, window.extent.width, window.extent.height);
+    window.swapchain.Init(ctx, window.extent.width, window.extent.height);
 
-    const uint32_t count = swapchain.GetSwapchainImageCount();
-    renderFinishedSemaphores.resize(count);
-    for (auto &sem: renderFinishedSemaphores) {
+    const uint32_t count = window.swapchain.GetSwapchainImageCount();
+    window.semaphores.resize(count);
+    for (auto &sem: window.semaphores) {
         sem.Init(ctx);
     }
     LOG_DEBUG(GFX, "Swapchain Initialized");
@@ -390,11 +390,11 @@ void GfxContext::DestroyAllocator() const {
 void GfxContext::DestroySwapchain() const {
     LOG_DEBUG(GFX, "Destroying swapchain");
 
-    for (auto &sem: renderFinishedSemaphores) {
+    for (auto &sem: window.semaphores) {
         sem.Destroy();
     }
 
-    swapchain.Destroy(ctx);
+    window.swapchain.Destroy(ctx);
 
     LOG_DEBUG(GFX, "Swapchain Destroyed");
 }
@@ -573,13 +573,22 @@ void GfxContext::CreateExternalWindow(const VkExtent2D extent, Window &out) cons
     SDL_Vulkan_CreateSurface(out.pWindow, ctx, &out.surface);
 
     out.swapchain.Init(ctx, out.surface, w, h);
+    const uint32_t count = out.swapchain.GetSwapchainImageCount();
+    out.semaphores.resize(count);
+    for (auto &sem : out.semaphores) {
+        sem.Init(ctx);
+    }
 }
 
-void GfxContext::DestroyExternalWindow(Window &window) const {
-    window.swapchain.Destroy(ctx);
-    vkDestroySurfaceKHR(ctx, window.surface, nullptr);
-    SDL_DestroyWindow(window.pWindow);
-    window = {};
+void GfxContext::DestroyExternalWindow(Window &in) const {
+    vkDeviceWaitIdle(ctx);
+    for (auto &sem : in.semaphores) {
+        sem.Destroy();
+    }
+    in.swapchain.Destroy(ctx);
+    vkDestroySurfaceKHR(ctx, in.surface, nullptr);
+    SDL_DestroyWindow(in.pWindow);
+    in = {};
 }
 
 #pragma endregion
@@ -587,7 +596,7 @@ void GfxContext::DestroyExternalWindow(Window &window) const {
 #pragma region Frame management
 
 void GfxContext::ResizeSwapchain() {
-    if (m_bSwapchainOutOfDate) {
+    if (window.bSwapchainOutOfDate) {
         LOG_DEBUG(GFX, "Resizing swapchain");
 
         vkDeviceWaitIdle(ctx);
@@ -599,7 +608,7 @@ void GfxContext::ResizeSwapchain() {
         window.extent.height = h;
 
         InitSwapchain();
-        m_bSwapchainOutOfDate = false;
+        window.bSwapchainOutOfDate = false;
 
         LOG_DEBUG(GFX, "Swapchain resized");
     }
@@ -612,8 +621,8 @@ std::optional<RenderContext> GfxContext::StartFrame() {
     CHECK_VK(frame.drawFence.Reset());
 
     uint32_t swapchainIndex;
-    if (const VkResult e = swapchain.AcquireNextImage(ctx, frame.imageAvailableSemaphore, &swapchainIndex); e == VK_ERROR_OUT_OF_DATE_KHR || e == VK_SUBOPTIMAL_KHR) {
-        m_bSwapchainOutOfDate = true;
+    if (const VkResult e = window.swapchain.AcquireNextImage(ctx, frame.imageAvailableSemaphore, &swapchainIndex); e == VK_ERROR_OUT_OF_DATE_KHR || e == VK_SUBOPTIMAL_KHR) {
+        window.bSwapchainOutOfDate = true;
         return {};
     }
 
@@ -626,9 +635,9 @@ std::optional<RenderContext> GfxContext::StartFrame() {
             .swapchainIndex = swapchainIndex,
             .frameIndex     = frameIndex,
             .swapchain      = {
-                         .image  = swapchain.images[swapchainIndex],
-                         .view   = swapchain.views[swapchainIndex],
-                         .extent = swapchain.extent
+                         .image  = window.swapchain.images[swapchainIndex],
+                         .view   = window.swapchain.views[swapchainIndex],
+                         .extent = window.swapchain.extent
             },
             .layout  = {
                     .swapchain    = VK_IMAGE_LAYOUT_UNDEFINED,
@@ -650,7 +659,7 @@ void GfxContext::EndFrame(const RenderContext &renderCtx) {
     // Acquire swapchain image -> start rendering
     const VkSemaphoreSubmitInfoKHR waitInfo = frame.imageAvailableSemaphore.SubmitInfo(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR);
     // Finish rendering -> present image
-    const auto &rfSemaphore                   = renderFinishedSemaphores[renderCtx.swapchainIndex];
+    const auto &rfSemaphore                   = window.semaphores[renderCtx.swapchainIndex];
     const VkSemaphoreSubmitInfoKHR signalInfo = rfSemaphore.SubmitInfo(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT_KHR);
     graphicsQueue.Submit(&submitInfo, &waitInfo, &signalInfo, frame.drawFence);
 
@@ -659,13 +668,78 @@ void GfxContext::EndFrame(const RenderContext &renderCtx) {
     presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.pNext              = nullptr;
     presentInfo.swapchainCount     = 1;
-    presentInfo.pSwapchains        = &swapchain.swapchain;
+    presentInfo.pSwapchains        = &window.swapchain.swapchain;
     presentInfo.pWaitSemaphores    = &rfSemaphore.semaphore;
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pImageIndices      = &renderCtx.swapchainIndex;
 
     if (const VkResult presentResult = vkQueuePresentKHR(graphicsQueue, &presentInfo); presentResult == VK_ERROR_OUT_OF_DATE_KHR) {
-        m_bSwapchainOutOfDate = true;
+        window.bSwapchainOutOfDate = true;
+    }
+
+    frameNumber++;
+}
+
+std::optional<RenderContext> GfxContext::StartFrame(Window &exWindow) const {
+    const uint32_t frameIndex = GetCurrentFrameIndex();
+    const auto &frame         = frameData[frameIndex];
+    CHECK_VK(frame.drawFence.Wait());
+    CHECK_VK(frame.drawFence.Reset());
+
+    uint32_t swapchainIndex;
+    if (const VkResult e = exWindow.swapchain.AcquireNextImage(ctx, frame.imageAvailableSemaphore, &swapchainIndex); e == VK_ERROR_OUT_OF_DATE_KHR || e == VK_SUBOPTIMAL_KHR) {
+        exWindow.bSwapchainOutOfDate = true;
+        return {};
+    }
+
+    CHECK_VK(frame.cmdBuffer.Reset());
+
+    CHECK_VK(frame.cmdBuffer.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT));
+
+    return RenderContext{
+            .cmd            = frame.cmdBuffer,
+            .swapchainIndex = swapchainIndex,
+            .frameIndex     = frameIndex,
+            .swapchain      = {
+                         .image  = exWindow.swapchain.images[swapchainIndex],
+                         .view   = exWindow.swapchain.views[swapchainIndex],
+                         .extent = exWindow.swapchain.extent},
+            .layout = {
+                    .swapchain    = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .draw16f      = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .draw32f      = VK_IMAGE_LAYOUT_UNDEFINED,
+                    .depthStencil = VK_IMAGE_LAYOUT_UNDEFINED,
+            }};
+}
+
+void GfxContext::EndFrame(const RenderContext &renderCtx, Window &exWindow) {
+    // Transition the swapchain image to present layout
+    jvk::TransitionImageIfNeeded(renderCtx.cmd, renderCtx.swapchain.image, renderCtx.layout.swapchain, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    CHECK_VK(renderCtx.cmd.End());
+
+    // Submit the command buffer
+    const auto &frame = frameData[renderCtx.frameIndex];
+
+    const VkCommandBufferSubmitInfoKHR submitInfo = renderCtx.cmd.SubmitInfo();
+    // Acquire swapchain image -> start rendering
+    const VkSemaphoreSubmitInfoKHR waitInfo = frame.imageAvailableSemaphore.SubmitInfo(VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT_KHR);
+    // Finish rendering -> present image
+    const auto &rfSemaphore                   = exWindow.semaphores[renderCtx.swapchainIndex];
+    const VkSemaphoreSubmitInfoKHR signalInfo = rfSemaphore.SubmitInfo(VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT_KHR);
+    graphicsQueue.Submit(&submitInfo, &waitInfo, &signalInfo, frame.drawFence);
+
+    // Present the swapchain image
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.pNext              = nullptr;
+    presentInfo.swapchainCount     = 1;
+    presentInfo.pSwapchains        = &exWindow.swapchain.swapchain;
+    presentInfo.pWaitSemaphores    = &rfSemaphore.semaphore;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pImageIndices      = &renderCtx.swapchainIndex;
+
+    if (const VkResult presentResult = vkQueuePresentKHR(graphicsQueue, &presentInfo); presentResult == VK_ERROR_OUT_OF_DATE_KHR) {
+        exWindow.bSwapchainOutOfDate = true;
     }
 
     frameNumber++;
@@ -677,15 +751,15 @@ void GfxContext::ResolveToSwapchain(RenderContext &renderCtx, const ResolveRegio
     switch (region.target) {
         case kRenderTarget::DRAW16f:
             renderTarget = &targets.draw16f;
-            layout = &renderCtx.layout.draw16f;
+            layout       = &renderCtx.layout.draw16f;
             break;
         case kRenderTarget::DRAW32f:
             renderTarget = &targets.draw32f;
-            layout = &renderCtx.layout.draw32f;
+            layout       = &renderCtx.layout.draw32f;
             break;
         case kRenderTarget::DEPTH_STENCIL:
             renderTarget = &targets.depthStencil;
-            layout = &renderCtx.layout.depthStencil;
+            layout       = &renderCtx.layout.depthStencil;
             break;
         default:
             LOG_FATAL(GFX, "Invalid swapchain resolve");
@@ -697,8 +771,8 @@ void GfxContext::ResolveToSwapchain(RenderContext &renderCtx, const ResolveRegio
 
     jvk::CopyImageToImage(renderCtx.cmd, *renderTarget, renderCtx.swapchain.image, region.src, region.dst);
 
-    *layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-    renderCtx.layout.swapchain            = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    *layout                    = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    renderCtx.layout.swapchain = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 }
 
 #pragma endregion

@@ -19,8 +19,11 @@ struct Window {
     VkExtent2D extent{800, 400};
     SDL_Window *pWindow   = nullptr;
     VkSurfaceKHR surface = VK_NULL_HANDLE;
-    jvk::Swapchain swapchain;
     uint32_t id;
+
+    jvk::Swapchain swapchain;
+    std::vector<jvk::Semaphore> semaphores;
+    bool bSwapchainOutOfDate = false;
 };
 
 enum class kRenderTarget {
@@ -65,11 +68,7 @@ struct ResolveRegion {
  *       I am thinking that maybe we can pass in a config struct to determine how to initialize the context
  */
 struct GfxContext {
-    struct MainWindow {
-        VkExtent2D extent{1700, 900};
-        SDL_Window *pWindow = nullptr;
-        uint32_t id;
-    } window;
+    Window window;
 
     jvk::VkContext ctx;
 
@@ -88,9 +87,6 @@ struct GfxContext {
         jvk::Semaphore imageAvailableSemaphore;
         jvk::Fence drawFence;
     } frameData[JTX_MAX_FRAMES_IN_FLIGHT];
-
-    jvk::Swapchain swapchain;
-    std::vector<jvk::Semaphore> renderFinishedSemaphores;
 
     jvk::Queue graphicsQueue;
     jvk::ImmediateBuffer imBuffer;
@@ -118,6 +114,9 @@ struct GfxContext {
 
     std::optional<RenderContext> StartFrame();
     void EndFrame(const RenderContext &renderCtx);
+
+    std::optional<RenderContext> StartFrame(Window &exWindow) const;
+    void EndFrame(const RenderContext &renderCtx, Window &exWindow);
 
     /**
      * Copies the contents of the draw image to the swapchain image.
@@ -196,7 +195,7 @@ struct GfxContext {
      *
      * Can be used to proactively resize the swapchain before an aquire/present error
      */
-    void NotifyResize() { m_bSwapchainOutOfDate = true; }
+    void NotifyResize() { window.bSwapchainOutOfDate = true; }
 
     /**
      * Will create an external window with this GFX context
@@ -207,13 +206,11 @@ struct GfxContext {
 
     /**
      * Destroys an external window that was created with this GFX context
-     * @param window window to destroy
+     * @param in window to destroy
      */
-    void DestroyExternalWindow(Window &window) const;
+    void DestroyExternalWindow(Window &in) const;
 
 private:
-    bool m_bSwapchainOutOfDate = false;
-
     void InitWindow();
     void InitVulkan();
     void InitAllocator();

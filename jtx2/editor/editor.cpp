@@ -89,6 +89,15 @@ void Editor::Draw() {
         m_ui.Draw(ctx);
 
         m_gfx.EndFrame(ctx);
+    } else {
+        auto res = m_gfx.StartFrame(m_renderWindow);
+        if (!res.has_value()) return;
+        auto &ctx = res.value();
+
+        m_ui.NewFrameRender();
+        m_ui.Draw(ctx);
+
+        m_gfx.EndFrame(ctx, m_renderWindow);
     }
 }
 
@@ -135,6 +144,8 @@ void Editor::Run() {
                 } else {
                     m_vk.ProcessEvent(e);
                 }
+            } else {
+                // Need to figure out if this event is triggered on
             }
         }
 

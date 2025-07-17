@@ -74,6 +74,8 @@ public:
      */
     void NewFrame(SceneUpdate &update);
 
+    void NewFrameRender() const;
+
     /**
      * Submits draw commands for the UI. Expects image to be in VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
      * @param ctx render context

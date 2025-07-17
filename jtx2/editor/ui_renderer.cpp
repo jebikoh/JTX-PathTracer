@@ -118,7 +118,7 @@ void UIRenderer::Init(const std::function<void()> &importSceneCallback, const st
 
     initInfo.PipelineRenderingCreateInfo                         = {.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR};
     initInfo.PipelineRenderingCreateInfo.colorAttachmentCount    = 1;
-    initInfo.PipelineRenderingCreateInfo.pColorAttachmentFormats = &m_gfx.swapchain.format;
+    initInfo.PipelineRenderingCreateInfo.pColorAttachmentFormats = &m_gfx.window.swapchain.format;
 
     initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
@@ -442,53 +442,53 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
             if (ImGui::CollapsingHeader("Environment Map")) {
                 ctx.StartRectangleBackground();
 
-                bool bReset = false;
+                bool bReset  = false;
                 auto &envmap = m_pScene->envmap;
-                bool bHDRI = envmap.type == EnvMap::HDRI;
+                bool bHDRI   = envmap.type == EnvMap::HDRI;
 
                 if (ctx.StartTable("SkyEditor")) {
 
-                        if (bHDRI) ImGui::BeginDisabled();
-                        ctx.NewRow("Uniform Color");
-                        bReset |= ImGui::ColorEdit3("##Sky", &envmap.uniform.x);
+                    if (bHDRI) ImGui::BeginDisabled();
+                    ctx.NewRow("Uniform Color");
+                    bReset |= ImGui::ColorEdit3("##Sky", &envmap.uniform.x);
 
-                        ctx.NewRow("Intensity");
-                        bReset |= ImGui::DragFloat("##Intensity", &envmap.intensity, 0.1);
-                        if (bHDRI) ImGui::EndDisabled();
+                    ctx.NewRow("Intensity");
+                    bReset |= ImGui::DragFloat("##Intensity", &envmap.intensity, 0.1);
+                    if (bHDRI) ImGui::EndDisabled();
 
-                        ctx.NewRow("HDRI");
-                        bReset |= ImGui::Checkbox("##HDRI", &bHDRI);
-                        envmap.type = bHDRI ? EnvMap::HDRI : EnvMap::UNIFORM;
+                    ctx.NewRow("HDRI");
+                    bReset |= ImGui::Checkbox("##HDRI", &bHDRI);
+                    envmap.type = bHDRI ? EnvMap::HDRI : EnvMap::UNIFORM;
 
-                        if (!bHDRI) ImGui::BeginDisabled();
+                    if (!bHDRI) ImGui::BeginDisabled();
 
-                        ctx.NewRow("");
-                        if (ImGui::Button("Select Image", ctx.GetAvailWidth())) {
-                            bReset = true;
-                            m_loadHDRICallback();
-                        }
+                    ctx.NewRow("");
+                    if (ImGui::Button("Select Image", ctx.GetAvailWidth())) {
+                        bReset = true;
+                        m_loadHDRICallback();
+                    }
 
-                        ctx.NewRow("Map");
-                        if (envmap.image.path.empty()) {
-                            ImGui::Text("No map loaded");
-                        } else {
-                            ImGui::Text(envmap.image.path.c_str());
-                        }
+                    ctx.NewRow("Map");
+                    if (envmap.image.path.empty()) {
+                        ImGui::Text("No map loaded");
+                    } else {
+                        ImGui::Text(envmap.image.path.c_str());
+                    }
 
-                        float hOffset = Degrees(envmap.horizontalOffset);
-                        ctx.NewRow("Horizontal Offset");
-                        if (ImGui::DragFloat("##HorizontalOffset", &hOffset, 1, 0)) {
-                            bReset = true;
-                            envmap.horizontalOffset = Radians(hOffset);
-                        }
+                    float hOffset = Degrees(envmap.horizontalOffset);
+                    ctx.NewRow("Horizontal Offset");
+                    if (ImGui::DragFloat("##HorizontalOffset", &hOffset, 1, 0)) {
+                        bReset                  = true;
+                        envmap.horizontalOffset = Radians(hOffset);
+                    }
 
-                        float vOffset = Degrees(envmap.verticalOffset);
-                        ctx.NewRow("Vertical Offset");
-                        if (ImGui::DragFloat("##VerticalOffset", &vOffset, 1, 0)) {
-                            bReset = true;
-                            envmap.verticalOffset = Radians(vOffset);
-                        }
-                        if (!bHDRI) ImGui::EndDisabled();
+                    float vOffset = Degrees(envmap.verticalOffset);
+                    ctx.NewRow("Vertical Offset");
+                    if (ImGui::DragFloat("##VerticalOffset", &vOffset, 1, 0)) {
+                        bReset                = true;
+                        envmap.verticalOffset = Radians(vOffset);
+                    }
+                    if (!bHDRI) ImGui::EndDisabled();
 
                     ctx.EndTable();
                 }
@@ -502,7 +502,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ImGui::End();
     }
 
-        // Draw render settings window
+    // Draw render settings window
     {
         ImGui::Begin("Settings");
 
@@ -576,6 +576,18 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ctx.Destroy();
         ImGui::End();
     }
+
+    ImGui::Render();
+}
+
+void UIRenderer::NewFrameRender() const {
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+    ImGui::NewFrame();
+
+    ImGui::Begin("Test");
+    ImGui::Button("TESTBUTTON");
+    ImGui::End();
 
     ImGui::Render();
 }

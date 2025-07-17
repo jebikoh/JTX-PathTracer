@@ -141,7 +141,7 @@ private:
     jvk::Pipeline m_rtPostProcessingPipeline;
 
     struct PostProcessingSettings {
-        uint32_t tonemappingOp = 1;
+        uint32_t tonemappingOp = kTonemapOp::TMO_ACES;
         float EV               = 0.0f;
         bool bSettingsChanged  = false;
     } m_rtpp{};

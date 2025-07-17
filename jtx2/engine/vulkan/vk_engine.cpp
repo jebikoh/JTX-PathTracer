@@ -252,7 +252,7 @@ void VkEngine::DrawSettingsPanel(UiDrawContext &ctx) {
             m_rtpp.bSettingsChanged = true;
         }
 
-        const char *tmo[]    = {"None", "Reinhard"};
+        const char *tmo[]    = {"None", "Reinhard", "ACES", "AgX", "Hable Filmic"};
         static int selectedTmo = m_rtpp.tonemappingOp;
         ctx.NewRow("Tonemapping");
         if (ImGui::Combo("##TMO", &selectedTmo, tmo, IM_ARRAYSIZE(tmo))) {

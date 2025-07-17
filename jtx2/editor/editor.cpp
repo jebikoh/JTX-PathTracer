@@ -96,6 +96,10 @@ void Editor::Run() {
             if (e.type == SDL_QUIT) bQuit = true;
 
             if (e.type == SDL_WINDOWEVENT) {
+                if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
+                    m_gfx.NotifyResize();
+                }
+
                 if (e.window.event == SDL_WINDOWEVENT_MINIMIZED) {
                     m_bStopRendering = true;
                 }

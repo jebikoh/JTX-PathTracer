@@ -181,6 +181,15 @@ struct GfxContext {
      */
     void DestroyBuffer(jvk::Buffer &buffer) const;
 
+    /**
+     * Notifies the GFX context that the swapchain will be out of date
+     *
+     * Can be used to proactively resize the swapchain before an aquire/present error
+     */
+    void NotifyResize() {
+        m_bSwapchainOutOfDate = true;
+    }
+
 private:
     bool m_bSwapchainOutOfDate = false;
 

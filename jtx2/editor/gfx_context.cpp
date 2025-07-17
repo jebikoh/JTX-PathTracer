@@ -222,15 +222,28 @@ void GfxContext::InitAllocator() {
 void GfxContext::InitSwapchain() {
     LOG_DEBUG(GFX, "Initializing swapchain");
     swapchain.Init(ctx, window.extent.width, window.extent.height);
+
+    const uint32_t count = swapchain.GetSwapchainImageCount();
+    renderFinishedSemaphores.resize(count);
+    for (auto &sem: renderFinishedSemaphores) {
+        sem.Init(ctx);
+    }
     LOG_DEBUG(GFX, "Swapchain Initialized");
 }
 
 void GfxContext::InitRenderTarget() {
     LOG_DEBUG(GFX, "Initializing render target");
+
+    // TODO:
+    // Right now, the draw images are initialized to the maximum screen size
+    // Lets adjust this later to save some memory and have it resized dynamically
+    SDL_DisplayMode dm;
+    SDL_GetCurrentDisplayMode(0, &dm);
+
     // Draw image 16f
     VkExtent3D drawExtent{};
-    drawExtent.width  = window.extent.width;
-    drawExtent.height = window.extent.height;
+    drawExtent.width  = dm.w;
+    drawExtent.height = dm.h;
     drawExtent.depth  = 1;
 
     targets.draw16f.format = VK_FORMAT_R16G16B16A16_SFLOAT;
@@ -281,6 +294,7 @@ void GfxContext::InitRenderTarget() {
 
 void GfxContext::InitFrameData() {
     LOG_DEBUG(GFX, "Initializing frame data");
+
     constexpr VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     for (auto &frame: frameData) {
         // Command pools
@@ -290,13 +304,6 @@ void GfxContext::InitFrameData() {
         // Synchronization
         CHECK_VK(frame.drawFence.Init(ctx, VK_FENCE_CREATE_SIGNALED_BIT));
         CHECK_VK(frame.imageAvailableSemaphore.Init(ctx));// Ignore this for now
-    }
-
-    // NEW: Per swapchain-image wait semaphores
-    const uint32_t count = swapchain.GetSwapchainImageCount();
-    renderFinishedSemaphores.resize(count);
-    for (auto &sem: renderFinishedSemaphores) {
-        sem.Init(ctx);
     }
 
     LOG_DEBUG(GFX, "Frame data Initialized");
@@ -382,6 +389,10 @@ void GfxContext::DestroyAllocator() const {
 void GfxContext::DestroySwapchain() const {
     LOG_DEBUG(GFX, "Destroying swapchain");
 
+    for (auto &sem: renderFinishedSemaphores) {
+        sem.Destroy();
+    }
+
     swapchain.Destroy(ctx);
 
     LOG_DEBUG(GFX, "Swapchain Destroyed");
@@ -405,10 +416,6 @@ void GfxContext::DestroyFrameData() {
         frame.imageAvailableSemaphore.Destroy();
         frame.drawFence.Destroy();
         frame.cmdPool.Destroy();
-    }
-
-    for (auto &sem: renderFinishedSemaphores) {
-        sem.Destroy();
     }
 
     LOG_DEBUG(GFX, "Frame data destroyed");
@@ -552,15 +559,16 @@ void GfxContext::DestroyBuffer(jvk::Buffer &buffer) const {
 void GfxContext::ResizeSwapchain() {
     if (m_bSwapchainOutOfDate) {
         LOG_DEBUG(GFX, "Resizing swapchain");
+
         vkDeviceWaitIdle(ctx);
-        swapchain.Destroy(ctx);
+        DestroySwapchain();
 
         int w, h;
         SDL_Vulkan_GetDrawableSize(window.pWindow, &w, &h);
         window.extent.width  = w;
         window.extent.height = h;
 
-        swapchain.Init(ctx, window.extent.width, window.extent.height);
+        InitSwapchain();
         m_bSwapchainOutOfDate = false;
 
         LOG_DEBUG(GFX, "Swapchain resized");

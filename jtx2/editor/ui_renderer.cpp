@@ -8,7 +8,6 @@
 #include <SDL_vulkan.h>
 #include <imgui_impl_vulkan.h>
 #include <imgui_internal.h>
-#include <nfd.h>
 
 // #define JTX_UI_DRAW_DEMO_WINDOW
 
@@ -246,7 +245,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
     static int selectionIndex = 0;
     {
-        ImGui::Begin(ICON_LC_LIST_TREE);
+        ImGui::Begin("Hierarchy");
 
         UiDrawContext ctx;
         ctx.Init();
@@ -285,7 +284,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
     // Draw scene settings window
     {
-        ImGui::Begin(ICON_LC_BOX);
+        ImGui::Begin("Object");
 
         UiDrawContext ctx;
         ctx.Init();
@@ -492,7 +491,6 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                 }
 
                 ctx.EndRectangleBackground();
-
                 update.bResetAccumulation = bReset;
             }
         }
@@ -503,7 +501,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
         // Draw render settings window
     {
-        ImGui::Begin(ICON_LC_SETTINGS);
+        ImGui::Begin("Settings");
 
         UiDrawContext ctx;
         ctx.Init();
@@ -724,11 +722,11 @@ void UIRenderer::SetupStyle() const {
 
     ImGuiIO &io = ImGui::GetIO();
     io.Fonts->AddFontFromFileTTF(
-            "assets/jb_mono.ttf",
+            "assets/inter_med.ttf",
             16.0f * dpiScale);
     io.FontGlobalScale = 1.0f / dpiScale;
 
-    const float iconSize                    = 16.0f * dpiScale * 2.0f / 3.0f;
+    const float iconSize                    = 16.0f * dpiScale;
     static constexpr ImWchar icons_ranges[] = {ICON_MIN_LC, ICON_MAX_16_LC, 0};
     ImFontConfig icons_config;
     icons_config.MergeMode        = true;
@@ -746,9 +744,9 @@ void UIRenderer::SetLayout(const ImGuiID dockSpaceId, const ImGuiViewport *viewp
     ImGuiID dockRightId          = ImGui::DockBuilderSplitNode(dockMainId, ImGuiDir_Right, 0.2f, nullptr, &dockMainId);
     const ImGuiID dockRightTopId = ImGui::DockBuilderSplitNode(dockRightId, ImGuiDir_Up, 0.25f, nullptr, &dockRightId);
 
-    ImGui::DockBuilderDockWindow(ICON_LC_SETTINGS, dockRightId);
-    ImGui::DockBuilderDockWindow(ICON_LC_BOX, dockRightId);
-    ImGui::DockBuilderDockWindow(ICON_LC_LIST_TREE, dockRightTopId);
+    ImGui::DockBuilderDockWindow("Settings", dockRightId);
+    ImGui::DockBuilderDockWindow("Object", dockRightId);
+    ImGui::DockBuilderDockWindow("Hierarchy", dockRightTopId);
 
     ImGui::DockBuilderFinish(dockSpaceId);
 }

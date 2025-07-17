@@ -33,6 +33,15 @@ void computeMain(uint3 threadID : SV_DispatchThreadID) {
         case 1:
             tonemapped = Reinhard(hdr);
             break;
+        case 2:
+            tonemapped = ACESFitted(hdr);
+            break;
+        case 3:
+            tonemapped = AgX(hdr);
+            break;
+        case 4:
+            tonemapped = HableFilmic(hdr);
+            break;
         default:
             tonemapped = hdr;
             break;

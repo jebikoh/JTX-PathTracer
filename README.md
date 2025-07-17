@@ -9,6 +9,9 @@ Currently implemented:
 - Multiple-Importance Sampling (MIS) with uniform light sampling
 - Russian Roulette
 - Diffuse, Dielectric, Conductor (Schlick), Complex Conductor BxDFs on the CPU
+- HDRI Envmap sampling
+- Physically based camera
+- Post-processing: manual/camera-based exposure, tonemapping (ACES, AgX, Hable)
 - Vulkan/SDL2 interactive display
 - Forward rasterization pipeline for scene preview
 - SSE4.2/NEON QBVH Trees: [Shallow Bounding Volume Hierarchies for Fast SIMD Ray Tracing of Incoherent Rays](https://www.uni-ulm.de/fileadmin/website_uni_ulm/iui.inst.100/institut/Papers/QBVH.pdf)
@@ -34,7 +37,7 @@ Far future features:
  - Metropolis Light Transport
  - CUDA OptiX backend
 
-https://github.com/user-attachments/assets/69ecdfaf-d2df-4946-abe9-26715a2f2ede
+https://github.com/user-attachments/assets/75a9206b-2e38-4193-a30f-23a2879dcdbb
 
 ![ajax](https://github.com/user-attachments/assets/6b44f17f-84d6-46f5-9214-547d9cb30931)
 

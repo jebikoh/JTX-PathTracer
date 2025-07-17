@@ -17,13 +17,14 @@ struct Swapchain {
 
     void Init(
             const VkContext &context,
+            const VkSurfaceKHR &surface,
             const uint32_t width,
             const uint32_t height,
             const VkFormat format_             = VK_FORMAT_R8G8B8A8_UNORM,
             const VkColorSpaceKHR colorSpace   = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
             const VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR,
             const VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
-        vkb::SwapchainBuilder swapchainBuilder{context.physicalDevice, context.device, context.surface};
+        vkb::SwapchainBuilder swapchainBuilder{context.physicalDevice, context.device, surface};
         vkb::Swapchain vkbSwapchain = swapchainBuilder
                                               .set_desired_format(
                                                       VkSurfaceFormatKHR{
@@ -40,6 +41,17 @@ struct Swapchain {
         images    = vkbSwapchain.get_images().value();
         views     = vkbSwapchain.get_image_views().value();
         extent    = vkbSwapchain.extent;
+    }
+
+    void Init(
+        const VkContext &context,
+        const uint32_t width,
+        const uint32_t height,
+        const VkFormat format_             = VK_FORMAT_R8G8B8A8_UNORM,
+        const VkColorSpaceKHR colorSpace   = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
+        const VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR,
+        const VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
+        Init(context, context.surface, width, height, format_, colorSpace, presentMode, usageFlags);
     }
 
     void Destroy(const VkContext &context) const {

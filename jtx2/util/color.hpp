@@ -43,14 +43,6 @@ inline vec3 Reinhard(const vec3 &v) {
     return v / (1.0f + L1);
 }
 
-inline vec3 ReinhardExt(const vec3 &v, const float whitePoint) {
-    const float L1 = Luminance(v);
-    const float n = L1 * (1.0f + L1 / (whitePoint * whitePoint));
-    const float d = 1 + L1;
-    const float L2 = n / d;
-    return ApplyLuminance(v, L1, L2);
-}
-
 inline float ApplyGamma(const float x) {
     if (x > 0) return jtx::Sqrt(x);
     return 0.0f;

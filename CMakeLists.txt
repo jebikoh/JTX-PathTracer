@@ -20,7 +20,7 @@ option(_JTX_SUPPRESS_DEPENDENCY_MESSAGES "Suppress status messages from deps" ON
 project(JTX VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # ──────────────────────────────────────────────────────────────────────────────
 #  Compiler definitions & options
@@ -376,7 +376,7 @@ function(jtx_post_build target)
     add_custom_command(TARGET ${target} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_SOURCE_DIR}/jtx2/assets
-            $<TARGET_FILE_DIR:${target}>/assets
+            ${CMAKE_BINARY_DIR}/assets
             COMMENT "[JTX] Copying assets directory to output folder"
     )
 endfunction()
@@ -427,7 +427,7 @@ endif()
 # ──────────────────────────────────────────────────────────────────────────────
 #  Shader compilation
 # ──────────────────────────────────────────────────────────────────────────────
-set(SPIRV_OUTPUT_DIR "${CMAKE_BINARY_DIR}/spv")
+set(SPIRV_OUTPUT_DIR "${CMAKE_BINARY_DIR}/bin/spv")
 file(MAKE_DIRECTORY "${SPIRV_OUTPUT_DIR}")
 
 # TEMPORARY UNTIL ALL GLSL FILES ARE REMOVED

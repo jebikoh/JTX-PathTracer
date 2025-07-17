@@ -15,11 +15,20 @@ struct SDL_Window;
 
 namespace jtx {
 
+struct Window {
+    VkExtent2D extent{800, 400};
+    SDL_Window *pWindow   = nullptr;
+    VkSurfaceKHR surface = VK_NULL_HANDLE;
+    jvk::Swapchain swapchain;
+    uint32_t id;
+};
+
 enum class kRenderTarget {
     DRAW16f,
     DRAW32f,
     DEPTH_STENCIL
 };
+
 struct RenderContext {
     const jvk::CommandBuffer cmd;
 
@@ -56,9 +65,10 @@ struct ResolveRegion {
  *       I am thinking that maybe we can pass in a config struct to determine how to initialize the context
  */
 struct GfxContext {
-    struct Window {
+    struct MainWindow {
         VkExtent2D extent{1700, 900};
         SDL_Window *pWindow = nullptr;
+        uint32_t id;
     } window;
 
     jvk::VkContext ctx;
@@ -186,9 +196,20 @@ struct GfxContext {
      *
      * Can be used to proactively resize the swapchain before an aquire/present error
      */
-    void NotifyResize() {
-        m_bSwapchainOutOfDate = true;
-    }
+    void NotifyResize() { m_bSwapchainOutOfDate = true; }
+
+    /**
+     * Will create an external window with this GFX context
+     * @param extent window extent
+     * @param out window to initialize
+     */
+    void CreateExternalWindow(VkExtent2D extent, Window &out) const;
+
+    /**
+     * Destroys an external window that was created with this GFX context
+     * @param window window to destroy
+     */
+    void DestroyExternalWindow(Window &window) const;
 
 private:
     bool m_bSwapchainOutOfDate = false;

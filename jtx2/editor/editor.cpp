@@ -23,6 +23,9 @@ void Editor::Init() {
               },
               [this] {
                   LoadHDRI();
+              },
+              [this] {
+                  RenderImage();
               });
     m_vk.Init(m_gfx.bRayTracingSupported);
 
@@ -66,25 +69,27 @@ void Editor::Destroy() {
 }
 
 void Editor::Draw() {
-    SceneUpdate update;
-    m_ui.NewFrame(update);
+    if (m_activeWindow == EDITOR) {
+        SceneUpdate update;
+        m_ui.NewFrame(update);
 
-    auto res = m_gfx.StartFrame();
-    if (!res.has_value()) return;
-    auto &ctx = res.value();
+        auto res = m_gfx.StartFrame();
+        if (!res.has_value()) return;
+        auto &ctx = res.value();
 
-    jvk::ViewRectangle rect;
-    if (m_ui.GetViewportRectangle(rect)) {
-        m_vk.SetViewportRectangle(rect);
+        jvk::ViewRectangle rect;
+        if (m_ui.GetViewportRectangle(rect)) {
+            m_vk.SetViewportRectangle(rect);
+        }
+
+        ResolveRegion region;
+        m_vk.Draw(ctx, region, update);
+        m_gfx.ResolveToSwapchain(ctx, region);
+
+        m_ui.Draw(ctx);
+
+        m_gfx.EndFrame(ctx);
     }
-
-    ResolveRegion region;
-    m_vk.Draw(ctx, region, update);
-    m_gfx.ResolveToSwapchain(ctx, region);
-
-    m_ui.Draw(ctx);
-
-    m_gfx.EndFrame(ctx);
 }
 
 void Editor::Run() {
@@ -96,22 +101,40 @@ void Editor::Run() {
             if (e.type == SDL_QUIT) bQuit = true;
 
             if (e.type == SDL_WINDOWEVENT) {
-                if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
-                    m_gfx.NotifyResize();
-                }
+                if (e.window.windowID == m_renderWindow.id) {
+                    if (e.window.event == SDL_WINDOWEVENT_CLOSE) {
+                        m_gfx.DestroyExternalWindow(m_renderWindow);
+                        m_activeWindow = EDITOR;
+                    }
+                } else {
+                    if (e.window.event == SDL_WINDOWEVENT_CLOSE) {
+                        if (m_renderWindow.pWindow != nullptr) {
+                            m_gfx.DestroyExternalWindow(m_renderWindow);
+                            m_activeWindow = EDITOR;
+                        }
+                        bQuit = true;
+                    }
 
-                if (e.window.event == SDL_WINDOWEVENT_MINIMIZED) {
-                    m_bStopRendering = true;
-                }
-                if (e.window.event == SDL_WINDOWEVENT_RESTORED) {
-                    m_bStopRendering = false;
+                    if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
+                        m_gfx.NotifyResize();
+                    }
+
+                    if (e.window.event == SDL_WINDOWEVENT_MINIMIZED) {
+                        m_bStopRendering = true;
+                    }
+
+                    if (e.window.event == SDL_WINDOWEVENT_RESTORED) {
+                        m_bStopRendering = false;
+                    }
                 }
             }
 
-            if (m_ui.ProcessEvent(e)) {
-                m_vk.SkipEvent();
-            } else {
-                m_vk.ProcessEvent(e);
+            if (m_activeWindow == EDITOR) {
+                if (m_ui.ProcessEvent(e)) {
+                    m_vk.SkipEvent();
+                } else {
+                    m_vk.ProcessEvent(e);
+                }
             }
         }
 
@@ -208,6 +231,11 @@ void Editor::LoadHDRI() {
     } else {
         LOG_ERROR(UI, "Error while opening file dialog: {}", NFD_GetError());
     }
+}
+
+void Editor::RenderImage() {
+    m_gfx.CreateExternalWindow({800, 400},m_renderWindow);
+    m_activeWindow = RENDER;
 }
 
 }// namespace jtx

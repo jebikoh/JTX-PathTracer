@@ -47,6 +47,14 @@ private:
     void ExportScene() const;
 
     void LoadHDRI();
+
+    enum kActiveWindow {
+        EDITOR,
+        RENDER
+    } m_activeWindow = EDITOR;
+
+    Window m_renderWindow;
+    void RenderImage();
 };
 
 }// namespace jtx

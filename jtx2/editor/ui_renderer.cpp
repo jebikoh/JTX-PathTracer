@@ -81,12 +81,13 @@ void UiDrawContext::NewRow(const char *label) {
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 }
 
-void UIRenderer::Init(const std::function<void()> &importSceneCallback, const std::function<void()> &exportSceneCallback, const std::function<void()> &loadHDRICallback) {
+void UIRenderer::Init(const std::function<void()> &importSceneCallback, const std::function<void()> &exportSceneCallback, const std::function<void()> &loadHDRICallback, const std::function<void()> &renderImageCallback) {
     LOG_INFO(UI, "Initializing UI renderer");
 
     m_importSceneCallback = importSceneCallback;
     m_exportSceneCallback = exportSceneCallback;
     m_loadHDRICallback    = loadHDRICallback;
+    m_renderImageCallback = renderImageCallback;
 
     constexpr VkDescriptorPoolSize poolSizes[] =
             {
@@ -225,7 +226,9 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                 }
 
                 if (ImGui::BeginMenu("Edit")) {
-                    if (ImGui::MenuItem("Render Image")) {}
+                    if (ImGui::MenuItem("Render Image")) {
+                        m_renderImageCallback();
+                    }
                     ImGui::EndMenu();
                 }
 
@@ -359,8 +362,8 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                             ctx.NewRow("Anisotropy");
                             bMaterialUpdated |= ImGui::Checkbox("##anisotropic", &mat.parameters.bAnisotropic);
 
+                            ctx.NewRow("Roughness");
                             if (mat.parameters.bAnisotropic) {
-                                ctx.NewRow("Roughness");
                                 bMaterialUpdated |= ImGui::DragFloat2("##roughness", &mat.parameters.roughness.x, 0.01, 0, 1);
                             } else {
                                 bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x, 0.01, 0, 1);
@@ -383,8 +386,8 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                             ctx.NewRow("Anisotropy");
                             bMaterialUpdated |= ImGui::Checkbox("##anisotropic", &mat.parameters.bAnisotropic);
 
+                            ctx.NewRow("Roughness");
                             if (mat.parameters.bAnisotropic) {
-                                ctx.NewRow("Roughness");
                                 bMaterialUpdated |= ImGui::DragFloat2("##roughness", &mat.parameters.roughness.x, 0.01, 0, 1);
                             } else {
                                 bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x, 0.01, 0, 1);
@@ -405,8 +408,8 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                             ctx.NewRow("Anisotropy");
                             bMaterialUpdated |= ImGui::Checkbox("##anisotropic", &mat.parameters.bAnisotropic);
 
+                            ctx.NewRow("Roughness");
                             if (mat.parameters.bAnisotropic) {
-                                ctx.NewRow("Roughness");
                                 bMaterialUpdated |= ImGui::DragFloat2("##roughness", &mat.parameters.roughness.x, 0.01, 0, 1);
                             } else {
                                 bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x, 0.01, 0, 1);
@@ -722,7 +725,7 @@ void UIRenderer::SetupStyle() const {
 
     ImGuiIO &io = ImGui::GetIO();
     io.Fonts->AddFontFromFileTTF(
-            "assets/inter_med.ttf",
+            "../assets/inter_med.ttf",
             16.0f * dpiScale);
     io.FontGlobalScale = 1.0f / dpiScale;
 
@@ -732,7 +735,7 @@ void UIRenderer::SetupStyle() const {
     icons_config.MergeMode        = true;
     icons_config.PixelSnapH       = true;
     icons_config.GlyphMinAdvanceX = iconSize;
-    io.Fonts->AddFontFromFileTTF("assets/lucide.ttf", iconSize, &icons_config, icons_ranges);
+    io.Fonts->AddFontFromFileTTF("../assets/lucide.ttf", iconSize, &icons_config, icons_ranges);
 }
 
 void UIRenderer::SetLayout(const ImGuiID dockSpaceId, const ImGuiViewport *viewport, const ImGuiDockNodeFlags dockSpaceFlags) {

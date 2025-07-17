@@ -43,6 +43,7 @@ void GfxContext::InitWindow() {
             static_cast<int>(window.extent.width),
             static_cast<int>(window.extent.height),
             windowFlags);
+    window.id = SDL_GetWindowID(window.pWindow);
 
     int w, h;
     SDL_Vulkan_GetDrawableSize(window.pWindow, &w, &h);
@@ -550,6 +551,35 @@ jvk::Buffer GfxContext::CreateBuffer(
 
 void GfxContext::DestroyBuffer(jvk::Buffer &buffer) const {
     buffer.Destroy(allocator);
+}
+
+void GfxContext::CreateExternalWindow(const VkExtent2D extent, Window &out) const {
+    SDL_Init(SDL_INIT_VIDEO);
+    constexpr auto windowFlags = static_cast<SDL_WindowFlags>(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+    out.pWindow             = SDL_CreateWindow(
+            "JTX Render",
+            SDL_WINDOWPOS_UNDEFINED,
+            SDL_WINDOWPOS_UNDEFINED,
+            static_cast<int>(extent.width),
+            static_cast<int>(extent.height),
+            windowFlags);
+    out.id = SDL_GetWindowID(out.pWindow);
+
+    int w, h;
+    SDL_Vulkan_GetDrawableSize(out.pWindow, &w, &h);
+    out.extent.width  = w;
+    out.extent.height = h;
+
+    SDL_Vulkan_CreateSurface(out.pWindow, ctx, &out.surface);
+
+    out.swapchain.Init(ctx, out.surface, w, h);
+}
+
+void GfxContext::DestroyExternalWindow(Window &window) const {
+    window.swapchain.Destroy(ctx);
+    vkDestroySurfaceKHR(ctx, window.surface, nullptr);
+    SDL_DestroyWindow(window.pWindow);
+    window = {};
 }
 
 #pragma endregion

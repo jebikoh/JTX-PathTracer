@@ -219,6 +219,7 @@ void BackendCPU::StartOfflineRender() {
                     // Reinhard tonemapping
                     intensity = Reinhard(intensity);
                     break;
+
                 default:
                     LOG_FATAL(RENDER, "Unknown tonemap op");
                     break;

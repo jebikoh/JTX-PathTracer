@@ -8,8 +8,8 @@ import common.constants;
 struct PushConstant {
     matrix<float, 4, 4> invProj;
     matrix<float, 4, 4> invView;
-    uint32_t frame;
-    uint32_t samplesPerFrame;
+    uint32_t currentSample;
+    uint32_t nSamples;
 };
 [[vk::push_constant]] PushConstant pc;
 
@@ -49,8 +49,8 @@ void rayGenMain() {
     uint3 launchSize = DispatchRaysDimensions();
 
     float3 accumulatedRadiance = {0, 0, 0};
-    uint32_t start = pc.frame * pc.samplesPerFrame;
-    uint32_t stop  = start + pc.samplesPerFrame;
+    uint32_t start = pc.currentSample;
+    uint32_t stop  = pc.currentSample + pc.nSamples;
 
     bool bSampleHDRI = globalData.envmapType == 1 && globalData.envmapTexture >= 0;
 
@@ -120,7 +120,7 @@ void rayGenMain() {
     }
 
     float4 totalAccumulation = float4(accumulatedRadiance, 1.0);
-    if (pc.frame == 0) {
+    if (pc.currentSample == 0) {
         accumulationImage[int2(launchID.xy)] = totalAccumulation;
     } else {
         totalAccumulation += accumulationImage[int2(launchID.xy)];

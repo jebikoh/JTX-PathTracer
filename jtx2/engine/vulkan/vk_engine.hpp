@@ -196,9 +196,9 @@ private:
 
     void RayTrace(RenderContext &ctx, const glm::vec4 &clearColor);
 
-    uint32_t m_rtFrameNumber     = 0;
-    uint32_t m_rtSamplesPerFrame = 16;
-    uint32_t m_rtMaxFrames       = 128; // TODO: parameterize by samples
+    uint32_t m_rtSamplesPerFrame = 16;   // How many samples to evaluate per pixel per frame
+    uint32_t m_rtTargetSamples   = 4096; // How many samples to evaluate total per pixel
+    uint32_t m_rtCurrentSample   = 0;    // How many samples have been evaluated per pixel
 
     // == Cache ==
     struct Cache {

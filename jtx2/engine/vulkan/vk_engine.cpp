@@ -41,22 +41,23 @@ void VkEngine::Destroy() {
 
 void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region, const SceneUpdate &update) {
     // Reset frame count if ray tracing was just enabled
-    if (m_bRayTracingEnabled && !m_bRayTracingEnabledPreviousFrame) m_rtFrameNumber = -1;
+    if (m_bRayTracingEnabled && !m_bRayTracingEnabledPreviousFrame) {
+        m_rtCurrentSample = 0;
+    }
     m_bRayTracingEnabledPreviousFrame = m_bRayTracingEnabled;
 
     if (m_camera.HasChanged()) {
         m_camera.Update();
-        m_rtFrameNumber = -1;
+
+        m_rtCurrentSample = 0;
     }
-    // TODO: stop counting if we are done
-    m_rtFrameNumber++;
 
     UpdateGlobalUniformData();
 
     if (m_bSceneLoaded) {
         PopulateContext();
         if (UpdateScene(ctx, update)) {
-            m_rtFrameNumber = -1;
+            m_rtCurrentSample = 0;
         }
         *m_frameData[ctx.frameIndex].gpuGlobalUniformDataMapping = m_gpuGlobalUniformData;
     }
@@ -235,10 +236,10 @@ void VkEngine::DrawSettingsPanel(UiDrawContext &ctx) {
         ImGui::Checkbox("##RT", &m_bRayTracingEnabled);
 
         if (!m_bRayTracingEnabled && m_bRayTracingAvailable) ImGui::BeginDisabled();
-        ctx.NewRow("Max frames");
-        int32_t maxFrames = m_rtMaxFrames;
-        if (ImGui::DragInt("##MaxFrames", &maxFrames)) {
-            m_rtMaxFrames = static_cast<uint32_t>(maxFrames);
+        ctx.NewRow("Samples Per Pixel");
+        int32_t spp = m_rtTargetSamples;
+        if (ImGui::DragInt("##SamplesPerPixel", &spp)) {
+            m_rtTargetSamples = static_cast<uint32_t>(spp);
         }
 
         ctx.NewRow("Samples Per Frame");
@@ -1274,7 +1275,7 @@ void VkEngine::DestroyRayTracingResources() {
 void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) {
     if (!m_bSceneLoaded) return;
 
-    const bool bRayTrace            = m_rtFrameNumber < m_rtMaxFrames;
+    const bool bRayTrace            = m_rtCurrentSample < m_rtTargetSamples;
     const bool bApplyPostProcessing = m_rtpp.bSettingsChanged || bRayTrace;
 
     if (bApplyPostProcessing) {
@@ -1286,11 +1287,15 @@ void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) {
     const auto sceneDescriptorSet = m_frameData[m_gfx.GetCurrentFrameIndex()].gpuGlobalUniformDataDescriptorSet;
     const std::vector descriptorSets{sceneDescriptorSet, m_bindlessDescriptorSet};
     if (bRayTrace) {
+        const uint32_t nSamples = std::min(m_rtTargetSamples - m_rtCurrentSample, m_rtSamplesPerFrame);
+
         RayTracingPushConstants rtpc{};
-        rtpc.invView         = glm::inverse(m_cache.view);
-        rtpc.invProj         = glm::inverse(m_cache.proj);
-        rtpc.frame           = m_rtFrameNumber;
-        rtpc.samplesPerFrame = m_rtSamplesPerFrame;
+        rtpc.invView       = glm::inverse(m_cache.view);
+        rtpc.invProj       = glm::inverse(m_cache.proj);
+        rtpc.currentSample = m_rtCurrentSample;
+        rtpc.nSamples      = nSamples;
+
+        m_rtCurrentSample += nSamples;
 
         vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rayTracingPipeline.pipeline);
         vkCmdBindDescriptorSets(
@@ -1349,7 +1354,7 @@ void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) {
         PostProcessingPushConstants pppc;
         pppc.exposure      = EV100ToExposure(m_rtpp.EV);
         pppc.tonemappingOp = m_rtpp.tonemappingOp;
-        pppc.numSamples    = std::min(m_rtFrameNumber + 1, m_rtMaxFrames) * m_rtSamplesPerFrame;
+        pppc.nSamples      = m_rtCurrentSample;
 
         vkCmdPushConstants(ctx.cmd,
             m_rtPostProcessingPipeline.layout,

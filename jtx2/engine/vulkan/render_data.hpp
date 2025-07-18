@@ -88,14 +88,14 @@ struct GridPushConstants {
 struct RayTracingPushConstants {
     glm::mat4 invProj;
     glm::mat4 invView;
-    uint32_t frame;
-    uint32_t samplesPerFrame;
+    uint32_t currentSample;
+    uint32_t nSamples;
 };
 
 struct PostProcessingPushConstants {
     float exposure;
     uint32_t tonemappingOp;
-    uint32_t numSamples;
+    uint32_t nSamples;
 };
 
 // == Draw Context ==

@@ -71,7 +71,7 @@ Optional dependencies
 Hardware requirements:
  - Minimum, a GPU that supports Vulkan 1.2+ and the following extensions:
    - `VK_KHR_SYNCHRONIZATION_2`
-   - `VK_KHR_DYNAMIC_RENDERINGE`
+   - `VK_KHR_DYNAMIC_RENDERING`
    - `VK_KHR_COPY_COMMANDS_2`
  - To utilize hardware ray tracing, GPU that supports the following extensions is required:
    - `VK_KHR_ACCELERATION_STRUCTURE`

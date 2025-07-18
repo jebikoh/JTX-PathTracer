@@ -55,9 +55,6 @@ add_subdirectory(ext/vma)                    # VMA
 add_subdirectory(ext/jtxlib)                 # JTXLib
 add_subdirectory(ext/fastgltf)               # fastglTF
 
-set(SDL_STATIC ON)
-add_subdirectory(ext/sdl EXCLUDE_FROM_ALL)   # SDL2
-
 # SDL3
 include(FetchContent)
 FetchContent_Declare(
@@ -77,13 +74,13 @@ target_sources(imgui PRIVATE
         ext/imgui/imgui_draw.cpp
         ext/imgui/imgui_widgets.cpp
         ext/imgui/imgui_tables.cpp
-        ext/imgui/imgui_impl_vulkan.cpp
-        ext/imgui/imgui_impl_sdl2.cpp
+        ext/imgui/backends/imgui_impl_vulkan.cpp
+        ext/imgui/backends/imgui_impl_sdl3.cpp
 )
 target_compile_definitions(imgui
         PUBLIC IMGUI_IMPL_VULKAN_USE_VOLK
 )
-target_link_libraries(imgui PUBLIC volk Vulkan::Vulkan SDL2::SDL2-static)
+target_link_libraries(imgui PUBLIC volk Vulkan::Vulkan SDL3::SDL3)
 
 # GLM
 add_library(glm INTERFACE)
@@ -278,8 +275,7 @@ target_link_libraries(JTXCore PUBLIC
         vk-bootstrap::vk-bootstrap
         volk
         jtxlib
-        SDL2::SDL2main
-        SDL2::SDL2-static
+        SDL3::SDL3
         imgui
         fmt::fmt
         fastgltf::fastgltf

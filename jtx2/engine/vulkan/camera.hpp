@@ -1,6 +1,6 @@
 #pragma once
 
-#include <SDL_events.h>
+#include <SDL3/SDL_events.h>
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -36,9 +36,9 @@ public:
     glm::mat4 GetViewMatrix() const { return glm::lookAt(position, target, GetUpVector()); }
 
     void ProcessSDLEvent(const SDL_Event &e) {
-        if (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) {
-            const bool bDown = e.type == SDL_KEYDOWN;
-            switch (e.key.keysym.sym) {
+        if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP) {
+            const bool bDown = e.type == SDL_EVENT_KEY_DOWN;
+            switch (e.key.key) {
                 case SDLK_LSHIFT:
                 case SDLK_RSHIFT:
                     m_bShiftHeld = bDown;
@@ -52,8 +52,8 @@ public:
             }
         }
 
-        if (e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP) {
-            const bool bDown = e.type == SDL_MOUSEBUTTONDOWN;
+        if (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN || e.type == SDL_EVENT_MOUSE_BUTTON_UP) {
+            const bool bDown = e.type == SDL_EVENT_MOUSE_BUTTON_DOWN;
             if (e.button.button == SDL_BUTTON_MIDDLE) {
                 m_bMmbHeld = bDown;
                 if (bDown) {
@@ -63,8 +63,8 @@ public:
             return;
         }
 
-        if (e.type == SDL_FINGERDOWN) {
-            m_fingers[e.tfinger.fingerId] = {e.tfinger.x, e.tfinger.y};
+        if (e.type == SDL_EVENT_FINGER_DOWN) {
+            m_fingers[e.tfinger.fingerID] = {e.tfinger.x, e.tfinger.y};
 
             if (m_fingers.size() == 2) {
                 auto it           = m_fingers.begin();
@@ -76,14 +76,14 @@ public:
             return;
         }
 
-        if (e.type == SDL_FINGERUP) {
-            m_fingers.erase(e.tfinger.fingerId);
+        if (e.type == SDL_EVENT_FINGER_UP) {
+            m_fingers.erase(e.tfinger.fingerID);
             if (m_fingers.size() < 2) {
             }
             return;
         }
 
-        if (e.type == SDL_MOUSEWHEEL && m_fingers.size() == 0) {
+        if (e.type == SDL_EVENT_MOUSE_WHEEL && m_fingers.size() == 0) {
             if (e.wheel.y != 0) {
                 const float zoomFactor = (e.wheel.y > 0) ? (1.0f / dollySpeed) : dollySpeed;
                 distance               = std::max(0.01f, distance * std::powf(zoomFactor, std::abs(e.wheel.y)));
@@ -92,7 +92,7 @@ public:
             return;
         }
 
-        if (e.type == SDL_MOUSEMOTION && m_bMmbHeld) {
+        if (e.type == SDL_EVENT_MOUSE_MOTION && m_bMmbHeld) {
             const glm::vec2 curr{static_cast<float>(e.motion.x), static_cast<float>(e.motion.y)};
             const glm::vec2 deltaPixel = curr - m_lastMousePos;
             m_lastMousePos             = curr;
@@ -113,41 +113,42 @@ public:
             return;
         }
 
+        // TODO: Update trackpad code for SDL3
         // Trackpad
-        if (m_bAltHeld) {
-            if (e.type == SDL_MULTIGESTURE && std::abs(e.mgesture.dDist) > 0.002f) {
-                const float zoomFactor = e.mgesture.dDist > 0.0f ? 1.0f / dollySpeed : dollySpeed;
-                distance               = std::max(0.01f, distance * zoomFactor);
-                m_bCameraChanged = true;
-            }
-            return;
-        }
-
-        if (e.type == SDL_FINGERMOTION && m_fingers.size() == 2) {
-            m_fingers[e.tfinger.fingerId] = {e.tfinger.x, e.tfinger.y};
-
-            auto it           = m_fingers.begin();
-            const glm::vec2 a = it->second;
-            ++it;
-            const glm::vec2 b      = it->second;
-            const glm::vec2 center = 0.5f * (a + b);
-            const glm::vec2 delta  = center - m_lastCenter;
-            m_lastCenter           = center;
-
-            if (m_bShiftHeld) {
-                target += -delta.x * panSpeed * GetRightVector();
-                target += delta.y * panSpeed * GetUpVector();
-            } else {
-                const float dYaw   = -delta.x * orbitSpeed * glm::two_pi<float>();
-                const float dPitch = -delta.y * orbitSpeed * glm::pi<float>();
-
-                orientation = glm::angleAxis(dYaw, glm::vec3(0, 1, 0)) * orientation;
-                glm::vec3 right = orientation * glm::vec3(1, 0, 0);
-                orientation = glm::angleAxis(dPitch, right) * orientation;
-            }
-
-            m_bCameraChanged = true;
-        }
+        // if (m_bAltHeld) {
+        //     if (e.type == SDL_MULTIGESTURE && std::abs(e.mgesture.dDist) > 0.002f) {
+        //         const float zoomFactor = e.mgesture.dDist > 0.0f ? 1.0f / dollySpeed : dollySpeed;
+        //         distance               = std::max(0.01f, distance * zoomFactor);
+        //         m_bCameraChanged = true;
+        //     }
+        //     return;
+        // }
+        //
+        // if (e.type == SDL_EVENT_FINGER_MOTION  && m_fingers.size() == 2) {
+        //     m_fingers[e.tfinger.fingerID] = {e.tfinger.x, e.tfinger.y};
+        //
+        //     auto it           = m_fingers.begin();
+        //     const glm::vec2 a = it->second;
+        //     ++it;
+        //     const glm::vec2 b      = it->second;
+        //     const glm::vec2 center = 0.5f * (a + b);
+        //     const glm::vec2 delta  = center - m_lastCenter;
+        //     m_lastCenter           = center;
+        //
+        //     if (m_bShiftHeld) {
+        //         target += -delta.x * panSpeed * GetRightVector();
+        //         target += delta.y * panSpeed * GetUpVector();
+        //     } else {
+        //         const float dYaw   = -delta.x * orbitSpeed * glm::two_pi<float>();
+        //         const float dPitch = -delta.y * orbitSpeed * glm::pi<float>();
+        //
+        //         orientation = glm::angleAxis(dYaw, glm::vec3(0, 1, 0)) * orientation;
+        //         glm::vec3 right = orientation * glm::vec3(1, 0, 0);
+        //         orientation = glm::angleAxis(dPitch, right) * orientation;
+        //     }
+        //
+        //     m_bCameraChanged = true;
+        // }
     }
 
     /**

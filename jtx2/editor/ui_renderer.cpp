@@ -4,9 +4,9 @@
 #include <jvk/init.hpp>
 
 #include <IconsLucide.h>
-#include <SDL.h>
-#include <SDL_vulkan.h>
-#include <imgui_impl_vulkan.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_vulkan.h>
+#include <backends/imgui_impl_vulkan.h>
 #include <imgui_internal.h>
 
 // #define JTX_UI_DRAW_DEMO_WINDOW
@@ -104,7 +104,7 @@ void UIRenderer::Init(const std::function<void()> &importSceneCallback, const st
     CHECK_VK(vkCreateDescriptorPool(m_gfx.ctx, &poolInfo, nullptr, &m_descriptorPool));
 
     ImGui::CreateContext();
-    ImGui_ImplSDL2_InitForVulkan(m_gfx.window.pWindow);
+    ImGui_ImplSDL3_InitForVulkan(m_gfx.window.pWindow);
 
     ImGui_ImplVulkan_InitInfo initInfo{};
     initInfo.Instance            = m_gfx.ctx;
@@ -125,7 +125,6 @@ void UIRenderer::Init(const std::function<void()> &importSceneCallback, const st
     ImGui_ImplVulkan_Init(&initInfo);
 
     SetupStyle();
-    ImGui_ImplVulkan_CreateFontsTexture();
 
     // Enable docking
     ImGuiIO &io = ImGui::GetIO();
@@ -172,7 +171,7 @@ void UIRenderer::LoadScene(Scene *scene) {
 
 void UIRenderer::NewFrame(SceneUpdate &update) {
     ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplSDL2_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 
     // Draw dockspace
@@ -582,7 +581,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
 void UIRenderer::NewFrameRender() const {
     ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplSDL2_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
 
     ImGui::Begin("Test");
@@ -593,7 +592,7 @@ void UIRenderer::NewFrameRender() const {
 }
 
 bool UIRenderer::ProcessEvent(const SDL_Event &event) const {
-    ImGui_ImplSDL2_ProcessEvent(&event);
+    ImGui_ImplSDL3_ProcessEvent(&event);
 
     const ImGuiIO &io         = ImGui::GetIO();
     const bool bWantsMouse    = io.WantCaptureMouse;
@@ -731,7 +730,7 @@ void UIRenderer::SetupStyle() const {
     // Font
     int windowW, windowH, drawableW, drawableH;
     SDL_GetWindowSize(m_gfx.window.pWindow, &windowW, &windowH);
-    SDL_Vulkan_GetDrawableSize(m_gfx.window.pWindow, &drawableW, &drawableH);
+    SDL_GetWindowSizeInPixels(m_gfx.window.pWindow, &drawableW, &drawableH);
 
     float dpiScale = static_cast<float>(drawableW) / static_cast<float>(windowW);
 

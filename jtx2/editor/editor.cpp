@@ -1,7 +1,7 @@
 #include "scene/scene_loader.hpp"
 #include <nfd.h>
 
-#include <SDL_events.h>
+#include <SDL3/SDL_events.h>
 #include <editor/editor.hpp>
 #include <scene/scene_exporter.hpp>
 #include <thread>
@@ -107,16 +107,17 @@ void Editor::Run() {
 
     while (!bQuit) {
         while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) bQuit = true;
+            if (e.type == SDL_EVENT_QUIT) bQuit = true;
 
-            if (e.type == SDL_WINDOWEVENT) {
+            if (e.type >= 0x202 && e.type < 0x300) {
                 if (e.window.windowID == m_renderWindow.id) {
-                    if (e.window.event == SDL_WINDOWEVENT_CLOSE) {
+
+                    if (e.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
                         m_gfx.DestroyExternalWindow(m_renderWindow);
                         m_activeWindow = EDITOR;
                     }
                 } else {
-                    if (e.window.event == SDL_WINDOWEVENT_CLOSE) {
+                    if (e.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
                         if (m_renderWindow.pWindow != nullptr) {
                             m_gfx.DestroyExternalWindow(m_renderWindow);
                             m_activeWindow = EDITOR;
@@ -124,15 +125,15 @@ void Editor::Run() {
                         bQuit = true;
                     }
 
-                    if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
+                    if (e.type == SDL_EVENT_WINDOW_RESIZED) {
                         m_gfx.NotifyResize();
                     }
 
-                    if (e.window.event == SDL_WINDOWEVENT_MINIMIZED) {
+                    if (e.type == SDL_EVENT_WINDOW_MINIMIZED) {
                         m_bStopRendering = true;
                     }
 
-                    if (e.window.event == SDL_WINDOWEVENT_RESTORED) {
+                    if (e.type == SDL_EVENT_WINDOW_RESTORED) {
                         m_bStopRendering = false;
                     }
                 }

@@ -4,8 +4,8 @@
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 
-#include <SDL.h>
-#include <SDL_vulkan.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_vulkan.h>
 #include <jvk/util.hpp>
 
 constexpr bool JTX_USE_VALIDATION_LAYERS = true;
@@ -35,18 +35,16 @@ void GfxContext::InitWindow() {
 
     SDL_Init(SDL_INIT_VIDEO);
     SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "1");
-    constexpr auto windowFlags = static_cast<SDL_WindowFlags>(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+    constexpr auto windowFlags = static_cast<SDL_WindowFlags>(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
     window.pWindow             = SDL_CreateWindow(
             "JTX",
-            SDL_WINDOWPOS_UNDEFINED,
-            SDL_WINDOWPOS_UNDEFINED,
             1700,
             800,
             windowFlags);
     window.id = SDL_GetWindowID(window.pWindow);
 
     int w, h;
-    SDL_Vulkan_GetDrawableSize(window.pWindow, &w, &h);
+    SDL_GetWindowSizeInPixels(window.pWindow, &w, &h);
     window.extent.width  = w;
     window.extent.height = h;
 
@@ -79,7 +77,7 @@ void GfxContext::InitVulkan() {
     volkLoadInstance(ctx.instance);
 
     // SDL surface
-    SDL_Vulkan_CreateSurface(window.pWindow, ctx, &ctx.surface);
+    SDL_Vulkan_CreateSurface(window.pWindow, ctx, nullptr, &ctx.surface);
 
     // The slang shaders for metal need these
     VkPhysicalDeviceVulkan11Features features11{};
@@ -238,13 +236,17 @@ void GfxContext::InitRenderTarget() {
     // TODO:
     // Right now, the draw images are initialized to the maximum screen size
     // Lets adjust this later to save some memory and have it resized dynamically
-    SDL_DisplayMode dm;
-    SDL_GetCurrentDisplayMode(0, &dm);
+    SDL_DisplayID displayId = SDL_GetDisplayForWindow(window.pWindow);
+    const auto dm = SDL_GetCurrentDisplayMode(displayId);
+    if (dm == nullptr) {
+        LOG_FATAL(GFX, "SDL error while retrieving display mode: {}", SDL_GetError());
+    }
+
 
     // Draw image 16f
     VkExtent3D drawExtent{};
-    drawExtent.width  = dm.w;
-    drawExtent.height = dm.h;
+    drawExtent.width  = dm->w;
+    drawExtent.height = dm->h;
     drawExtent.depth  = 1;
 
     targets.draw16f.format = VK_FORMAT_R16G16B16A16_SFLOAT;
@@ -555,22 +557,20 @@ void GfxContext::DestroyBuffer(jvk::Buffer &buffer) const {
 
 void GfxContext::CreateExternalWindow(const VkExtent2D extent, Window &out) const {
     SDL_Init(SDL_INIT_VIDEO);
-    constexpr auto windowFlags = static_cast<SDL_WindowFlags>(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+    constexpr auto windowFlags = static_cast<SDL_WindowFlags>(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
     out.pWindow             = SDL_CreateWindow(
             "JTX Render",
-            SDL_WINDOWPOS_UNDEFINED,
-            SDL_WINDOWPOS_UNDEFINED,
             static_cast<int>(extent.width),
             static_cast<int>(extent.height),
             windowFlags);
     out.id = SDL_GetWindowID(out.pWindow);
 
     int w, h;
-    SDL_Vulkan_GetDrawableSize(out.pWindow, &w, &h);
+    SDL_GetWindowSizeInPixels(out.pWindow, &w, &h);
     out.extent.width  = w;
     out.extent.height = h;
 
-    SDL_Vulkan_CreateSurface(out.pWindow, ctx, &out.surface);
+    SDL_Vulkan_CreateSurface(out.pWindow, ctx, nullptr, &out.surface);
 
     out.swapchain.Init(ctx, out.surface, w, h);
     const uint32_t count = out.swapchain.GetSwapchainImageCount();
@@ -603,7 +603,7 @@ void GfxContext::ResizeSwapchain() {
         DestroySwapchain();
 
         int w, h;
-        SDL_Vulkan_GetDrawableSize(window.pWindow, &w, &h);
+        SDL_GetWindowSizeInPixels(window.pWindow, &w, &h);
         window.extent.width  = w;
         window.extent.height = h;
 

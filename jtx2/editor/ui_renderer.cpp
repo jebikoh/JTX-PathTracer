@@ -129,6 +129,7 @@ void UIRenderer::Init(const std::function<void()> &importSceneCallback, const st
     // Enable docking
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
     LOG_INFO(UI, "UI renderer initialized");
 }
@@ -148,15 +149,24 @@ void UIRenderer::Draw(RenderContext &ctx, const VkClearValue *clearColor) const 
 bool UIRenderer::GetViewportRectangle(jvk::ViewRectangle &out) const {
     if (!m_pCentralNode) return false;
 
-    const ImVec2 scale = ImGui::GetIO().DisplayFramebufferScale;
+    const ImGuiViewport * mainViewport = ImGui::GetMainViewport();
 
-    const auto pos  = m_pCentralNode->Pos;
+    const ImVec2 scale = mainViewport->DpiScale > 0.0f
+        ? ImVec2(mainViewport->DpiScale, mainViewport->DpiScale)
+        : ImGui::GetIO().DisplayFramebufferScale;
+
+    ImVec2 minPos = m_pCentralNode->Pos;
+    minPos.x -= mainViewport->Pos.x;
+    minPos.y -= mainViewport->Pos.y;
+
     const auto size = m_pCentralNode->Size;
 
-    out.x = pos.x * scale.x;
-    out.y = pos.y * scale.y;
+    // TODO: test this on OSX
+    out.x = minPos.x * scale.x;
+    out.y = minPos.y * scale.y;
     out.w = size.x * scale.x;
     out.h = size.y * scale.y;
+
     return true;
 }
 
@@ -227,6 +237,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                 if (ImGui::BeginMenu("Edit")) {
                     if (ImGui::MenuItem("Render Image")) {
                         m_renderImageCallback();
+                        m_bRenderWindowOpen = true;
                     }
                     ImGui::EndMenu();
                 }
@@ -241,6 +252,17 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                 ImGui::EndMenuBar();
             }
         }
+
+        ImGui::End();
+    }
+
+    if (m_bRenderWindowOpen) {
+        ImGuiWindowClass windowClass;
+        windowClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoDockingOverMe | ImGuiDockNodeFlags_NoDockingOverOther | ImGuiDockNodeFlags_NoDockingSplitOther;
+        ImGui::SetNextWindowClass(&windowClass);
+        ImGui::Begin("JTX Render", &m_bRenderWindowOpen);
+
+        ImGui::Text("Rendering...");
 
         ImGui::End();
     }
@@ -575,8 +597,16 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ctx.Destroy();
         ImGui::End();
     }
+    ImGui::EndFrame();
 
     ImGui::Render();
+
+    ImGuiIO &io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+    }
 }
 
 void UIRenderer::NewFrameRender() const {
@@ -712,9 +742,6 @@ void UIRenderer::SetupStyle() const {
     style->Colors[ImGuiCol_ResizeGripHovered] = DARKER_A1;
     style->Colors[ImGuiCol_ResizeGripActive]  = DARKER_A2;
 
-    // style->Colors[ImGuiCol_Tab]        = DARKER;
-    // style->Colors[ImGuiCol_TabHovered] = DARKER_A1;
-    // style->Colors[ImGuiCol_TabActive]  = DARKER_A3;
 
     style->Colors[ImGuiCol_Tab]        = BACKGROUND;
     style->Colors[ImGuiCol_TabHovered] = BACKGROUND_LIGHTER;

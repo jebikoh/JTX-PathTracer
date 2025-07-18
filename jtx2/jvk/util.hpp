@@ -22,6 +22,10 @@ bool FormatHasDepth(VkFormat format);
 struct ViewRectangle {
     int32_t x, y;
     uint32_t w, h;
+
+    uint32_t Area() const {
+        return w * h;
+    }
 };
 
 }

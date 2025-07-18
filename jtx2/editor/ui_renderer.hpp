@@ -119,6 +119,7 @@ private:
     std::function<void()> m_exportSceneCallback;
     std::function<void()> m_loadHDRICallback;
     std::function<void()> m_renderImageCallback;
+    bool m_bRenderWindowOpen = false;
 };
 
 }// namespace jtx

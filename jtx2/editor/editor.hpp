@@ -52,8 +52,6 @@ private:
         EDITOR,
         RENDER
     } m_activeWindow = EDITOR;
-
-    Window m_renderWindow;
     void RenderImage();
 };
 

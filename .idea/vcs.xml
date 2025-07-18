@@ -4,13 +4,20 @@
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-benchmark/_deps/benchmark-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-benchmark/_deps/fmt-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-benchmark/_deps/sdl3-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-debug/_deps/fmt-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-debug/_deps/sdl3-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-debugtest/_deps/fmt-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-debugtest/_deps/sdl3-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-release/_deps/fmt-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-release/_deps/sdl3-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-relwithdebinfo/_deps/fmt-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-relwithdebinfo/_deps/sdl3-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-relwithprofiling/_deps/fmt-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-relwithprofiling/_deps/sdl3-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/fastgltf" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/glm" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/ext/imgui" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/jtxlib" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/jtxlib/lib/Catch2" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/nfd" vcs="Git" />
@@ -18,5 +25,8 @@
     <mapping directory="$PROJECT_DIR$/ext/vkbootstrap" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/vma" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/volk" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/out/build/x64-Debug/_deps/fmt-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/out/build/x64-Release-Editor/_deps/fmt-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/out/build/x64-Release-Editor/_deps/sdl3-src" vcs="Git" />
   </component>
 </project>

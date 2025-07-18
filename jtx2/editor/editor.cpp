@@ -69,36 +69,24 @@ void Editor::Destroy() {
 }
 
 void Editor::Draw() {
-    if (m_activeWindow == EDITOR) {
-        SceneUpdate update;
-        m_ui.NewFrame(update);
+    SceneUpdate update;
+    m_ui.NewFrame(update);
 
-        auto res = m_gfx.StartFrame();
-        if (!res.has_value()) return;
-        auto &ctx = res.value();
+    auto res = m_gfx.StartFrame();
+    if (!res.has_value()) return;
+    auto &ctx = res.value();
 
-        jvk::ViewRectangle rect;
-        if (m_ui.GetViewportRectangle(rect)) {
-            m_vk.SetViewportRectangle(rect);
-        }
+    jvk::ViewRectangle rect;
+    if (!m_ui.GetViewportRectangle(rect) || rect.Area() == 0) return;
+    m_vk.SetViewportRectangle(rect);
 
-        ResolveRegion region;
-        m_vk.Draw(ctx, region, update);
-        m_gfx.ResolveToSwapchain(ctx, region);
+    ResolveRegion region;
+    m_vk.Draw(ctx, region, update);
+    m_gfx.ResolveToSwapchain(ctx, region);
 
-        m_ui.Draw(ctx);
+    m_ui.Draw(ctx);
 
-        m_gfx.EndFrame(ctx);
-    } else {
-        auto res = m_gfx.StartFrame(m_renderWindow);
-        if (!res.has_value()) return;
-        auto &ctx = res.value();
-
-        m_ui.NewFrameRender();
-        m_ui.Draw(ctx);
-
-        m_gfx.EndFrame(ctx, m_renderWindow);
-    }
+    m_gfx.EndFrame(ctx);
 }
 
 void Editor::Run() {
@@ -110,43 +98,29 @@ void Editor::Run() {
             if (e.type == SDL_EVENT_QUIT) bQuit = true;
 
             if (e.type >= 0x202 && e.type < 0x300) {
-                if (e.window.windowID == m_renderWindow.id) {
 
-                    if (e.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
-                        m_gfx.DestroyExternalWindow(m_renderWindow);
-                        m_activeWindow = EDITOR;
-                    }
-                } else {
-                    if (e.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
-                        if (m_renderWindow.pWindow != nullptr) {
-                            m_gfx.DestroyExternalWindow(m_renderWindow);
-                            m_activeWindow = EDITOR;
-                        }
-                        bQuit = true;
-                    }
-
-                    if (e.type == SDL_EVENT_WINDOW_RESIZED) {
-                        m_gfx.NotifyResize();
-                    }
-
-                    if (e.type == SDL_EVENT_WINDOW_MINIMIZED) {
-                        m_bStopRendering = true;
-                    }
-
-                    if (e.type == SDL_EVENT_WINDOW_RESTORED) {
-                        m_bStopRendering = false;
-                    }
+                if (e.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
+                    bQuit = true;
                 }
+
+                if (e.type == SDL_EVENT_WINDOW_RESIZED) {
+                    m_gfx.NotifyResize();
+                }
+
+                if (e.type == SDL_EVENT_WINDOW_MINIMIZED) {
+                    m_bStopRendering = true;
+                }
+
+                if (e.type == SDL_EVENT_WINDOW_RESTORED) {
+                    m_bStopRendering = false;
+                }
+
             }
 
-            if (m_activeWindow == EDITOR) {
-                if (m_ui.ProcessEvent(e)) {
-                    m_vk.SkipEvent();
-                } else {
-                    m_vk.ProcessEvent(e);
-                }
+            if (m_ui.ProcessEvent(e)) {
+                m_vk.SkipEvent();
             } else {
-                // Need to figure out if this event is triggered on
+                m_vk.ProcessEvent(e);
             }
         }
 
@@ -246,7 +220,6 @@ void Editor::LoadHDRI() {
 }
 
 void Editor::RenderImage() {
-    m_gfx.CreateExternalWindow({800, 400},m_renderWindow);
     m_activeWindow = RENDER;
 }
 

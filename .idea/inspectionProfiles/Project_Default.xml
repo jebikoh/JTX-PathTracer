@@ -9,6 +9,7 @@
     <inspection_tool class="CppDFAConstantParameter" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="CppDFANullDereference" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="CppDFATimeOver" enabled="false" level="HINT" enabled_by_default="false" />
+    <inspection_tool class="CppDFAUnreachableCode" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="CppDFAUnreadVariable" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="CppDFAUnusedValue" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="CppDeclaratorNeverUsed" enabled="false" level="WARNING" enabled_by_default="false" />

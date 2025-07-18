@@ -12,8 +12,6 @@ option(JTX_USE_EMBREE "Enable Embree acceleration structures" ON)
 option(JTX_BUILD_TESTS "Build unit tests" OFF)
 option(JTX_BUILD_BENCHMARKS "Build performance benches" OFF)
 
-option(_JTX_SUPPRESS_DEPENDENCY_MESSAGES "Suppress status messages from deps" ON)
-
 # ──────────────────────────────────────────────────────────────────────────────
 #  Project declaration
 # ──────────────────────────────────────────────────────────────────────────────
@@ -46,19 +44,6 @@ if (JTX_ENABLE_MULTI_THREADING)
 endif ()
 
 # ──────────────────────────────────────────────────────────────────────────────
-#  Helpers
-# ──────────────────────────────────────────────────────────────────────────────
-function(message)
-    if (NOT MESSAGE_QUIET)
-        _message(${ARGN})
-    endif ()
-endfunction()
-
-if (_JTX_SUPPRESS_DEPENDENCY_MESSAGES)
-    set(MESSAGE_QUIET ON)
-endif ()
-
-# ──────────────────────────────────────────────────────────────────────────────
 #  Third‑party dependencies
 # ──────────────────────────────────────────────────────────────────────────────
 find_package(Vulkan REQUIRED)
@@ -72,6 +57,15 @@ add_subdirectory(ext/fastgltf)               # fastglTF
 
 set(SDL_STATIC ON)
 add_subdirectory(ext/sdl EXCLUDE_FROM_ALL)   # SDL2
+
+# SDL3
+include(FetchContent)
+FetchContent_Declare(
+        SDL3
+        GIT_REPOSITORY https://github.com/libsdl-org/SDL
+        GIT_TAG 68bfcb6c5419f51104e74e72ea0f8d405a4615b0 # 3.2.18
+)
+FetchContent_MakeAvailable(SDL3)
 
 # ImGui
 add_library(imgui STATIC)
@@ -114,9 +108,7 @@ endif ()
 # Native File Dialog Extended
 add_subdirectory(ext/nfd)
 
-# Fetched ─────────────────────────────────────────────────────────────────────
 # fmt
-include(FetchContent)
 FetchContent_Declare(
         fmt
         GIT_REPOSITORY https://github.com/fmtlib/fmt

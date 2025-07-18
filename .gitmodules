@@ -23,3 +23,7 @@
 [submodule "ext/nfd"]
 	path = ext/nfd
 	url = https://github.com/btzy/nativefiledialog-extended.git
+[submodule "ext/imgui"]
+	path = ext/imgui
+	url = https://github.com/ocornut/imgui.git
+	branch = docking

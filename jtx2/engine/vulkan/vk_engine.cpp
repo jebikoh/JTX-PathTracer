@@ -22,6 +22,9 @@ void VkEngine::Init(const bool bEnableRayTracing) {
         InitRayTracingResources();
     }
 
+    m_camera.settings.focalLength = 0.020f;
+    m_camera.settings.sensorWidth = 0.036f;
+
     LOG_INFO(VKE, "Vulkan engine initialized");
 }
 
@@ -220,67 +223,85 @@ void VkEngine::SkipEvent() {
 
 void VkEngine::DrawSettingsPanel(UiDrawContext &ctx) {
     ctx.StartRectangleBackground();
-    ImGui::SeparatorText("Viewport Camera");
-    if (ctx.StartTable("ViewportCameraTable")) {
-        ctx.NewRow("Field-of-view:");
-        ctx.NewRow("Focal Length");
-        ImGui::DragFloat("##FocalLength", &m_camera.focalLength, 0.01f, 0.01f, 100.0f);
-        ctx.NewRow("Sensor Width");
-        ImGui::DragFloat("##SensorWidth", &m_camera.sensorWidth, 0.01f, 0.01f, 100.0f);
-        ctx.NewRow("Sensitivity");
-        ctx.NewRow("Orbit");
-        ctx.NewRow("Pan");
-        ctx
-        ctx.EndTable();
+
+    if (ImGui::TreeNode("Viewport Camera")) {
+        if (ImGui::TreeNode("FOV")) {
+            if (ctx.StartTable("FOVTable")) {
+                bool bCameraChanged = false;
+                ctx.NewRow("Focal Length");
+                bCameraChanged |= ImGui::DragFloat("##FocalLength", &m_camera.settings.focalLength, 0.01f, 0.01f, 100.0f);
+                ctx.NewRow("Sensor Width");
+                bCameraChanged |= ImGui::DragFloat("##SensorWidth", &m_camera.settings.sensorWidth, 0.01f, 0.01f, 100.0f);
+                if (bCameraChanged) m_camera.NotifyChanged();
+                ctx.EndTable();
+            }
+            ImGui::TreePop();
+        }
+        // These don't affect rendering--dont need to notify
+        if (ImGui::TreeNode("Control Sensitivity")) {
+            if (ctx.StartTable("SensitivityTable")) {
+                ctx.NewRow("Zoom");
+                ImGui::DragFloat("##ZoomSensitivity", &m_camera.dollySpeed, 0.01f, 0.01f, 100.0f);
+                ctx.NewRow("Orbit");
+                ImGui::DragFloat("##OrbitSensitivity", &m_camera.orbitSpeed, 0.01f, 0.01f, 100.0f);
+                ctx.NewRow("Pan");
+                ImGui::DragFloat("##PanSensitivity", &m_camera.panSpeed, 0.01f, 0.01f, 100.0f);
+                ctx.EndTable();
+            }
+            ImGui::TreePop();
+        }
+        ImGui::TreePop();
     }
 
-    ImGui::SeparatorText("Rasterization");
-    if (ctx.StartTable("VkRasterizationTable")) {
-        ctx.NewRow("Draw grid");
-        ImGui::Checkbox("##Grid", &m_bDrawGrid);
-        ctx.NewRow("Near Clip");
-        ImGui::DragFloat("##NearClip", &nearClip, 0.01f, 0.001f, 100.0f);
-        ctx.NewRow("Far Clip");
-        ImGui::DragFloat("##FarClip", &farClip, 1.0f, 1.0f, 1000000.0f);
-        ctx.EndTable();
+    if (ImGui::TreeNode("Rasterization")) {
+        if (ctx.StartTable("VkRasterizationTable")) {
+            ctx.NewRow("Draw grid");
+            ImGui::Checkbox("##Grid", &m_bDrawGrid);
+            ctx.NewRow("Near Clip");
+            ImGui::DragFloat("##NearClip", &nearClip, 0.01f, 0.001f, 100.0f);
+            ctx.NewRow("Far Clip");
+            ImGui::DragFloat("##FarClip", &farClip, 1.0f, 1.0f, 1000000.0f);
+            ctx.EndTable();
+        }
+        ImGui::TreePop();
     }
 
-    ImGui::SeparatorText("Ray Tracing");
+    if (ImGui::TreeNode("Path Tracing")) {
+        if (ctx.StartTable("VkRayTracingTable")) {
+            if (!m_bRayTracingAvailable) ImGui::BeginDisabled();
+            ctx.NewRow("Enable");
+            ImGui::Checkbox("##RT", &m_bRayTracingEnabled);
 
-    if (ctx.StartTable("VkRayTracingTable")) {
-        if (!m_bRayTracingAvailable) ImGui::BeginDisabled();
-        // ctx.NewRow("Ray Tracing");
-        ctx.NewRow("Enable");
-        ImGui::Checkbox("##RT", &m_bRayTracingEnabled);
+            if (!m_bRayTracingEnabled && m_bRayTracingAvailable) ImGui::BeginDisabled();
+            ctx.NewRow("Samples Per Pixel");
+            int32_t spp = m_rtTargetSamples;
+            if (ImGui::DragInt("##SamplesPerPixel", &spp)) {
+                m_rtTargetSamples = static_cast<uint32_t>(spp);
+            }
 
-        if (!m_bRayTracingEnabled && m_bRayTracingAvailable) ImGui::BeginDisabled();
-        ctx.NewRow("Samples Per Pixel");
-        int32_t spp = m_rtTargetSamples;
-        if (ImGui::DragInt("##SamplesPerPixel", &spp)) {
-            m_rtTargetSamples = static_cast<uint32_t>(spp);
+            ctx.NewRow("Samples Per Frame");
+            int32_t samplePerFrame = m_rtSamplesPerFrame;
+            if (ImGui::DragInt("##SamplesPerFrame", &samplePerFrame, 1, 1, 32)) {
+                m_rtSamplesPerFrame = static_cast<uint32_t>(samplePerFrame);
+            }
+
+            ctx.NewRow("Exposure");
+            if (ImGui::InputFloat("##Exposure", &m_rtpp.EC, 1)) {
+                m_rtpp.bSettingsChanged = true;
+            }
+
+            const char *tmo[]    = {"None", "Reinhard", "ACES", "AgX", "Hable Filmic"};
+            static int selectedTmo = m_rtpp.tonemappingOp;
+            ctx.NewRow("Tonemapping");
+            if (ImGui::Combo("##TMO", &selectedTmo, tmo, IM_ARRAYSIZE(tmo))) {
+                m_rtpp.tonemappingOp = selectedTmo;
+                m_rtpp.bSettingsChanged = true;
+            }
+
+            if (!m_bRayTracingAvailable || !m_bRayTracingEnabled) ImGui::EndDisabled();
+            ctx.EndTable();
         }
-
-        ctx.NewRow("Samples Per Frame");
-        int32_t samplePerFrame = m_rtSamplesPerFrame;
-        if (ImGui::DragInt("##SamplesPerFrame", &samplePerFrame, 1, 1, 32)) {
-            m_rtSamplesPerFrame = static_cast<uint32_t>(samplePerFrame);
-        }
-
-        ctx.NewRow("Exposure");
-        if (ImGui::InputFloat("##Exposure", &m_rtpp.EV, 1)) {
-            m_rtpp.bSettingsChanged = true;
-        }
-
-        const char *tmo[]    = {"None", "Reinhard", "ACES", "AgX", "Hable Filmic"};
-        static int selectedTmo = m_rtpp.tonemappingOp;
-        ctx.NewRow("Tonemapping");
-        if (ImGui::Combo("##TMO", &selectedTmo, tmo, IM_ARRAYSIZE(tmo))) {
-            m_rtpp.tonemappingOp = selectedTmo;
-            m_rtpp.bSettingsChanged = true;
-        }
-
-        if (!m_bRayTracingAvailable || !m_bRayTracingEnabled) ImGui::EndDisabled();
-        ctx.EndTable();
+        ImGui::TreePop();
     }
 
     ctx.EndRectangleBackground();
@@ -1370,7 +1391,7 @@ void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) {
         m_rtpp.bSettingsChanged = false;
 
         PostProcessingPushConstants pppc;
-        pppc.exposure      = EV100ToExposure(m_rtpp.EV);
+        pppc.exposure      = EV100ToExposure(m_rtpp.EV - m_rtpp.EC);
         pppc.tonemappingOp = m_rtpp.tonemappingOp;
         pppc.nSamples      = m_rtCurrentSample;
 

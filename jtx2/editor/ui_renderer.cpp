@@ -9,7 +9,7 @@
 #include <backends/imgui_impl_vulkan.h>
 #include <imgui_internal.h>
 
-// #define JTX_UI_DRAW_DEMO_WINDOW
+#define JTX_UI_DRAW_DEMO_WINDOW
 
 namespace jtx {
 
@@ -149,7 +149,7 @@ void UIRenderer::Draw(RenderContext &ctx, const VkClearValue *clearColor) const 
 bool UIRenderer::GetViewportRectangle(jvk::ViewRectangle &out) const {
     if (!m_pCentralNode) return false;
 
-    const ImGuiViewport * mainViewport = ImGui::GetMainViewport();
+    const ImGuiViewport *mainViewport = ImGui::GetMainViewport();
 
     const ImVec2 scale = ImGui::GetIO().DisplayFramebufferScale;
 
@@ -264,9 +264,110 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ImGui::End();
     }
 
+    // Hierarchy
     static int selectionIndex = 0;
     {
         ImGui::Begin("Hierarchy");
+
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+        if (ImGui::BeginListBox("##SceneHierarchy")) {
+            if (m_pScene) {
+                const auto &meshes = m_pScene->meshes;
+                for (int i = 0; i < meshes.size(); i++) {
+                    const bool bIsSelected = (selectionIndex == i);
+                    if (ImGui::Selectable(meshes[i].name.c_str(), bIsSelected)) selectionIndex = i;
+                    if (bIsSelected) ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndListBox();
+        }
+
+        ImGui::End();
+    }
+
+    // Settings
+    {
+        if (!m_bStartupFocusSet) {
+            ImGui::SetNextWindowFocus();
+            m_bStartupFocusSet = true;
+        }
+
+        ImGui::Begin("Settings");
+
+        UiDrawContext ctx;
+        ctx.Init();
+
+        // Backend table
+        if (ctx.StartTable("BackendTable")) {
+            const char *renderBackends[]    = {"JTX"};
+            static int currentRenderBackend = 0;
+            ctx.NewRow("Render Backend");
+            ImGui::Combo("##RenderBackend", &currentRenderBackend, renderBackends, IM_ARRAYSIZE(renderBackends));
+
+            ctx.NewRow("Viewport Backend");
+            ImGui::Combo("##ViewportBackend", &m_currentViewportBackend, m_viewportBackendNames, IM_ARRAYSIZE(m_viewportBackendNames));
+
+            ctx.EndTable();
+        }
+
+
+#ifdef JTX_UI_DRAW_DEMO_WINDOW
+        ImGui::ShowDemoWindow();
+#endif
+
+        // Sampling settings
+        if (ImGui::CollapsingHeader("Sampling")) {
+            static int xPixelSamples = 16;
+            static int yPixelSamples = 16;
+            static int maxDepth      = 32;
+
+            ctx.StartRectangleBackground();
+            if (ctx.StartTable("SamplingTable")) {
+                ctx.NewRow("SPP X");
+                ImGui::DragInt("##XSamples", &xPixelSamples, 1);
+
+                ctx.NewRow("SPP Y");
+                ImGui::DragInt("##YSamples", &yPixelSamples, 1);
+
+                ctx.NewRow("Max Depth");
+                ImGui::DragInt("##MaxDepth", &maxDepth, 1);
+                ctx.EndTable();
+            }
+            ctx.EndRectangleBackground();
+        }
+
+        if (ImGui::CollapsingHeader("Performance")) {
+            static int tileSize       = 32;
+            static int numThreads     = 32;
+            static int samplesPerPass = 1;
+
+            ctx.StartRectangleBackground();
+            if (ctx.StartTable("Performance")) {
+                ctx.NewRow("Tile Size");
+                ImGui::DragInt("##TileSize", &tileSize, 0);
+
+                ctx.NewRow("Thread Count");
+                ImGui::DragInt("##NumThreads", &numThreads, 0);
+
+                ctx.NewRow("Samples Per Pass");
+                ImGui::DragInt("##SamplesPerPass", &samplesPerPass, 0);
+
+                ctx.EndTable();
+            }
+            ctx.EndRectangleBackground();
+        }
+
+        if (ImGui::CollapsingHeader("Viewport")) {
+            m_viewportBackendSettings[m_currentViewportBackend](ctx);
+        }
+
+        ctx.Destroy();
+        ImGui::End();
+    }
+
+    // Scene
+    {
+        ImGui::Begin("Scene");
 
         UiDrawContext ctx;
         ctx.Init();
@@ -285,25 +386,78 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
             ImGui::Text("Scene: No scene loaded");
         }
 
+        if (m_pScene != nullptr) {
+            if (ImGui::CollapsingHeader("Environment Map")) {
+                ctx.StartRectangleBackground();
 
-        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-        if (ImGui::BeginListBox("##SceneHierarchy")) {
-            if (m_pScene) {
-                const auto &meshes = m_pScene->meshes;
-                for (int i = 0; i < meshes.size(); i++) {
-                    const bool bIsSelected = (selectionIndex == i);
-                    if (ImGui::Selectable(meshes[i].name.c_str(), bIsSelected)) selectionIndex = i;
-                    if (bIsSelected) ImGui::SetItemDefaultFocus();
+                bool bReset  = false;
+                auto &envmap = m_pScene->envmap;
+                bool bHDRI   = envmap.type == EnvMap::HDRI;
+
+                if (ctx.StartTable("SkyEditor")) {
+
+                    if (bHDRI) ImGui::BeginDisabled();
+                    ctx.NewRow("Uniform Color");
+                    bReset |= ImGui::ColorEdit3("##Sky", &envmap.uniform.x);
+
+                    ctx.NewRow("Intensity");
+                    bReset |= ImGui::DragFloat("##Intensity", &envmap.intensity, 0.1);
+                    if (bHDRI) ImGui::EndDisabled();
+
+                    ctx.NewRow("HDRI");
+                    bReset |= ImGui::Checkbox("##HDRI", &bHDRI);
+                    envmap.type = bHDRI ? EnvMap::HDRI : EnvMap::UNIFORM;
+
+                    if (!bHDRI) ImGui::BeginDisabled();
+
+                    ctx.NewRow("");
+                    if (ImGui::Button("Select Image", ctx.GetAvailWidth())) {
+                        bReset = true;
+                        m_loadHDRICallback();
+                    }
+
+                    ctx.NewRow("Map");
+                    if (envmap.image.path.empty()) {
+                        ImGui::Text("No map loaded");
+                    } else {
+                        ImGui::Text(envmap.image.path.c_str());
+                    }
+
+                    float hOffset = Degrees(envmap.horizontalOffset);
+                    ctx.NewRow("Horizontal Offset");
+                    if (ImGui::DragFloat("##HorizontalOffset", &hOffset, 1, 0)) {
+                        bReset                  = true;
+                        envmap.horizontalOffset = Radians(hOffset);
+                    }
+
+                    float vOffset = Degrees(envmap.verticalOffset);
+                    ctx.NewRow("Vertical Offset");
+                    if (ImGui::DragFloat("##VerticalOffset", &vOffset, 1, 0)) {
+                        bReset                = true;
+                        envmap.verticalOffset = Radians(vOffset);
+                    }
+                    if (!bHDRI) ImGui::EndDisabled();
+
+                    ctx.EndTable();
                 }
+
+                ctx.EndRectangleBackground();
+                update.bResetAccumulation = bReset;
             }
-            ImGui::EndListBox();
+        } else {
+            ImGui::BeginDisabled();
+
+            ImGui::CollapsingHeader("Environment Map");
+            ImGui::CollapsingHeader("Render Camera");
+
+            ImGui::EndDisabled();
         }
 
         ctx.Destroy();
         ImGui::End();
     }
 
-    // Draw scene settings window
+    // Object
     {
         ImGui::Begin("Object");
 
@@ -456,151 +610,24 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                 }
                 ctx.EndRectangleBackground();
             }
-
-            if (ImGui::CollapsingHeader("Environment Map")) {
-                ctx.StartRectangleBackground();
-
-                bool bReset  = false;
-                auto &envmap = m_pScene->envmap;
-                bool bHDRI   = envmap.type == EnvMap::HDRI;
-
-                if (ctx.StartTable("SkyEditor")) {
-
-                    if (bHDRI) ImGui::BeginDisabled();
-                    ctx.NewRow("Uniform Color");
-                    bReset |= ImGui::ColorEdit3("##Sky", &envmap.uniform.x);
-
-                    ctx.NewRow("Intensity");
-                    bReset |= ImGui::DragFloat("##Intensity", &envmap.intensity, 0.1);
-                    if (bHDRI) ImGui::EndDisabled();
-
-                    ctx.NewRow("HDRI");
-                    bReset |= ImGui::Checkbox("##HDRI", &bHDRI);
-                    envmap.type = bHDRI ? EnvMap::HDRI : EnvMap::UNIFORM;
-
-                    if (!bHDRI) ImGui::BeginDisabled();
-
-                    ctx.NewRow("");
-                    if (ImGui::Button("Select Image", ctx.GetAvailWidth())) {
-                        bReset = true;
-                        m_loadHDRICallback();
-                    }
-
-                    ctx.NewRow("Map");
-                    if (envmap.image.path.empty()) {
-                        ImGui::Text("No map loaded");
-                    } else {
-                        ImGui::Text(envmap.image.path.c_str());
-                    }
-
-                    float hOffset = Degrees(envmap.horizontalOffset);
-                    ctx.NewRow("Horizontal Offset");
-                    if (ImGui::DragFloat("##HorizontalOffset", &hOffset, 1, 0)) {
-                        bReset                  = true;
-                        envmap.horizontalOffset = Radians(hOffset);
-                    }
-
-                    float vOffset = Degrees(envmap.verticalOffset);
-                    ctx.NewRow("Vertical Offset");
-                    if (ImGui::DragFloat("##VerticalOffset", &vOffset, 1, 0)) {
-                        bReset                = true;
-                        envmap.verticalOffset = Radians(vOffset);
-                    }
-                    if (!bHDRI) ImGui::EndDisabled();
-
-                    ctx.EndTable();
-                }
-
-                ctx.EndRectangleBackground();
-                update.bResetAccumulation = bReset;
-            }
+        } else {
+            ImGui::Text("Mesh: no mesh selected");
+            ImGui::BeginDisabled();
+            ImGui::CollapsingHeader("Transform");
+            ImGui::CollapsingHeader("Material");
+            ImGui::EndDisabled();
         }
 
         ctx.Destroy();
         ImGui::End();
     }
 
-    // Draw render settings window
-    {
-        ImGui::Begin("Settings");
-
-        UiDrawContext ctx;
-        ctx.Init();
-
-        // Backend table
-        if (ctx.StartTable("BackendTable")) {
-            const char *renderBackends[]    = {"JTX"};
-            static int currentRenderBackend = 0;
-            ctx.NewRow("Render Backend");
-            ImGui::Combo("##RenderBackend", &currentRenderBackend, renderBackends, IM_ARRAYSIZE(renderBackends));
-
-            ctx.NewRow("Viewport Backend");
-            ImGui::Combo("##ViewportBackend", &m_currentViewportBackend, m_viewportBackendNames, IM_ARRAYSIZE(m_viewportBackendNames));
-
-            ctx.EndTable();
-        }
-
-
-#ifdef JTX_UI_DRAW_DEMO_WINDOW
-        ImGui::ShowDemoWindow();
-#endif
-
-        // Sampling settings
-        if (ImGui::CollapsingHeader("Sampling")) {
-            static int xPixelSamples = 16;
-            static int yPixelSamples = 16;
-            static int maxDepth      = 32;
-
-            ctx.StartRectangleBackground();
-            if (ctx.StartTable("SamplingTable")) {
-                ctx.NewRow("SPP X");
-                ImGui::DragInt("##XSamples", &xPixelSamples, 1);
-
-                ctx.NewRow("SPP Y");
-                ImGui::DragInt("##YSamples", &yPixelSamples, 1);
-
-                ctx.NewRow("Max Depth");
-                ImGui::DragInt("##MaxDepth", &maxDepth, 1);
-                ctx.EndTable();
-            }
-            ctx.EndRectangleBackground();
-        }
-
-        if (ImGui::CollapsingHeader("Performance")) {
-            static int tileSize       = 32;
-            static int numThreads     = 32;
-            static int samplesPerPass = 1;
-
-            ctx.StartRectangleBackground();
-            if (ctx.StartTable("Performance")) {
-                ctx.NewRow("Tile Size");
-                ImGui::DragInt("##TileSize", &tileSize, 0);
-
-                ctx.NewRow("Thread Count");
-                ImGui::DragInt("##NumThreads", &numThreads, 0);
-
-                ctx.NewRow("Samples Per Pass");
-                ImGui::DragInt("##SamplesPerPass", &samplesPerPass, 0);
-
-                ctx.EndTable();
-            }
-            ctx.EndRectangleBackground();
-        }
-
-        if (ImGui::CollapsingHeader("Viewport")) {
-            m_viewportBackendSettings[m_currentViewportBackend](ctx);
-        }
-
-        ctx.Destroy();
-        ImGui::End();
-    }
     ImGui::EndFrame();
 
     ImGui::Render();
 
     ImGuiIO &io = ImGui::GetIO();
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();
     }
@@ -660,10 +687,14 @@ void UIRenderer::SetupStyle() const {
     style->ChildRounding     = 0.0f;
     style->FrameRounding     = 1.0f;
     style->PopupRounding     = 0.0f;
+    style->ScrollbarSize     = 1.0f;
     style->ScrollbarRounding = 1.0f;
     style->GrabRounding      = 1.0f;
     style->LogSliderDeadzone = 4.0f;
     style->TabRounding       = 2.0f;
+
+    style->CellPadding    = ImVec2(0, 1);
+    style->TreeLinesFlags = ImGuiTreeNodeFlags_DrawLinesFull;
 
     style->TabBarOverlineSize   = 0.0f;
     style->DockingSeparatorSize = 2.0f;
@@ -784,9 +815,15 @@ void UIRenderer::SetLayout(const ImGuiID dockSpaceId, const ImGuiViewport *viewp
 
     ImGui::DockBuilderDockWindow("Settings", dockRightId);
     ImGui::DockBuilderDockWindow("Object", dockRightId);
+    ImGui::DockBuilderDockWindow("Scene", dockRightId);
     ImGui::DockBuilderDockWindow("Hierarchy", dockRightTopId);
 
     ImGui::DockBuilderFinish(dockSpaceId);
+
+    ImGuiDockNode *rightNode = ImGui::DockBuilderGetNode(dockRightId);
+    if (rightNode) {
+        rightNode->SelectedTabId = ImHashStr("Settings");
+    }
 }
 
 }// namespace jtx

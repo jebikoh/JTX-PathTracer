@@ -77,12 +77,13 @@ void Editor::Draw() {
     auto &ctx = res.value();
 
     jvk::ViewRectangle rect;
-    if (!m_ui.GetViewportRectangle(rect) || rect.Area() == 0) return;
-    m_vk.SetViewportRectangle(rect);
+    if (m_ui.GetViewportRectangle(rect) && rect.Area() > 0) {
+        m_vk.SetViewportRectangle(rect);
 
-    ResolveRegion region;
-    m_vk.Draw(ctx, region, update);
-    m_gfx.ResolveToSwapchain(ctx, region);
+        ResolveRegion region;
+        m_vk.Draw(ctx, region, update);
+        m_gfx.ResolveToSwapchain(ctx, region);
+    }
 
     m_ui.Draw(ctx);
 

@@ -102,6 +102,7 @@ private:
 
     // We need to store the central node so we can easily retrieve its dimensions
     ImGuiDockNode *m_pCentralNode{};
+    bool m_bStartupFocusSet = false;
 
     void SetupStyle() const;
 

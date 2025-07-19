@@ -64,6 +64,13 @@ public:
     glm::vec3 GetRightVector() const { return orientation * glm::vec3(1, 0, 0); }
     glm::vec3 GetUpVector() const { return orientation * glm::vec3(0, 1, 0); }
 
+    void NotifyChanged() { m_bCameraChanged = true; }
+    bool HasChanged() const { return m_bCameraChanged; }
+    void Update() {
+        position = target - GetFrontVector() * distance;
+        m_bCameraChanged = false;
+    }
+
     void ProcessSDLEvent(const SDL_Event &e) {
         if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP) {
             const bool bDown = e.type == SDL_EVENT_KEY_DOWN;
@@ -191,13 +198,6 @@ public:
         m_bShiftHeld   = false;
         m_bAltHeld     = false;
         m_bMmbHeld     = false;
-    }
-
-
-    bool HasChanged() const { return m_bCameraChanged; }
-    void Update() {
-        position = target - GetFrontVector() * distance;
-        m_bCameraChanged = false;
     }
 
 private:

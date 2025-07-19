@@ -82,7 +82,7 @@ private:
     const Scene *m_pScene = nullptr;
     OrbitCamera m_camera{
         glm::vec3(5, 5, 5),
-        glm::vec3(0, 0, 0),
+        glm::vec3(0, 0.5, 0),
         glm::vec3(0, 1, 0)
     };
     float nearClip = 0.01f;
@@ -149,6 +149,7 @@ private:
     struct PostProcessingSettings {
         uint32_t tonemappingOp = kTonemapOp::TMO_ACES;
         float EV               = 0.0f;
+        float EC               = 0.0f;
         bool bSettingsChanged  = false;
     } m_rtpp{};
 

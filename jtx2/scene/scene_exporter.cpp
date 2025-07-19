@@ -49,14 +49,16 @@ JtxResult ExportScene(const Scene &scene, const std::filesystem::path &path) {
 
     // Camera settings
     Value cs(kObjectType);
-    cs.AddMember("position", ToJson(scene.cameraSettings.position, allocator), allocator);
-    cs.AddMember("target", ToJson(scene.cameraSettings.target, allocator), allocator);
-    cs.AddMember("up", ToJson(scene.cameraSettings.up, allocator), allocator);
-    cs.AddMember("focalLength", scene.cameraSettings.focalLength, allocator);
-    cs.AddMember("sensorWidth", scene.cameraSettings.sensorWidth, allocator);
-    cs.AddMember("focalDistance", scene.cameraSettings.focalDistance, allocator);
-    cs.AddMember("enableDOF", scene.cameraSettings.bEnableDof, allocator);
-    cs.AddMember("fStop", scene.cameraSettings.fStop, allocator);
+    cs.AddMember("position", ToJson(scene.camera.position, allocator), allocator);
+    cs.AddMember("target", ToJson(scene.camera.target, allocator), allocator);
+    cs.AddMember("up", ToJson(scene.camera.up, allocator), allocator);
+    cs.AddMember("focalLength", scene.camera.settings.focalLength, allocator);
+    cs.AddMember("sensorWidth", scene.camera.settings.sensorWidth, allocator);
+    cs.AddMember("focalDistance", scene.camera.settings.focalDistance, allocator);
+    cs.AddMember("enableDOF", scene.camera.settings.bEnableDof, allocator);
+    cs.AddMember("fStop", scene.camera.settings.fStop, allocator);
+    cs.AddMember("shutterSpeed", scene.camera.settings.shutterSpeed, allocator);
+    cs.AddMember("ISO", scene.camera.settings.ISO, allocator);
     d.AddMember("camera", cs, allocator);
 
     Value envmap(kObjectType);

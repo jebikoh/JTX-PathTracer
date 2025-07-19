@@ -47,7 +47,7 @@ public:
     }
 
     void UpdateCameraSettings() {
-        m_camera.settings = m_scene->cameraSettings;
+        m_camera = m_scene->camera;
     }
 
     void Resize(const int width, const int height) {

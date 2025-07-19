@@ -8,6 +8,8 @@
 #include <glm/vec3.hpp>
 #include <unordered_map>
 
+namespace jtx {
+
 /**
  * Orbiting camera
  *
@@ -15,25 +17,52 @@
  */
 class OrbitCamera {
 public:
+    // -- Position State --
     glm::vec3 target      = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 position    = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::quat orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-
     float distance = 10.0f;
 
+    // -- Lens & projection --
+    Camera::Settings settings = {};
+
+    // -- Speed controls --
     float orbitSpeed = 1.0f;
     float dollySpeed = 1.1f;
     float panSpeed   = 4.0f;
 
-    bool HasChanged() const {
-        return m_bCameraChanged;
+    OrbitCamera() {
+        SetView(glm::vec3(5.0, 5.0, 5.0), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        Update();
+    }
+
+    OrbitCamera(const glm::vec3 &pos, const glm::vec3 &tgt, const glm::vec3 &up) {
+        SetView(pos, tgt, up);
+        Update();
+    }
+
+    void SetView(const glm::vec3& newPos, const glm::vec3& newTarget, const glm::vec3& newUp) {
+        target = newTarget;
+        distance = glm::length(newPos - newTarget);
+        if (distance > 0.0001f) {
+            orientation = glm::quatLookAt(glm::normalize(newTarget - newPos), newUp);
+        }
+        m_bCameraChanged = true;
+    }
+
+    glm::mat4 GetViewMatrix() const {
+        return glm::lookAt(position, target, GetUpVector());
+    }
+
+    glm::mat4 GetProjectionMatrix(const float aspectRatio, const float nearClip, const float farClip) const {
+        const float sensorHeight = settings.sensorWidth / aspectRatio;
+        const float fovY = 2.0f * glm::atan(sensorHeight / (2.0f * settings.focalLength));
+        return glm::perspective(fovY, aspectRatio, nearClip, farClip);
     }
 
     glm::vec3 GetFrontVector() const { return orientation * glm::vec3(0, 0, -1); }
     glm::vec3 GetRightVector() const { return orientation * glm::vec3(1, 0, 0); }
     glm::vec3 GetUpVector() const { return orientation * glm::vec3(0, 1, 0); }
-
-    glm::mat4 GetViewMatrix() const { return glm::lookAt(position, target, GetUpVector()); }
 
     void ProcessSDLEvent(const SDL_Event &e) {
         if (e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP) {
@@ -165,6 +194,7 @@ public:
     }
 
 
+    bool HasChanged() const { return m_bCameraChanged; }
     void Update() {
         position = target - GetFrontVector() * distance;
         m_bCameraChanged = false;
@@ -179,3 +209,5 @@ private:
     bool m_bAltHeld   = false;
     bool m_bMmbHeld   = false;
 };
+
+}

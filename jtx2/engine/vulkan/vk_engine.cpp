@@ -220,10 +220,28 @@ void VkEngine::SkipEvent() {
 
 void VkEngine::DrawSettingsPanel(UiDrawContext &ctx) {
     ctx.StartRectangleBackground();
+    ImGui::SeparatorText("Viewport Camera");
+    if (ctx.StartTable("ViewportCameraTable")) {
+        ctx.NewRow("Field-of-view:");
+        ctx.NewRow("Focal Length");
+        ImGui::DragFloat("##FocalLength", &m_camera.focalLength, 0.01f, 0.01f, 100.0f);
+        ctx.NewRow("Sensor Width");
+        ImGui::DragFloat("##SensorWidth", &m_camera.sensorWidth, 0.01f, 0.01f, 100.0f);
+        ctx.NewRow("Sensitivity");
+        ctx.NewRow("Orbit");
+        ctx.NewRow("Pan");
+        ctx
+        ctx.EndTable();
+    }
+
+    ImGui::SeparatorText("Rasterization");
     if (ctx.StartTable("VkRasterizationTable")) {
-        ctx.NewRow("Rasterization");
         ctx.NewRow("Draw grid");
         ImGui::Checkbox("##Grid", &m_bDrawGrid);
+        ctx.NewRow("Near Clip");
+        ImGui::DragFloat("##NearClip", &nearClip, 0.01f, 0.001f, 100.0f);
+        ctx.NewRow("Far Clip");
+        ImGui::DragFloat("##FarClip", &farClip, 1.0f, 1.0f, 1000000.0f);
         ctx.EndTable();
     }
 
@@ -400,7 +418,7 @@ void VkEngine::UpdateGlobalUniformData() {
     }
 
     m_cache.view = m_camera.GetViewMatrix();
-    m_cache.proj = glm::perspective(glm::radians(70.f), aspectRatio, 0.1f, 10000.0f);
+    m_cache.proj = m_camera.GetProjectionMatrix(aspectRatio, nearClip, farClip);
     m_cache.proj[1][1] *= -1;
 
     m_gpuGlobalUniformData.viewProj       = m_cache.proj * m_cache.view;

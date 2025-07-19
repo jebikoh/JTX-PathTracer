@@ -280,14 +280,16 @@ JtxResult jtx::detail::LoadJtx(const std::filesystem::path &path, Scene &scene) 
 
     // -- Camera settings --
     const Value& cs = d["camera"];
-    FromJson(cs, "position", scene.cameraSettings.position);
-    FromJson(cs, "target", scene.cameraSettings.target);
-    FromJson(cs, "up", scene.cameraSettings.up);
-    FromJson(cs, "focalLength", scene.cameraSettings.focalLength, 0.05f);
-    FromJson(cs, "sensorWidth", scene.cameraSettings.sensorWidth, 0.036f);
-    FromJson(cs, "focalDistance", scene.cameraSettings.focalDistance, 10.0f);
-    FromJson(cs, "enableDOF", scene.cameraSettings.bEnableDof, false);
-    FromJson(cs, "fStop", scene.cameraSettings.fStop, 2.8f);
+    FromJson(cs, "position", scene.camera.position);
+    FromJson(cs, "target", scene.camera.target);
+    FromJson(cs, "up", scene.camera.up);
+    FromJson(cs, "focalLength", scene.camera.settings.focalLength, 0.05f);
+    FromJson(cs, "sensorWidth", scene.camera.settings.sensorWidth, 0.036f);
+    FromJson(cs, "focalDistance", scene.camera.settings.focalDistance, 10.0f);
+    FromJson(cs, "enableDOF", scene.camera.settings.bEnableDof, false);
+    FromJson(cs, "fStop", scene.camera.settings.fStop, 2.8f);
+    FromJson(cs, "shutterSpeed", scene.camera.settings.shutterSpeed, 0.01f);
+    FromJson(cs, "ISO", scene.camera.settings.ISO, 100.0f);
 
     // -- Envmap --
     if (d.HasMember("Envmap")) {

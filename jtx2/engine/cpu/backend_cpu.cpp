@@ -24,8 +24,6 @@ struct WorkQueue {
 
 void BackendCPU::StartProgressiveRender() {
     LOG_INFO(RENDER, "Starting progressive rendering with CPU backend");
-    // Updates camera every time; use dirty flag if needed later
-    m_camera.Update();
 
     // Initialize work queue
     WorkQueue q;
@@ -127,8 +125,6 @@ void BackendCPU::StartProgressiveRender() {
 
 void BackendCPU::StartOfflineRender() {
     LOG_INFO(RENDER, "Starting offline rendering with CPU backend");
-    // Updates camera every time; use dirty flag if needed later
-    m_camera.Update();
 
     // Initialize work queue
     WorkQueue q;

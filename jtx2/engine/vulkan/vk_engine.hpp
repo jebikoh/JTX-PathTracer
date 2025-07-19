@@ -80,7 +80,13 @@ private:
     jvk::ViewRectangle m_viewRectangle{};
 
     const Scene *m_pScene = nullptr;
-    OrbitCamera m_camera{};
+    OrbitCamera m_camera{
+        glm::vec3(5, 5, 5),
+        glm::vec3(0, 0, 0),
+        glm::vec3(0, 1, 0)
+    };
+    float nearClip = 0.01f;
+    float farClip  = 10000.0f;
 
     // == State ==
     bool m_bSceneLoaded                    = false;

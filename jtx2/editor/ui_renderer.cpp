@@ -37,16 +37,20 @@ void UiDrawContext::StartRectangleBackground() {
     m_bgState.hMax = ImGui::GetItemRectMax();
 }
 
-void UiDrawContext::EndRectangleBackground() const {
+void UiDrawContext::EndRectangleBackground(const bool bApplyPadding) const {
+    const float paddingY = bApplyPadding ? ImGui::GetStyle().ItemSpacing.y : 0.0f;
+
     SetChannelBackground();
     const ImVec2 tMax = ImGui::GetItemRectMax();
     m_drawList->AddRectFilled(
             m_bgState.hMin,
-            ImVec2(m_bgState.hMax.x, tMax.y),
+            ImVec2(m_bgState.hMax.x, tMax.y + paddingY),
             ImGui::GetColorU32(ImVec4(0.129, 0.137, 0.141, 1.0f)),
             m_bgState.rnd,
             ImDrawFlags_RoundCornersAll);
     SetChannelForeground();
+    if (bApplyPadding) ImGui::Dummy(ImVec2(0.0f, paddingY));
+
 }
 
 ImVec2 UiDrawContext::GetAvailWidth() const {
@@ -441,8 +445,67 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                     ctx.EndTable();
                 }
 
-                ctx.EndRectangleBackground();
+                ctx.EndRectangleBackground(true);
                 update.bResetAccumulation = bReset;
+            }
+
+            if (ImGui::CollapsingHeader("Camera")) {
+                ctx.StartRectangleBackground();
+                auto &camera = m_pScene->camera;
+
+                if (ImGui::TreeNode("Orientation")) {
+                    if (ctx.StartTable("CameraLocation")) {
+                        ctx.NewRow("Position");
+                        ImGui::InputFloat3("##Position", &camera.position.x);
+                        ctx.NewRow("Target");
+                        ImGui::InputFloat3("##Target", &camera.target.x);
+                        ctx.NewRow("Up");
+                        ImGui::InputFloat3("##Up", &camera.up.x);
+                        ctx.EndTable();
+                    }
+                    ImGui::TreePop();
+                }
+
+                if (ImGui::TreeNode("Lens & Sensor")) {
+                    if (ImGui::TreeNode("FOV")) {
+                        if (ctx.StartTable("RenderLensFOVTable")) {
+                            ctx.NewRow("Focal Length");
+                            ImGui::DragFloat("##FocalLength", &camera.settings.focalLength, 0.01f, 0.01f, 100.0f);
+                            ctx.NewRow("Sensor Width");
+                            ImGui::DragFloat("##SensorWidth", &camera.settings.sensorWidth, 0.01f, 0.01f, 100.0f);
+                            ctx.EndTable();
+                        }
+                        ImGui::TreePop();
+                    }
+
+                    if (ImGui::TreeNode("DoF")) {
+                        if (ctx.StartTable("RenderLensDoFTable")) {
+                            ctx.NewRow("Enable DoF");
+                            ImGui::Checkbox("##EnableDoF", &camera.settings.bEnableDof);
+                            ctx.NewRow("Focal Distance");
+                            ImGui::DragFloat("##FocalDistance", &camera.settings.focalDistance, 1.0f, 0.1f, 100000.0f);
+                            ctx.NewRow("f-Stop");
+                            ImGui::DragFloat("##fStop", &camera.settings.fStop, 0.1f, 0.0f, 10.0f);
+                            ctx.EndTable();
+                        }
+                        ImGui::TreePop();
+                    }
+
+                    if (ImGui::TreeNode("Exposure")) {
+                        if (ctx.StartTable("RenderLensExposureTable")) {
+                            ctx.NewRow("Shutter Speed");
+                            ImGui::DragFloat("##ShutterSpeed", &camera.settings.shutterSpeed, 0.01f, 0.001f, 1000.0f);
+                            ctx.NewRow("ISO");
+                            ImGui::DragFloat("ISO", &camera.settings.ISO, 1.0f, 0.01f, 1000.0f);
+                            ctx.EndTable();
+                        }
+                        ImGui::TreePop();
+                    }
+
+                    ImGui::TreePop();
+                }
+
+                ctx.EndRectangleBackground(true);
             }
         } else {
             ImGui::BeginDisabled();
@@ -497,7 +560,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                     ctx.EndTable();
                 }
 
-                ctx.EndRectangleBackground();
+                ctx.EndRectangleBackground(true);
             }
 
             if (ImGui::CollapsingHeader("Material")) {
@@ -505,7 +568,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
                 if (ctx.StartTable("MaterialEditor")) {
                     auto &mat                   = m_pScene->materials[m_pScene->meshes[selectionIndex].materialIndex];
-                    const char *materialTypes[] = {"Diffuse", "Dielectric", "C. Conductor", "Conductor"};
+                    const char *materialTypes[] = {"Diffuse", "Dielectric", "C. Conductor", "Conductor", "Thin Dielectric"};
                     int currentType             = mat.mType;
 
                     bool bMaterialUpdated = false;
@@ -595,6 +658,16 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                             bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0, 10000);
 
                             break;
+                        case Material::Type::THIN_DIELECTRIC:
+                            ctx.NewRow("IOR");
+                            bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x, 0.01, 0, 100);
+
+                            ctx.NewRow("Emission");
+                            bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
+
+                            ctx.NewRow("Emission Strength");
+                            bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0, 10000);
+                            break;
                         default:
                             break;
                     }
@@ -608,7 +681,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
                     ctx.EndTable();
                 }
-                ctx.EndRectangleBackground();
+                ctx.EndRectangleBackground(true);
             }
         } else {
             ImGui::Text("Mesh: no mesh selected");

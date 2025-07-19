@@ -12,7 +12,7 @@ struct Material {
         DIELECTRIC         = 1,
         COMPLEX_CONDUCTOR  = 2,
         CONDUCTOR          = 3,
-        METALLIC_ROUGHNESS = 4,
+        THIN_DIELECTRIC    = 4,
     };
 
     Type mType = DIFFUSE;

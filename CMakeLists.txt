@@ -213,6 +213,7 @@ set(JTX_BACKEND_CPU
         jtx2/engine/cpu/bxdf/conductor.hpp
         jtx2/engine/cpu/bxdf/dielectric.hpp
         jtx2/engine/cpu/bxdf/plastic.hpp
+        jtx2/engine/cpu/bxdf/thin_dielectric.hpp
 )
 
 set(JTX_BACKEND

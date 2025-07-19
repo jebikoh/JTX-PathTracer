@@ -304,7 +304,7 @@ void VkEngine::DrawSettingsPanel(UiDrawContext &ctx) {
         ImGui::TreePop();
     }
 
-    ctx.EndRectangleBackground();
+    ctx.EndRectangleBackground(true);
 }
 
 void VkEngine::LoadHDRI() {

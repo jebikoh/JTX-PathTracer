@@ -26,7 +26,7 @@ struct UiDrawContext {
     static void NewRow(const char *label);
 
     void StartRectangleBackground();
-    void EndRectangleBackground() const;
+    void EndRectangleBackground(bool bApplyPadding = false) const;
 
     ImVec2 GetAvailWidth() const;
 

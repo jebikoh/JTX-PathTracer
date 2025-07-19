@@ -169,6 +169,9 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
     } else if (mat.type == 1) {
         DielectricBSDF bsdf = DielectricBSDF(mat.ior.x, mat.roughness.xy);
         sample = bsdf.Sample(wo, prd.s0, prd.s1);
+    } else if (mat.type == 4) {
+        ThinDielectricBSDF bsdf = ThinDielectricBSDF(mat.ior.x);
+        sample = bsdf.Sample(wo, prd.s0, prd.s1);
     } else {
         float3 diffuse;
         if (mat.diffuseTexture >= 0) {

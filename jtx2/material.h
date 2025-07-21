@@ -13,6 +13,7 @@ struct Material {
         COMPLEX_CONDUCTOR  = 2,
         CONDUCTOR          = 3,
         THIN_DIELECTRIC    = 4,
+        GLOSSY_DIFFUSE     = 5,
     };
 
     Type mType = DIFFUSE;
@@ -26,6 +27,7 @@ struct Material {
         float emissionStrength;
         vec2 roughness;
         bool bAnisotropic;
+        float specularTint;
     } parameters;
 
     struct TextureIndices {

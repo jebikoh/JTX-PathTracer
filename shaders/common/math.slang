@@ -1,6 +1,12 @@
 module math;
 
 [ForceInline]
+public float Pow5(float x) {
+    float x2 = x * x;
+    return x2 * x2 * x;
+}
+
+[ForceInline]
 public float CosTheta(float3 w) { return w.z; }
 
 [ForceInline]

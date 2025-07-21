@@ -63,10 +63,10 @@ struct GPUMaterialData {
     vec4 roughness;
     vec4 emission;
     float emissionStrength;
+    float specularTint;
     uint32_t type;
 
     TextureHandle diffuseTexture;
-    TextureHandle _padding[1];
 };
 
 // Binding 2 (Combined Image Samplers): scene texture/sampler array

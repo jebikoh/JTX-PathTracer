@@ -18,7 +18,7 @@ public:
 
     bool Sample(const vec3 &wo, float s0, const vec2 &s1, BxDFSample &s) const {
         vec3 wi = SampleCosineHemisphere(s1);
-        if (wo.z < 0) { wi.z = -1; }
+        if (wo.z < 0) { wi.z *= -1; }
         s.pdf = CosineHemispherePDF(AbsCosTheta(wi));
         s.f = m_R * INV_PI;
         s.wi = wi;

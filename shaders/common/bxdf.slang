@@ -91,7 +91,7 @@ public struct BxDFSample {
 interface IBxDF {
     Optional<BxDFSample> Sample(float3 wo, float s0, float2 s1);
     float3 Evaluate(float3 wo, float3 wi);
-    float PDF(float3 wo, float wi);
+    float PDF(float3 wo, float3 wi);
 }
 
 public struct DiffuseBRDF : IBxDF {
@@ -104,7 +104,7 @@ public struct DiffuseBRDF : IBxDF {
     public Optional<BxDFSample> Sample(float3 wo, float s0, float2 s1) {
         BxDFSample out;
         out.wi = CosineHemisphere(s1);
-        if (wo.z < 0) out.wi.z = -1;
+        if (wo.z < 0) out.wi.z *= -1;
         out.pdf = CosineHemispherePDF(abs(out.wi.z));
         out.f = m_R * INV_PI;
         return out;
@@ -114,7 +114,7 @@ public struct DiffuseBRDF : IBxDF {
         return float3(0, 0, 0);
     }
 
-    public float PDF(float3 wo, float wi) {
+    public float PDF(float3 wo, float3 wi) {
         return 0;
     }
 }
@@ -166,7 +166,7 @@ public struct ConductorBRDF : IBxDF {
     }
 
     float3 Evaluate(float3 wo, float3 wi);
-    float PDF(float3 wo, float wi);
+    float PDF(float3 wo, float3 wi);
 }
 
 public struct DielectricBSDF : IBxDF {
@@ -249,7 +249,7 @@ public struct DielectricBSDF : IBxDF {
     }
 
     float3 Evaluate(float3 wo, float3 wi);
-    float PDF(float3 wo, float wi);
+    float PDF(float3 wo, float3 wi);
 }
 
 public struct ThinDielectricBSDF : IBxDF {
@@ -288,5 +288,69 @@ public struct ThinDielectricBSDF : IBxDF {
     }
 
     float3 Evaluate(float3 wo, float3 wi);
-    float PDF(float3 wo, float wi);
+    float PDF(float3 wo, float3 wi);
+}
+
+public struct GlossyDiffuseBRDF : IBxDF {
+    private float3 m_Rd;
+    private float3 m_Rs;
+    private GGX m_ggx;
+
+    public __init(float3 Rd, float3 Rs, float2 alpha) {
+        m_Rd = Rd;
+        m_Rs = Rs;
+
+        m_ggx = GGX(alpha);
+    }
+
+    public Optional<BxDFSample> Sample(float3 wo, float s0, float2 s1) {
+        BxDFSample s;
+        // One-sample MIS
+        if (s0 < 0.5) {
+            // Sample wi via diffuse lobe
+            s.wi = CosineHemisphere(s1);
+            if (wo.z < 0) s.wi.z *= -1;
+        } else {
+            // Sample wi via specular lobe
+            const float3 wm = m_ggx.SampleWm(wo, s1);
+            s.wi = Reflect(wo, wm);
+            if (!SameHemisphere(wo, s.wi)) return none;
+        }
+        s.f = Evaluate(wo, s.wi);
+        s.pdf = PDF(wo, s.wi);
+
+        return s;
+    }
+
+    float PDF(float3 wo, float3 wi) {
+        if (!SameHemisphere(wo, wi)) return 0.0f;
+        const float3 wm = normalize(wo + wi);
+
+        const float ps = m_ggx.PDF(wo, wm) / (4 * dot(wo, wm));
+        const float pd = CosineHemispherePDF(AbsCosTheta(wi));
+        return 0.5 * (ps + pd);
+    }
+
+    float3 Evaluate(float3 wo, float3 wi) {
+        float3 wm = wo + wi;
+        if (wm.x == 0 && wm.y == 0 && wm.z == 0) return float3(0, 0, 0);
+        wm = normalize(wm);
+
+        float3 fd  = EvaluateDiffuse(wo, wi);
+        float3 fs = EvaluateSpecular(wo, wi, wm);
+
+        return fd + fs;
+    }
+
+    float3 EvaluateSpecular(float3 wo, float3 wi, float3 wm) {
+        const float D = m_ggx.EvaluateNDF(wm);
+        const float3  F = Schlick(wo, wm, m_Rs);
+        return (D * F) / (4 * dot(wo, wm) * max(AbsCosTheta(wi), AbsCosTheta(wo)));
+    }
+
+    float3 EvaluateDiffuse(float3 wo, float3 wi) {
+        const float p1 = Pow5(1 - (0.5 * AbsCosTheta(wi)));
+        const float p2 = Pow5(1 - (0.5 * AbsCosTheta(wo)));
+        return 28 * INV_PI_23 * m_Rd * (1 - m_Rs) * (1 - p1) * (1 - p2);
+    }
 }

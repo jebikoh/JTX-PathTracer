@@ -116,7 +116,7 @@ void rayGenMain() {
             ray.Direction = prd.wi;
         }
 
-        accumulatedRadiance += radiance;
+        accumulatedRadiance += clamp(radiance, 0, 10);
     }
 
     float4 totalAccumulation = float4(accumulatedRadiance, 1.0);
@@ -161,32 +161,48 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
     matrix<float, 3, 3> frame = CreateONB(worldN);
     float3 wo = mul(prd.wi, transpose(frame));
 
-
     Optional<BxDFSample> sample;
-    if (mat.type == 3) {
-        ConductorBRDF brdf = ConductorBRDF(mat.f0.rgb, mat.roughness.xy);
-        sample = brdf.Sample(wo, prd.s0, prd.s1);
-    } else if (mat.type == 1) {
-        DielectricBSDF bsdf = DielectricBSDF(mat.ior.x, mat.roughness.xy);
-        sample = bsdf.Sample(wo, prd.s0, prd.s1);
-    } else if (mat.type == 4) {
-        ThinDielectricBSDF bsdf = ThinDielectricBSDF(mat.ior.x);
-        sample = bsdf.Sample(wo, prd.s0, prd.s1);
-    } else {
-        float3 diffuse;
-        if (mat.diffuseTexture >= 0) {
-            float2 tx0 = globalData.texCoords[idx.x];
-            float2 tx1 = globalData.texCoords[idx.y];
-            float2 tx2 = globalData.texCoords[idx.z];
-        
-            const float2 tx = tx0 * b.x + tx1 * b.y + tx2 * b.z;
-            diffuse = textures[mat.diffuseTexture].SampleLevel(tx, 0.0).rgb;
-        } else {
-            diffuse = mat.diffuse.rgb;
+    switch(mat.type) {
+        case 1: {
+            DielectricBSDF bsdf = DielectricBSDF(mat.ior.x, mat.roughness.xy);
+            sample = bsdf.Sample(wo, prd.s0, prd.s1);
+            break;
         }
+        case 2: {
+            break;
+        }
+        case 3: {
+            ConductorBRDF brdf = ConductorBRDF(mat.f0.rgb, mat.roughness.xy);
+            sample = brdf.Sample(wo, prd.s0, prd.s1);
+            break;
+        }
+        case 4: {
+            ThinDielectricBSDF bsdf = ThinDielectricBSDF(mat.ior.x);
+            sample = bsdf.Sample(wo, prd.s0, prd.s1);
+            break;
+        }
+        case 5: {
+            float3 Rs = lerp(0, 0.08, mat.specularTint);
+            GlossyDiffuseBRDF brdf = GlossyDiffuseBRDF(mat.diffuse.rgb, Rs, mat.roughness.xy);
+            sample = brdf.Sample(wo, prd.s0, prd.s1);
+            break;
+        }
+        default: {
+            float3 diffuse;
+            if (mat.diffuseTexture >= 0) {
+                float2 tx0 = globalData.texCoords[idx.x];
+                float2 tx1 = globalData.texCoords[idx.y];
+                float2 tx2 = globalData.texCoords[idx.z];
+            
+                const float2 tx = tx0 * b.x + tx1 * b.y + tx2 * b.z;
+                diffuse = textures[mat.diffuseTexture].SampleLevel(tx, 0.0).rgb;
+            } else {
+                diffuse = mat.diffuse.rgb;
+            }
 
-        DiffuseBRDF brdf = DiffuseBRDF(diffuse);
-        sample = brdf.Sample(wo, prd.s0, prd.s1);
+            DiffuseBRDF brdf = DiffuseBRDF(diffuse);
+            sample = brdf.Sample(wo, prd.s0, prd.s1);
+        }
     }
 
     if (sample == none) {

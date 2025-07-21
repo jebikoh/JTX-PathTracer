@@ -1,9 +1,9 @@
 #include <bvh/isect.hpp>
 #include <engine/cpu/bxdf/bxdf.hpp>
-#include <engine/cpu/bxdf/diffuse.hpp>
 #include <engine/cpu/bxdf/conductor.hpp>
 #include <engine/cpu/bxdf/dielectric.hpp>
-#include <engine/cpu/bxdf/plastic.hpp>
+#include <engine/cpu/bxdf/diffuse.hpp>
+#include <engine/cpu/bxdf/glossydiffuse.hpp>
 #include <engine/cpu/bxdf/thin_dielectric.hpp>
 
 namespace jtx {

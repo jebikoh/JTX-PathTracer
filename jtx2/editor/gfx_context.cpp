@@ -7,6 +7,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 #include <jvk/util.hpp>
+#include <util/profiling.hpp>
 
 constexpr bool JTX_USE_VALIDATION_LAYERS = true;
 
@@ -15,6 +16,8 @@ namespace jtx {
 #pragma region Initialization
 
 void GfxContext::Init() {
+    TPROFILE_SCOPE();
+
     LOG_INFO(GFX, "Initializing GFX context");
 
     InitWindow();
@@ -31,6 +34,7 @@ void GfxContext::Init() {
 }
 
 void GfxContext::InitWindow() {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Initializing window");
 
     SDL_Init(SDL_INIT_VIDEO);
@@ -52,6 +56,7 @@ void GfxContext::InitWindow() {
 }
 
 void GfxContext::InitVulkan() {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Initializing vulkan");
 
     // Volk
@@ -201,6 +206,7 @@ void GfxContext::InitVulkan() {
 }
 
 void GfxContext::InitAllocator() {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Initializing allocator");
 
     VmaVulkanFunctions vkFunctions{};
@@ -219,6 +225,7 @@ void GfxContext::InitAllocator() {
 }
 
 void GfxContext::InitSwapchain() {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Initializing swapchain");
     window.swapchain.Init(ctx, window.extent.width, window.extent.height);
 
@@ -231,6 +238,7 @@ void GfxContext::InitSwapchain() {
 }
 
 void GfxContext::InitRenderTargets() {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Initializing render targets");
 
     // TODO:
@@ -295,6 +303,7 @@ void GfxContext::InitRenderTargets() {
 }
 
 void GfxContext::InitFrameData() {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Initializing frame data");
 
     constexpr VkCommandPoolCreateFlags flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -312,12 +321,14 @@ void GfxContext::InitFrameData() {
 }
 
 void GfxContext::InitImmediateBuffer() {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Initializing immediate buffer");
     CHECK_VK(imBuffer.Init(ctx, graphicsQueue.family, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT));
     LOG_DEBUG(GFX, "Immediate buffer Initialized");
 }
 
 void GfxContext::InitDefaultImages() {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Initializing default images");
 
     const uint32_t white = jtx::packUnorm4x8({1.0f, 1.0f, 1.0f, 1.0f});
@@ -340,6 +351,7 @@ void GfxContext::InitDefaultImages() {
 }
 
 void GfxContext::InitDefaultSamplers() {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Initializing default samplers");
 
     CHECK_VK(defaultSamplers.linear.Init(ctx, VK_FILTER_LINEAR, VK_FILTER_LINEAR));
@@ -353,6 +365,7 @@ void GfxContext::InitDefaultSamplers() {
 #pragma region Destruction
 
 void GfxContext::Destroy() {
+    TPROFILE_SCOPE();
     DestroyDefaultSamplers();
     DestroyDefaultImages();
     DestroyImmediateBuffer();
@@ -365,6 +378,7 @@ void GfxContext::Destroy() {
 }
 
 void GfxContext::DestroyWindow() const {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Destroying window");
 
     SDL_DestroyWindow(window.pWindow);
@@ -373,6 +387,7 @@ void GfxContext::DestroyWindow() const {
 }
 
 void GfxContext::DestroyVulkan() const {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Destroying Vulkan context");
 
     ctx.Destroy();
@@ -381,6 +396,7 @@ void GfxContext::DestroyVulkan() const {
 }
 
 void GfxContext::DestroyAllocator() const {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Destroying allocators");
 
     vmaDestroyAllocator(allocator);
@@ -389,6 +405,7 @@ void GfxContext::DestroyAllocator() const {
 }
 
 void GfxContext::DestroySwapchain() const {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Destroying swapchain");
 
     for (auto &sem: window.semaphores) {
@@ -401,6 +418,7 @@ void GfxContext::DestroySwapchain() const {
 }
 
 void GfxContext::DestroyRenderTargets() const {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Destroying render targets");
 
     if (bRayTracingSupported) targets.draw32f.Destroy(ctx, allocator);
@@ -412,6 +430,7 @@ void GfxContext::DestroyRenderTargets() const {
 }
 
 void GfxContext::DestroyFrameData() {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Destroying frame data");
 
     for (auto &frame: frameData) {
@@ -424,6 +443,7 @@ void GfxContext::DestroyFrameData() {
 }
 
 void GfxContext::DestroyImmediateBuffer() const {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Destroying immediate buffer");
 
     imBuffer.Destroy();
@@ -432,6 +452,7 @@ void GfxContext::DestroyImmediateBuffer() const {
 }
 
 void GfxContext::DestroyDefaultImages() const {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Destroying default images");
 
     DestroyImage(defaultImages.white);
@@ -442,6 +463,7 @@ void GfxContext::DestroyDefaultImages() const {
 }
 
 void GfxContext::DestroyDefaultSamplers() const {
+    TPROFILE_SCOPE();
     LOG_DEBUG(GFX, "Destroying default samplers");
 
     defaultSamplers.nearest.Destroy();
@@ -455,6 +477,7 @@ void GfxContext::DestroyDefaultSamplers() const {
 #pragma region GFX resources
 
 jvk::Image GfxContext::CreateImage(const VkExtent3D extent, const VkFormat format, const VkImageUsageFlags usage, const bool bMipmapped, const VkSampleCountFlagBits sampleCount) const {
+    TPROFILE_SCOPE();
     jvk::Image image;
     image.format              = format;
     image.extent              = extent;
@@ -484,6 +507,7 @@ jvk::Image GfxContext::CreateImage(const VkExtent3D extent, const VkFormat forma
 }
 
 jvk::Image GfxContext::CreateImage(const void *pData, const VkExtent3D extent, const size_t nChannels, const VkFormat format, const VkImageUsageFlags usage, const size_t bytesPerPixel, const bool bMipmapped, VkSampleCountFlagBits sampleCount) const {
+    TPROFILE_SCOPE();
     const size_t dataSize     = extent.width * extent.height * extent.depth * nChannels * bytesPerPixel;
     jvk::Buffer stagingBuffer = CreateBuffer(dataSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, VMA_ALLOCATION_CREATE_MAPPED_BIT);
     memcpy(stagingBuffer.info.pMappedData, pData, dataSize);
@@ -520,6 +544,7 @@ jvk::Image GfxContext::CreateImage(const void *pData, const VkExtent3D extent, c
 }
 
 void GfxContext::DestroyImage(const jvk::Image &image) const {
+    TPROFILE_SCOPE();
     image.Destroy(ctx, allocator);
 }
 
@@ -530,6 +555,7 @@ jvk::Buffer GfxContext::CreateBuffer(
         const VmaAllocationCreateFlags memFlags,
         const VkMemoryPropertyFlags memPropFlags,
         const VkDeviceSize minAlignment) const {
+    TPROFILE_SCOPE();
     VkBufferCreateInfo info{};
     info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     info.pNext = nullptr;
@@ -551,10 +577,12 @@ jvk::Buffer GfxContext::CreateBuffer(
 }
 
 void GfxContext::DestroyBuffer(jvk::Buffer &buffer) const {
+    TPROFILE_SCOPE();
     buffer.Destroy(allocator);
 }
 
 void GfxContext::CreateExternalWindow(const VkExtent2D extent, Window &out) const {
+    TPROFILE_SCOPE();
     SDL_Init(SDL_INIT_VIDEO);
     constexpr auto windowFlags = static_cast<SDL_WindowFlags>(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
     out.pWindow             = SDL_CreateWindow(
@@ -580,6 +608,7 @@ void GfxContext::CreateExternalWindow(const VkExtent2D extent, Window &out) cons
 }
 
 void GfxContext::DestroyExternalWindow(Window &in) const {
+    TPROFILE_SCOPE();
     vkDeviceWaitIdle(ctx);
     for (auto &sem : in.semaphores) {
         sem.Destroy();
@@ -595,6 +624,7 @@ void GfxContext::DestroyExternalWindow(Window &in) const {
 #pragma region Frame management
 
 void GfxContext::ResizeSwapchain() {
+    TPROFILE_SCOPE();
     if (window.bSwapchainOutOfDate) {
         LOG_DEBUG(GFX, "Resizing swapchain");
 
@@ -614,6 +644,7 @@ void GfxContext::ResizeSwapchain() {
 }
 
 std::optional<RenderContext> GfxContext::StartFrame() {
+    TPROFILE_SCOPE();
     const uint32_t frameIndex = GetCurrentFrameIndex();
     const auto &frame          = frameData[frameIndex];
     CHECK_VK(frame.drawFence.Wait());
@@ -647,6 +678,7 @@ std::optional<RenderContext> GfxContext::StartFrame() {
 }
 
 void GfxContext::EndFrame(const RenderContext &renderCtx) {
+    TPROFILE_SCOPE();
     // Transition the swapchain image to present layout
     jvk::TransitionImageIfNeeded(renderCtx.cmd, renderCtx.swapchain.image, renderCtx.layout.swapchain, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
     CHECK_VK(renderCtx.cmd.End());
@@ -680,6 +712,7 @@ void GfxContext::EndFrame(const RenderContext &renderCtx) {
 }
 
 std::optional<RenderContext> GfxContext::StartFrame(Window &exWindow) const {
+    TPROFILE_SCOPE();
     const uint32_t frameIndex = GetCurrentFrameIndex();
     const auto &frame         = frameData[frameIndex];
     CHECK_VK(frame.drawFence.Wait());
@@ -712,6 +745,7 @@ std::optional<RenderContext> GfxContext::StartFrame(Window &exWindow) const {
 }
 
 void GfxContext::EndFrame(const RenderContext &renderCtx, Window &exWindow) {
+    TPROFILE_SCOPE();
     // Transition the swapchain image to present layout
     jvk::TransitionImageIfNeeded(renderCtx.cmd, renderCtx.swapchain.image, renderCtx.layout.swapchain, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
     CHECK_VK(renderCtx.cmd.End());
@@ -745,6 +779,7 @@ void GfxContext::EndFrame(const RenderContext &renderCtx, Window &exWindow) {
 }
 
 void GfxContext::ResolveToSwapchain(RenderContext &renderCtx, const ResolveRegion &region) const {
+    TPROFILE_SCOPE();
     const jvk::Image *renderTarget;
     VkImageLayout *layout;
     switch (region.target) {

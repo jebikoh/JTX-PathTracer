@@ -37,9 +37,9 @@ struct ThinLensCamera : Camera {
         const float vpHeight = (sensorHeight / settings.focalLength) * settings.focalDistance;
         const float vpWidth  = vpHeight * aspectRatio;
 
-        const vec3 w = jtx::Normalize(position - target);
-        const vec3 u = jtx::Normalize(jtx::Cross(up, w));
-        const vec3 v = jtx::Cross(w, u);
+        const vec3 w = Normalize(position - target);
+        const vec3 u = Normalize(Cross(up, w));
+        const vec3 v = Cross(w, u);
 
         const vec3 vpU = vpWidth * u;
         const vec3 vpV = vpHeight * v;

@@ -5,6 +5,7 @@
 #include <material.h>
 #include <util/aabb.hpp>
 #include <util/sampling.hpp>
+#include <util/profiling.hpp>
 // TODO: add TRS transform and basic scene graph
 namespace jtx {
 
@@ -162,6 +163,8 @@ struct Scene {
     }
 
     void Destroy() {
+        TPROFILE_SCOPE();
+
         indices.clear();
         indices.shrink_to_fit();
         materialIndices.clear();

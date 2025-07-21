@@ -2,6 +2,7 @@
 #include <editor/ui_renderer.hpp>
 
 #include <jvk/init.hpp>
+#include <util/profiling.hpp>
 #include <engine/cpu/bxdf/microfacet.hpp>
 
 #include <IconsLucide.h>
@@ -87,6 +88,7 @@ void UiDrawContext::NewRow(const char *label) {
 }
 
 void UIRenderer::Init(const std::function<void()> &importSceneCallback, const std::function<void()> &exportSceneCallback, const std::function<void()> &loadHDRICallback, const std::function<void()> &renderImageCallback) {
+    TPROFILE_SCOPE();
     LOG_INFO(UI, "Initializing UI renderer");
 
     m_importSceneCallback = importSceneCallback;
@@ -140,6 +142,7 @@ void UIRenderer::Init(const std::function<void()> &importSceneCallback, const st
 }
 
 void UIRenderer::Draw(RenderContext &ctx, const VkClearValue *clearColor) const {
+    TPROFILE_SCOPE();
     jvk::TransitionImageIfNeeded(ctx.cmd, ctx.swapchain.image, ctx.layout.swapchain, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     ctx.layout.swapchain = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
@@ -152,6 +155,7 @@ void UIRenderer::Draw(RenderContext &ctx, const VkClearValue *clearColor) const 
 }
 
 bool UIRenderer::GetViewportRectangle(jvk::ViewRectangle &out) const {
+    TPROFILE_SCOPE();
     if (!m_pCentralNode) return false;
 
     const ImGuiViewport *mainViewport = ImGui::GetMainViewport();
@@ -182,6 +186,7 @@ void UIRenderer::LoadScene(Scene *scene) {
 }
 
 void UIRenderer::NewFrame(SceneUpdate &update) {
+    TPROFILE_SCOPE();
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
@@ -693,6 +698,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 }
 
 void UIRenderer::NewFrameRender() const {
+    TPROFILE_SCOPE();
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
@@ -705,6 +711,7 @@ void UIRenderer::NewFrameRender() const {
 }
 
 bool UIRenderer::ProcessEvent(const SDL_Event &event) const {
+    TPROFILE_SCOPE();
     ImGui_ImplSDL3_ProcessEvent(&event);
 
     const ImGuiIO &io         = ImGui::GetIO();
@@ -715,6 +722,7 @@ bool UIRenderer::ProcessEvent(const SDL_Event &event) const {
 }
 
 void UIRenderer::Destroy() const {
+    TPROFILE_SCOPE();
     LOG_INFO(UI, "Cleaning up UI renderer");
 
     ImGui_ImplVulkan_Shutdown();
@@ -724,6 +732,7 @@ void UIRenderer::Destroy() const {
 }
 
 void UIRenderer::SetupStyle() const {
+    TPROFILE_SCOPE();
     ImGuiStyle *style = &ImGui::GetStyle();
 
     style->WindowPadding     = ImVec2(12, 8);
@@ -864,6 +873,7 @@ void UIRenderer::SetupStyle() const {
 }
 
 void UIRenderer::SetLayout(const ImGuiID dockSpaceId, const ImGuiViewport *viewport, const ImGuiDockNodeFlags dockSpaceFlags) {
+    TPROFILE_SCOPE();
     ImGui::DockBuilderRemoveNode(dockSpaceId);
     ImGui::DockBuilderAddNode(dockSpaceId, dockSpaceFlags | ImGuiDockNodeFlags_DockSpace);
     ImGui::DockBuilderSetNodeSize(dockSpaceId, viewport->Size);

@@ -134,8 +134,16 @@ if (JTX_BUILD_BENCHMARKS)
     FetchContent_MakeAvailable(benchmark)
 endif ()
 
-if (_JTX_SUPPRESS_DEPENDENCY_MESSAGES)
-    set(MESSAGE_QUIET OFF)
+if (JTX_ENABLE_PROFILING)
+    FetchContent_Declare (
+            tracy
+            GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+            GIT_TAG master
+            GIT_SHALLOW TRUE
+            GIT_PROGRESS TRUE
+    )
+    option (TRACY_ENABLE "" ON )
+    FetchContent_MakeAvailable (tracy)
 endif ()
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -181,7 +189,7 @@ set(JTX_UTIL
         jtx2/util/rand.hpp
         jtx2/util/simd.hpp
         jtx2/util/sampling.hpp
-        jtx2/util/timer.hpp
+        jtx2/util/profiling.hpp
         jtx2/util/complex.hpp
 )
 
@@ -283,6 +291,10 @@ target_link_libraries(JTXCore PUBLIC
         glm
         nfd
 )
+
+if (JTX_ENABLE_PROFILING)
+    target_link_libraries(JTXCore PUBLIC Tracy::TracyClient)
+endif()
 
 if (JTX_USE_EMBREE AND embree_FOUND)
     target_link_libraries(JTXCore PUBLIC embree)

@@ -1,5 +1,6 @@
 #include <image.hpp>
 #include <jvk/init.hpp>
+#include <util/profiling.hpp>
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
@@ -58,6 +59,7 @@ void Image8u::Destroy() {
 }
 
 JtxResult Image8u::Load(const std::filesystem::path &path, Image8u &out, bool bApplyEOTF) {
+    TPROFILE_SCOPE();
     LOG_DEBUG(TEXTURE, "Loading 8-bit texture: {}", path.string());
 
     auto fileExt = path.extension().string();
@@ -202,6 +204,7 @@ void Image32f::Destroy() {
 }
 
 JtxResult Image32f::Load(const std::filesystem::path &path, Image32f &out) {
+    TPROFILE_SCOPE();
     LOG_INFO(TEXTURE, "Loading 32-bit float texture: {}", path.string());
 
     auto fileExt = path.extension().string();

@@ -3,7 +3,7 @@
 // Global includes
 #include <jtxlib/math.hpp>
 #include <util/logger.hpp>
-#include <util/timer.hpp>
+#include <util/profiling.hpp>
 
 // Force inline (use sparingly)
 #if defined(__clang__)
@@ -78,3 +78,5 @@ constexpr float INV_TWO_PI = 1.0f / (2.0f * jtx::JTX_PI_F);
 constexpr float TWO_PI = 2.0F * jtx::JTX_PI_F;
 constexpr float INV_PI = 1.0f / jtx::JTX_PI_F;
 constexpr float INV_4_PI = 1.0f / (4.0f * jtx::JTX_PI_F);
+
+// Profiling

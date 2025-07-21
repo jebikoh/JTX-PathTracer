@@ -2,6 +2,7 @@
 #include <editor/ui_renderer.hpp>
 #include <engine/vulkan/vk_engine.hpp>
 #include <jvk/shaders.hpp>
+#include <util/profiling.hpp>
 #include <scene/scene.hpp>
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -13,6 +14,7 @@
 namespace jtx {
 
 void VkEngine::Init(const bool bEnableRayTracing) {
+    TPROFILE_SCOPE();
     LOG_INFO(VKE, "Initializing Vulkan engine");
     m_bRayTracingAvailable = bEnableRayTracing;
 
@@ -29,6 +31,7 @@ void VkEngine::Init(const bool bEnableRayTracing) {
 }
 
 void VkEngine::Destroy() {
+    TPROFILE_SCOPE();
     LOG_INFO(VKE, "Destroying Vulkan engine");
 
     if (m_bRayTracingAvailable) {
@@ -43,6 +46,7 @@ void VkEngine::Destroy() {
 }
 
 void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region, const SceneUpdate &update) {
+    TPROFILE_SCOPE();
     // Reset frame count if ray tracing was just enabled
     m_bResetAccumulation |= (m_bRayTracingEnabled && !m_bRayTracingEnabledPreviousFrame);
     m_bRayTracingEnabledPreviousFrame = m_bRayTracingEnabled;
@@ -94,6 +98,7 @@ void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region, const SceneUpdate
 }
 
 void VkEngine::PopulateContext() {
+    TPROFILE_SCOPE();
     m_drawContext.objects.clear();
 
     // Loop through meshes
@@ -109,6 +114,7 @@ void VkEngine::PopulateContext() {
 }
 
 void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
+    TPROFILE_SCOPE();
     // Begin render pass
     VkClearValue drawImageClearValue{};
     drawImageClearValue.color = {0.255f, 0.247f, 0.255f, 1.0f};
@@ -215,14 +221,17 @@ void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
 }
 
 void VkEngine::ProcessEvent(const SDL_Event &event) {
+    TPROFILE_SCOPE();
     m_camera.ProcessSDLEvent(event);
 }
 
 void VkEngine::SkipEvent() {
+    TPROFILE_SCOPE();
     m_camera.ResetInputState();
 }
 
 void VkEngine::DrawSettingsPanel(UiDrawContext &ctx) {
+    TPROFILE_SCOPE();
     ctx.StartRectangleBackground();
 
     if (ImGui::TreeNode("Viewport Camera")) {
@@ -323,6 +332,7 @@ void VkEngine::DrawSettingsPanel(UiDrawContext &ctx) {
 }
 
 void VkEngine::LoadHDRI() {
+    TPROFILE_SCOPE();
     if (m_gpuSceneData.envmapIndex >= 0) {
         m_gfx.DestroyImage(m_gpuSceneData.textures[m_gpuSceneData.envmapIndex]);
         LOG_DEBUG(VKE, "Destroyed previously loaded HDRI texture");
@@ -366,6 +376,7 @@ void VkEngine::LoadHDRI() {
 }
 
 void VkEngine::InitDescriptors() {
+    TPROFILE_SCOPE();
     // -- Bindless descriptor pool --
     std::vector<VkDescriptorPoolSize> poolSizes = {
             {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 512},
@@ -434,6 +445,7 @@ void VkEngine::InitDescriptors() {
 }
 
 void VkEngine::DestroyDescriptors() const {
+    TPROFILE_SCOPE();
     LOG_DEBUG(VKE, "Destroying descriptors");
 
     vkDestroyDescriptorSetLayout(m_gfx.ctx, m_bindlessDescriptorSetLayout, nullptr);
@@ -446,6 +458,7 @@ void VkEngine::DestroyDescriptors() const {
 }
 
 void VkEngine::UpdateGlobalUniformData() {
+    TPROFILE_SCOPE();
     float aspectRatio;
     if (m_viewRectangle.w > 0 && m_viewRectangle.h > 0) {
         aspectRatio = static_cast<float>(m_viewRectangle.w) / static_cast<float>(m_viewRectangle.h);
@@ -479,6 +492,7 @@ void VkEngine::UpdateGlobalUniformData() {
 }
 
 void VkEngine::InitPipelines() {
+    TPROFILE_SCOPE();
     LOG_DEBUG(VKE, "Initializing Pipelines");
 
     InitMaterialPipelines();
@@ -492,6 +506,7 @@ void VkEngine::InitPipelines() {
 }
 
 void VkEngine::DestroyPipelines() const {
+    TPROFILE_SCOPE();
     LOG_DEBUG(VKE, "Destroying Pipelines");
 
     if (m_bRayTracingAvailable) {
@@ -505,6 +520,7 @@ void VkEngine::DestroyPipelines() const {
 }
 
 void VkEngine::InitMaterialPipelines() {
+    TPROFILE_SCOPE();
     VkShaderModule vertexShader;
     if (!jvk::LoadShaderModule("spv/mesh_vertexMain.spv", m_gfx.ctx, &vertexShader)) {
         LOG_FATAL(VKE, "Failed to load mesh vertex shader");
@@ -551,11 +567,13 @@ void VkEngine::InitMaterialPipelines() {
 }
 
 void VkEngine::DestroyMaterialPipelines() const {
+    TPROFILE_SCOPE();
     vkDestroyPipelineLayout(m_gfx.ctx, m_materialPipelines.layout, nullptr);
     vkDestroyPipeline(m_gfx.ctx, m_materialPipelines.diffuse, nullptr);
 }
 
 void VkEngine::InitGridPipeline() {
+    TPROFILE_SCOPE();
     VkShaderModule vertexShader;
     if (!jvk::LoadShaderModule("spv/grid.vert.spv", m_gfx.ctx, &vertexShader)) {
         LOG_FATAL(VKE, "Failed to load grid vertex shader");
@@ -598,10 +616,12 @@ void VkEngine::InitGridPipeline() {
 }
 
 void VkEngine::DestroyGridPipeline() const {
+    TPROFILE_SCOPE();
     m_gridPipeline.Destroy(m_gfx.ctx, true);
 }
 
 void VkEngine::LoadScene(const Scene *pScene) {
+    TPROFILE_SCOPE();
     LOG_INFO(VKE, "Loading scene");
     if (m_bSceneLoaded) {
         DestroyScene();
@@ -893,6 +913,7 @@ void VkEngine::LoadScene(const Scene *pScene) {
 }
 
 void VkEngine::DestroyScene() {
+    TPROFILE_SCOPE();
     if (m_bSceneLoaded) {
         LOG_INFO(VKE, "Destroying scene");
         m_gfx.WaitIdle();
@@ -950,6 +971,7 @@ void VkEngine::DestroyScene() {
 }
 
 bool VkEngine::UpdateScene(const RenderContext &ctx, const SceneUpdate &update) const {
+    TPROFILE_SCOPE();
     bool bUpdated = update.bResetAccumulation;
 
     if (update.materialIndex > -1) {
@@ -1006,6 +1028,7 @@ bool VkEngine::UpdateScene(const RenderContext &ctx, const SceneUpdate &update) 
 }
 
 void VkEngine::BuildBLAS() {
+    TPROFILE_SCOPE();
     assert(m_pScene != nullptr);
 
     const VkDeviceAddress vertexAddress = m_gpuSceneData.positionAddress;
@@ -1051,6 +1074,7 @@ void VkEngine::BuildBLAS() {
 }
 
 void VkEngine::BuildTLAS() {
+    TPROFILE_SCOPE();
     // We don't really support instances, so we will just create one instance of each BLAS
     // (We also don't support transforms right now, so identity matrix is hardcoded)
     std::vector<VkAccelerationStructureInstanceKHR> tlas;
@@ -1075,6 +1099,7 @@ void VkEngine::BuildTLAS() {
 }
 
 void VkEngine::InitRayTracingPipeline() {
+    TPROFILE_SCOPE();
     LOG_DEBUG(VKE, "Initializing ray tracing pipeline");
 
     VkShaderModule raygenShader;
@@ -1179,6 +1204,7 @@ void VkEngine::InitRayTracingPipeline() {
 }
 
 void VkEngine::DestroyRayTracingPipeline() const {
+    TPROFILE_SCOPE();
     LOG_DEBUG(VKE, "Destroying ray tracing pipeline");
 
     m_rayTracingPipeline.Destroy(m_gfx.ctx, true);
@@ -1187,6 +1213,7 @@ void VkEngine::DestroyRayTracingPipeline() const {
 }
 
 void VkEngine::InitRTPostProcessingPipeline() {
+    TPROFILE_SCOPE();
     VkShaderModule computeShader;
     if (!jvk::LoadShaderModule("spv/postprocessing_computeMain.spv", m_gfx.ctx, &computeShader)) {
         LOG_FATAL(VKE, "Failed to load post-processing compute shader");
@@ -1219,6 +1246,7 @@ void VkEngine::InitRTPostProcessingPipeline() {
 }
 
 void VkEngine::DestroyRTPostProcessingPipeline() const {
+    TPROFILE_SCOPE();
     LOG_DEBUG(VKE, "Destroying post processing pipeline");
 
     m_rtPostProcessingPipeline.Destroy(m_gfx.ctx, true);
@@ -1231,6 +1259,7 @@ inline uint32_t AlignUp(const uint32_t size, const uint32_t alignment) {
 }
 
 void VkEngine::InitRayTracingResources() {
+    TPROFILE_SCOPE();
     LOG_DEBUG(VKE, "Initializing RT resources");
 
     VkImageUsageFlags usages = {};
@@ -1320,6 +1349,7 @@ void VkEngine::InitRayTracingResources() {
 }
 
 void VkEngine::DestroyRayTracingResources() {
+    TPROFILE_SCOPE();
     LOG_DEBUG(VKE, "Destroying RT resources");
 
     m_gfx.DestroyBuffer(m_SBT.buffer);
@@ -1329,6 +1359,7 @@ void VkEngine::DestroyRayTracingResources() {
 }
 
 void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) {
+    TPROFILE_SCOPE();
     if (!m_bSceneLoaded) return;
 
     const bool bRayTrace            = m_rtCurrentSample < m_rtTargetSamples;

@@ -1,5 +1,6 @@
 #include <editor/gfx_context.hpp>
 #include <engine/vulkan/accel.hpp>
+#include <util/profiling.hpp>
 
 namespace jtx {
 
@@ -8,6 +9,8 @@ inline bool HasFlag(const VkFlags item, const VkFlags flag) {
 }
 
 void ASManager::BuildBLAS(const std::vector<BLASInput> &inputs, const VkBuildAccelerationStructureFlagsKHR flags) {
+    TPROFILE_SCOPE();
+
     const uint32_t numBLAS      = static_cast<uint32_t>(inputs.size());
     uint32_t numBLASCompactions = 0;
 
@@ -102,6 +105,8 @@ void ASManager::BuildBLAS(const std::vector<BLASInput> &inputs, const VkBuildAcc
 }
 
 void ASManager::BuildTLAS(const std::vector<VkAccelerationStructureInstanceKHR> &instances, const VkBuildAccelerationStructureFlagsKHR flags, const bool bUpdate) {
+    TPROFILE_SCOPE();
+
     assert(m_tlas.handle == VK_NULL_HANDLE || bUpdate);
     const uint32_t numInstances = static_cast<uint32_t>(instances.size());
 
@@ -146,6 +151,8 @@ void ASManager::BuildTLAS(const std::vector<VkAccelerationStructureInstanceKHR> 
 }
 
 void ASManager::DestroyAS() {
+    TPROFILE_SCOPE();
+
     for (auto &blas: m_blas) {
         vkDestroyAccelerationStructureKHR(m_gfx.ctx, blas.handle, nullptr);
         m_gfx.DestroyBuffer(blas.buffer);
@@ -160,6 +167,7 @@ void ASManager::DestroyAS() {
 }
 
 AccelerationStructure ASManager::CreateAS(const VkAccelerationStructureCreateInfoKHR &info) const {
+    TPROFILE_SCOPE();
     AccelerationStructure as;
 
     // TODO: check VMA flags
@@ -180,6 +188,7 @@ AccelerationStructure ASManager::CreateAS(const VkAccelerationStructureCreateInf
 }
 
 void ASManager::CreateBLAS(const VkCommandBuffer cmd, const std::vector<uint32_t> &BLASIndices, std::vector<AccelerationStructureBuildInfo> &buildInfo, const VkDeviceAddress scratchAddress, const VkQueryPool queryPool) const {
+    TPROFILE_SCOPE();
     if (queryPool) vkResetQueryPool(m_gfx.ctx, queryPool, 0, static_cast<uint32_t>(BLASIndices.size()));
     uint32_t queryCount = 0;
 
@@ -208,6 +217,7 @@ void ASManager::CreateBLAS(const VkCommandBuffer cmd, const std::vector<uint32_t
 }
 
 void ASManager::CompactBLAS(const VkCommandBuffer cmd, const std::vector<uint32_t> &BLASIndices, std::vector<AccelerationStructureBuildInfo> &buildInfo, const VkQueryPool queryPool) const {
+    TPROFILE_SCOPE();
     uint32_t queryCount = 0;
     std::vector<AccelerationStructure> cleanupAS;
 
@@ -243,6 +253,7 @@ void ASManager::CompactBLAS(const VkCommandBuffer cmd, const std::vector<uint32_
 }
 
 void ASManager::DestroyNonCompactedBLAS(const std::vector<uint32_t> &BLASIndices, std::vector<AccelerationStructureBuildInfo> &buildInfo) const {
+    TPROFILE_SCOPE();
     for (auto &i: BLASIndices) {
         vkDestroyAccelerationStructureKHR(m_gfx.ctx, buildInfo[i].cleanupAS.handle, nullptr);
         m_gfx.DestroyBuffer(buildInfo[i].cleanupAS.buffer);
@@ -250,6 +261,7 @@ void ASManager::DestroyNonCompactedBLAS(const std::vector<uint32_t> &BLASIndices
 }
 
 void ASManager::CreateTLAS(VkCommandBuffer cmd, uint32_t numInstances, VkDeviceAddress instancesAddress, jvk::Buffer &scratchBuffer, VkBuildAccelerationStructureFlagsKHR flags, bool bUpdate) {
+    TPROFILE_SCOPE();
     VkAccelerationStructureGeometryInstancesDataKHR instances{};
     instances.sType              = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
     instances.data.deviceAddress = instancesAddress;

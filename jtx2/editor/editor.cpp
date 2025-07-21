@@ -6,11 +6,15 @@
 #include <scene/scene_exporter.hpp>
 #include <thread>
 
+#include <util/profiling.hpp>
+
 namespace jtx {
 
 Editor *pLoadedDisplay = nullptr;
 
 void Editor::Init() {
+    TPROFILE_SCOPE();
+
     LOG_INFO(DISPLAY, "Initializing display");
 
     assert(pLoadedDisplay == nullptr);
@@ -42,7 +46,8 @@ void Editor::Init() {
 }
 
 void Editor::Init(const std::filesystem::path &path) {
-    CHECK_JTX(jtx::LoadScene(path, m_scene));
+    TPROFILE_SCOPE();
+    CHECK_JTX(LoadScene(path, m_scene));
     Init();
     m_vk.LoadScene(&m_scene);
     m_ui.LoadScene(&m_scene);
@@ -50,6 +55,7 @@ void Editor::Init(const std::filesystem::path &path) {
 }
 
 void Editor::Destroy() {
+    TPROFILE_SCOPE();
     LOG_INFO(DISPLAY, "Destroying display");
 
     m_gfx.WaitIdle();
@@ -69,6 +75,8 @@ void Editor::Destroy() {
 }
 
 void Editor::Draw() {
+    TPROFILE_SCOPE();
+
     SceneUpdate update;
     m_ui.NewFrame(update);
 
@@ -95,6 +103,7 @@ void Editor::Run() {
     bool bQuit = false;
 
     while (!bQuit) {
+
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_EVENT_QUIT) bQuit = true;
 
@@ -133,10 +142,13 @@ void Editor::Run() {
         m_gfx.ResizeSwapchain();
 
         Draw();
+
+        TPROFILE_FRAME_MARK();
     }
 }
 
 void Editor::ImportScene() {
+    TPROFILE_SCOPE();
     constexpr nfdu8filteritem_t filters[1] = {{"Scene file", "jtx,obj,gltf,glb"}};
     nfdopendialogu8args_t args{};
     args.filterList  = filters;
@@ -171,6 +183,7 @@ void Editor::ImportScene() {
 }
 
 void Editor::ExportScene() const {
+    TPROFILE_SCOPE();
     const auto name = m_scene.name.empty() ? "scene.jtx" : m_scene.name + ".jtx";
 
     constexpr nfdu8filteritem_t filters[1] = {{"JTX scene file", "jtx"}};
@@ -195,6 +208,8 @@ void Editor::ExportScene() const {
 }
 
 void Editor::LoadHDRI() {
+    TPROFILE_SCOPE();
+
     constexpr nfdu8filteritem_t filters[1] = {{"HDR image", "hdr,exr"}};
     nfdopendialogu8args_t args{};
     args.filterList  = filters;
@@ -221,6 +236,8 @@ void Editor::LoadHDRI() {
 }
 
 void Editor::RenderImage() {
+    TPROFILE_SCOPE();
+
     m_activeWindow = RENDER;
 }
 

@@ -13,7 +13,12 @@
 #define PROFILE_LOCAL_LOG_TIME_SECONDS() do {} while(0)
 #define PROFILE_LOCAL_LOG_TIME() do {} while(0)
 
+#define TPROFILE_SCOPE() do {} while(0)
+#define TPROFILE_FRAME_MARK() do {} while(0)
+
 #else
+
+#include <tracy/Tracy.hpp>
 
 namespace jtx::detail {
 
@@ -86,5 +91,8 @@ private:
 #define PROFILE_LOCAL_LOG_TIME_MILLIS() timer##__LINE__.LogElapsedTimeMillis()
 #define PROFILE_LOCAL_LOG_TIME_SECONDS() timer##__LINE__.LogElapsedTimeSeconds()
 #define PROFILE_LOCAL_LOG_TIME() timer##__LINE__.LogElapsedTime()
+
+#define TPROFILE_SCOPE() ZoneScoped
+#define TPROFILE_FRAME_MARK() FrameMark
 
 #endif

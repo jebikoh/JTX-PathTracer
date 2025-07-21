@@ -1,5 +1,6 @@
 #include <image.hpp>
 #include <scene/scene_loader.hpp>
+#include <util/profiling.hpp>
 
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
@@ -12,6 +13,8 @@
 #include <unordered_set>
 
 JtxResult jtx::LoadScene(const std::filesystem::path &path, Scene &scene) {
+    TPROFILE_SCOPE();
+
     LOG_INFO(LOADER,"Loading scene: {}", path.string());
     auto fileExt = path.extension().string();
     std::ranges::transform(fileExt, fileExt.begin(), [](const unsigned char c) { return std::tolower(c); });
@@ -44,6 +47,7 @@ JtxResult jtx::LoadScene(const std::filesystem::path &path, Scene &scene) {
  *    so we just grab the first material ID per mesh and use that for all faces
  */
 JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &scene) {
+    TPROFILE_SCOPE();
     LOG_DEBUG(LOADER,"Loading OBJ file: {}", path.string());
     rapidobj::Result result = rapidobj::ParseFile(path.string(), rapidobj::MaterialLibrary::Default(rapidobj::Load::Optional));
     if (result.error) {
@@ -190,6 +194,7 @@ JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &sc
 }
 
 JtxResult jtx::detail::LoadGltf(const std::filesystem::path &path, jtx::Scene &scene) {
+    TPROFILE_SCOPE();
     LOG_ERROR(LOADER, "GLTF loading not implemented yet");
     return JTX_FAILURE;
 }
@@ -233,29 +238,11 @@ namespace {
         }
     }
 
-    // void FromJson(const Value &arr, vec2 &v) {
-    //     assert(arr.IsArray() && arr.Size() == 2);
-    //     v.x = arr[0].GetFloat();
-    //     v.y = arr[1].GetFloat();
-    // }
-    //
-    // void FromJson(const Value &arr, vec3 &v) {
-    //     assert(arr.IsArray() && arr.Size() == 3);
-    //     v.x = arr[0].GetFloat();
-    //     v.y = arr[1].GetFloat();
-    //     v.z = arr[2].GetFloat();
-    // }
-    //
-    // void FromJson(const Value &arr, vec3u &v) {
-    //     assert(arr.IsArray() && arr.Size() == 3);
-    //     v.x = arr[0].GetUint();
-    //     v.y = arr[1].GetUint();
-    //     v.z = arr[2].GetUint();
-    // }
 }
 }
 
 JtxResult jtx::detail::LoadJtx(const std::filesystem::path &path, Scene &scene) {
+    TPROFILE_SCOPE();
     LOG_DEBUG(LOADER,"Loading JTX file: {}", path.string());
 
     using namespace rapidjson;

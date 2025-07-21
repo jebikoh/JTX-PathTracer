@@ -81,10 +81,9 @@ private:
 
     const Scene *m_pScene = nullptr;
     OrbitCamera m_camera{
-        glm::vec3(5, 5, 5),
-        glm::vec3(0, 0.5, 0),
-        glm::vec3(0, 1, 0)
-    };
+            glm::vec3(5, 5, 5),
+            glm::vec3(0, 0.5, 0),
+            glm::vec3(0, 1, 0)};
     float nearClip = 0.01f;
     float farClip  = 10000.0f;
 
@@ -203,9 +202,12 @@ private:
 
     void RayTrace(RenderContext &ctx, const glm::vec4 &clearColor);
 
-    uint32_t m_rtSamplesPerFrame = 16;   // How many samples to evaluate per pixel per frame
-    uint32_t m_rtTargetSamples   = 4096; // How many samples to evaluate total per pixel
-    uint32_t m_rtCurrentSample   = 0;    // How many samples have been evaluated per pixel
+    uint32_t m_rtSamplesPerFrame = 16;    // How many samples to evaluate per pixel per frame
+    uint32_t m_rtTargetSamples   = 4096;  // How many samples to evaluate total per pixel
+    uint32_t m_rtCurrentSample   = 0;     // How many samples have been evaluated per pixel
+    float m_rtDirectClamping     = 0.0f;
+    float m_rtIndirectClamping   = 10.0f;
+    bool m_bResetAccumulation    = false; // General-purpose reset accumulation flag
 
     // == Cache ==
     struct Cache {

@@ -44,15 +44,13 @@ void VkEngine::Destroy() {
 
 void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region, const SceneUpdate &update) {
     // Reset frame count if ray tracing was just enabled
-    if (m_bRayTracingEnabled && !m_bRayTracingEnabledPreviousFrame) {
-        m_rtCurrentSample = 0;
-    }
+    m_bResetAccumulation |= (m_bRayTracingEnabled && !m_bRayTracingEnabledPreviousFrame);
     m_bRayTracingEnabledPreviousFrame = m_bRayTracingEnabled;
 
     if (m_camera.HasChanged()) {
         m_camera.Update();
 
-        m_rtCurrentSample = 0;
+        m_bResetAccumulation = true;
     }
 
     UpdateGlobalUniformData();
@@ -60,12 +58,15 @@ void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region, const SceneUpdate
     if (m_bSceneLoaded) {
         PopulateContext();
         if (UpdateScene(ctx, update)) {
-            m_rtCurrentSample = 0;
+            m_bResetAccumulation = true;
         }
         *m_frameData[ctx.frameIndex].gpuGlobalUniformDataMapping = m_gpuGlobalUniformData;
     }
 
-    // Update scene data UBO
+    if (m_bResetAccumulation) {
+        m_bResetAccumulation = false;
+        m_rtCurrentSample = 0;
+    }
 
     // Calculate viewport
     const VkRect2D renderArea{
@@ -276,12 +277,14 @@ void VkEngine::DrawSettingsPanel(UiDrawContext &ctx) {
             ctx.NewRow("Samples Per Pixel");
             int32_t spp = m_rtTargetSamples;
             if (ImGui::DragInt("##SamplesPerPixel", &spp)) {
+                m_bResetAccumulation = true;
                 m_rtTargetSamples = static_cast<uint32_t>(spp);
             }
 
             ctx.NewRow("Samples Per Frame");
             int32_t samplePerFrame = m_rtSamplesPerFrame;
             if (ImGui::DragInt("##SamplesPerFrame", &samplePerFrame, 1, 1, 32)) {
+                m_bResetAccumulation = true;
                 m_rtSamplesPerFrame = static_cast<uint32_t>(samplePerFrame);
             }
 
@@ -297,9 +300,21 @@ void VkEngine::DrawSettingsPanel(UiDrawContext &ctx) {
                 m_rtpp.tonemappingOp = selectedTmo;
                 m_rtpp.bSettingsChanged = true;
             }
+            ctx.EndTable();
+
+            if (ImGui::TreeNode("Clamping")) {
+                if (ctx.StartTable("Clamping")) {
+                    ctx.NewRow("Direct Lighting");
+                    m_bResetAccumulation |= ImGui::DragFloat("##DirectLighting", &m_rtDirectClamping, 0.1f, 0.0f, 100.0f);
+                    ctx.NewRow("Indirect Lighting");
+                    m_bResetAccumulation |= ImGui::DragFloat("##IndirectLighting", &m_rtIndirectClamping, 0.1f, 0.0f, 100.0f);
+                    ctx.EndTable();
+                }
+
+                ImGui::TreePop();
+            }
 
             if (!m_bRayTracingAvailable || !m_bRayTracingEnabled) ImGui::EndDisabled();
-            ctx.EndTable();
         }
         ImGui::TreePop();
     }
@@ -1331,10 +1346,12 @@ void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) {
         const uint32_t nSamples = std::min(m_rtTargetSamples - m_rtCurrentSample, m_rtSamplesPerFrame);
 
         RayTracingPushConstants rtpc{};
-        rtpc.invView       = glm::inverse(m_cache.view);
-        rtpc.invProj       = glm::inverse(m_cache.proj);
-        rtpc.currentSample = m_rtCurrentSample;
-        rtpc.nSamples      = nSamples;
+        rtpc.invView          = glm::inverse(m_cache.view);
+        rtpc.invProj          = glm::inverse(m_cache.proj);
+        rtpc.currentSample    = m_rtCurrentSample;
+        rtpc.nSamples         = nSamples;
+        rtpc.directClamping   = m_rtDirectClamping;
+        rtpc.indirectClamping = m_rtIndirectClamping;
 
         m_rtCurrentSample += nSamples;
 

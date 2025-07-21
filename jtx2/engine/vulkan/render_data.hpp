@@ -90,6 +90,8 @@ struct RayTracingPushConstants {
     glm::mat4 invView;
     uint32_t currentSample;
     uint32_t nSamples;
+    float directClamping;
+    float indirectClamping;
 };
 
 struct PostProcessingPushConstants {

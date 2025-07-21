@@ -10,6 +10,8 @@ struct PushConstant {
     matrix<float, 4, 4> invView;
     uint32_t currentSample;
     uint32_t nSamples;
+    float directClamping;
+    float indirectClamping;
 };
 [[vk::push_constant]] PushConstant pc;
 
@@ -53,6 +55,7 @@ void rayGenMain() {
     uint32_t stop  = pc.currentSample + pc.nSamples;
 
     bool bSampleHDRI = globalData.envmapType == 1 && globalData.envmapTexture >= 0;
+    bool bClampIndirect = pc.indirectClamping > 0.0;
 
     for (uint32_t s = start; s < stop; s++) {
         RNG rng = RNG(launchID.x, launchID.y, s);
@@ -86,6 +89,7 @@ void rayGenMain() {
             TraceRay(topLevelAS, RAY_FLAG_FORCE_OPAQUE, 0xFF, 0, 0, 0, ray, prd);
 
             if (prd.bMiss) {
+                float3 L;
                 if (bSampleHDRI) {
                     float3 r = ray.Direction;
                     float theta = acos(clamp(r.y, -1.0, 1.0)) + globalData.verticalOffset;
@@ -93,16 +97,24 @@ void rayGenMain() {
 
                     const float u = phi * INV_2_PI + 0.5f;
                     const float v = theta * INV_PI;
-
-                    radiance += beta * textures[globalData.envmapTexture].SampleLevel(float2(u, v), 0.0).rgb;
+                    L = beta * textures[globalData.envmapTexture].SampleLevel(float2(u, v), 0.0).rgb;
                 } else {
-                    radiance += beta * globalData.envmapColor * globalData.envmapIntensity;
+                    L = beta * globalData.envmapColor * globalData.envmapIntensity;
                 }
+                
+                if (depth > 0 && bClampIndirect) {
+                    L = min(L, pc.indirectClamping);
+                }
+                radiance += L;
 
                 break;
             }
 
-            radiance += beta * prd.emission;
+            float3 L = beta * prd.emission;
+            if (depth > 0 && bClampIndirect) {
+                L = min(L, pc.indirectClamping);
+            }
+            radiance += L;
 
             if (depth++ == 32) break;
 
@@ -116,7 +128,7 @@ void rayGenMain() {
             ray.Direction = prd.wi;
         }
 
-        accumulatedRadiance += clamp(radiance, 0, 10);
+        accumulatedRadiance += radiance;
     }
 
     float4 totalAccumulation = float4(accumulatedRadiance, 1.0);

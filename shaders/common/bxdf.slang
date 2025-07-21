@@ -336,7 +336,7 @@ public struct GlossyDiffuseBRDF : IBxDF {
         if (wm.x == 0 && wm.y == 0 && wm.z == 0) return float3(0, 0, 0);
         wm = normalize(wm);
 
-        float3 fd  = EvaluateDiffuse(wo, wi);
+        float3 fd = EvaluateDiffuse(wo, wi);
         float3 fs = EvaluateSpecular(wo, wi, wm);
 
         return fd + fs;

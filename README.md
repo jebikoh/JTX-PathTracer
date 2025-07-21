@@ -9,7 +9,12 @@ Currently implemented:
 - Unidirectional (backwards) Monte-Carlo Path Tracing
 - Multiple-Importance Sampling (MIS) with uniform light sampling
 - Russian Roulette
-- Diffuse, Dielectric, Conductor (Schlick), Complex Conductor BxDFs
+- Trowbridge-Reitz (GGX) microfacet distribution
+- BxDFS:
+  - Lambertian Diffuse
+  - Dielectric
+  - Conductor (Shlick or Complex Fresnel)
+  - Glossy Diffuse: Specular + Diffuse [[Ashikhmin 2002](https://www.researchgate.net/publication/2523875_An_anisotropic_phong_BRDF_model)] with GGX
 - HDRI Envmap sampling
 - Physically based camera
 - Post-processing: manual/camera-based exposure, tonemapping (ACES, AgX, Hable)
@@ -21,7 +26,6 @@ Currently implemented:
 - Custom scene descriptor `.jtx`
 
 Currently working on/researching:
- - Ashikhmin-Shirley BRDF: [An anisotrphic phong BRDF model](https://www.researchgate.net/publication/2523875_An_anisotropic_phong_BRDF_model)
  - Layered BSDFs: [Position-free monte carlo simulation for arbitrary layered BSDFs](https://dl.acm.org/doi/10.1145/3272127.3275053#supplementary-materials)
  - d'Eon Diffuse BRDF: [An analytic BRDF for materials with spherical Lambertian scatterers](https://research.nvidia.com/publication/2021-06_analytic-brdf-materials-spherical-lambertian-scatterers)
  - Multiple Scattering:

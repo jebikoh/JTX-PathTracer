@@ -9,7 +9,11 @@
 #include <jvk/util.hpp>
 #include <util/profiling.hpp>
 
+#ifdef NDEBUG
+constexpr bool JTX_USE_VALIDATION_LAYERS = false;
+#else
 constexpr bool JTX_USE_VALIDATION_LAYERS = true;
+#endif
 
 namespace jtx {
 

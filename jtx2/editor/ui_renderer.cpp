@@ -1,9 +1,9 @@
 #include <editor/editor.hpp>
 #include <editor/ui_renderer.hpp>
 
+#include <engine/cpu/bxdf/microfacet.hpp>
 #include <jvk/init.hpp>
 #include <util/profiling.hpp>
-#include <engine/cpu/bxdf/microfacet.hpp>
 
 #include <IconsLucide.h>
 #include <SDL3/SDL.h>
@@ -52,7 +52,6 @@ void UiDrawContext::EndRectangleBackground(const bool bApplyPadding) const {
             ImDrawFlags_RoundCornersAll);
     SetChannelForeground();
     if (bApplyPadding) ImGui::Dummy(ImVec2(0.0f, paddingY));
-
 }
 
 ImVec2 UiDrawContext::GetAvailWidth() const {
@@ -181,6 +180,11 @@ void UIRenderer::RegisterViewportBackend(const ViewportBackend id, const char *n
     m_viewportBackendNames[id]    = name;
 }
 
+void UIRenderer::RegisterRenderBackend(RenderBackend id, const char *name, const std::function<void(UiDrawContext &)> &settings) {
+    m_renderBackendSettings[id] = settings;
+    m_renderBackendNames[id]    = name;
+}
+
 void UIRenderer::LoadScene(Scene *scene) {
     this->m_pScene = scene;
 }
@@ -231,6 +235,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         // Draw menubar
         {
             if (ImGui::BeginMenuBar()) {
+                if (m_bRenderWindowOpen) ImGui::BeginDisabled();
                 if (ImGui::BeginMenu("File")) {
                     if (ImGui::MenuItem("Import")) {
                         m_importSceneCallback();
@@ -255,7 +260,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                     }
                     ImGui::EndMenu();
                 }
-
+                if (m_bRenderWindowOpen) ImGui::EndDisabled();
                 ImGui::EndMenuBar();
             }
         }
@@ -273,6 +278,8 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
         ImGui::End();
     }
+
+    if (m_bRenderWindowOpen) ImGui::BeginDisabled();
 
     // Hierarchy
     static int selectionIndex = 0;
@@ -309,10 +316,8 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
         // Backend table
         if (ctx.StartTable("BackendTable")) {
-            const char *renderBackends[]    = {"JTX"};
-            static int currentRenderBackend = 0;
             ctx.NewRow("Render Backend");
-            ImGui::Combo("##RenderBackend", &currentRenderBackend, renderBackends, IM_ARRAYSIZE(renderBackends));
+            ImGui::Combo("##RenderBackend", &m_currentRenderBackend, m_renderBackendNames, IM_ARRAYSIZE(m_renderBackendNames));
 
             ctx.NewRow("Viewport Backend");
             ImGui::Combo("##ViewportBackend", &m_currentViewportBackend, m_viewportBackendNames, IM_ARRAYSIZE(m_viewportBackendNames));
@@ -325,46 +330,8 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ImGui::ShowDemoWindow();
 #endif
 
-        // Sampling settings
-        if (ImGui::CollapsingHeader("Sampling")) {
-            static int xPixelSamples = 16;
-            static int yPixelSamples = 16;
-            static int maxDepth      = 32;
-
-            ctx.StartRectangleBackground();
-            if (ctx.StartTable("SamplingTable")) {
-                ctx.NewRow("SPP X");
-                ImGui::DragInt("##XSamples", &xPixelSamples, 1);
-
-                ctx.NewRow("SPP Y");
-                ImGui::DragInt("##YSamples", &yPixelSamples, 1);
-
-                ctx.NewRow("Max Depth");
-                ImGui::DragInt("##MaxDepth", &maxDepth, 1);
-                ctx.EndTable();
-            }
-            ctx.EndRectangleBackground();
-        }
-
-        if (ImGui::CollapsingHeader("Performance")) {
-            static int tileSize       = 32;
-            static int numThreads     = 32;
-            static int samplesPerPass = 1;
-
-            ctx.StartRectangleBackground();
-            if (ctx.StartTable("Performance")) {
-                ctx.NewRow("Tile Size");
-                ImGui::DragInt("##TileSize", &tileSize, 0);
-
-                ctx.NewRow("Thread Count");
-                ImGui::DragInt("##NumThreads", &numThreads, 0);
-
-                ctx.NewRow("Samples Per Pass");
-                ImGui::DragInt("##SamplesPerPass", &samplesPerPass, 0);
-
-                ctx.EndTable();
-            }
-            ctx.EndRectangleBackground();
+        if (ImGui::CollapsingHeader("Render")) {
+            m_renderBackendSettings[m_currentViewportBackend](ctx);
         }
 
         if (ImGui::CollapsingHeader("Viewport")) {
@@ -685,6 +652,8 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ctx.Destroy();
         ImGui::End();
     }
+
+    if (m_bRenderWindowOpen) ImGui::EndDisabled();
 
     ImGui::EndFrame();
 

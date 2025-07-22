@@ -43,6 +43,7 @@ private:
     UIRenderer m_ui;
     VkEngine m_vk;
 
+
     void ImportScene();
     void ExportScene() const;
 
@@ -53,6 +54,7 @@ private:
         RENDER
     } m_activeWindow = EDITOR;
     void RenderImage();
+    RenderSettings m_rs;
 };
 
 }// namespace jtx

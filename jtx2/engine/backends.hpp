@@ -7,20 +7,22 @@
 
 namespace jtx {
 
-constexpr uint32_t JTX_NUM_PT_BACKENDS = 1;
 enum RenderBackend {
-    JTX_RENDER_BACKEND_CPU = 0
+    JTX_RENDER_BACKEND_VULKAN = 0,
+    JTX_NUM_RENDER_BACKENDS
 };
 
-constexpr uint32_t JTX_NUM_VIEWPORT_BACKENDS = 1;
 enum ViewportBackend {
-    JTX_VIEWPORT_BACKEND_VULKAN = 0
+    JTX_VIEWPORT_BACKEND_VULKAN = 0,
+    JTX_NUM_VIEWPORT_BACKENDS
 };
 
 /**
  * Data specific to the rendering process
  */
 struct RenderSettings {
+    uint32_t width             = 1920;
+    uint32_t height            = 1080;
     uint32_t sppRow            = 16;
     uint32_t sppCol            = 16;
     uint32_t maxDepth          = 32;

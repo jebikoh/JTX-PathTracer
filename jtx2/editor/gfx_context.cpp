@@ -61,6 +61,7 @@ void GfxContext::InitWindow() {
 
 void GfxContext::InitVulkan() {
     TPROFILE_SCOPE();
+
     LOG_DEBUG(GFX, "Initializing vulkan");
 
     // Volk

@@ -33,9 +33,14 @@ void Editor::Init() {
               });
     m_vk.Init(m_gfx.bRayTracingSupported);
 
+    m_ui.RegisterRenderBackend(JTX_RENDER_BACKEND_VULKAN, "Vulkan",
+        [this](UiDrawContext &ctx) {
+                        m_vk.DrawRenderSettingsPanel(ctx);
+                    });
+
     m_ui.RegisterViewportBackend(JTX_VIEWPORT_BACKEND_VULKAN, "Vulkan",
                                  [this](UiDrawContext &ctx) {
-                                     m_vk.DrawSettingsPanel(ctx);
+                                     m_vk.DrawViewportSettingsPanel(ctx);
                                  });
 
     if (NFD_Init() != NFD_OKAY) {
@@ -124,7 +129,6 @@ void Editor::Run() {
                 if (e.type == SDL_EVENT_WINDOW_RESTORED) {
                     m_bStopRendering = false;
                 }
-
             }
 
             if (m_ui.ProcessEvent(e)) {

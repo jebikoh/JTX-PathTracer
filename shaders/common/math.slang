@@ -1,5 +1,21 @@
 module math;
 
+// Functions for cross-compiling to C++
+[ForceInline]
+public float Dot(float3 lhs, float3 rhs) {
+    return dot(lhs, rhs);
+}
+
+[ForceInline]
+public float3 Normalize(float3 v) {
+    return normalize(v);
+}
+
+[ForceInline]
+public float3 Cross(float3 lhs, float3 rhs) {
+    return cross(lhs, rhs);
+}
+
 [ForceInline]
 public float Pow5(float x) {
     float x2 = x * x;

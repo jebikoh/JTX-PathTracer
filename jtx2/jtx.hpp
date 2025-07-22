@@ -26,6 +26,8 @@ using vec3  = jtx::Vec3f;
 using vec3i = jtx::Vec3i;
 using vec3u = jtx::Vec3<uint32_t>;
 
+using float3 = jtx::Vec3f;
+
 using vec4  = jtx::Vec4f;
 using vec4i = jtx::Vec4i;
 using vec4u = jtx::Vec4<uint32_t>;

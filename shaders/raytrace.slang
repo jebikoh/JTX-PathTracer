@@ -1,9 +1,9 @@
 import common.data;
 import common.math;
-import common.bxdf;
 import common.random;
 import common.color;
 import common.constants;
+import common.bxdf;
 
 struct PushConstant {
     matrix<float, 4, 4> invProj;
@@ -173,32 +173,32 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
     matrix<float, 3, 3> frame = CreateONB(worldN);
     float3 wo = mul(prd.wi, transpose(frame));
 
-    Optional<BxDFSample> sample;
+    IBxDF bxdf;
     switch(mat.type) {
-        case 1: {
-            DielectricBSDF bsdf = DielectricBSDF(mat.ior.x, mat.roughness.xy);
-            sample = bsdf.Sample(wo, prd.s0, prd.s1);
-            break;
-        }
-        case 2: {
-            break;
-        }
-        case 3: {
-            ConductorBRDF brdf = ConductorBRDF(mat.f0.rgb, mat.roughness.xy);
-            sample = brdf.Sample(wo, prd.s0, prd.s1);
-            break;
-        }
-        case 4: {
-            ThinDielectricBSDF bsdf = ThinDielectricBSDF(mat.ior.x);
-            sample = bsdf.Sample(wo, prd.s0, prd.s1);
-            break;
-        }
-        case 5: {
-            float3 Rs = lerp(0, 0.08, mat.specularTint);
-            GlossyDiffuseBRDF brdf = GlossyDiffuseBRDF(mat.diffuse.rgb, Rs, mat.roughness.xy);
-            sample = brdf.Sample(wo, prd.s0, prd.s1);
-            break;
-        }
+        // case 1: {
+        //     DielectricBSDF bsdf = DielectricBSDF(mat.ior.x, mat.roughness.xy);
+        //     sample = bsdf.Sample(wo, prd.s0, prd.s1);
+        //     break;
+        // }
+        // case 2: {
+        //     break;
+        // }
+        // case 3: {
+        //     ConductorBRDF brdf = ConductorBRDF(mat.f0.rgb, mat.roughness.xy);
+        //     sample = brdf.Sample(wo, prd.s0, prd.s1);
+        //     break;
+        // }
+        // case 4: {
+        //     ThinDielectricBSDF bsdf = ThinDielectricBSDF(mat.ior.x);
+        //     sample = bsdf.Sample(wo, prd.s0, prd.s1);
+        //     break;
+        // }
+        // case 5: {
+        //     float3 Rs = lerp(0, 0.08, mat.specularTint);
+        //     GlossyDiffuseBRDF brdf = GlossyDiffuseBRDF(mat.diffuse.rgb, Rs, mat.roughness.xy);
+        //     sample = brdf.Sample(wo, prd.s0, prd.s1);
+        //     break;
+        // }
         default: {
             float3 diffuse;
             if (mat.diffuseTexture >= 0) {
@@ -212,17 +212,18 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
                 diffuse = mat.diffuse.rgb;
             }
 
-            DiffuseBRDF brdf = DiffuseBRDF(diffuse);
-            sample = brdf.Sample(wo, prd.s0, prd.s1);
+            bxdf = DiffuseBRDF(diffuse);
         }
     }
 
-    if (sample == none) {
-        prd.pdf = 0;
+    BxDFSample sample;
+    
+    if (bxdf.Sample(wo, prd.s0, prd.s1, sample)) {
+        prd.wi  = mul(sample.wi, frame);
+        prd.f   = sample.f;
+        prd.pdf = sample.pdf;
     } else {
-        prd.wi  = mul(sample.value.wi, frame);
-        prd.f   = sample.value.f;
-        prd.pdf = sample.value.pdf;
+        prd.pdf = 0;
     }
 }
 

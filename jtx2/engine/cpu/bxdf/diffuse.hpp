@@ -16,12 +16,12 @@ public:
         return m_R * INV_PI;
     }
 
-    bool Sample(const vec3 &wo, float s0, const vec2 &s1, BxDFSample &s) const {
+    bool Sample(const vec3 &wo, float s0, const vec2 &s1, BxDFSample &sample) const {
         vec3 wi = SampleCosineHemisphere(s1);
         if (wo.z < 0) { wi.z *= -1; }
-        s.pdf = CosineHemispherePDF(AbsCosTheta(wi));
-        s.f = m_R * INV_PI;
-        s.wi = wi;
+        sample.pdf = CosineHemispherePDF(AbsCosTheta(wi));
+        sample.f = m_R * INV_PI;
+        sample.wi = wi;
         return true;
     }
 

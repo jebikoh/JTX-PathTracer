@@ -76,7 +76,7 @@ public:
     void LoadHDRI();
 
     // Final render
-    void PrepareRender();
+    void PrepareRender(const RenderSettings &rs);
     void StartRender();
     void StopRender();
     void SaveRender();
@@ -207,22 +207,40 @@ private:
     void InitRayTracingResources();
     void DestroyRayTracingResources();
 
-    void RayTrace(RenderContext &ctx, const glm::vec4 &clearColor);
-
     // == Viewport ==
-    struct ViewportRenderSettings {
+    struct RtRenderSettings {
         uint32_t samplesPerFrame  = 16;
         uint32_t targetSamples    = 4096;
         float directClamping   = 0.0f;
         float indirectClamping = 10.0f;
         PostProcessSettings postProcessing{};
-    } m_vpSettings;
+    };
 
-    struct ViewportState {
+    struct RtRenderState {
         uint32_t currentSample           = 0;
         bool bResetAccumulation          = false;
         bool bPostProcessSettingsChanged = false;
-    } m_vpState;
+    };
+
+    struct RtRenderTargets {
+        VkImage accumulation;
+        VkImage output;
+        VkImageLayout accumulationLayout;
+        VkImageLayout outputLayout;
+    };
+
+    RtRenderSettings m_vpSettings;
+    RtRenderState m_vpState;
+
+    // Cached version of final render settings
+    RtRenderSettings m_renderSettings;
+    RtRenderState m_renderState;
+    struct RenderResources {
+        jvk::Image accumulationImage;
+        jvk::Image outputImage;
+    } m_renderResources;
+
+    void RayTrace(VkCommandBuffer cmd, const RtRenderSettings &settings, RtRenderState &state, RtRenderTargets &targets) const;
 
     // == Cache ==
     struct Cache {

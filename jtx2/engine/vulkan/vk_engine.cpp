@@ -88,7 +88,15 @@ void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region, const SceneUpdate
         region.src[1].width  = m_viewRectangle.w;
         region.src[1].height = m_viewRectangle.h;
         region.target        = kRenderTarget::DRAW32f;
-        RayTrace(ctx, glm::vec4(0.2f, 0.2f, 0.2f, 1.0f));
+
+        RtRenderTargets targets{};
+        targets.accumulation       = m_accumulationImage.image;
+        targets.accumulationLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        targets.output             = m_gfx.targets.draw32f.image;
+        targets.outputLayout       = ctx.layout.draw32f;
+
+        RayTrace(ctx.cmd, m_vpSettings, m_vpState, targets);
+        ctx.layout.draw32f = targets.outputLayout;
     } else {
         region.src[0] = region.dst[0];
         region.src[1] = region.dst[1];
@@ -287,15 +295,15 @@ void VkEngine::DrawViewportSettingsPanel(UiDrawContext &ctx) {
             int32_t spp = m_vpSettings.targetSamples;
             if (ImGui::DragInt("##SamplesPerPixel", &spp)) {
                 m_vpState.bResetAccumulation = true;
-                m_vpSettings.targetSamples = static_cast<uint32_t>(spp);
+                m_vpSettings.targetSamples   = static_cast<uint32_t>(spp);
             }
 
             ctx.NewRow("Samples Per Frame");
-            
+
             int32_t samplePerFrame = m_vpSettings.samplesPerFrame;
             if (ImGui::DragInt("##SamplesPerFrame", &samplePerFrame, 1, 1, 32)) {
                 m_vpState.bResetAccumulation = true;
-                m_vpSettings.samplesPerFrame  = static_cast<uint32_t>(samplePerFrame);
+                m_vpSettings.samplesPerFrame = static_cast<uint32_t>(samplePerFrame);
             }
             ctx.EndTable();
 
@@ -310,8 +318,8 @@ void VkEngine::DrawViewportSettingsPanel(UiDrawContext &ctx) {
                     static int selectedTmo = m_vpSettings.postProcessing.tonemappingOp;
                     ctx.NewRow("Tonemapping");
                     if (ImGui::Combo("##TMO", &selectedTmo, tmo, IM_ARRAYSIZE(tmo))) {
-                        m_vpSettings.postProcessing.tonemappingOp    = selectedTmo;
-                        m_vpState.bPostProcessSettingsChanged = true;
+                        m_vpSettings.postProcessing.tonemappingOp = selectedTmo;
+                        m_vpState.bPostProcessSettingsChanged     = true;
                     }
                     ctx.EndTable();
                 }
@@ -382,6 +390,74 @@ void VkEngine::LoadHDRI() {
         m_gpuSceneData.envmapIndex = -1;
         LOG_DEBUG(VKE, "No HDRI texture found");
     }
+}
+
+void VkEngine::PrepareRender(const RenderSettings &rs) {
+    m_renderSettings                  = {};
+    m_renderSettings.targetSamples    = rs.spp;
+    m_renderSettings.samplesPerFrame  = rs.samplesPerPass;
+    m_renderSettings.directClamping   = rs.directClamping;
+    m_renderSettings.indirectClamping = rs.indirectClamping;
+
+    m_renderSettings.postProcessing.exposureType  = rs.exposureMode;
+    m_renderSettings.postProcessing.EC            = rs.EC;
+    m_renderSettings.postProcessing.EV            = rs.EV;
+    m_renderSettings.postProcessing.tonemappingOp = rs.tonemapOp;
+
+    jvk::Image &accImage = m_renderResources.accumulationImage;
+    jvk::Image &outImage = m_renderResources.outputImage;
+
+    VkExtent3D extent{};
+    extent.width  = rs.width;
+    extent.height = rs.height;
+    extent.depth  = 1;
+
+    VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT;
+
+    VkImageUsageFlags usages{};
+    usages |= VK_IMAGE_USAGE_STORAGE_BIT;
+
+    // Accumulation image
+    VkImageCreateInfo imageInfo = jvk::init::Image(format, usages, extent);
+
+    VmaAllocationCreateInfo allocInfo{};
+    allocInfo.usage         = VMA_MEMORY_USAGE_GPU_ONLY;
+    allocInfo.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    vmaCreateImage(m_gfx.allocator, &imageInfo, &allocInfo, &accImage.image, &accImage.allocation, nullptr);
+
+    VkImageViewCreateInfo viewInfo = jvk::init::ImageView(format, accImage.image, VK_IMAGE_ASPECT_COLOR_BIT);
+    CHECK_VK(vkCreateImageView(m_gfx.ctx, &viewInfo, nullptr, &accImage.view));
+
+    // Output image
+    usages |= VK_IMAGE_USAGE_SAMPLED_BIT;     // Progressive render for UI
+    usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;// Saving to CPU buffer
+
+    imageInfo = jvk::init::Image(format, usages, extent);
+    vmaCreateImage(m_gfx.allocator, &imageInfo, &allocInfo, &outImage.image, &outImage.allocation, nullptr);
+
+    viewInfo = jvk::init::ImageView(format, outImage.image, VK_IMAGE_ASPECT_COLOR_BIT);
+    CHECK_VK(vkCreateImageView(m_gfx.ctx, &viewInfo, nullptr, &outImage.view));
+
+    // Write these images to the descriptor set
+    jvk::DescriptorWriter writer;
+    writer.WriteImage(1, accImage.view, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+    writer.WriteImage(2, outImage.view, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+    for (const auto &frame: m_frameData) {
+        writer.UpdateSet(m_gfx.ctx, frame.gpuGlobalUniformDataDescriptorSet);
+    }
+}
+
+void VkEngine::CleanupRender() {
+    // Revert changes to uniform data
+    jvk::DescriptorWriter writer;
+    writer.WriteImage(1, m_accumulationImage.view, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+    writer.WriteImage(2, m_gfx.targets.draw32f.view, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+    for (const auto &frame: m_frameData) {
+        writer.UpdateSet(m_gfx.ctx, frame.gpuGlobalUniformDataDescriptorSet);
+    }
+
+    m_gfx.DestroyImage(m_renderResources.accumulationImage);
+    m_gfx.DestroyImage(m_renderResources.outputImage);
 }
 
 void VkEngine::InitDescriptors() {
@@ -1367,37 +1443,38 @@ void VkEngine::DestroyRayTracingResources() {
     LOG_DEBUG(VKE, "RT resources destroyed");
 }
 
-void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) {
+void VkEngine::RayTrace(const VkCommandBuffer cmd, const RtRenderSettings &settings, RtRenderState &state, RtRenderTargets &targets) const {
     TPROFILE_SCOPE();
     if (!m_bSceneLoaded) return;
 
-    const bool bRayTrace            = m_vpState.currentSample < m_vpSettings.targetSamples;
-    const bool bApplyPostProcessing =m_vpState.bPostProcessSettingsChanged || bRayTrace;
+    const bool bRayTrace            = state.currentSample < settings.targetSamples;
+    const bool bApplyPostProcessing = state.bPostProcessSettingsChanged || bRayTrace;
 
     if (bApplyPostProcessing) {
-        jvk::TransitionImageIfNeeded(ctx.cmd, m_accumulationImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-        jvk::TransitionImageIfNeeded(ctx.cmd, m_gfx.targets.draw32f.image, ctx.layout.draw32f, VK_IMAGE_LAYOUT_GENERAL);
-        ctx.layout.draw32f = VK_IMAGE_LAYOUT_GENERAL;
+        jvk::TransitionImageIfNeeded(cmd, targets.accumulation, targets.accumulationLayout, VK_IMAGE_LAYOUT_GENERAL);
+        jvk::TransitionImageIfNeeded(cmd, m_gfx.targets.draw32f.image, targets.outputLayout, VK_IMAGE_LAYOUT_GENERAL);
+        targets.accumulationLayout = VK_IMAGE_LAYOUT_GENERAL;
+        targets.outputLayout       = VK_IMAGE_LAYOUT_GENERAL;
     }
 
     const auto sceneDescriptorSet = m_frameData[m_gfx.GetCurrentFrameIndex()].gpuGlobalUniformDataDescriptorSet;
     const std::vector descriptorSets{sceneDescriptorSet, m_bindlessDescriptorSet};
     if (bRayTrace) {
-        const uint32_t nSamples = std::min(m_vpSettings.targetSamples - m_vpState.currentSample, m_vpSettings.samplesPerFrame);
+        const uint32_t nSamples = std::min(settings.targetSamples - state.currentSample, settings.samplesPerFrame);
 
         RayTracingPushConstants rtpc{};
         rtpc.invView          = glm::inverse(m_cache.view);
         rtpc.invProj          = glm::inverse(m_cache.proj);
-        rtpc.currentSample    = m_vpState.currentSample;
+        rtpc.currentSample    = state.currentSample;
         rtpc.nSamples         = nSamples;
-        rtpc.directClamping   = m_vpSettings.directClamping;
-        rtpc.indirectClamping = m_vpSettings.indirectClamping;
+        rtpc.directClamping   = settings.directClamping;
+        rtpc.indirectClamping = settings.indirectClamping;
 
-        m_vpState.currentSample += nSamples;
+        state.currentSample += nSamples;
 
-        vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rayTracingPipeline.pipeline);
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_rayTracingPipeline.pipeline);
         vkCmdBindDescriptorSets(
-                ctx.cmd,
+                cmd,
                 VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
                 m_rayTracingPipeline.layout,
                 0,
@@ -1407,14 +1484,14 @@ void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) {
                 nullptr);
 
         vkCmdPushConstants(
-                ctx.cmd,
+                cmd,
                 m_rayTracingPipeline.layout,
                 VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_MISS_BIT_KHR,
                 0,
                 sizeof(RayTracingPushConstants),
                 &rtpc);
         vkCmdTraceRaysKHR(
-                ctx.cmd,
+                cmd,
                 &m_SBT.rayGenRegion,
                 &m_SBT.missRegion,
                 &m_SBT.hitRegion,
@@ -1442,30 +1519,30 @@ void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) {
         dependency.imageMemoryBarrierCount = 1;
         dependency.pImageMemoryBarriers    = &barrier;
 
-        vkCmdPipelineBarrier2KHR(ctx.cmd, &dependency);
+        vkCmdPipelineBarrier2KHR(cmd, &dependency);
     }
 
     // Post-processing only applied if RT pipeline was invoked or relevant settings changed
     if (bApplyPostProcessing) {
-        m_vpState.bPostProcessSettingsChanged = false;
+        state.bPostProcessSettingsChanged = false;
 
         PostProcessingPushConstants pppc;
-        pppc.exposure      = EV100ToExposure(m_vpSettings.postProcessing.EV - m_vpSettings.postProcessing.EC);
-        pppc.tonemappingOp = m_vpSettings.postProcessing.tonemappingOp;
-        pppc.nSamples      = m_vpState.currentSample;
+        pppc.exposure      = EV100ToExposure(settings.postProcessing.EV - settings.postProcessing.EC);
+        pppc.tonemappingOp = settings.postProcessing.tonemappingOp;
+        pppc.nSamples      = state.currentSample;
 
-        vkCmdPushConstants(ctx.cmd,
+        vkCmdPushConstants(cmd,
                            m_rtPostProcessingPipeline.layout,
                            VK_SHADER_STAGE_COMPUTE_BIT,
                            0,
                            sizeof(pppc),
                            &pppc);
 
-        vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_rtPostProcessingPipeline.pipeline);
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_rtPostProcessingPipeline.pipeline);
 
         // TODO: make a new descriptor set for compute
         vkCmdBindDescriptorSets(
-                ctx.cmd,
+                cmd,
                 VK_PIPELINE_BIND_POINT_COMPUTE,
                 m_rtPostProcessingPipeline.layout,
                 0,
@@ -1474,7 +1551,7 @@ void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) {
                 0,
                 nullptr);
 
-        vkCmdDispatch(ctx.cmd, std::ceil(m_viewRectangle.w / 8.0), std::ceil(m_viewRectangle.h / 8.0), 1);
+        vkCmdDispatch(cmd, std::ceil(m_viewRectangle.w / 8.0), std::ceil(m_viewRectangle.h / 8.0), 1);
     }
 }
 

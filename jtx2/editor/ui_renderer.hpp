@@ -50,8 +50,8 @@ private:
  */
 class UIRenderer {
 public:
-    explicit UIRenderer(const GfxContext &gfx)
-        : m_gfx(gfx) {}
+    explicit UIRenderer(const GfxContext &gfx, RenderSettings &rs)
+        : m_gfx(gfx), m_rs(rs) {}
 
     void Init(
         const std::function<void()> &importSceneCallback,
@@ -91,12 +91,13 @@ public:
     bool GetViewportRectangle(jvk::ViewRectangle &out) const;
 
     void RegisterViewportBackend(ViewportBackend id, const char *name, const std::function<void(UiDrawContext &)> &settings);
-    void RegisterRenderBackend(RenderBackend id, const char *name, const std::function<void(UiDrawContext &)> &settings);
+    void RegisterRenderBackend(RenderBackend id, const char *name);
 
     void LoadScene(Scene *scene);
 private:
     const GfxContext &m_gfx;
     VkDescriptorPool m_descriptorPool{};
+    RenderSettings &m_rs;
 
     Scene *m_pScene{};
     std::vector<std::string> objects{};
@@ -116,7 +117,6 @@ private:
     std::function<void(UiDrawContext &)> m_viewportBackendSettings[JTX_NUM_VIEWPORT_BACKENDS]{};
 
     const char *m_renderBackendNames[JTX_NUM_RENDER_BACKENDS]{};
-    std::function<void(UiDrawContext &)> m_renderBackendSettings[JTX_NUM_RENDER_BACKENDS]{};
 
     int m_currentRenderBackend   = 0;
     int m_currentViewportBackend = 0;

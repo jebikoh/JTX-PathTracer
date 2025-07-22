@@ -192,7 +192,7 @@ void BackendCPU::StartOfflineRender() {
             vec3 intensity   = vec3(acc) / fspp;
 
             float exposure = 1.0f;
-            switch (m_renderSettings.exposureType) {
+            switch (m_renderSettings.exposureMode) {
                 case EXPOSURE_MANUAL:
                     exposure = EV100ToExposure(m_renderSettings.EV);
                     break;

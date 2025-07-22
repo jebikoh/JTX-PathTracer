@@ -230,16 +230,6 @@ void VkEngine::SkipEvent() {
     m_camera.ResetInputState();
 }
 
-void VkEngine::DrawRenderSettingsPanel(UiDrawContext &ctx) {
-    TPROFILE_SCOPE();
-
-    ctx.StartRectangleBackground();
-
-    ImGui::Text("Render Settings");
-
-    ctx.EndRectangleBackground(true);
-}
-
 void VkEngine::DrawViewportSettingsPanel(UiDrawContext &ctx) {
     TPROFILE_SCOPE();
     ctx.StartRectangleBackground();
@@ -307,20 +297,27 @@ void VkEngine::DrawViewportSettingsPanel(UiDrawContext &ctx) {
                 m_vpState.bResetAccumulation = true;
                 m_vpSettings.samplesPerFrame  = static_cast<uint32_t>(samplePerFrame);
             }
-
-            ctx.NewRow("Exposure");
-            if (ImGui::InputFloat("##Exposure", &m_vpPostProcessSettings.EC, 1)) {
-                m_vpState.bPostProcessSettingsChanged = true;
-            }
-
-            const char *tmo[]      = {"None", "Reinhard", "ACES", "AgX", "Hable Filmic"};
-            static int selectedTmo = m_vpPostProcessSettings.tonemappingOp;
-            ctx.NewRow("Tonemapping");
-            if (ImGui::Combo("##TMO", &selectedTmo, tmo, IM_ARRAYSIZE(tmo))) {
-                m_vpPostProcessSettings.tonemappingOp    = selectedTmo;
-               m_vpState.bPostProcessSettingsChanged = true;
-            }
             ctx.EndTable();
+
+            if (ImGui::TreeNode("Post Processing")) {
+                if (ctx.StartTable("PostProcessingTable")) {
+                    ctx.NewRow("Exposure");
+                    if (ImGui::InputFloat("##Exposure", &m_vpSettings.postProcessing.EC, 1)) {
+                        m_vpState.bPostProcessSettingsChanged = true;
+                    }
+
+                    const char *tmo[]      = {"None", "Reinhard", "ACES", "AgX", "Hable Filmic"};
+                    static int selectedTmo = m_vpSettings.postProcessing.tonemappingOp;
+                    ctx.NewRow("Tonemapping");
+                    if (ImGui::Combo("##TMO", &selectedTmo, tmo, IM_ARRAYSIZE(tmo))) {
+                        m_vpSettings.postProcessing.tonemappingOp    = selectedTmo;
+                        m_vpState.bPostProcessSettingsChanged = true;
+                    }
+                    ctx.EndTable();
+                }
+
+                ImGui::TreePop();
+            }
 
             if (ImGui::TreeNode("Clamping")) {
                 if (ctx.StartTable("Clamping")) {
@@ -1453,8 +1450,8 @@ void VkEngine::RayTrace(RenderContext &ctx, const glm::vec4 &clearColor) {
         m_vpState.bPostProcessSettingsChanged = false;
 
         PostProcessingPushConstants pppc;
-        pppc.exposure      = EV100ToExposure(m_vpPostProcessSettings.EV - m_vpPostProcessSettings.EC);
-        pppc.tonemappingOp = m_vpPostProcessSettings.tonemappingOp;
+        pppc.exposure      = EV100ToExposure(m_vpSettings.postProcessing.EV - m_vpSettings.postProcessing.EC);
+        pppc.tonemappingOp = m_vpSettings.postProcessing.tonemappingOp;
         pppc.nSamples      = m_vpState.currentSample;
 
         vkCmdPushConstants(ctx.cmd,

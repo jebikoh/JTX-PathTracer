@@ -71,7 +71,6 @@ public:
 
     void LoadScene(const Scene *pScene);
 
-    void DrawRenderSettingsPanel(UiDrawContext &ctx);
     void DrawViewportSettingsPanel(UiDrawContext &ctx);
 
     void LoadHDRI();
@@ -82,6 +81,14 @@ public:
     void StopRender();
     void SaveRender();
     void CleanupRender();
+
+    struct PostProcessSettings {
+        kExposureType exposureType = kExposureType::EXPOSURE_MANUAL;
+        float EV                   = 0.0f;
+        float EC                   = 0.0f;
+        uint32_t tonemappingOp     = kTonemapOp::TMO_ACES;
+    };
+
 private:
     const GfxContext &m_gfx;
     jvk::ViewRectangle m_viewRectangle{};
@@ -152,12 +159,6 @@ private:
     void DestroyRTPostProcessingPipeline() const;
     jvk::Pipeline m_rtPostProcessingPipeline;
 
-    struct PostProcessSettings {
-        uint32_t tonemappingOp = kTonemapOp::TMO_ACES;
-        float EV               = 0.0f;
-        float EC               = 0.0f;
-    };
-
     // == Scene data ==
     // LoadScene is public
     void DestroyScene();
@@ -214,38 +215,14 @@ private:
         uint32_t targetSamples    = 4096;
         float directClamping   = 0.0f;
         float indirectClamping = 10.0f;
+        PostProcessSettings postProcessing{};
     } m_vpSettings;
-
-    PostProcessSettings m_vpPostProcessSettings;
 
     struct ViewportState {
         uint32_t currentSample           = 0;
         bool bResetAccumulation          = false;
         bool bPostProcessSettingsChanged = false;
     } m_vpState;
-
-    // == Render ==
-    struct RenderSettings {
-        uint32_t width             = 1920;
-        uint32_t height            = 1080;
-        uint32_t spp               = 4096;
-        uint32_t samplesPerPass    = 16;
-        uint32_t maxDepth          = 32;
-        uint32_t seed              = 419;
-        kExposureType exposureType = kExposureType::EXPOSURE_MANUAL;
-        float EV                   = 0.0f;
-        float EC                   = 0.0f;
-        kTonemapOp tonemapOp       = kTonemapOp::TMO_ACES;
-        float directClamping       = 0.0f;
-        float indirectClamping     = 10.0f;
-    } m_renderSettings;
-
-    PostProcessSettings m_renderPostProcessSettings;
-
-    struct RenderState {
-        uint32_t currentSample           = 0;
-        bool bPostProcessSettingsChanged = false;
-    } m_renderState;
 
     // == Cache ==
     struct Cache {

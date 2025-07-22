@@ -21,7 +21,7 @@ namespace jtx {
  */
 class Editor {
 public:
-    Editor() : m_gfx(), m_ui(m_gfx), m_vk(m_gfx) {};
+    Editor() : m_gfx(), m_ui(m_gfx, m_rs), m_vk(m_gfx) {};
 
     void Init();
     // Loads scene during initialization

@@ -180,8 +180,7 @@ void UIRenderer::RegisterViewportBackend(const ViewportBackend id, const char *n
     m_viewportBackendNames[id]    = name;
 }
 
-void UIRenderer::RegisterRenderBackend(RenderBackend id, const char *name, const std::function<void(UiDrawContext &)> &settings) {
-    m_renderBackendSettings[id] = settings;
+void UIRenderer::RegisterRenderBackend(RenderBackend id, const char *name) {
     m_renderBackendNames[id]    = name;
 }
 
@@ -331,7 +330,52 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 #endif
 
         if (ImGui::CollapsingHeader("Render")) {
-            m_renderBackendSettings[m_currentViewportBackend](ctx);
+            ctx.StartRectangleBackground();
+            if (ctx.StartTable("RenderSettingsTable")) {
+                ctx.NewRow("Render Width");
+                ImGui::DragInt("##RenderWidth", reinterpret_cast<int *>(&m_rs.width), 1, 1, 4096);
+                ctx.NewRow("Render Height");
+                ImGui::DragInt("##RenderHeight", reinterpret_cast<int *>(&m_rs.height), 1, 1, 4096);
+                ctx.NewRow("Samples Per Pixel");
+                ImGui::DragInt("##RSamplesPerPixel", reinterpret_cast<int *>(&m_rs.spp), 1, 1, 100000);
+                ctx.NewRow("Samples Per Pass");
+                ImGui::DragInt("##RSamplesPerPass", reinterpret_cast<int *>(&m_rs.samplesPerPass), 1, 1, 1080);
+                ctx.NewRow("Max Depth");
+                ImGui::DragInt("##MaxDepth", reinterpret_cast<int *>(&m_rs.maxDepth), 1, 1, 1080);
+                ctx.NewRow("RNG Seed");
+                ImGui::InputInt("##RNGSeed", reinterpret_cast<int *>(&m_rs.seed));
+
+                ctx.EndTable();
+
+                if (ImGui::TreeNode("Post Processing")) {
+                    if (ctx.StartTable("Post Processing")) {
+                        ctx.NewRow("Exposure");
+                        ImGui::InputFloat("##Exposure", &m_rs.EC, 1);
+
+                        const char *tmo[]      = {"None", "Reinhard", "ACES", "AgX", "Hable Filmic"};
+                        static int selectedTmo = m_rs.tonemapOp;
+                        ctx.NewRow("Tonemapping");
+                        if (ImGui::Combo("##TMO", &selectedTmo, tmo, IM_ARRAYSIZE(tmo))) {
+                            m_rs.tonemapOp    = static_cast<kTonemapOp>(selectedTmo);
+                        }
+                        ctx.EndTable();
+                    }
+                    ImGui::TreePop();
+                }
+
+                if (ImGui::TreeNode("Clamping")) {
+                    if (ctx.StartTable("Clamping")) {
+                        ctx.NewRow("Direct Lighting");
+                        ImGui::DragFloat("##DirectLighting", &m_rs.directClamping, 0.1f, 0.0f, 100.0f);
+                        ctx.NewRow("Indirect Lighting");
+                        ImGui::DragFloat("##IndirectLighting", &m_rs.indirectClamping, 0.1f, 0.0f, 100.0f);
+                        ctx.EndTable();
+                    }
+
+                    ImGui::TreePop();
+                }
+            }
+            ctx.EndRectangleBackground(true);
         }
 
         if (ImGui::CollapsingHeader("Viewport")) {

@@ -33,11 +33,7 @@ void Editor::Init() {
               });
     m_vk.Init(m_gfx.bRayTracingSupported);
 
-    m_ui.RegisterRenderBackend(JTX_RENDER_BACKEND_VULKAN, "Vulkan",
-        [this](UiDrawContext &ctx) {
-                        m_vk.DrawRenderSettingsPanel(ctx);
-                    });
-
+    m_ui.RegisterRenderBackend(JTX_RENDER_BACKEND_VULKAN, "Vulkan");
     m_ui.RegisterViewportBackend(JTX_VIEWPORT_BACKEND_VULKAN, "Vulkan",
                                  [this](UiDrawContext &ctx) {
                                      m_vk.DrawViewportSettingsPanel(ctx);

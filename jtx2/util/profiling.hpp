@@ -14,6 +14,7 @@
 #define PROFILE_LOCAL_LOG_TIME() do {} while(0)
 
 #define TPROFILE_SCOPE() do {} while(0)
+#define TPROFILE_SCOPE_N(__name) do {} while(0)
 #define TPROFILE_FRAME_MARK() do {} while(0)
 
 #else
@@ -93,6 +94,7 @@ private:
 #define PROFILE_LOCAL_LOG_TIME() timer##__LINE__.LogElapsedTime()
 
 #define TPROFILE_SCOPE() ZoneScoped
+#define TPROFILE_SCOPE_N(__name) ZoneScopedN(__name)
 #define TPROFILE_FRAME_MARK() FrameMark
 
 #endif

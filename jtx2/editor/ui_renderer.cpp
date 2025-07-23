@@ -86,14 +86,21 @@ void UiDrawContext::NewRow(const char *label) {
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 }
 
-void UIRenderer::Init(const std::function<void()> &importSceneCallback, const std::function<void()> &exportSceneCallback, const std::function<void()> &loadHDRICallback, const std::function<void()> &renderImageCallback) {
+void UIRenderer::Init(
+    const std::function<void()> &onImportSceneCallback,
+    const std::function<void()> &onExportSceneCallback,
+    const std::function<void()> &onLoadHDRICallback,
+    const std::function<void()> &onStartRenderImageCallback,
+    const std::function<void()> &onStopRenderImageCallback)
+{
     TPROFILE_SCOPE();
     LOG_INFO(UI, "Initializing UI renderer");
 
-    m_importSceneCallback = importSceneCallback;
-    m_exportSceneCallback = exportSceneCallback;
-    m_loadHDRICallback    = loadHDRICallback;
-    m_renderImageCallback = renderImageCallback;
+    m_onImportSceneCallback = onImportSceneCallback;
+    m_onExportSceneCallback = onExportSceneCallback;
+    m_onLoadHDRICallback    = onLoadHDRICallback;
+    m_onStartRenderImageCallback = onStartRenderImageCallback;
+    m_onStopRenderImageCallback = onStopRenderImageCallback;
 
     constexpr VkDescriptorPoolSize poolSizes[] =
             {
@@ -234,22 +241,24 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         // Draw menubar
         {
             if (ImGui::BeginMenuBar()) {
-                if (m_bRenderWindowOpen) ImGui::BeginDisabled();
+                // if (m_bRenderWindowOpen) ImGui::BeginDisabled();
                 if (ImGui::BeginMenu("File")) {
                     if (ImGui::MenuItem("Import")) {
-                        m_importSceneCallback();
+                        m_onImportSceneCallback();
                     }
                     if (ImGui::MenuItem("Export")) {
-                        m_exportSceneCallback();
+                        m_onExportSceneCallback();
                     }
                     ImGui::EndMenu();
                 }
 
                 if (ImGui::BeginMenu("Edit")) {
+                    if (m_pScene == nullptr) ImGui::BeginDisabled();
                     if (ImGui::MenuItem("Render Image")) {
-                        m_renderImageCallback();
+                        m_onStartRenderImageCallback();
                         m_bRenderWindowOpen = true;
                     }
+                    if (m_pScene == nullptr) ImGui::EndDisabled();
                     ImGui::EndMenu();
                 }
 
@@ -259,7 +268,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                     }
                     ImGui::EndMenu();
                 }
-                if (m_bRenderWindowOpen) ImGui::EndDisabled();
+                // if (m_bRenderWindowOpen) ImGui::EndDisabled();
                 ImGui::EndMenuBar();
             }
         }
@@ -274,11 +283,16 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ImGui::Begin("JTX Render", &m_bRenderWindowOpen);
 
         ImGui::Text("Rendering...");
+        ImGui::Image(m_renderImage, {static_cast<float>(m_rs.width), static_cast<float>(m_rs.height)});
 
         ImGui::End();
+
+        if (!m_bRenderWindowOpen) {
+            m_onStopRenderImageCallback();
+        }
     }
 
-    if (m_bRenderWindowOpen) ImGui::BeginDisabled();
+    // if (m_bRenderWindowOpen) ImGui::BeginDisabled();
 
     // Hierarchy
     static int selectionIndex = 0;
@@ -434,7 +448,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                     ctx.NewRow("");
                     if (ImGui::Button("Select Image", ctx.GetAvailWidth())) {
                         bReset = true;
-                        m_loadHDRICallback();
+                        m_onLoadHDRICallback();
                     }
 
                     ctx.NewRow("Map");
@@ -697,7 +711,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ImGui::End();
     }
 
-    if (m_bRenderWindowOpen) ImGui::EndDisabled();
+    // if (m_bRenderWindowOpen) ImGui::EndDisabled();
 
     ImGui::EndFrame();
 
@@ -708,19 +722,6 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ImGui::UpdatePlatformWindows();
         ImGui::RenderPlatformWindowsDefault();
     }
-}
-
-void UIRenderer::NewFrameRender() const {
-    TPROFILE_SCOPE();
-    ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplSDL3_NewFrame();
-    ImGui::NewFrame();
-
-    ImGui::Begin("Test");
-    ImGui::Button("TESTBUTTON");
-    ImGui::End();
-
-    ImGui::Render();
 }
 
 bool UIRenderer::ProcessEvent(const SDL_Event &event) const {

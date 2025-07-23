@@ -39,10 +39,11 @@ private:
     jtx::Scene m_scene;
     bool m_bSceneLoaded = false;
 
+    ResolveRegion m_region;
+
     GfxContext m_gfx;
     UIRenderer m_ui;
     VkEngine m_vk;
-
 
     void ImportScene();
     void ExportScene() const;
@@ -53,8 +54,11 @@ private:
         EDITOR,
         RENDER
     } m_activeWindow = EDITOR;
-    void RenderImage();
     RenderSettings m_rs;
+
+    void StartRenderImage();
+    void StopRenderImage();
+    bool m_bDestroyRenderResources = false;
 };
 
 }// namespace jtx

@@ -9,12 +9,6 @@
 #include <jvk/util.hpp>
 #include <util/profiling.hpp>
 
-#ifdef NDEBUG
-constexpr bool JTX_USE_VALIDATION_LAYERS = false;
-#else
-constexpr bool JTX_USE_VALIDATION_LAYERS = true;
-#endif
-
 namespace jtx {
 
 #pragma region Initialization
@@ -74,8 +68,10 @@ void GfxContext::InitVulkan() {
     vkb::InstanceBuilder instanceBuilder;
     const auto vkbInstanceResult = instanceBuilder
                                            .set_app_name("JTX")
-                                           .request_validation_layers(JTX_USE_VALIDATION_LAYERS)
+#ifndef NDEBUG
+                                           .request_validation_layers(true)
                                            .use_default_debug_messenger()
+#endif
                                            .require_api_version(1, 2, 0)
                                            .build();
     if (!vkbInstanceResult) {
@@ -250,7 +246,7 @@ void GfxContext::InitRenderTargets() {
     // Right now, the draw images are initialized to the maximum screen size
     // Lets adjust this later to save some memory and have it resized dynamically
     SDL_DisplayID displayId = SDL_GetDisplayForWindow(window.pWindow);
-    const auto dm = SDL_GetCurrentDisplayMode(displayId);
+    const auto dm           = SDL_GetCurrentDisplayMode(displayId);
     if (dm == nullptr) {
         LOG_FATAL(GFX, "SDL error while retrieving display mode: {}", SDL_GetError());
     }
@@ -284,7 +280,7 @@ void GfxContext::InitRenderTargets() {
         drawImageUsages |= VK_IMAGE_USAGE_STORAGE_BIT;
         targets.draw32f.format = VK_FORMAT_R32G32B32A32_SFLOAT;
         targets.draw32f.extent = drawExtent;
-        drawImageInfo  = jvk::init::Image(targets.draw32f.format, drawImageUsages, targets.draw32f.extent);
+        drawImageInfo          = jvk::init::Image(targets.draw32f.format, drawImageUsages, targets.draw32f.extent);
 
         vmaCreateImage(allocator, &drawImageInfo, &drawImageAllocInfo, &targets.draw32f.image, &targets.draw32f.allocation, nullptr);
 
@@ -590,7 +586,7 @@ void GfxContext::CreateExternalWindow(const VkExtent2D extent, Window &out) cons
     TPROFILE_SCOPE();
     SDL_Init(SDL_INIT_VIDEO);
     constexpr auto windowFlags = static_cast<SDL_WindowFlags>(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
-    out.pWindow             = SDL_CreateWindow(
+    out.pWindow                = SDL_CreateWindow(
             "JTX Render",
             static_cast<int>(extent.width),
             static_cast<int>(extent.height),
@@ -607,7 +603,7 @@ void GfxContext::CreateExternalWindow(const VkExtent2D extent, Window &out) cons
     out.swapchain.Init(ctx, out.surface, w, h);
     const uint32_t count = out.swapchain.GetSwapchainImageCount();
     out.semaphores.resize(count);
-    for (auto &sem : out.semaphores) {
+    for (auto &sem: out.semaphores) {
         sem.Init(ctx);
     }
 }
@@ -615,7 +611,7 @@ void GfxContext::CreateExternalWindow(const VkExtent2D extent, Window &out) cons
 void GfxContext::DestroyExternalWindow(Window &in) const {
     TPROFILE_SCOPE();
     vkDeviceWaitIdle(ctx);
-    for (auto &sem : in.semaphores) {
+    for (auto &sem: in.semaphores) {
         sem.Destroy();
     }
     in.swapchain.Destroy(ctx);
@@ -651,19 +647,30 @@ void GfxContext::ResizeSwapchain() {
 std::optional<RenderContext> GfxContext::StartFrame() {
     TPROFILE_SCOPE();
     const uint32_t frameIndex = GetCurrentFrameIndex();
-    const auto &frame          = frameData[frameIndex];
-    CHECK_VK(frame.drawFence.Wait());
-    CHECK_VK(frame.drawFence.Reset());
-
-    uint32_t swapchainIndex;
-    if (const VkResult e = window.swapchain.AcquireNextImage(ctx, frame.imageAvailableSemaphore, &swapchainIndex); e == VK_ERROR_OUT_OF_DATE_KHR || e == VK_SUBOPTIMAL_KHR) {
-        window.bSwapchainOutOfDate = true;
-        return {};
+    const auto &frame         = frameData[frameIndex];
+    {
+        TPROFILE_SCOPE_N("Wait Draw Fence");
+        CHECK_VK(frame.drawFence.Wait());
+        CHECK_VK(frame.drawFence.Reset());
     }
 
-    CHECK_VK(frame.cmdBuffer.Reset());
 
-    CHECK_VK(frame.cmdBuffer.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT));
+    uint32_t swapchainIndex;
+    {
+        TPROFILE_SCOPE_N("Acquire Next Image");
+        if (const VkResult e = window.swapchain.AcquireNextImage(ctx, frame.imageAvailableSemaphore, &swapchainIndex); e == VK_ERROR_OUT_OF_DATE_KHR || e == VK_SUBOPTIMAL_KHR) {
+            window.bSwapchainOutOfDate = true;
+            return {};
+        }
+    }
+
+
+    {
+        TPROFILE_SCOPE_N("Reset buffer & begin");
+        CHECK_VK(frame.cmdBuffer.Reset());
+        CHECK_VK(frame.cmdBuffer.Begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT));
+    }
+
 
     return RenderContext{
             .cmd            = frame.cmdBuffer,
@@ -672,9 +679,8 @@ std::optional<RenderContext> GfxContext::StartFrame() {
             .swapchain      = {
                          .image  = window.swapchain.images[swapchainIndex],
                          .view   = window.swapchain.views[swapchainIndex],
-                         .extent = window.swapchain.extent
-            },
-            .layout  = {
+                         .extent = window.swapchain.extent},
+            .layout = {
                     .swapchain    = VK_IMAGE_LAYOUT_UNDEFINED,
                     .draw16f      = VK_IMAGE_LAYOUT_UNDEFINED,
                     .draw32f      = VK_IMAGE_LAYOUT_UNDEFINED,

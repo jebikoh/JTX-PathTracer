@@ -7,6 +7,7 @@
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
+#include <backends/imgui_impl_vulkan.h>
 #include <engine/vulkan/accel.hpp>
 
 #include <glm/gtx/transform.hpp>
@@ -45,7 +46,7 @@ void VkEngine::Destroy() {
     LOG_INFO(VKE, "Vulkan engine destroyed");
 }
 
-void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region, const SceneUpdate &update) {
+void VkEngine::RenderViewport(RenderContext &ctx, ResolveRegion &region, const SceneUpdate &update) {
     TPROFILE_SCOPE();
     // Reset frame count if ray tracing was just enabled
     m_vpState.bResetAccumulation |= (m_bRayTracingEnabled && !m_bRayTracingEnabledPreviousFrame);
@@ -94,6 +95,11 @@ void VkEngine::Draw(RenderContext &ctx, ResolveRegion &region, const SceneUpdate
         targets.accumulationLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         targets.output             = m_gfx.targets.draw32f.image;
         targets.outputLayout       = ctx.layout.draw32f;
+
+        m_vpState.invView = glm::inverse(m_cache.view);
+        m_vpState.invProj = glm::inverse(m_cache.proj);
+        m_vpState.width   = m_viewRectangle.w;
+        m_vpState.height  = m_viewRectangle.h;
 
         RayTrace(ctx.cmd, m_vpSettings, m_vpState, targets);
         ctx.layout.draw32f = targets.outputLayout;
@@ -276,9 +282,9 @@ void VkEngine::DrawViewportSettingsPanel(UiDrawContext &ctx) {
             ctx.NewRow("Draw grid");
             ImGui::Checkbox("##Grid", &m_bDrawGrid);
             ctx.NewRow("Near Clip");
-            ImGui::DragFloat("##NearClip", &nearClip, 0.01f, 0.001f, 100.0f);
+            ImGui::DragFloat("##NearClip", &m_nearClip, 0.01f, 0.001f, 100.0f);
             ctx.NewRow("Far Clip");
-            ImGui::DragFloat("##FarClip", &farClip, 1.0f, 1.0f, 1000000.0f);
+            ImGui::DragFloat("##FarClip", &m_farClip, 1.0f, 1.0f, 1000000.0f);
             ctx.EndTable();
         }
         ImGui::TreePop();
@@ -392,7 +398,11 @@ void VkEngine::LoadHDRI() {
     }
 }
 
-void VkEngine::PrepareRender(const RenderSettings &rs) {
+VkDescriptorSet VkEngine::InitRenderResources(const RenderSettings &rs) {
+    TPROFILE_SCOPE();
+    // TODO: just give this its own descriptor set
+    m_gfx.WaitIdle();
+
     m_renderSettings                  = {};
     m_renderSettings.targetSamples    = rs.spp;
     m_renderSettings.samplesPerFrame  = rs.samplesPerPass;
@@ -403,6 +413,22 @@ void VkEngine::PrepareRender(const RenderSettings &rs) {
     m_renderSettings.postProcessing.EC            = rs.EC;
     m_renderSettings.postProcessing.EV            = rs.EV;
     m_renderSettings.postProcessing.tonemappingOp = rs.tonemapOp;
+
+    m_renderState = {};
+
+    // TODO: cursed...change when GPU implements full thin lens model
+    auto &cam = m_pScene->camera;
+    glm::vec3 pos = {cam.position.x, cam.position.y, cam.position.z};
+    glm::vec3 tgt = {cam.target.x, cam.target.y, cam.target.z};
+    glm::vec3 up  = {cam.up.x, cam.up.y, cam.up.z};
+    OrbitCamera ocam{pos, tgt, up};
+
+    float aspectRatio     = static_cast<float>(rs.width) / static_cast<float>(rs.height);
+    m_renderState.invProj = glm::inverse(m_camera.GetProjectionMatrix(aspectRatio, m_nearClip, m_farClip));
+    m_renderState.invView = glm::inverse(m_camera.GetViewMatrix());
+
+    m_renderState.width = rs.width;
+    m_renderState.height = rs.height;
 
     jvk::Image &accImage = m_renderResources.accumulationImage;
     jvk::Image &outImage = m_renderResources.outputImage;
@@ -445,9 +471,35 @@ void VkEngine::PrepareRender(const RenderSettings &rs) {
     for (const auto &frame: m_frameData) {
         writer.UpdateSet(m_gfx.ctx, frame.gpuGlobalUniformDataDescriptorSet);
     }
+
+    // UI texture descriptor set
+    m_renderResources.outputDescriptorSet = ImGui_ImplVulkan_AddTexture(m_gfx.defaultSamplers.linear, outImage.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    return m_renderResources.outputDescriptorSet;
 }
 
-void VkEngine::CleanupRender() {
+void VkEngine::AdvanceRender(const VkCommandBuffer cmd) {
+    TPROFILE_SCOPE();
+
+    jvk::TransitionImage(cmd, m_renderResources.outputImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    // RtRenderTargets targets{};
+    // targets.accumulation       = m_renderResources.accumulationImage.image;
+    // targets.accumulationLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    // targets.output             = m_renderResources.outputImage.image;
+    // targets.outputLayout       = VK_IMAGE_LAYOUT_UNDEFINED;
+    //
+    // RayTrace(cmd, m_renderSettings, m_renderState, targets);
+}
+
+void VkEngine::DestroyRenderResources() {
+    TPROFILE_SCOPE();
+    LOG_DEBUG(VKE, "Destroying render resources");
+
+    // TODO: remove this
+    m_gfx.WaitIdle();
+
+    ImGui_ImplVulkan_RemoveTexture(m_renderResources.outputDescriptorSet);
+
     // Revert changes to uniform data
     jvk::DescriptorWriter writer;
     writer.WriteImage(1, m_accumulationImage.view, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_GENERAL, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
@@ -458,6 +510,8 @@ void VkEngine::CleanupRender() {
 
     m_gfx.DestroyImage(m_renderResources.accumulationImage);
     m_gfx.DestroyImage(m_renderResources.outputImage);
+
+    LOG_DEBUG(VKE, "Render resources destroyed");
 }
 
 void VkEngine::InitDescriptors() {
@@ -552,7 +606,7 @@ void VkEngine::UpdateGlobalUniformData() {
     }
 
     m_cache.view = m_camera.GetViewMatrix();
-    m_cache.proj = m_camera.GetProjectionMatrix(aspectRatio, nearClip, farClip);
+    m_cache.proj = m_camera.GetProjectionMatrix(aspectRatio, m_nearClip, m_farClip);
     m_cache.proj[1][1] *= -1;
 
     m_gpuGlobalUniformData.viewProj       = m_cache.proj * m_cache.view;
@@ -1445,6 +1499,7 @@ void VkEngine::DestroyRayTracingResources() {
 
 void VkEngine::RayTrace(const VkCommandBuffer cmd, const RtRenderSettings &settings, RtRenderState &state, RtRenderTargets &targets) const {
     TPROFILE_SCOPE();
+
     if (!m_bSceneLoaded) return;
 
     const bool bRayTrace            = state.currentSample < settings.targetSamples;
@@ -1452,7 +1507,7 @@ void VkEngine::RayTrace(const VkCommandBuffer cmd, const RtRenderSettings &setti
 
     if (bApplyPostProcessing) {
         jvk::TransitionImageIfNeeded(cmd, targets.accumulation, targets.accumulationLayout, VK_IMAGE_LAYOUT_GENERAL);
-        jvk::TransitionImageIfNeeded(cmd, m_gfx.targets.draw32f.image, targets.outputLayout, VK_IMAGE_LAYOUT_GENERAL);
+        jvk::TransitionImageIfNeeded(cmd, targets.output, targets.outputLayout, VK_IMAGE_LAYOUT_GENERAL);
         targets.accumulationLayout = VK_IMAGE_LAYOUT_GENERAL;
         targets.outputLayout       = VK_IMAGE_LAYOUT_GENERAL;
     }
@@ -1463,8 +1518,8 @@ void VkEngine::RayTrace(const VkCommandBuffer cmd, const RtRenderSettings &setti
         const uint32_t nSamples = std::min(settings.targetSamples - state.currentSample, settings.samplesPerFrame);
 
         RayTracingPushConstants rtpc{};
-        rtpc.invView          = glm::inverse(m_cache.view);
-        rtpc.invProj          = glm::inverse(m_cache.proj);
+        rtpc.invView          = state.invView;
+        rtpc.invProj          = state.invProj;
         rtpc.currentSample    = state.currentSample;
         rtpc.nSamples         = nSamples;
         rtpc.directClamping   = settings.directClamping;
@@ -1496,8 +1551,8 @@ void VkEngine::RayTrace(const VkCommandBuffer cmd, const RtRenderSettings &setti
                 &m_SBT.missRegion,
                 &m_SBT.hitRegion,
                 &m_SBT.callableRegion,
-                m_viewRectangle.w,
-                m_viewRectangle.h,
+                state.width,
+                state.height,
                 1);
 
         // The RT shaders output the HDR color to the fp32 draw image.
@@ -1551,7 +1606,7 @@ void VkEngine::RayTrace(const VkCommandBuffer cmd, const RtRenderSettings &setti
                 0,
                 nullptr);
 
-        vkCmdDispatch(cmd, std::ceil(m_viewRectangle.w / 8.0), std::ceil(m_viewRectangle.h / 8.0), 1);
+        vkCmdDispatch(cmd, std::ceil(state.width / 8.0), std::ceil(state.height / 8.0), 1);
     }
 }
 

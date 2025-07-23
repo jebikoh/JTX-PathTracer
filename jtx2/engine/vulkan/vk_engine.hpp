@@ -4,7 +4,6 @@
 
 
 #include <jvk/buffer.hpp>
-#include <jvk/context.hpp>
 #include <jvk/descriptor.hpp>
 #include <jvk/jvk.hpp>
 #include <jvk/pipeline.hpp>
@@ -61,7 +60,7 @@ public:
 
     void Destroy();
 
-    void Draw(RenderContext &ctx, ResolveRegion &region, const SceneUpdate &update);
+    void RenderViewport(RenderContext &ctx, ResolveRegion &region, const SceneUpdate &update);
 
     void ProcessEvent(const SDL_Event &event);
 
@@ -76,11 +75,10 @@ public:
     void LoadHDRI();
 
     // Final render
-    void PrepareRender(const RenderSettings &rs);
-    void StartRender();
-    void StopRender();
-    void SaveRender();
-    void CleanupRender();
+    VkDescriptorSet InitRenderResources(const RenderSettings &rs);
+    void AdvanceRender(VkCommandBuffer cmd);
+    void SaveRenderImage();
+    void DestroyRenderResources();
 
     struct PostProcessSettings {
         kExposureType exposureType = kExposureType::EXPOSURE_MANUAL;
@@ -98,8 +96,8 @@ private:
             glm::vec3(5, 5, 5),
             glm::vec3(0, 0.5, 0),
             glm::vec3(0, 1, 0)};
-    float nearClip = 0.01f;
-    float farClip  = 10000.0f;
+    float m_nearClip = 0.01f;
+    float m_farClip  = 10000.0f;
 
     // == State ==
     bool m_bSceneLoaded                    = false;
@@ -220,6 +218,10 @@ private:
         uint32_t currentSample           = 0;
         bool bResetAccumulation          = false;
         bool bPostProcessSettingsChanged = false;
+        glm::mat4 invView;
+        glm::mat4 invProj;
+        uint32_t width;
+        uint32_t height;
     };
 
     struct RtRenderTargets {
@@ -238,6 +240,7 @@ private:
     struct RenderResources {
         jvk::Image accumulationImage;
         jvk::Image outputImage;
+        VkDescriptorSet outputDescriptorSet;
     } m_renderResources;
 
     void RayTrace(VkCommandBuffer cmd, const RtRenderSettings &settings, RtRenderState &state, RtRenderTargets &targets) const;

@@ -54,10 +54,11 @@ public:
         : m_gfx(gfx), m_rs(rs) {}
 
     void Init(
-        const std::function<void()> &importSceneCallback,
-        const std::function<void()> &exportSceneCallback,
-        const std::function<void()> &loadHDRICallback,
-        const std::function<void()> &renderImageCallback);
+        const std::function<void()> &onImportSceneCallback,
+        const std::function<void()> &onExportSceneCallback,
+        const std::function<void()> &onLoadHDRICallback,
+        const std::function<void()> &onStartRenderImageCallback,
+        const std::function<void()> &onStopRenderImageCallback);
     void Destroy() const;
 
     /**
@@ -94,10 +95,13 @@ public:
     void RegisterRenderBackend(RenderBackend id, const char *name);
 
     void LoadScene(Scene *scene);
+
+    void RegisterRenderImage(const VkDescriptorSet renderImage) { m_renderImage = renderImage; }
 private:
     const GfxContext &m_gfx;
     VkDescriptorPool m_descriptorPool{};
     RenderSettings &m_rs;
+    VkDescriptorSet m_renderImage = VK_NULL_HANDLE;
 
     Scene *m_pScene{};
     std::vector<std::string> objects{};
@@ -121,10 +125,11 @@ private:
     int m_currentRenderBackend   = 0;
     int m_currentViewportBackend = 0;
 
-    std::function<void()> m_importSceneCallback;
-    std::function<void()> m_exportSceneCallback;
-    std::function<void()> m_loadHDRICallback;
-    std::function<void()> m_renderImageCallback;
+    std::function<void()> m_onImportSceneCallback;
+    std::function<void()> m_onExportSceneCallback;
+    std::function<void()> m_onLoadHDRICallback;
+    std::function<void()> m_onStartRenderImageCallback;
+    std::function<void()> m_onStopRenderImageCallback;
     bool m_bRenderWindowOpen = false;
 };
 

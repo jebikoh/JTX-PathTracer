@@ -29,7 +29,10 @@ void Editor::Init() {
                   LoadHDRI();
               },
               [this] {
-                  RenderImage();
+                  StartRenderImage();
+              },
+              [this] {
+                  StopRenderImage();
               });
     m_vk.Init(m_gfx.bRayTracingSupported);
 
@@ -89,9 +92,18 @@ void Editor::Draw() {
     if (m_ui.GetViewportRectangle(rect) && rect.Area() > 0) {
         m_vk.SetViewportRectangle(rect);
 
-        ResolveRegion region;
-        m_vk.Draw(ctx, region, update);
-        m_gfx.ResolveToSwapchain(ctx, region);
+        // A bit of a cursed solution until I can figure out how to force
+        // ImGui's Vulkan/SDL2 backend to let me make a new context for a separate
+        // window instead of the multi-viewport approach. That way, I can just
+        // update the new swapchain and avoid frame time updating the editor window
+        if (m_activeWindow == kActiveWindow::EDITOR) {
+            m_vk.RenderViewport(ctx, m_region, update);
+        }
+        m_gfx.ResolveToSwapchain(ctx, m_region);
+    }
+
+    if (m_activeWindow == kActiveWindow::RENDER) {
+        m_vk.AdvanceRender(ctx.cmd);
     }
 
     m_ui.Draw(ctx);
@@ -137,6 +149,12 @@ void Editor::Run() {
         if (m_bStopRendering) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             continue;
+        }
+
+        // Read comment in StopRenderImage for why this is here
+        if (m_bDestroyRenderResources) {
+            m_vk.DestroyRenderResources();
+            m_bDestroyRenderResources = false;
         }
 
         m_gfx.ResizeSwapchain();
@@ -235,10 +253,23 @@ void Editor::LoadHDRI() {
     }
 }
 
-void Editor::RenderImage() {
+void Editor::StartRenderImage() {
     TPROFILE_SCOPE();
 
     m_activeWindow = RENDER;
+    const auto ds  = m_vk.InitRenderResources(m_rs);
+    m_ui.RegisterRenderImage(ds);
 }
+
+void Editor::StopRenderImage() {
+    TPROFILE_SCOPE();
+
+    m_activeWindow = EDITOR;
+    // This needs to be deferred because the draw commands for the
+    // render window are queued before the close is detected.
+    // Thus, the resources should be destroyed NEXT frame
+    m_bDestroyRenderResources = true;
+}
+
 
 }// namespace jtx

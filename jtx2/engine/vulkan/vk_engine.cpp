@@ -353,6 +353,43 @@ void VkEngine::DrawViewportSettingsPanel(UiDrawContext &ctx) {
     ctx.EndRectangleBackground(true);
 }
 
+bool VkEngine::DrawRenderPanel(UiDrawContext &ctx) {
+    TPROFILE_SCOPE();
+    ImGui::Text("Render Progress:");
+    const float progress = static_cast<float>(m_renderState.currentSample) / static_cast<float>(m_renderSettings.targetSamples);
+    ImGui::ProgressBar(progress);
+
+    if (!m_renderState.bRenderDone) {
+        const auto now = std::chrono::high_resolution_clock::now();
+        m_elapsedTime  = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(now - m_renderStartTime).count();
+    }
+    ImGui::Text("Time Elapsed: %f s", m_elapsedTime / 1000.0);
+
+    ctx.InsertPadding();
+
+    if (ImGui::CollapsingHeader("Post Processing")) {
+        ctx.StartRectangleBackground();
+        if (ctx.StartTable("PostProcessingTable")) {
+            ctx.NewRow("Exposure");
+            if (ImGui::InputFloat("##Exposure", &m_renderSettings.postProcessing.EC, 1)) {
+                m_renderState.bPostProcessSettingsChanged = true;
+            }
+
+            const char *tmo[]      = {"None", "Reinhard", "ACES", "AgX", "Hable Filmic"};
+            static int selectedTmo = m_renderSettings.postProcessing.tonemappingOp;
+            ctx.NewRow("Tonemapping");
+            if (ImGui::Combo("##TMO", &selectedTmo, tmo, IM_ARRAYSIZE(tmo))) {
+                m_renderSettings.postProcessing.tonemappingOp = selectedTmo;
+                m_renderState.bPostProcessSettingsChanged     = true;
+            }
+            ctx.EndTable();
+        }
+        ctx.EndRectangleBackground(true);
+    }
+
+    return m_renderState.bRenderDone;
+}
+
 void VkEngine::LoadHDRI() {
     TPROFILE_SCOPE();
     if (m_gpuSceneData.envmapIndex >= 0) {
@@ -417,7 +454,7 @@ VkDescriptorSet VkEngine::InitRenderResources(const RenderSettings &rs) {
     m_renderState = {};
 
     // TODO: cursed...change when GPU implements full thin lens model
-    auto &cam = m_pScene->camera;
+    auto &cam     = m_pScene->camera;
     glm::vec3 pos = {cam.position.x, cam.position.y, cam.position.z};
     glm::vec3 tgt = {cam.target.x, cam.target.y, cam.target.z};
     glm::vec3 up  = {cam.up.x, cam.up.y, cam.up.z};
@@ -427,7 +464,7 @@ VkDescriptorSet VkEngine::InitRenderResources(const RenderSettings &rs) {
     m_renderState.invProj = glm::inverse(ocam.GetProjectionMatrix(aspectRatio, m_nearClip, m_farClip));
     m_renderState.invView = glm::inverse(ocam.GetViewMatrix());
 
-    m_renderState.width = rs.width;
+    m_renderState.width  = rs.width;
     m_renderState.height = rs.height;
 
     jvk::Image &accImage = m_renderResources.accumulationImage;
@@ -438,6 +475,9 @@ VkDescriptorSet VkEngine::InitRenderResources(const RenderSettings &rs) {
     extent.height = rs.height;
     extent.depth  = 1;
 
+    accImage.extent = extent;
+    outImage.extent = extent;
+
     VkFormat format = VK_FORMAT_R32G32B32A32_SFLOAT;
 
     VkImageUsageFlags usages{};
@@ -445,6 +485,7 @@ VkDescriptorSet VkEngine::InitRenderResources(const RenderSettings &rs) {
 
     // Accumulation image
     VkImageCreateInfo imageInfo = jvk::init::Image(format, usages, extent);
+
 
     VmaAllocationCreateInfo allocInfo{};
     allocInfo.usage         = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -456,7 +497,7 @@ VkDescriptorSet VkEngine::InitRenderResources(const RenderSettings &rs) {
 
     // Output image
     usages |= VK_IMAGE_USAGE_SAMPLED_BIT;     // Progressive render for UI
-    usages |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;// Saving to CPU buffer
+    usages |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;// Saving to CPU buffer
 
     imageInfo = jvk::init::Image(format, usages, extent);
     vmaCreateImage(m_gfx.allocator, &imageInfo, &allocInfo, &outImage.image, &outImage.allocation, nullptr);
@@ -472,23 +513,24 @@ VkDescriptorSet VkEngine::InitRenderResources(const RenderSettings &rs) {
         writer.UpdateSet(m_gfx.ctx, frame.gpuGlobalUniformDataDescriptorSet);
     }
 
+    m_renderTargets.accumulation       = m_renderResources.accumulationImage.image;
+    m_renderTargets.accumulationLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    m_renderTargets.output             = m_renderResources.outputImage.image;
+    m_renderTargets.outputLayout       = VK_IMAGE_LAYOUT_UNDEFINED;
+
     // UI texture descriptor set
     m_renderResources.outputDescriptorSet = ImGui_ImplVulkan_AddTexture(m_gfx.defaultSamplers.linear, outImage.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+    m_renderStartTime = std::chrono::high_resolution_clock::now();
     return m_renderResources.outputDescriptorSet;
 }
 
 void VkEngine::AdvanceRender(const VkCommandBuffer cmd) {
     TPROFILE_SCOPE();
 
-    jvk::TransitionImage(cmd, m_renderResources.outputImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    jvk::TransitionImageIfNeeded(cmd, m_renderResources.outputImage.image, m_renderTargets.outputLayout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    RtRenderTargets targets{};
-    targets.accumulation       = m_renderResources.accumulationImage.image;
-    targets.accumulationLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    targets.output             = m_renderResources.outputImage.image;
-    targets.outputLayout       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-    if (RayTrace(cmd, m_renderSettings, m_renderState, targets)) {
+    if (RayTrace(cmd, m_renderSettings, m_renderState, m_renderTargets)) {
         VkImageMemoryBarrier2 barrier{};
         barrier.sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
         barrier.srcStageMask     = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
@@ -497,7 +539,7 @@ void VkEngine::AdvanceRender(const VkCommandBuffer cmd) {
         barrier.dstAccessMask    = VK_ACCESS_2_SHADER_READ_BIT;
         barrier.oldLayout        = VK_IMAGE_LAYOUT_GENERAL;
         barrier.newLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        barrier.image            = targets.output;
+        barrier.image            = m_renderTargets.output;
         barrier.subresourceRange = jvk::init::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
 
         VkDependencyInfo dependency{};
@@ -506,7 +548,51 @@ void VkEngine::AdvanceRender(const VkCommandBuffer cmd) {
         dependency.pImageMemoryBarriers    = &barrier;
 
         vkCmdPipelineBarrier2KHR(cmd, &dependency);
+        m_renderTargets.outputLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     }
+}
+
+void VkEngine::SaveRenderImage(const std::filesystem::path &path) {
+    TPROFILE_SCOPE();
+    LOG_DEBUG(VKE, "Saving render image");
+
+    const auto &img = m_renderResources.outputImage;
+
+    // Staging buffer
+    const size_t dataSize     = img.extent.width * img.extent.height * 4 * sizeof(float);
+    jvk::Buffer stagingBuffer = m_gfx.CreateBuffer(
+        dataSize,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        VMA_MEMORY_USAGE_GPU_TO_CPU,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    m_gfx.imBuffer.SubmitAndWait(m_gfx.graphicsQueue, [&](const VkCommandBuffer cmd) {
+        jvk::TransitionImage(cmd, img.image, m_renderTargets.outputLayout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+
+        VkBufferImageCopy copyRegion{};
+        copyRegion.bufferOffset                    = 0;
+        copyRegion.bufferRowLength                 = 0;
+        copyRegion.bufferImageHeight               = 0;
+        copyRegion.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        copyRegion.imageSubresource.mipLevel       = 0;
+        copyRegion.imageSubresource.baseArrayLayer = 0;
+        copyRegion.imageSubresource.layerCount     = 1;
+        copyRegion.imageExtent                     = img.extent;
+
+        vkCmdCopyImageToBuffer(cmd, img.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stagingBuffer.buffer, 1, &copyRegion);
+
+        jvk::TransitionImage(cmd, img.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_renderTargets.outputLayout);
+
+    });
+    const float *pData = static_cast<float *>(stagingBuffer.Map(m_gfx.allocator));
+
+    const auto result = Image32f::SaveAs8u(pData, img.extent.width, img.extent.height, 4, path);
+    if (result > 0) {
+        LOG_DEBUG(VKE, "Saved render image to: {}", path.string());
+    }
+
+    stagingBuffer.Unmap(m_gfx.allocator);
+    m_gfx.DestroyBuffer(stagingBuffer);
 }
 
 void VkEngine::DestroyRenderResources() {
@@ -1520,8 +1606,11 @@ bool VkEngine::RayTrace(const VkCommandBuffer cmd, const RtRenderSettings &setti
 
     if (!m_bSceneLoaded) return false;
 
+
     const bool bRayTrace            = state.currentSample < settings.targetSamples;
     const bool bApplyPostProcessing = state.bPostProcessSettingsChanged || bRayTrace;
+
+    state.bRenderDone = !bRayTrace;
 
     if (bApplyPostProcessing) {
         jvk::TransitionImageIfNeeded(cmd, targets.accumulation, targets.accumulationLayout, VK_IMAGE_LAYOUT_GENERAL);

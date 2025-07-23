@@ -150,6 +150,7 @@ Image8u Image8u::As32b(const uint8_t alpha) const {
 }
 
 vec3 Image8u::SampleRGB(const vec2 &tx) const {
+    // TODO: not sure why we are converting the coords to 8 bit integers...
     int wx = FloatToUNORM8(tx.x) % width;
     if (wx < 0) wx += width;
 
@@ -180,6 +181,7 @@ Image32f::Image32f(Image32f &other)
     other.pData = nullptr;
     other.Destroy();
 }
+
 Image32f &Image32f::operator=(Image32f &other) {
     if (this != &other) {
         Destroy();
@@ -230,7 +232,7 @@ JtxResult Image32f::Load(const std::filesystem::path &path, Image32f &out) {
         }
 
         out.channels = 4;
-        out.path = path.string();
+        out.path     = path.string();
         return JTX_SUCCESS;
     }
 
@@ -241,12 +243,77 @@ JtxResult Image32f::Load(const std::filesystem::path &path, Image32f &out) {
     }
 
     out.pData = new float[out.width * out.height * out.channels];
-    out.path = path.string();
+    out.path  = path.string();
     memcpy(out.pData, data, out.width * out.height * out.channels);
     stbi_image_free(data);
 
     LOG_INFO(TEXTURE, "Loaded 32-bit float texture: {}", path.string());
     return JTX_SUCCESS;
+}
+
+JtxResult Image32f::SaveAs8u(const std::filesystem::path &path, bool bFlip) const {
+    std::vector<uint8_t> buffer(width * height * channels);
+
+    if (bFlip) {
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                const int srcIndex = (y * width + x) * channels;
+                const int dstIndex = ((height - 1 - y) * width + x) * channels;
+                for (int c = 0; c < channels; ++c) {
+                    buffer[dstIndex + c] = FloatToUNORM8(pData[srcIndex + c]);
+                }
+            }
+        }
+    } else {
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                for (int c = 0; c < channels; ++c) {
+                    const int srcIndex   = (y * width + x) * channels;
+                    buffer[srcIndex + c] = FloatToUNORM8(pData[srcIndex + c]);
+                }
+            }
+        }
+    }
+    
+    if (stbi_write_png(path.string().c_str(), width, height, channels, buffer.data(), width * channels)) {
+        return JTX_SUCCESS;
+    }
+
+    LOG_ERROR(TEXTURE, "Failed to save image to file: {}", stbi_failure_reason());
+    return JTX_ERROR_FILE_WRITE;
+}
+
+JtxResult Image32f::SaveAs8u(const float *pData, const uint32_t width, const uint32_t height, const uint32_t channels, const std::filesystem::path &path, const bool bFlip) {
+    std::vector<uint8_t> buffer(width * height * channels);
+
+    if (bFlip) {
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                const int srcIndex = (y * width + x) * channels;
+                const int dstIndex = ((height - 1 - y) * width + x) * channels;
+                for (int c = 0; c < channels; ++c) {
+                    buffer[dstIndex + c] = FloatToUNORM8(pData[srcIndex + c]);
+                }
+            }
+        }
+    } else {
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                for (int c = 0; c < channels; ++c) {
+                    const int srcIndex   = (y * width + x) * channels;
+                    buffer[srcIndex + c] = FloatToUNORM8(pData[srcIndex + c]);
+                }
+            }
+        }
+    }
+
+
+    if (stbi_write_png(path.string().c_str(), width, height, channels, buffer.data(), width * channels)) {
+        return JTX_SUCCESS;
+    }
+
+    LOG_ERROR(TEXTURE, "Failed to save image to file: {}", stbi_failure_reason());
+    return JTX_ERROR_FILE_WRITE;
 }
 
 vec3 Image32f::SampleRGB(const vec2 &tx) const {

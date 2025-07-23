@@ -17,6 +17,7 @@
     <mapping directory="$PROJECT_DIR$/cmake-build-relwithdebinfo/_deps/sdl3-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-relwithprofiling/_deps/fmt-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-relwithprofiling/_deps/sdl3-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-relwithprofiling/_deps/tracy-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/fastgltf" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/glm" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/imgui" vcs="Git" />

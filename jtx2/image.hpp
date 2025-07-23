@@ -190,6 +190,9 @@ public:
      */
     static JtxResult Load(const std::filesystem::path &path, Image32f &out);
 
+    JtxResult SaveAs8u(const std::filesystem::path &path, bool bFlip = true) const;
+    static JtxResult SaveAs8u(const float *pData, uint32_t width, uint32_t height, uint32_t channels, const std::filesystem::path &path, bool bFlip = true);
+
     const float &operator[](const int index) const { return pData[index]; }
     float &operator[](const int index) { return pData[index]; }
 

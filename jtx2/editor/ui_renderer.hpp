@@ -28,6 +28,8 @@ struct UiDrawContext {
     void StartRectangleBackground();
     void EndRectangleBackground(bool bApplyPadding = false) const;
 
+    void InsertPadding() const;
+
     ImVec2 GetAvailWidth() const;
 
 private:
@@ -58,7 +60,8 @@ public:
         const std::function<void()> &onExportSceneCallback,
         const std::function<void()> &onLoadHDRICallback,
         const std::function<void()> &onStartRenderImageCallback,
-        const std::function<void()> &onStopRenderImageCallback);
+        const std::function<void()> &onStopRenderImageCallback,
+        const std::function<void()> &onSaveRenderImageCallback);
     void Destroy() const;
 
     /**
@@ -92,7 +95,11 @@ public:
     bool GetViewportRectangle(jvk::ViewRectangle &out) const;
 
     void RegisterViewportBackend(ViewportBackend id, const char *name, const std::function<void(UiDrawContext &)> &settings);
-    void RegisterRenderBackend(RenderBackend id, const char *name);
+
+    // Render backend panel callbacks return true if the render is done
+    // Not the greatest fan of this design but, at the moment, render state is specific to each backend
+    // TODO: clarify this design when the CPU backend is integrated to the editor
+    void RegisterRenderBackend(RenderBackend id, const char *name, const std::function<bool(UiDrawContext &)> &settings);
 
     void LoadScene(Scene *scene);
 
@@ -121,6 +128,7 @@ private:
     std::function<void(UiDrawContext &)> m_viewportBackendSettings[JTX_NUM_VIEWPORT_BACKENDS]{};
 
     const char *m_renderBackendNames[JTX_NUM_RENDER_BACKENDS]{};
+    std::function<bool(UiDrawContext &)> m_renderBackendPanels[JTX_NUM_RENDER_BACKENDS]{};
 
     int m_currentRenderBackend   = 0;
     int m_currentViewportBackend = 0;
@@ -130,6 +138,7 @@ private:
     std::function<void()> m_onLoadHDRICallback;
     std::function<void()> m_onStartRenderImageCallback;
     std::function<void()> m_onStopRenderImageCallback;
+    std::function<void()> m_onSaveRenderImageCallback;
     bool m_bRenderWindowOpen = false;
 };
 

@@ -58,6 +58,7 @@ private:
 
     void StartRenderImage();
     void StopRenderImage();
+    void SaveRenderImage();
     bool m_bDestroyRenderResources = false;
 };
 

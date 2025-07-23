@@ -54,6 +54,11 @@ void UiDrawContext::EndRectangleBackground(const bool bApplyPadding) const {
     if (bApplyPadding) ImGui::Dummy(ImVec2(0.0f, paddingY));
 }
 
+void UiDrawContext::InsertPadding() const {
+    const float paddingY = ImGui::GetStyle().ItemSpacing.y;
+    ImGui::Dummy(ImVec2(0.0f, paddingY));
+}
+
 ImVec2 UiDrawContext::GetAvailWidth() const {
     return ImVec2(ImGui::GetContentRegionAvail().x, 0);
 }
@@ -91,7 +96,8 @@ void UIRenderer::Init(
     const std::function<void()> &onExportSceneCallback,
     const std::function<void()> &onLoadHDRICallback,
     const std::function<void()> &onStartRenderImageCallback,
-    const std::function<void()> &onStopRenderImageCallback)
+    const std::function<void()> &onStopRenderImageCallback,
+    const std::function<void()> &onSaveRenderImageCallback)
 {
     TPROFILE_SCOPE();
     LOG_INFO(UI, "Initializing UI renderer");
@@ -101,6 +107,7 @@ void UIRenderer::Init(
     m_onLoadHDRICallback    = onLoadHDRICallback;
     m_onStartRenderImageCallback = onStartRenderImageCallback;
     m_onStopRenderImageCallback = onStopRenderImageCallback;
+    m_onSaveRenderImageCallback = onSaveRenderImageCallback;
 
     constexpr VkDescriptorPoolSize poolSizes[] =
             {
@@ -187,8 +194,9 @@ void UIRenderer::RegisterViewportBackend(const ViewportBackend id, const char *n
     m_viewportBackendNames[id]    = name;
 }
 
-void UIRenderer::RegisterRenderBackend(RenderBackend id, const char *name) {
+void UIRenderer::RegisterRenderBackend(const RenderBackend id, const char *name, const std::function<bool(UiDrawContext &)> &settings) {
     m_renderBackendNames[id]    = name;
+    m_renderBackendPanels[id] = settings;
 }
 
 void UIRenderer::LoadScene(Scene *scene) {
@@ -277,6 +285,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
     }
 
     if (m_bRenderWindowOpen) {
+        TPROFILE_SCOPE_N("Render Window");
         ImGuiWindowClass windowClass;
         windowClass.DockNodeFlagsOverrideSet |= ImGuiDockNodeFlags_NoDockingOverMe | ImGuiDockNodeFlags_NoDockingOverOther | ImGuiDockNodeFlags_NoDockingSplitOther;
         windowClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar;
@@ -305,10 +314,20 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                 ImGui::DockBuilderFinish(dockspaceId);
             }
 
+            UiDrawContext ctx;
+            ctx.Init();
 
             ImGui::SetNextWindowClass(&windowClass);
             ImGui::Begin("Render Settings", nullptr, ImGuiWindowFlags_NoTitleBar);
-            ImGui::Text("SETTINGS");
+
+            // TODO: this is scuffed, change this later
+            bool bRenderDone = m_renderBackendPanels[m_currentViewportBackend](ctx);
+            if (!bRenderDone) ImGui::BeginDisabled();
+            if (ImGui::Button("Save", ctx.GetAvailWidth())) {
+                m_onSaveRenderImageCallback();
+            }
+            if (!bRenderDone) ImGui::EndDisabled();
+
             ImGui::End();
 
             ImGui::SetNextWindowClass(&windowClass);
@@ -341,6 +360,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
             ImGui::End();
 
+            ctx.Destroy();
             ImGui::PopStyleVar();
 
         }

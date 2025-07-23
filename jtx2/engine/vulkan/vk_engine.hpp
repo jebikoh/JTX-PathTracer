@@ -71,13 +71,14 @@ public:
     void LoadScene(const Scene *pScene);
 
     void DrawViewportSettingsPanel(UiDrawContext &ctx);
+    bool DrawRenderPanel(UiDrawContext &ctx);
 
     void LoadHDRI();
 
     // Final render
     VkDescriptorSet InitRenderResources(const RenderSettings &rs);
     void AdvanceRender(VkCommandBuffer cmd);
-    void SaveRenderImage();
+    void SaveRenderImage(const std::filesystem::path &path);
     void DestroyRenderResources();
 
     struct PostProcessSettings {
@@ -218,6 +219,7 @@ private:
         uint32_t currentSample           = 0;
         bool bResetAccumulation          = false;
         bool bPostProcessSettingsChanged = false;
+        bool bRenderDone = false;
         glm::mat4 invView;
         glm::mat4 invProj;
         uint32_t width;
@@ -234,7 +236,7 @@ private:
     RtRenderSettings m_vpSettings;
     RtRenderState m_vpState;
 
-    // Cached version of final render settings
+    // == Render ==
     RtRenderSettings m_renderSettings;
     RtRenderState m_renderState;
     struct RenderResources {
@@ -242,6 +244,11 @@ private:
         jvk::Image outputImage;
         VkDescriptorSet outputDescriptorSet;
     } m_renderResources;
+    RtRenderTargets m_renderTargets{};
+
+    std::chrono::high_resolution_clock::time_point m_renderStartTime;
+    double m_elapsedTime;
+
 
     bool RayTrace(VkCommandBuffer cmd, const RtRenderSettings &settings, RtRenderState &state, RtRenderTargets &targets) const;
 

@@ -33,10 +33,16 @@ void Editor::Init() {
               },
               [this] {
                   StopRenderImage();
+              },
+              [this] {
+                  SaveRenderImage();
               });
     m_vk.Init(m_gfx.bRayTracingSupported);
 
-    m_ui.RegisterRenderBackend(JTX_RENDER_BACKEND_VULKAN, "Vulkan");
+    m_ui.RegisterRenderBackend(JTX_RENDER_BACKEND_VULKAN, "Vulkan",
+                               [this](UiDrawContext &ctx) {
+                                   return m_vk.DrawRenderPanel(ctx);
+                               });
     m_ui.RegisterViewportBackend(JTX_VIEWPORT_BACKEND_VULKAN, "Vulkan",
                                  [this](UiDrawContext &ctx) {
                                      m_vk.DrawViewportSettingsPanel(ctx);
@@ -273,6 +279,31 @@ void Editor::StopRenderImage() {
     // render window are queued before the close is detected.
     // Thus, the resources should be destroyed NEXT frame
     m_bDestroyRenderResources = true;
+}
+
+void Editor::SaveRenderImage() {
+    const auto name = m_scene.name.empty() ? "render.png" : m_scene.name + ".png";
+    constexpr nfdu8filteritem_t filters[1] = {{"PNG", "png"}};
+    nfdsavedialogu8args_t args{};
+    args.filterList  = filters;
+    args.filterCount = 1;
+    args.defaultName = name.c_str();
+
+    nfdu8char_t *outPath;
+    const nfdresult_t result = NFD_SaveDialogU8_With(&outPath, &args);
+    if (result == NFD_OKAY) {
+        const auto s = std::filesystem::path(outPath);
+        LOG_INFO(UI, "User selected save path: {}", outPath);
+        NFD_FreePathU8(outPath);
+
+        m_vk.SaveRenderImage(s);
+
+        const auto exportResult = jtx::ExportScene(m_scene, s);
+    } else if (result == NFD_CANCEL) {
+        LOG_DEBUG(UI, "User cancelled render save");
+    } else {
+        LOG_ERROR(UI, "Error while opening save dialog: {}", NFD_GetError());
+    }
 }
 
 

@@ -129,6 +129,19 @@ JtxResult Image8u::Save(const std::filesystem::path &path, const bool bFlip) con
     return JTX_ERROR_FILE_WRITE;
 }
 
+JtxResult Image8u::Save(const uint8_t *buffer, const uint32_t width, const uint32_t height, const uint32_t channels, const std::filesystem::path &path, const bool bFlip) {
+    stbi_flip_vertically_on_write(bFlip);
+    int success = stbi_write_png(path.string().c_str(), width, height, channels, buffer, width * channels);
+
+    if (!success) {
+        // You should use a proper logger here instead of std::cerr
+        LOG_FATAL(TEXTURE, "Failed to save image to file: {}", stbi_failure_reason());
+        return JTX_FAILURE; // Or your specific error code
+    }
+
+    return JTX_SUCCESS;
+}
+
 Image8u Image8u::As32b(const uint8_t alpha) const {
     Image8u out(width, height, 4);
     if (channels == 4) {

@@ -486,7 +486,6 @@ VkDescriptorSet VkEngine::InitRenderResources(const RenderSettings &rs) {
     // Accumulation image
     VkImageCreateInfo imageInfo = jvk::init::Image(format, usages, extent);
 
-
     VmaAllocationCreateInfo allocInfo{};
     allocInfo.usage         = VMA_MEMORY_USAGE_GPU_ONLY;
     allocInfo.requiredFlags = static_cast<VkMemoryPropertyFlags>(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -552,47 +551,46 @@ void VkEngine::AdvanceRender(const VkCommandBuffer cmd) {
     }
 }
 
-void VkEngine::SaveRenderImage(const std::filesystem::path &path) {
+void VkEngine::SaveRenderImage(const std::filesystem::path &path) const {
     TPROFILE_SCOPE();
     LOG_DEBUG(VKE, "Saving render image");
 
     const auto &img = m_renderResources.outputImage;
+    const VkExtent2D extent{img.extent.width, img.extent.height};
 
-    // Staging buffer
-    const size_t dataSize     = img.extent.width * img.extent.height * 4 * sizeof(float);
-    jvk::Buffer stagingBuffer = m_gfx.CreateBuffer(
-        dataSize,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VMA_MEMORY_USAGE_GPU_TO_CPU,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    VkImage hostImage;
+    VmaAllocation hostAlloc;
+    VkImageCreateInfo imageInfo = jvk::init::Image(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_TRANSFER_DST_BIT, img.extent, VK_SAMPLE_COUNT_1_BIT);
+    imageInfo.tiling = VK_IMAGE_TILING_LINEAR;
+
+    VmaAllocationCreateInfo allocInfo = {};
+    allocInfo.usage                   = VMA_MEMORY_USAGE_GPU_TO_CPU;;
+    allocInfo.requiredFlags           = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    CHECK_VK(vmaCreateImage(m_gfx.allocator, &imageInfo, &allocInfo, &hostImage, &hostAlloc, nullptr));
 
     m_gfx.imBuffer.SubmitAndWait(m_gfx.graphicsQueue, [&](const VkCommandBuffer cmd) {
         jvk::TransitionImage(cmd, img.image, m_renderTargets.outputLayout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+        jvk::TransitionImage(cmd, hostImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
-        VkBufferImageCopy copyRegion{};
-        copyRegion.bufferOffset                    = 0;
-        copyRegion.bufferRowLength                 = 0;
-        copyRegion.bufferImageHeight               = 0;
-        copyRegion.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-        copyRegion.imageSubresource.mipLevel       = 0;
-        copyRegion.imageSubresource.baseArrayLayer = 0;
-        copyRegion.imageSubresource.layerCount     = 1;
-        copyRegion.imageExtent                     = img.extent;
+        jvk::CopyImageToImage(cmd, img.image, hostImage, extent, extent);
 
-        vkCmdCopyImageToBuffer(cmd, img.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stagingBuffer.buffer, 1, &copyRegion);
-
+        jvk::TransitionImage(cmd, hostImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL); // Required to map the image
         jvk::TransitionImage(cmd, img.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_renderTargets.outputLayout);
-
     });
-    const float *pData = static_cast<float *>(stagingBuffer.Map(m_gfx.allocator));
 
-    const auto result = Image32f::SaveAs8u(pData, img.extent.width, img.extent.height, 4, path);
-    if (result > 0) {
-        LOG_DEBUG(VKE, "Saved render image to: {}", path.string());
-    }
+    VkImageSubresource subresource{};
+    subresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    VkSubresourceLayout subresourceLayout{};
+    vkGetImageSubresourceLayout(m_gfx.ctx, hostImage, &subresource, &subresourceLayout);
 
-    stagingBuffer.Unmap(m_gfx.allocator);
-    m_gfx.DestroyBuffer(stagingBuffer);
+    uint8_t *pData;
+    vmaMapMemory(m_gfx.allocator, hostAlloc, (void **)&pData);
+    pData += subresourceLayout.offset;
+
+    Image8u::Save(pData, extent.width, extent.height, 4, path);
+
+    vmaUnmapMemory(m_gfx.allocator, hostAlloc);
+    vmaDestroyImage(m_gfx.allocator, hostImage, hostAlloc);
 }
 
 void VkEngine::DestroyRenderResources() {

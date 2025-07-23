@@ -78,7 +78,7 @@ public:
     // Final render
     VkDescriptorSet InitRenderResources(const RenderSettings &rs);
     void AdvanceRender(VkCommandBuffer cmd);
-    void SaveRenderImage(const std::filesystem::path &path);
+    void SaveRenderImage(const std::filesystem::path &path) const;
     void DestroyRenderResources();
 
     struct PostProcessSettings {

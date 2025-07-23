@@ -298,7 +298,7 @@ void Editor::SaveRenderImage() {
 
         m_vk.SaveRenderImage(s);
 
-        const auto exportResult = jtx::ExportScene(m_scene, s);
+        // const auto exportResult = jtx::ExportScene(m_scene, s);
     } else if (result == NFD_CANCEL) {
         LOG_DEBUG(UI, "User cancelled render save");
     } else {

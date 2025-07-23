@@ -106,6 +106,7 @@ public:
     static JtxResult Load(const uint8_t *buffer, size_t size, Image8u &out, bool bApplyEOTF = true);
 
     JtxResult Save(const std::filesystem::path &path, bool bFlip = true) const;
+    static JtxResult Save(const uint8_t *buffer, uint32_t width, uint32_t height, uint32_t channels, const std::filesystem::path &path, bool bFlip = true);
 
     const uint8_t &operator[](const int index) const { return pData[index]; }
     uint8_t &operator[](const int index) { return pData[index]; }

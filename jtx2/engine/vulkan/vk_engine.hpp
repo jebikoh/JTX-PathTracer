@@ -243,7 +243,7 @@ private:
         VkDescriptorSet outputDescriptorSet;
     } m_renderResources;
 
-    void RayTrace(VkCommandBuffer cmd, const RtRenderSettings &settings, RtRenderState &state, RtRenderTargets &targets) const;
+    bool RayTrace(VkCommandBuffer cmd, const RtRenderSettings &settings, RtRenderState &state, RtRenderTargets &targets) const;
 
     // == Cache ==
     struct Cache {

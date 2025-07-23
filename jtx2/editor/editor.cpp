@@ -163,6 +163,10 @@ void Editor::Run() {
 
         TPROFILE_FRAME_MARK();
     }
+
+    if (m_activeWindow == kActiveWindow::RENDER) {
+        m_vk.DestroyRenderResources();
+    }
 }
 
 void Editor::ImportScene() {

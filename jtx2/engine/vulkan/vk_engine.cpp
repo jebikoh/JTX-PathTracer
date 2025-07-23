@@ -424,8 +424,8 @@ VkDescriptorSet VkEngine::InitRenderResources(const RenderSettings &rs) {
     OrbitCamera ocam{pos, tgt, up};
 
     float aspectRatio     = static_cast<float>(rs.width) / static_cast<float>(rs.height);
-    m_renderState.invProj = glm::inverse(m_camera.GetProjectionMatrix(aspectRatio, m_nearClip, m_farClip));
-    m_renderState.invView = glm::inverse(m_camera.GetViewMatrix());
+    m_renderState.invProj = glm::inverse(ocam.GetProjectionMatrix(aspectRatio, m_nearClip, m_farClip));
+    m_renderState.invView = glm::inverse(ocam.GetViewMatrix());
 
     m_renderState.width = rs.width;
     m_renderState.height = rs.height;
@@ -482,13 +482,31 @@ void VkEngine::AdvanceRender(const VkCommandBuffer cmd) {
 
     jvk::TransitionImage(cmd, m_renderResources.outputImage.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    // RtRenderTargets targets{};
-    // targets.accumulation       = m_renderResources.accumulationImage.image;
-    // targets.accumulationLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    // targets.output             = m_renderResources.outputImage.image;
-    // targets.outputLayout       = VK_IMAGE_LAYOUT_UNDEFINED;
-    //
-    // RayTrace(cmd, m_renderSettings, m_renderState, targets);
+    RtRenderTargets targets{};
+    targets.accumulation       = m_renderResources.accumulationImage.image;
+    targets.accumulationLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    targets.output             = m_renderResources.outputImage.image;
+    targets.outputLayout       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    if (RayTrace(cmd, m_renderSettings, m_renderState, targets)) {
+        VkImageMemoryBarrier2 barrier{};
+        barrier.sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+        barrier.srcStageMask     = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+        barrier.srcAccessMask    = VK_ACCESS_2_SHADER_WRITE_BIT;
+        barrier.dstStageMask     = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+        barrier.dstAccessMask    = VK_ACCESS_2_SHADER_READ_BIT;
+        barrier.oldLayout        = VK_IMAGE_LAYOUT_GENERAL;
+        barrier.newLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        barrier.image            = targets.output;
+        barrier.subresourceRange = jvk::init::ImageSubresourceRange(VK_IMAGE_ASPECT_COLOR_BIT);
+
+        VkDependencyInfo dependency{};
+        dependency.sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        dependency.imageMemoryBarrierCount = 1;
+        dependency.pImageMemoryBarriers    = &barrier;
+
+        vkCmdPipelineBarrier2KHR(cmd, &dependency);
+    }
 }
 
 void VkEngine::DestroyRenderResources() {
@@ -1497,10 +1515,10 @@ void VkEngine::DestroyRayTracingResources() {
     LOG_DEBUG(VKE, "RT resources destroyed");
 }
 
-void VkEngine::RayTrace(const VkCommandBuffer cmd, const RtRenderSettings &settings, RtRenderState &state, RtRenderTargets &targets) const {
+bool VkEngine::RayTrace(const VkCommandBuffer cmd, const RtRenderSettings &settings, RtRenderState &state, RtRenderTargets &targets) const {
     TPROFILE_SCOPE();
 
-    if (!m_bSceneLoaded) return;
+    if (!m_bSceneLoaded) return false;
 
     const bool bRayTrace            = state.currentSample < settings.targetSamples;
     const bool bApplyPostProcessing = state.bPostProcessSettingsChanged || bRayTrace;
@@ -1608,6 +1626,8 @@ void VkEngine::RayTrace(const VkCommandBuffer cmd, const RtRenderSettings &setti
 
         vkCmdDispatch(cmd, std::ceil(state.width / 8.0), std::ceil(state.height / 8.0), 1);
     }
+
+    return bApplyPostProcessing;
 }
 
 }// namespace jtx

@@ -278,13 +278,72 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
     if (m_bRenderWindowOpen) {
         ImGuiWindowClass windowClass;
-        windowClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoDockingOverMe | ImGuiDockNodeFlags_NoDockingOverOther | ImGuiDockNodeFlags_NoDockingSplitOther;
+        windowClass.DockNodeFlagsOverrideSet |= ImGuiDockNodeFlags_NoDockingOverMe | ImGuiDockNodeFlags_NoDockingOverOther | ImGuiDockNodeFlags_NoDockingSplitOther;
+        windowClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar;
         ImGui::SetNextWindowClass(&windowClass);
-        ImGui::Begin("JTX Render", &m_bRenderWindowOpen);
 
-        ImGui::Text("Rendering...");
-        ImGui::Image(m_renderImage, {static_cast<float>(m_rs.width), static_cast<float>(m_rs.height)});
+        if (ImGui::Begin("JTX Render", &m_bRenderWindowOpen, ImGuiWindowFlags_NoCollapse)) {
+            ImGui::PushStyleVar(ImGuiStyleVar_DockingSeparatorSize, 0.0f);
 
+            ImGuiID dockspaceId = ImGui::GetID("RenderPopupDockspace");
+            ImGui::DockSpace(dockspaceId, ImVec2(0.0f, 0.0f));
+
+            static bool bFirstTime = true;
+            if (bFirstTime) {
+                bFirstTime = false;
+
+                ImGui::DockBuilderRemoveNode(dockspaceId);
+                ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace);
+                ImGui::DockBuilderSetNodeSize(dockspaceId, ImGui::GetMainViewport()->WorkSize);
+
+                ImGuiID dockMainId = dockspaceId;
+                ImGuiID dockRightId = ImGui::DockBuilderSplitNode(dockMainId, ImGuiDir_Right, 0.2f, nullptr, &dockMainId);
+                ImGuiID dockLeftId = dockMainId;
+
+                ImGui::DockBuilderDockWindow("Render Image", dockLeftId);
+                ImGui::DockBuilderDockWindow("Render Settings", dockRightId);
+                ImGui::DockBuilderFinish(dockspaceId);
+            }
+
+
+            ImGui::SetNextWindowClass(&windowClass);
+            ImGui::Begin("Render Settings", nullptr, ImGuiWindowFlags_NoTitleBar);
+            ImGui::Text("SETTINGS");
+            ImGui::End();
+
+            ImGui::SetNextWindowClass(&windowClass);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+            ImGui::Begin("Render Image", nullptr, ImGuiWindowFlags_NoTitleBar);
+            ImGui::PopStyleVar();
+
+            ImVec2 availableRegion = ImGui::GetContentRegionAvail();
+            float regionAspectRatio = availableRegion.x / availableRegion.y;
+
+            float imageWidth = static_cast<float>(m_rs.width);
+            float imageHeight = static_cast<float>(m_rs.height);
+            float imageAspectRatio = imageWidth / imageHeight;
+
+            ImVec2 imageSize;
+
+            if (imageAspectRatio > regionAspectRatio) {
+                imageSize.x = availableRegion.x;
+                imageSize.y = availableRegion.x / imageAspectRatio;
+            } else {
+                imageSize.y = availableRegion.y;
+                imageSize.x = availableRegion.y * imageAspectRatio;
+            }
+
+            float xPos = (availableRegion.x - imageSize.x) * 0.5f;
+            float yPos = (availableRegion.y - imageSize.y) * 0.5f;
+
+            ImGui::SetCursorPos(ImVec2(xPos, yPos));
+            ImGui::Image(m_renderImage, imageSize, {0, 1}, {1, 0});
+
+            ImGui::End();
+
+            ImGui::PopStyleVar();
+
+        }
         ImGui::End();
 
         if (!m_bRenderWindowOpen) {
@@ -740,6 +799,9 @@ void UIRenderer::Destroy() const {
     LOG_INFO(UI, "Cleaning up UI renderer");
 
     ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
+    ImGui::DestroyContext();
+
     vkDestroyDescriptorPool(m_gfx.ctx, m_descriptorPool, nullptr);
 
     LOG_INFO(UI, "UI renderer cleaned up");

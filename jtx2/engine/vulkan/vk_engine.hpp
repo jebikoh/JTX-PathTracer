@@ -68,7 +68,7 @@ public:
 
     void SetViewportRectangle(const jvk::ViewRectangle &viewRectangle) { m_viewRectangle = viewRectangle; }
 
-    void LoadScene(const Scene *pScene);
+    void LoadScene(Scene *pScene);
 
     void DrawViewportSettingsPanel(UiDrawContext &ctx);
     bool DrawRenderPanel(UiDrawContext &ctx);
@@ -92,7 +92,7 @@ private:
     const GfxContext &m_gfx;
     jvk::ViewRectangle m_viewRectangle{};
 
-    const Scene *m_pScene = nullptr;
+    Scene *m_pScene = nullptr;
     OrbitCamera m_camera{
             glm::vec3(5, 5, 5),
             glm::vec3(0, 0.5, 0),

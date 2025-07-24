@@ -274,6 +274,39 @@ void VkEngine::DrawViewportSettingsPanel(UiDrawContext &ctx) {
             }
             ImGui::TreePop();
         }
+
+        if (ImGui::TreeNode("Scene Controls")) {
+            // TODO: Improve UX here, just need something to work for now
+            if (ImGui::Button("Camera View", ctx.GetAvailWidth())) {
+                if (m_pScene != nullptr) {
+                    const auto &cam     = m_pScene->camera;
+                    const glm::vec3 pos = {cam.position.x, cam.position.y, cam.position.z};
+                    const glm::vec3 tgt = {cam.target.x, cam.target.y, cam.target.z};
+                    const glm::vec3 up  = {cam.up.x, cam.up.y, cam.up.z};
+                    m_camera.SetView(pos, tgt, up);
+
+                    // TODO: incorporate the rest of the lens settings once they're implemented on the GPU
+                    m_camera.settings.focalLength = cam.settings.focalLength;
+                    m_camera.settings.sensorWidth = cam.settings.sensorWidth;
+                }
+            }
+
+            if (ImGui::Button("Sync Scene Camera", ctx.GetAvailWidth())) {
+                if (m_pScene != nullptr) {
+                    auto &cam     = m_pScene->camera;
+                    cam.position  = vec3(&m_camera.position.x);
+                    cam.target    = vec3(&m_camera.target.x);
+                    const auto up = m_camera.GetUpVector();
+                    cam.up        = vec3(&up.x);
+
+                    // TODO: incorporate the rest of the lens settings once they're implemented on the GPU
+                    cam.settings.focalLength = m_camera.settings.focalLength;
+                    cam.settings.sensorWidth = m_camera.settings.sensorWidth;
+                }
+            }
+
+            ImGui::TreePop();
+        }
         ImGui::TreePop();
     }
 
@@ -864,7 +897,7 @@ void VkEngine::DestroyGridPipeline() const {
     m_gridPipeline.Destroy(m_gfx.ctx, true);
 }
 
-void VkEngine::LoadScene(const Scene *pScene) {
+void VkEngine::LoadScene(Scene *pScene) {
     TPROFILE_SCOPE();
     LOG_INFO(VKE, "Loading scene");
     if (m_bSceneLoaded) {

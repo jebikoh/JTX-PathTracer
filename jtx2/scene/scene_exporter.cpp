@@ -75,6 +75,7 @@ JtxResult ExportScene(const Scene &scene, const std::filesystem::path &path) {
     for (const auto &material : scene.materials) {
         Value m(kObjectType);
         m.AddMember("type", material.mType, allocator);
+        m.AddMember("name", Value(material.name.c_str(), allocator).Move(), allocator);
 
         Value params(kObjectType);
         params.AddMember("diffuse", ToJson(material.parameters.diffuse, allocator), allocator);
@@ -86,7 +87,8 @@ JtxResult ExportScene(const Scene &scene, const std::filesystem::path &path) {
         m.AddMember("parameters", params, allocator);
 
         Value tex(kObjectType);
-        tex.AddMember("diffuse", material.textureIndices.diffuse, allocator);
+        // TODO: diffuse -> baseColor
+        tex.AddMember("diffuse", material.textureIndices.baseColor, allocator);
         tex.AddMember("metallicRoughness", material.textureIndices.metallicRoughness, allocator);
         m.AddMember("textureIndices", tex, allocator);
 

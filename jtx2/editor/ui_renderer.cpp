@@ -83,6 +83,7 @@ void UiDrawContext::NewRow(const char *label) {
     ImGui::TableNextRow();
     ImGui::TableSetColumnIndex(0);
 
+    ImGui::AlignTextToFramePadding();
     const float posX = (ImGui::GetCursorPosX() + ImGui::GetColumnWidth() - ImGui::CalcTextSize(label).x - ImGui::GetScrollX() - 2 * ImGui::GetStyle().ItemSpacing.x);
     ImGui::SetCursorPosX(posX);
     ImGui::Text("%s", label);
@@ -486,19 +487,24 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         UiDrawContext ctx;
         ctx.Init();
 
+        char buffer[256];
         if (m_pScene) {
-            char buffer[256];
             strncpy(buffer, m_pScene->name.c_str(), sizeof(buffer) - 1);
             buffer[sizeof(buffer) - 1] = '\0';
+        } else {
+            strncpy(buffer, "No scene loaded", sizeof(buffer));
+        }
 
-            ImGui::Text("Scene:");
-            ImGui::SameLine();
+        if (ctx.StartTable("SceneNameTable", 1, 3)) {
+            ctx.NewRow("Name");
+            ImGui::BeginDisabled(m_pScene == nullptr);
             if (ImGui::InputText("##SceneName", buffer, sizeof(buffer))) {
                 m_pScene->name = buffer;
             }
-        } else {
-            ImGui::Text("Scene: No scene loaded");
+            ImGui::EndDisabled();
+            ctx.EndTable();
         }
+        ctx.InsertPadding();
 
         if (m_pScene != nullptr) {
             if (ImGui::CollapsingHeader("Environment Map")) {
@@ -637,17 +643,26 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         UiDrawContext ctx;
         ctx.Init();
 
-        if (m_pScene != nullptr) {
-            char buffer[256];
+        char buffer[256];
+        if (m_pScene) {
             strncpy(buffer, m_pScene->meshes[selectionIndex].name.c_str(), sizeof(buffer) - 1);
             buffer[sizeof(buffer) - 1] = '\0';
+        } else {
+            strncpy(buffer, "No mesh selected", sizeof(buffer));
+        }
 
-            ImGui::Text("Mesh:");
-            ImGui::SameLine();
+        if (ctx.StartTable("MeshNameTable", 1, 3)) {
+            ctx.NewRow("Name");
+            ImGui::BeginDisabled(m_pScene == nullptr);
             if (ImGui::InputText("##MeshName", buffer, sizeof(buffer))) {
                 m_pScene->meshes[selectionIndex].name = buffer;
             }
+            ImGui::EndDisabled();
+            ctx.EndTable();
+        }
+        ctx.InsertPadding();
 
+        if (m_pScene != nullptr) {
             if (ImGui::CollapsingHeader("Transform")) {
                 ctx.StartRectangleBackground();
 
@@ -675,9 +690,21 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
             if (ImGui::CollapsingHeader("Material")) {
                 ctx.StartRectangleBackground();
+                auto &mat                   = m_pScene->materials[m_pScene->meshes[selectionIndex].materialIndex];
+
+                if (ctx.StartTable("MaterialEditor_NameTable", 1, 3)) {
+                    strncpy(buffer, mat.name.c_str(), sizeof(buffer) - 1);
+                    buffer[sizeof(buffer) - 1] = '\0';
+                    ctx.NewRow("Name");
+                    if (ImGui::InputText("##MaterialName", buffer, sizeof(buffer))) {
+                        mat.name = buffer;
+                    }
+                    ctx.EndTable();
+                }
+
+                ImGui::Separator();
 
                 if (ctx.StartTable("MaterialEditor")) {
-                    auto &mat                   = m_pScene->materials[m_pScene->meshes[selectionIndex].materialIndex];
                     const char *materialTypes[] = {"Diffuse", "Dielectric", "C. Conductor", "Conductor", "Thin Dielectric", "Glossy Diffuse"};
                     int currentType             = mat.mType;
 
@@ -719,7 +746,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                         case Material::Type::THIN_DIELECTRIC:
                             ctx.NewRow("IOR");
                             bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x, 0.01, 0, 100);
-                            bMaterialHasRoughness = true;
+                            bMaterialHasRoughness = false;
                             break;
                         case Material::Type::GLOSSY_DIFFUSE:
                             ctx.NewRow("Diffuse");
@@ -779,7 +806,6 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                 ctx.EndRectangleBackground(true);
             }
         } else {
-            ImGui::Text("Mesh: no mesh selected");
             ImGui::BeginDisabled();
             ImGui::CollapsingHeader("Transform");
             ImGui::CollapsingHeader("Material");

@@ -1106,7 +1106,7 @@ void VkEngine::LoadScene(Scene *pScene) {
         m.emissionStrength                                     = material.parameters.emissionStrength;
         m.roughness                                            = vec4(vec3(material.parameters.roughness, 0.0f), 0.0f);
         m.specularTint                                         = material.parameters.specularTint;
-        m.diffuseTexture                                       = material.textureIndices.diffuse;
+        m.baseColorTexture                                       = material.textureIndices.baseColor;
         m.type                                                 = material.mType;
         static_cast<GPUMaterialData *>(materialData)[offset++] = m;
     }
@@ -1265,7 +1265,7 @@ bool VkEngine::UpdateScene(const RenderContext &ctx, const SceneUpdate &update) 
         data->emissionStrength = material.parameters.emissionStrength;
         data->roughness        = vec4(vec3(material.parameters.roughness, 0.0f), 0.0f);
         data->specularTint     = material.parameters.specularTint;
-        data->diffuseTexture   = material.textureIndices.diffuse;
+        data->baseColorTexture   = material.textureIndices.baseColor;
         data->type             = material.mType;
 
         VkBufferCopy copyRegion{};

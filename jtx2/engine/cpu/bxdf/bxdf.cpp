@@ -20,8 +20,8 @@ bool SampleBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3
     switch (material.mType) {
         case Material::DIFFUSE: {
             vec3 diffuse;
-            if (material.textureIndices.diffuse >= 0) {
-                const auto &tex = scene.textures[material.textureIndices.diffuse];
+            if (material.textureIndices.baseColor >= 0) {
+                const auto &tex = scene.textures[material.textureIndices.baseColor];
                 diffuse = tex.SampleRGB(surface.texCoords);
             } else {
                 diffuse = material.parameters.diffuse;
@@ -85,8 +85,8 @@ vec3 EvalBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &
     switch (material.mType) {
         case Material::DIFFUSE: {
             vec3 diffuse;
-            if (material.textureIndices.diffuse >= 0) {
-                const auto &tex = scene.textures[material.textureIndices.diffuse];
+            if (material.textureIndices.baseColor >= 0) {
+                const auto &tex = scene.textures[material.textureIndices.baseColor];
                 diffuse = tex.SampleRGB(surface.texCoords);
             } else {
                 diffuse = material.parameters.diffuse;
@@ -126,8 +126,8 @@ float PDFBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &
     switch (material.mType) {
         case Material::DIFFUSE: {
             vec3 diffuse;
-            if (material.textureIndices.diffuse >= 0) {
-                const auto &tex = scene.textures[material.textureIndices.diffuse];
+            if (material.textureIndices.baseColor >= 0) {
+                const auto &tex = scene.textures[material.textureIndices.baseColor];
                 diffuse = tex.SampleRGB(surface.texCoords);
             } else {
                 diffuse = material.parameters.diffuse;

@@ -36,5 +36,5 @@ public struct MaterialData {
     public float emissionStrength;
     public float specularTint;
     public uint32_t type;
-    public int32_t diffuseTexture;
+    public int32_t baseColorTexture;
 }

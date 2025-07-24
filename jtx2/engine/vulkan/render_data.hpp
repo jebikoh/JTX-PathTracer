@@ -66,7 +66,7 @@ struct GPUMaterialData {
     float specularTint;
     uint32_t type;
 
-    TextureHandle diffuseTexture;
+    TextureHandle baseColorTexture;
 };
 
 // Binding 2 (Combined Image Samplers): scene texture/sampler array

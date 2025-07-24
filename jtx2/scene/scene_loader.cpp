@@ -49,7 +49,7 @@ JtxResult jtx::LoadScene(const std::filesystem::path &path, Scene &scene) {
 JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &scene) {
     TPROFILE_SCOPE();
     LOG_DEBUG(LOADER,"Loading OBJ file: {}", path.string());
-    rapidobj::Result result = rapidobj::ParseFile(path.string(), rapidobj::MaterialLibrary::Default(rapidobj::Load::Optional));
+    rapidobj::Result result = rapidobj::ParseFile(path.string());
     if (result.error) {
         LOG_ERROR(LOADER,"Error loading OBJ file: {}", result.error.code.message());
         return JTX_ERROR_FILE_LOADING;
@@ -91,11 +91,19 @@ JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &sc
     };
 
     // Load all materials
+    uint32_t materialIndex = 0;
     for (const auto & material : result.materials) {
         Material mat{};
 
+        if (material.name.empty()) {
+            mat.name = "mat_" + std::to_string(materialIndex++);
+        } else {
+            mat.name = material.name;
+            materialIndex++;
+        }
+
         mat.parameters.diffuse = vec3(material.diffuse.data());
-        mat.textureIndices.diffuse = LoadTexture(material.diffuse_texname);
+        mat.textureIndices.baseColor = LoadTexture(material.diffuse_texname);
 
         mat.parameters.emission = vec3(material.emission.data());
         scene.materials.push_back(mat);
@@ -332,11 +340,23 @@ JtxResult jtx::detail::LoadJtx(const std::filesystem::path &path, Scene &scene) 
     }
 
     // -- Materials --
+    uint32_t materialIndex = 0;
     const Value& materials = d["materials"];
     scene.materials.reserve(materials.Size());
     for (const auto& m_json : materials.GetArray()) {
         Material mat{};
         mat.mType = (Material::Type)m_json["type"].GetInt();
+
+        bool bHasName = m_json.HasMember("name");
+        if (bHasName) {
+            mat.name = m_json["name"].GetString();
+        }
+
+        if (!bHasName || mat.name.empty()) {
+            mat.name = "mat_" + std::to_string(materialIndex);
+        }
+
+        materialIndex++;
 
         const Value& params = m_json["parameters"];
         FromJson(params, "diffuse", mat.parameters.diffuse);
@@ -348,8 +368,8 @@ JtxResult jtx::detail::LoadJtx(const std::filesystem::path &path, Scene &scene) 
         FromJson(params, "roughness", mat.parameters.roughness);
 
         const Value& tex = m_json["textureIndices"];
-        mat.textureIndices.diffuse = tex["diffuse"].GetInt();
-        if (failedTexLoads.contains(mat.textureIndices.diffuse)) mat.textureIndices.diffuse = JTX_MATERIAL_TEXTURE_MISSING;
+        mat.textureIndices.baseColor = tex["diffuse"].GetInt();
+        if (failedTexLoads.contains(mat.textureIndices.baseColor)) mat.textureIndices.baseColor = JTX_MATERIAL_TEXTURE_MISSING;
         mat.textureIndices.metallicRoughness = tex["metallicRoughness"].GetInt();
         if (failedTexLoads.contains(mat.textureIndices.metallicRoughness)) mat.textureIndices.metallicRoughness = JTX_MATERIAL_TEXTURE_MISSING;
 

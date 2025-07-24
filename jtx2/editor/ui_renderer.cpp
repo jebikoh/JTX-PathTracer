@@ -74,9 +74,9 @@ bool UiDrawContext::StartTable(const char *id, const float col0, const float col
 
 void UiDrawContext::EndTable() const {
     ImGui::EndTable();
-    SetChannelBackground();
-    EndRectangleBackground();
-    SetChannelForeground();
+    // SetChannelBackground();
+    // EndRectangleBackground();
+    // SetChannelForeground();
 }
 
 void UiDrawContext::NewRow(const char *label) {
@@ -249,7 +249,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         // Draw menubar
         {
             if (ImGui::BeginMenuBar()) {
-                // if (m_bRenderWindowOpen) ImGui::BeginDisabled();
+                ImGui::BeginDisabled(m_bRenderWindowOpen);
                 if (ImGui::BeginMenu("File")) {
                     if (ImGui::MenuItem("Import")) {
                         m_onImportSceneCallback();
@@ -260,7 +260,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                     ImGui::EndMenu();
                 }
 
-                if (ImGui::BeginMenu("Edit")) {
+                if (ImGui::BeginMenu("Render")) {
                     if (m_pScene == nullptr) ImGui::BeginDisabled();
                     if (ImGui::MenuItem("Render Image")) {
                         m_onStartRenderImageCallback();
@@ -276,7 +276,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                     }
                     ImGui::EndMenu();
                 }
-                // if (m_bRenderWindowOpen) ImGui::EndDisabled();
+                ImGui::EndDisabled();
                 ImGui::EndMenuBar();
             }
         }
@@ -314,11 +314,11 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                 ImGui::DockBuilderFinish(dockspaceId);
             }
 
-            UiDrawContext ctx;
-            ctx.Init();
-
             ImGui::SetNextWindowClass(&windowClass);
             ImGui::Begin("Render Settings", nullptr, ImGuiWindowFlags_NoTitleBar);
+
+            UiDrawContext ctx;
+            ctx.Init();
 
             // TODO: this is scuffed, change this later
             bool bRenderDone = m_renderBackendPanels[m_currentViewportBackend](ctx);
@@ -371,7 +371,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         }
     }
 
-    // if (m_bRenderWindowOpen) ImGui::BeginDisabled();
+    ImGui::BeginDisabled(m_bRenderWindowOpen);
 
     // Hierarchy
     static int selectionIndex = 0;
@@ -790,7 +790,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ImGui::End();
     }
 
-    // if (m_bRenderWindowOpen) ImGui::EndDisabled();
+    ImGui::EndDisabled();
 
     ImGui::EndFrame();
 

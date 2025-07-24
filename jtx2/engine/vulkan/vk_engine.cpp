@@ -369,7 +369,7 @@ bool VkEngine::DrawRenderPanel(UiDrawContext &ctx) {
 
     if (ImGui::CollapsingHeader("Post Processing")) {
         ctx.StartRectangleBackground();
-        if (ctx.StartTable("PostProcessingTable")) {
+        if (ctx.StartTable("RenderPostProcessingTable")) {
             ctx.NewRow("Exposure");
             if (ImGui::InputFloat("##Exposure", &m_renderSettings.postProcessing.EC, 1)) {
                 m_renderState.bPostProcessSettingsChanged = true;
@@ -527,8 +527,6 @@ VkDescriptorSet VkEngine::InitRenderResources(const RenderSettings &rs) {
 void VkEngine::AdvanceRender(const VkCommandBuffer cmd) {
     TPROFILE_SCOPE();
 
-    jvk::TransitionImageIfNeeded(cmd, m_renderResources.outputImage.image, m_renderTargets.outputLayout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
     if (RayTrace(cmd, m_renderSettings, m_renderState, m_renderTargets)) {
         VkImageMemoryBarrier2 barrier{};
         barrier.sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
@@ -587,7 +585,12 @@ void VkEngine::SaveRenderImage(const std::filesystem::path &path) const {
     vmaMapMemory(m_gfx.allocator, hostAlloc, (void **)&pData);
     pData += subresourceLayout.offset;
 
-    Image8u::Save(pData, extent.width, extent.height, 4, path);
+    const auto result = Image8u::Save(pData, extent.width, extent.height, 4, path);
+    if (result > 0) {
+        LOG_DEBUG(VKE, "Render image saved to: {}", path.string().c_str());
+    } else {
+        LOG_ERROR(VKE, "Failed to save render image: {}", string_JtxResult(result));
+    }
 
     vmaUnmapMemory(m_gfx.allocator, hostAlloc);
     vmaDestroyImage(m_gfx.allocator, hostImage, hostAlloc);

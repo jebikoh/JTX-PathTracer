@@ -202,6 +202,11 @@ void UIRenderer::RegisterRenderBackend(const RenderBackend id, const char *name,
 
 void UIRenderer::LoadScene(Scene *scene) {
     this->m_pScene = scene;
+    m_materials.clear();
+    for (const auto &mat: scene->materials) {
+        m_materials.append(mat.name);
+        m_materials.push_back('\0');
+    }
 }
 
 void UIRenderer::NewFrame(SceneUpdate &update) {
@@ -375,7 +380,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
     ImGui::BeginDisabled(m_bRenderWindowOpen);
 
     // Hierarchy
-    static int selectionIndex = 0;
+    static int objSelectionIndex = 0;
     {
         ImGui::Begin("Hierarchy");
 
@@ -384,8 +389,8 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
             if (m_pScene) {
                 const auto &meshes = m_pScene->meshes;
                 for (int i = 0; i < meshes.size(); i++) {
-                    const bool bIsSelected = (selectionIndex == i);
-                    if (ImGui::Selectable(meshes[i].name.c_str(), bIsSelected)) selectionIndex = i;
+                    const bool bIsSelected = (objSelectionIndex == i);
+                    if (ImGui::Selectable(meshes[i].name.c_str(), bIsSelected)) objSelectionIndex = i;
                     if (bIsSelected) ImGui::SetItemDefaultFocus();
                 }
             }
@@ -645,7 +650,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
         char buffer[256];
         if (m_pScene) {
-            strncpy(buffer, m_pScene->meshes[selectionIndex].name.c_str(), sizeof(buffer) - 1);
+            strncpy(buffer, m_pScene->meshes[objSelectionIndex].name.c_str(), sizeof(buffer) - 1);
             buffer[sizeof(buffer) - 1] = '\0';
         } else {
             strncpy(buffer, "No mesh selected", sizeof(buffer));
@@ -655,7 +660,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
             ctx.NewRow("Name");
             ImGui::BeginDisabled(m_pScene == nullptr);
             if (ImGui::InputText("##MeshName", buffer, sizeof(buffer))) {
-                m_pScene->meshes[selectionIndex].name = buffer;
+                m_pScene->meshes[objSelectionIndex].name = buffer;
             }
             ImGui::EndDisabled();
             ctx.EndTable();
@@ -667,7 +672,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                 ctx.StartRectangleBackground();
 
                 if (ctx.StartTable("TransformEditor")) {
-                    auto &mesh = m_pScene->meshes[selectionIndex];
+                    auto &mesh = m_pScene->meshes[objSelectionIndex];
 
                     vec3 position;
                     vec3 rotation;
@@ -690,16 +695,13 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
             if (ImGui::CollapsingHeader("Material")) {
                 ctx.StartRectangleBackground();
-                auto &mat                   = m_pScene->materials[m_pScene->meshes[selectionIndex].materialIndex];
+                int matIndex = m_pScene->meshes[objSelectionIndex].materialIndex;
+                auto &mat           = m_pScene->materials[matIndex];
 
-                if (ctx.StartTable("MaterialEditor_NameTable", 1, 3)) {
-                    strncpy(buffer, mat.name.c_str(), sizeof(buffer) - 1);
-                    buffer[sizeof(buffer) - 1] = '\0';
-                    ctx.NewRow("Name");
-                    if (ImGui::InputText("##MaterialName", buffer, sizeof(buffer))) {
-                        mat.name = buffer;
-                    }
-                    ctx.EndTable();
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                if (ImGui::Combo("##Material", &matIndex, m_materials.c_str())) {
+                    m_pScene->meshes[objSelectionIndex].materialIndex = matIndex;
+                    update.objectIndex = objSelectionIndex;
                 }
 
                 ImGui::Separator();
@@ -709,6 +711,13 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                     int currentType             = mat.mType;
 
                     bool bMaterialUpdated = false;
+
+                    strncpy(buffer, mat.name.c_str(), sizeof(buffer) - 1);
+                    buffer[sizeof(buffer) - 1] = '\0';
+                    ctx.NewRow("Name");
+                    if (ImGui::InputText("##MaterialName", buffer, sizeof(buffer))) {
+                        mat.name = buffer;
+                    }
 
                     ctx.NewRow("BxDF");
                     if (ImGui::Combo("##BxDF", &currentType, materialTypes, IM_ARRAYSIZE(materialTypes))) {
@@ -795,8 +804,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                     bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0, 10000);
 
                     if (bMaterialUpdated) {
-                        update.materialIndex = m_pScene->meshes[selectionIndex].materialIndex;
-                        LOG_DEBUG(UI, "Material updated: {}", update.materialIndex);
+                        update.materialIndex = m_pScene->meshes[objSelectionIndex].materialIndex;
                     } else {
                         update.materialIndex = -1;
                     }

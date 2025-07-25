@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <filesystem>
 #include <fmt/chrono.h>
 #include <fmt/color.h>
 #include <fmt/core.h>
@@ -211,4 +212,27 @@ private:
                 .color   = color,
                 .message = to_string(buf)};
     }
+};
+
+struct FileSink {
+    explicit FileSink(const std::filesystem::path& path) {
+        m_file.open(path, std::ios::out | std::ios::trunc);
+        if (!m_file.is_open()) {
+            fmt::print(stderr, "Error: could not open log file '{}'\n", path.string());
+            throw std::runtime_error("Failed not open log file: " + path.string());
+        }
+    }
+
+    FileSink(const FileSink&) = delete;
+    FileSink& operator=(const FileSink&) = delete;
+    FileSink(FileSink&&) = delete;
+    FileSink& operator=(FileSink&&) = delete;
+
+    void Process(const LogEntry &entry) {
+        if (m_file.is_open()) {
+            m_file << entry.message << std::endl;
+        }
+    }
+private:
+    std::ofstream m_file;
 };

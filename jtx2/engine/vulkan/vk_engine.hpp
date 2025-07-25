@@ -124,6 +124,7 @@ private:
         VkDescriptorSet gpuGlobalUniformDataDescriptorSet = VK_NULL_HANDLE;
 
         jvk::Buffer materialStagingBuffer;
+        jvk::Buffer objectStagingBuffer;
     } m_frameData[JTX_MAX_FRAMES_IN_FLIGHT];
     VkDescriptorSetLayout m_gpuGlobalUniformDataDescriptorLayout = VK_NULL_HANDLE;
 

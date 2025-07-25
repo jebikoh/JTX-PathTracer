@@ -41,8 +41,8 @@ float4 fragmentMain(VSOutput input) {
     float intensity = max(dot(input.normal, lightDirection), 0.2f);
 
     float4 diffuse;
-    if (mat.diffuseTexture >= 0) {
-        diffuse = textures[mat.diffuseTexture].Sample(input.texCoord);
+    if (mat.baseColorTexture >= 0) {
+        diffuse = textures[mat.baseColorTexture].Sample(input.texCoord);
     } else {
         diffuse = mat.diffuse;
     }

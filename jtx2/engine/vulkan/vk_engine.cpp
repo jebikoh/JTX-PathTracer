@@ -667,7 +667,7 @@ void VkEngine::InitDescriptors() {
     // -- Bindless descriptor set layout --
     VkShaderStageFlags shaderStages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     if (m_bRayTracingAvailable) {
-        shaderStages |= VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+        shaderStages |= VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT;
     }
 
     jvk::DescriptorLayoutBuilder builder;
@@ -676,7 +676,7 @@ void VkEngine::InitDescriptors() {
     builder.AddBinding(kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY, 256, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, shaderStages);
     if (m_bRayTracingAvailable) {
         // Should NOT be available during rasterization
-        builder.AddBinding(kL2Bindings::GPU_TLAS, 1, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+        builder.AddBinding(kL2Bindings::GPU_TLAS, 1, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT);
     }
 
     constexpr VkDescriptorBindingFlags bindingFlags     = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
@@ -798,6 +798,7 @@ void VkEngine::DestroyPipelines() const {
 
 void VkEngine::InitMaterialPipelines() {
     TPROFILE_SCOPE();
+    LOG_DEBUG(VKE, "Initializing material pipelines");
     VkShaderModule vertexShader;
     if (!jvk::LoadShaderModule("spv/mesh_vertexMain.spv", m_gfx.ctx, &vertexShader)) {
         LOG_FATAL(VKE, "Failed to load mesh vertex shader");
@@ -841,6 +842,7 @@ void VkEngine::InitMaterialPipelines() {
 
     vkDestroyShaderModule(m_gfx.ctx, vertexShader, nullptr);
     vkDestroyShaderModule(m_gfx.ctx, diffuseFragmentShader, nullptr);
+    LOG_DEBUG(VKE, "Material pipelines initialized");
 }
 
 void VkEngine::DestroyMaterialPipelines() const {
@@ -851,6 +853,7 @@ void VkEngine::DestroyMaterialPipelines() const {
 
 void VkEngine::InitGridPipeline() {
     TPROFILE_SCOPE();
+    LOG_DEBUG(VKE, "Initializing grid pipeline");
     VkShaderModule vertexShader;
     if (!jvk::LoadShaderModule("spv/grid.vert.spv", m_gfx.ctx, &vertexShader)) {
         LOG_FATAL(VKE, "Failed to load grid vertex shader");
@@ -890,6 +893,7 @@ void VkEngine::InitGridPipeline() {
 
     vkDestroyShaderModule(m_gfx.ctx, vertexShader, nullptr);
     vkDestroyShaderModule(m_gfx.ctx, fragmentShader, nullptr);
+    LOG_DEBUG(VKE, "Grid pipeline initialized");
 }
 
 void VkEngine::DestroyGridPipeline() const {
@@ -929,6 +933,11 @@ void VkEngine::LoadScene(Scene *pScene) {
             // Staging buffers for live material updates
             frame.materialStagingBuffer = m_gfx.CreateBuffer(
                     sizeof(GPUMaterialData),
+                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                    VMA_MEMORY_USAGE_CPU_TO_GPU,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            frame.objectStagingBuffer = m_gfx.CreateBuffer(
+                    sizeof(GPUObjectData),
                     VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                     VMA_MEMORY_USAGE_CPU_TO_GPU,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -1237,6 +1246,7 @@ void VkEngine::DestroyScene() {
         for (auto &frame: m_frameData) {
             frame.gpuGlobalUniformData.Unmap(m_gfx.allocator);
             m_gfx.DestroyBuffer(frame.gpuGlobalUniformData);
+            m_gfx.DestroyBuffer(frame.objectStagingBuffer);
             m_gfx.DestroyBuffer(frame.materialStagingBuffer);
         }
         LOG_DEBUG(VKE, "Destroyed global uniform data buffers");
@@ -1277,15 +1287,14 @@ bool VkEngine::UpdateScene(const RenderContext &ctx, const SceneUpdate &update) 
 
         // Make sure this copy finishes before anything draws
         VkMemoryBarrier2 barrier{};
-        barrier.sType        = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+        barrier.sType            = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
         barrier.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
+        barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
         if (m_bRayTracingEnabled) {
             barrier.dstStageMask = VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR;
         } else {
             barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
         }
-
-        barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT;
 
         VkDependencyInfo dep{};
@@ -1296,9 +1305,41 @@ bool VkEngine::UpdateScene(const RenderContext &ctx, const SceneUpdate &update) 
         vkCmdPipelineBarrier2KHR(ctx.cmd, &dep);
     }
 
-    // TODO: object transform update
     if (update.objectIndex > -1) {
         bUpdated = true;
+
+        const auto &frame = m_frameData[ctx.frameIndex];
+        const auto &obj   = m_pScene->meshes[update.objectIndex];
+        const auto data = static_cast<GPUObjectData *>(frame.objectStagingBuffer.GetMapping());
+        data->world       = glm::mat4(1.0f);
+        data->normal      = glm::mat4(1.0f);
+        data->startIndex  = obj.startIndex;
+        data->material    = obj.materialIndex;
+
+        VkBufferCopy copyRegion{};
+        copyRegion.srcOffset = 0;
+        copyRegion.dstOffset = sizeof(GPUObjectData) * update.objectIndex;
+        copyRegion.size      = sizeof(GPUObjectData);
+
+        vkCmdCopyBuffer(ctx.cmd, frame.objectStagingBuffer.buffer, m_gpuSceneData.objectBuffer.buffer, 1, &copyRegion);
+
+        VkMemoryBarrier2 barrier{};
+        barrier.sType            = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+        barrier.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
+        barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+        if (m_bRayTracingEnabled) {
+            barrier.dstStageMask = VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR;
+        } else {
+            barrier.dstStageMask = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+        }
+        barrier.dstAccessMask = VK_ACCESS_2_SHADER_STORAGE_READ_BIT;
+
+        VkDependencyInfo dep{};
+        dep.sType              = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        dep.memoryBarrierCount = 1;
+        dep.pMemoryBarriers    = &barrier;
+
+        vkCmdPipelineBarrier2KHR(ctx.cmd, &dep);
     }
 
     return bUpdated;
@@ -1491,6 +1532,7 @@ void VkEngine::DestroyRayTracingPipeline() const {
 
 void VkEngine::InitRTPostProcessingPipeline() {
     TPROFILE_SCOPE();
+    LOG_DEBUG(VKE, "Initializing ray tracing post processing pipeline");
     VkShaderModule computeShader;
     if (!jvk::LoadShaderModule("spv/postprocessing_computeMain.spv", m_gfx.ctx, &computeShader)) {
         LOG_FATAL(VKE, "Failed to load post-processing compute shader");
@@ -1508,7 +1550,6 @@ void VkEngine::InitRTPostProcessingPipeline() {
     layoutInfo.pPushConstantRanges        = &pc;
     layoutInfo.setLayoutCount             = static_cast<uint32_t>(descriptorLayouts.size());
     layoutInfo.pSetLayouts                = descriptorLayouts.data();
-
     CHECK_VK(vkCreatePipelineLayout(m_gfx.ctx, &layoutInfo, nullptr, &m_rtPostProcessingPipeline.layout));
 
     const VkPipelineShaderStageCreateInfo stage = jvk::init::PipelineShaderStage(VK_SHADER_STAGE_COMPUTE_BIT, computeShader);
@@ -1517,9 +1558,14 @@ void VkEngine::InitRTPostProcessingPipeline() {
     pipelineInfo.pNext  = nullptr;
     pipelineInfo.layout = m_rtPostProcessingPipeline.layout;
     pipelineInfo.stage  = stage;
+
+    LOG_DEBUG(VKE, "A");
     CHECK_VK(vkCreateComputePipelines(m_gfx.ctx, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_rtPostProcessingPipeline.pipeline));
 
+    LOG_DEBUG(VKE, "B");
+
     vkDestroyShaderModule(m_gfx.ctx, computeShader, nullptr);
+    LOG_DEBUG(VKE, "Ray tracing post processing pipeline initialized");
 }
 
 void VkEngine::DestroyRTPostProcessingPipeline() const {

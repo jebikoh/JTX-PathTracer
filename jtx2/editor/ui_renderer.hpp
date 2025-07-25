@@ -78,8 +78,6 @@ public:
      */
     void NewFrame(SceneUpdate &update);
 
-    void NewFrameRender() const;
-
     /**
      * Submits draw commands for the UI. Expects image to be in VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
      * @param ctx render context
@@ -112,6 +110,7 @@ private:
 
     Scene *m_pScene{};
     std::vector<std::string> objects{};
+    std::string m_materials;
 
     // We need to store the central node so we can easily retrieve its dimensions
     ImGuiDockNode *m_pCentralNode{};

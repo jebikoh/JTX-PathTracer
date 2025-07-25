@@ -83,20 +83,7 @@
       ]
     },
     {
-      "name": "WSL-Clang-Release",
-      "generator": "Ninja",
-      "configurationType": "RelWithDebInfo",
-      "buildRoot": "${projectDir}\\out\\build\\${name}",
-      "installRoot": "${projectDir}\\out\\install\\${name}",
-      "cmakeExecutable": "cmake",
-      "cmakeCommandArgs": "",
-      "buildCommandArgs": "",
-      "ctestCommandArgs": "",
-      "inheritEnvironments": [ "linux_clang_x64" ],
-      "wslPath": "${defaultWSLPath}"
-    },
-    {
-      "name": "x64-Release-Editor",
+      "name": "x64-Editor-RelWithProfiling",
       "generator": "Ninja",
       "configurationType": "RelWithDebInfo",
       "buildRoot": "${projectDir}\\out\\build\\${name}",
@@ -104,7 +91,14 @@
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "inheritEnvironments": [ "msvc_x64_x64" ]
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "variables": [
+        {
+          "name": "JTX_ENABLE_PROFILING",
+          "value": "True",
+          "type": "BOOL"
+        }
+      ]
     }
   ]
 }

@@ -7,8 +7,6 @@
 using namespace jtx;
 
 int main(int argc, char *argv[]) {
-    Logger::AddDefaultSink();
-
     Scene scene;
     CHECK_JTX(LoadScene("../assets/scenes/knobs/knob_hdri.jtx", scene));
 

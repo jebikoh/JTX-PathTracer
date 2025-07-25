@@ -176,7 +176,7 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
     Optional<BxDFSample> sample;
     switch(mat.type) {
         case 1: {
-            DielectricBSDF bsdf = DielectricBSDF(mat.ior.x, mat.roughness.xy);
+            DielectricBSDF bsdf = DielectricBSDF(mat.ior.x, CalculateGGXAlpha(mat.roughness, mat.anisotropy));
             sample = bsdf.Sample(wo, prd.s0, prd.s1);
             break;
         }
@@ -195,8 +195,7 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
             } else {
                 f0 = mat.f0.rgb;
             }
-
-            ConductorBRDF brdf = ConductorBRDF(f0, mat.roughness.xy);
+            ConductorBRDF brdf = ConductorBRDF(f0, CalculateGGXAlpha(mat.roughness, mat.anisotropy));
             sample = brdf.Sample(wo, prd.s0, prd.s1);
             break;
         }
@@ -219,7 +218,7 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
             }
 
             float3 Rs = lerp(0, 0.08, mat.specularTint);
-            GlossyDiffuseBRDF brdf = GlossyDiffuseBRDF(diffuse, Rs, mat.roughness.xy);
+            GlossyDiffuseBRDF brdf = GlossyDiffuseBRDF(diffuse, Rs, CalculateGGXAlpha(mat.roughness, mat.anisotropy));
             sample = brdf.Sample(wo, prd.s0, prd.s1);
             break;
         }

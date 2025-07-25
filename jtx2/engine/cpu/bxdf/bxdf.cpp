@@ -35,7 +35,8 @@ bool SampleBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3
             return false;
         }
         case Material::CONDUCTOR: {
-            const auto bxdf = ConductorBxDF(material.parameters.roughness, material.parameters.f0);
+            const vec2 alpha = CalculateGGXAlpha(material.parameters.roughness, material.parameters.anisotropy);
+            const auto bxdf = ConductorBxDF(alpha, material.parameters.f0);
             if (bxdf.Sample(woLocal, s0, s1, s)) {
                 if (s.pdf == 0.0f) return false;
                 s.wi = frame.ToWorld(s.wi);
@@ -44,7 +45,8 @@ bool SampleBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3
             return false;
         }
         case Material::COMPLEX_CONDUCTOR: {
-            const auto bxdf = ComplexConductorBxDF(material.parameters.roughness, material.parameters.ior, material.parameters.k);
+            const vec2 alpha = CalculateGGXAlpha(material.parameters.roughness, material.parameters.anisotropy);
+            const auto bxdf = ComplexConductorBxDF(alpha, material.parameters.ior, material.parameters.k);
             if (bxdf.Sample(woLocal, s0, s1, s)) {
                 if (s.pdf == 0.0f) return false;
                 s.wi = frame.ToWorld(s.wi);
@@ -53,7 +55,8 @@ bool SampleBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3
             return false;
         }
         case Material::DIELECTRIC: {
-            const auto bxdf = DielectricBxDF(material.parameters.roughness, material.parameters.ior.x);
+            const vec2 alpha = CalculateGGXAlpha(material.parameters.roughness, material.parameters.anisotropy);
+            const auto bxdf = DielectricBxDF(alpha, material.parameters.ior.x);
             if (bxdf.Sample(woLocal, s0, s1, s)) {
                 if (s.pdf == 0.0f) return false;
                 s.wi = frame.ToWorld(s.wi);
@@ -95,15 +98,18 @@ vec3 EvalBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &
             return bxdf.Evaluate(woLocal, wiLocal);
         }
         case Material::CONDUCTOR: {
-            const auto bxdf = ConductorBxDF(material.parameters.roughness, material.parameters.f0);
+            const vec2 alpha = CalculateGGXAlpha(material.parameters.roughness, material.parameters.anisotropy);
+            const auto bxdf = ConductorBxDF(alpha, material.parameters.f0);
             return bxdf.Evaluate(woLocal, wiLocal);
         }
         case Material::COMPLEX_CONDUCTOR: {
-            const auto bxdf = ComplexConductorBxDF(material.parameters.roughness, material.parameters.ior, material.parameters.k);
+            const vec2 alpha = CalculateGGXAlpha(material.parameters.roughness, material.parameters.anisotropy);
+            const auto bxdf = ComplexConductorBxDF(alpha, material.parameters.ior, material.parameters.k);
             return bxdf.Evaluate(woLocal, wiLocal);
         }
         case Material::DIELECTRIC: {
-            const auto bxdf = DielectricBxDF(material.parameters.roughness, material.parameters.ior.x);
+            const vec2 alpha = CalculateGGXAlpha(material.parameters.roughness, material.parameters.anisotropy);
+            const auto bxdf = DielectricBxDF(alpha, material.parameters.ior.x);
             return bxdf.Evaluate(woLocal, wiLocal);
         }
         case Material::THIN_DIELECTRIC: {
@@ -136,15 +142,18 @@ float PDFBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &
             return bxdf.PDF(woLocal, wiLocal);
         }
         case Material::CONDUCTOR: {
-            const auto bxdf = ConductorBxDF(material.parameters.roughness, material.parameters.f0);
+            const vec2 alpha = CalculateGGXAlpha(material.parameters.roughness, material.parameters.anisotropy);
+            const auto bxdf = ConductorBxDF(alpha, material.parameters.f0);
             return bxdf.PDF(woLocal, wiLocal);
         }
         case Material::COMPLEX_CONDUCTOR: {
-            const auto bxdf = ComplexConductorBxDF(material.parameters.roughness, material.parameters.ior, material.parameters.k);
+            const vec2 alpha = CalculateGGXAlpha(material.parameters.roughness, material.parameters.anisotropy);
+            const auto bxdf = ComplexConductorBxDF(alpha, material.parameters.ior, material.parameters.k);
             return bxdf.PDF(woLocal, wiLocal);
         }
         case Material::DIELECTRIC: {
-            const auto bxdf = DielectricBxDF(material.parameters.roughness, material.parameters.ior.x);
+            const vec2 alpha = CalculateGGXAlpha(material.parameters.roughness, material.parameters.anisotropy);
+            const auto bxdf = DielectricBxDF(alpha, material.parameters.ior.x);
             return bxdf.PDF(woLocal, wiLocal);
         }
         case Material::THIN_DIELECTRIC: {

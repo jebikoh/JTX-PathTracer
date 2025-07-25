@@ -763,38 +763,19 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
                             ctx.NewRow("Specular Tint");
                             bMaterialUpdated |= ImGui::SliderFloat("##SpecularTint", &mat.parameters.specularTint, 0.0f, 1.0f);
-
-                            // Need to do this manually to make sure roughness does not go below 0
-                            ctx.NewRow("Anisotropy");
-                            bMaterialUpdated |= ImGui::Checkbox("##anisotropic", &mat.parameters.bAnisotropic);
-
-                            ctx.NewRow("Roughness");
-                            // Having these too low
-                            if (mat.parameters.roughness.x < JTX_GGX_SPECULAR_THRESHOLD) mat.parameters.roughness.x = JTX_GGX_SPECULAR_THRESHOLD;
-                            if (mat.parameters.roughness.y < JTX_GGX_SPECULAR_THRESHOLD) mat.parameters.roughness.y = JTX_GGX_SPECULAR_THRESHOLD;
-
-                            if (mat.parameters.bAnisotropic) {
-                                bMaterialUpdated |= ImGui::DragFloat2("##roughness", &mat.parameters.roughness.x, 0.01, JTX_GGX_SPECULAR_THRESHOLD, 100);
-                            } else {
-                                bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x, 0.01, JTX_GGX_SPECULAR_THRESHOLD, 100);
-                                mat.parameters.roughness.y = mat.parameters.roughness.x;
-                            }
+                            
+                            bMaterialHasRoughness = true;
                             break;
                         default:
                             break;
                     }
 
                     if (bMaterialHasRoughness) {
-                        ctx.NewRow("Anisotropy");
-                        bMaterialUpdated |= ImGui::Checkbox("##anisotropic", &mat.parameters.bAnisotropic);
-
                         ctx.NewRow("Roughness");
-                        if (mat.parameters.bAnisotropic) {
-                            bMaterialUpdated |= ImGui::DragFloat2("##roughness", &mat.parameters.roughness.x, 0.01, 0.0, 1);
-                        } else {
-                            bMaterialUpdated |= ImGui::DragFloat("##roughness", &mat.parameters.roughness.x, 0.01, 0.0, 1);
-                            mat.parameters.roughness.y = mat.parameters.roughness.x;
-                        }
+                        bMaterialUpdated |= ImGui::SliderFloat("##Roughness", &mat.parameters.roughness, 0.0f, 1.0f);
+
+                        ctx.NewRow("Anisotropy");
+                        bMaterialUpdated |= ImGui::SliderFloat("##Anisotropy", &mat.parameters.anisotropy, 0.0f, 1.0f);
                     }
 
                     ctx.NewRow("Emission");

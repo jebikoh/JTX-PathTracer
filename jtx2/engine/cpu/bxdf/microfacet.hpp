@@ -12,6 +12,12 @@ inline bool IsInf(const float x) {
     return std::isinf(x);
 }
 
+inline vec2 CalculateGGXAlpha(const float roughness, const float anisotropy) {
+    const float aspect = sqrt(1 - 0.9 * anisotropy);
+    const float r2 = roughness * roughness;
+    return vec2(r2 / aspect, r2 * aspect);
+}
+
 /*
  * Trowbridge-Reitz (GGX) microfacet model for rough surfaces.
  *

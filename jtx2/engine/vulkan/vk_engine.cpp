@@ -1113,7 +1113,8 @@ void VkEngine::LoadScene(Scene *pScene) {
         m.f0                                                   = vec4(material.parameters.f0, 0.0f);
         m.emission                                             = vec4(material.parameters.emission, 0.0f);
         m.emissionStrength                                     = material.parameters.emissionStrength;
-        m.roughness                                            = vec4(vec3(material.parameters.roughness, 0.0f), 0.0f);
+        m.roughness                                            = material.parameters.roughness;
+        m.anisotropy                                           = material.parameters.anisotropy;
         m.specularTint                                         = material.parameters.specularTint;
         m.baseColorTexture                                       = material.textureIndices.baseColor;
         m.type                                                 = material.mType;
@@ -1273,9 +1274,10 @@ bool VkEngine::UpdateScene(const RenderContext &ctx, const SceneUpdate &update) 
         data->f0               = vec4(material.parameters.f0, 0.0f);
         data->emission         = vec4(material.parameters.emission, 0.0f);
         data->emissionStrength = material.parameters.emissionStrength;
-        data->roughness        = vec4(vec3(material.parameters.roughness, 0.0f), 0.0f);
+        data->roughness        = material.parameters.roughness;
+        data->anisotropy       = material.parameters.anisotropy;
         data->specularTint     = material.parameters.specularTint;
-        data->baseColorTexture   = material.textureIndices.baseColor;
+        data->baseColorTexture = material.textureIndices.baseColor;
         data->type             = material.mType;
 
         VkBufferCopy copyRegion{};

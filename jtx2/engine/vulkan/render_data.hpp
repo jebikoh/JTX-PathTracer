@@ -60,7 +60,9 @@ struct GPUMaterialData {
     vec4 ior;
     vec4 k;
     vec4 f0;
-    vec4 roughness;
+    float roughness;
+    float anisotropy;
+    float _padding[2];
     vec4 emission;
     float emissionStrength;
     float specularTint;

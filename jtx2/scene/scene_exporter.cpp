@@ -83,13 +83,12 @@ JtxResult ExportScene(const Scene &scene, const std::filesystem::path &path) {
         params.AddMember("k", ToJson(material.parameters.k, allocator), allocator);
         params.AddMember("f0", ToJson(material.parameters.f0, allocator), allocator);
         params.AddMember("emission", ToJson(material.parameters.emission, allocator), allocator);
-        params.AddMember("roughness", ToJson(material.parameters.roughness, allocator), allocator);
+        params.AddMember("roughness", material.parameters.roughness, allocator);
+        params.AddMember("anisotropy", material.parameters.anisotropy, allocator);
         m.AddMember("parameters", params, allocator);
 
         Value tex(kObjectType);
-        // TODO: diffuse -> baseColor
-        tex.AddMember("diffuse", material.textureIndices.baseColor, allocator);
-        tex.AddMember("metallicRoughness", material.textureIndices.metallicRoughness, allocator);
+        tex.AddMember("baseColor", material.textureIndices.baseColor, allocator);
         m.AddMember("textureIndices", tex, allocator);
 
         materials.PushBack(m, allocator);

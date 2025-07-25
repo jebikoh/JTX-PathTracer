@@ -6,6 +6,12 @@ import math;
 
 static const float GGX_THRESHOLD    = 1e-3;
 
+public float2 CalculateGGXAlpha(float roughness, float anisotropy) {
+    float aspect = sqrt(1 - 0.9 * anisotropy);
+    float r2 = roughness * roughness;
+    return float2(r2 / aspect, r2 * aspect);
+}
+
 struct GGX {
     private float2 m_alpha;
 
@@ -129,6 +135,9 @@ public struct ConductorBRDF : IBxDF {
     }
 
     public __init(float3 f0, float2 alpha) {
+        alpha.x = max(alpha.x, GGX_THRESHOLD);
+        alpha.y = max(alpha.y, GGX_THRESHOLD);
+
         m_f0  = f0;
         m_ggx = GGX(alpha);
     }

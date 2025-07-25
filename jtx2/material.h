@@ -27,14 +27,14 @@ struct Material {
         vec3 f0;
         vec3 emission;
         float emissionStrength;
-        vec2 roughness;
+        float roughness;
+        float anisotropy;
         bool bAnisotropic;
         float specularTint;
     } parameters;
 
     struct TextureIndices {
         int32_t baseColor         = JTX_MATERIAL_TEXTURE_INDEX_NONE;
-        int32_t metallicRoughness = JTX_MATERIAL_TEXTURE_INDEX_NONE;
     } textureIndices;
 
     bool IsEmissive() const { return parameters.emission.LengthSquared() > 0.0f && parameters.emissionStrength > 0.0f; }

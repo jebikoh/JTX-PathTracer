@@ -366,12 +366,13 @@ JtxResult jtx::detail::LoadJtx(const std::filesystem::path &path, Scene &scene) 
         FromJson(params, "emission", mat.parameters.emission);
         FromJson(params, "emissionStrength", mat.parameters.emissionStrength, 1.0f);
         FromJson(params, "roughness", mat.parameters.roughness);
+        FromJson(params, "anisotropy", mat.parameters.anisotropy);
 
         const Value& tex = m_json["textureIndices"];
-        mat.textureIndices.baseColor = tex["diffuse"].GetInt();
+
+        if (tex.HasMember("diffuse")) mat.textureIndices.baseColor = tex["diffuse"].GetInt();
+        else mat.textureIndices.baseColor = tex["baseColor"].GetInt();
         if (failedTexLoads.contains(mat.textureIndices.baseColor)) mat.textureIndices.baseColor = JTX_MATERIAL_TEXTURE_MISSING;
-        mat.textureIndices.metallicRoughness = tex["metallicRoughness"].GetInt();
-        if (failedTexLoads.contains(mat.textureIndices.metallicRoughness)) mat.textureIndices.metallicRoughness = JTX_MATERIAL_TEXTURE_MISSING;
 
         scene.materials.push_back(mat);
     }

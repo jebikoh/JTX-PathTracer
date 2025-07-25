@@ -7,9 +7,9 @@ import math;
 static const float GGX_THRESHOLD    = 1e-3;
 
 public float2 CalculateGGXAlpha(float roughness, float anisotropy) {
-    float aspect = sqrt(1 - 0.9 * anisotropy);
+    float a  = 0.9 * anisotropy;
     float r2 = roughness * roughness;
-    return float2(r2 / aspect, r2 * aspect);
+    return float2(r2 * (1 + a), r2 * (1 - a));
 }
 
 struct GGX {

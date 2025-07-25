@@ -763,7 +763,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
                             ctx.NewRow("Specular Tint");
                             bMaterialUpdated |= ImGui::SliderFloat("##SpecularTint", &mat.parameters.specularTint, 0.0f, 1.0f);
-                            
+
                             bMaterialHasRoughness = true;
                             break;
                         default:
@@ -775,7 +775,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                         bMaterialUpdated |= ImGui::SliderFloat("##Roughness", &mat.parameters.roughness, 0.0f, 1.0f);
 
                         ctx.NewRow("Anisotropy");
-                        bMaterialUpdated |= ImGui::SliderFloat("##Anisotropy", &mat.parameters.anisotropy, 0.0f, 1.0f);
+                        bMaterialUpdated |= ImGui::SliderFloat("##Anisotropy", &mat.parameters.anisotropy, -1.0f, 1.0f);
                     }
 
                     ctx.NewRow("Emission");

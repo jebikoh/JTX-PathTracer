@@ -382,8 +382,8 @@ float3 f_QON(float3 wo, float3 wi, float3 rho, float sigma) {
 }
 
 // -- Fujii Oren-Nayar --
-static const float FON_AF_CONST = 0.5 - (2 / 3) * INV_PI;
-static const float FON_E_AVG_CONST = (2 / 3) - (28 / 15 * INV_PI);
+static const float FON_AF_CONST = 0.5f - (2.0f / 3.0f) * INV_PI;
+static const float FON_E_AVG_CONST = (2.0f / 3.0f) - (28.0f / 15.0f * INV_PI);
 static const float4 FON_G_COEFFS   = float4(0.0571085289, 0.491881867, -0.332181442, 0.0714429953);
 
 float3 f_FON(float3 wo, float3 wi, float3 rho, float r) {
@@ -396,9 +396,6 @@ float3 f_FON(float3 wo, float3 wi, float3 rho, float r) {
     }
     return rho * INV_PI * (Af + Bf * s * invTf);
 }
-
-// -- Energy-preserving Oren-Nayar --
-static const float EON_EPS         = 1e-7;
 
 // Average directional albedo
 [ForceInline]
@@ -419,26 +416,28 @@ float E_FON(float cosTheta, float Af, float Bf) {
     return Af + Bf * gOverPi;
 }
 
+// -- Energy-preserving Oren-Nayar --
+static const float EON_EPS         = 1e-7;
 
 float3 f_EON(float3 wo, float3 wi, float3 rho, float r) {
     // SS (same as f_FON)
-    float Af = 1 / (1 + r * FON_AF_CONST);
+    float Af = 1.0f / (1.0f + r * FON_AF_CONST);
     float Bf = r * Af;
     float s = dot(wo, wi) - (wi.z * wo.z);
-    float invTf = 1.0;
-    if (s > 0.0) {
-        invTf = 1 / max(max(wi.z, wo.z), 1e-6);
+    float invTf = 1.0f;
+    if (s > 0.0f) {
+        invTf = 1.0f / max(wi.z, wo.z);
     }
-    float3 ss = rho * INV_PI * (Af + Bf * s * invTf);
+    float3 ss = rho * INV_PI * Af * (1.0f + r * s * invTf);
 
     // MS
     float Ewo  = E_FON(wo.z, Af, Bf);
     float Ewi  = E_FON(wi.z, Af, Bf);
     float Eavg = Eavg_FON(Af, Bf);
-    float oneMinusEavg = 1 - Eavg;
+    float oneMinusEavg = 1.0f - Eavg;
 
-    float3 numerator = rho * rho * Eavg * max(EON_EPS,(1 - Ewo)) * max(EON_EPS,(1 - Ewi));
-    float3 denominator = (1 - rho * oneMinusEavg) * max(EON_EPS,oneMinusEavg);
+    float3 numerator = rho * rho * Eavg * max(EON_EPS,(1.0f - Ewo)) * max(EON_EPS,(1.0f - Ewi));
+    float3 denominator = (1.0f - rho * oneMinusEavg) * max(EON_EPS,oneMinusEavg);
     float3 ms = numerator / denominator * INV_PI;
 
     return ss + ms;
@@ -464,11 +463,11 @@ public struct OrenNayarBRDF : IBxDF {
         if (wo.z < 0) out.wi.z *= -1;
         out.pdf = CosineHemispherePDF(abs(out.wi.z));
 #if defined(OREN_NAYAR_QON)
-    out.f = f_QON(wo, out.wi, m_rho, m_r);
+        out.f = f_QON(wo, out.wi, m_rho, m_r);
 #elif defined(OREN_NAYAR_FON)
-    out.f = f_FON(wo, out.wi, m_rho, m_r);
+        out.f = f_FON(wo, out.wi, m_rho, m_r);
 #else
-    out.f = f_EON(wo, out.wi, m_rho, m_r);
+        out.f = f_EON(wo, out.wi, m_rho, m_r);
 #endif
         return out;
     }

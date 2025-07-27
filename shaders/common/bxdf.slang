@@ -309,6 +309,9 @@ public struct GlossyDiffuseBRDF : IBxDF {
         m_Rd = Rd;
         m_Rs = Rs;
 
+        alpha.x = max(GGX_THRESHOLD, alpha.x);
+        alpha.y = max(GGX_THRESHOLD, alpha.y);
+
         m_ggx = GGX(alpha);
     }
 
@@ -361,5 +364,120 @@ public struct GlossyDiffuseBRDF : IBxDF {
         const float p1 = Pow5(1 - (0.5 * AbsCosTheta(wi)));
         const float p2 = Pow5(1 - (0.5 * AbsCosTheta(wo)));
         return 28 * INV_PI_23 * m_Rd * (1 - m_Rs) * (1 - p1) * (1 - p2);
+    }
+}
+// -- Qualitative Oren-Nayar --
+float3 f_QON(float3 wo, float3 wi, float3 rho, float sigma) {
+    float sigma2 = sigma * sigma;
+    float Aq = 1 - 0.5 * sigma2 / (sigma2 + 0.33);
+    float Bq = 0.45 * sigma2 / (sigma2 + 0.09);
+
+    float s = dot(wo, wi) - (wi.z * wo.z);
+    float invTq = 0.0;
+    if (s > 0.0) {
+        invTq = 1 / max(max(wi.z, wo.z), 1e-6);
+    }
+
+    return rho * INV_PI * (Aq + Bq * s * invTq);
+}
+
+// -- Fujii Oren-Nayar --
+static const float FON_AF_CONST = 0.5 - (2 / 3) * INV_PI;
+static const float FON_E_AVG_CONST = (2 / 3) - (28 / 15 * INV_PI);
+static const float4 FON_G_COEFFS   = float4(0.0571085289, 0.491881867, -0.332181442, 0.0714429953);
+
+float3 f_FON(float3 wo, float3 wi, float3 rho, float r) {
+    float Af = 1 / (1 + r * FON_AF_CONST);
+    float Bf = r * Af;
+    float s = dot(wo, wi) - (wi.z * wo.z);
+    float invTf = 1.0;
+    if (s > 0.0) {
+        invTf = 1 / max(max(wi.z, wo.z), 1e-6);
+    }
+    return rho * INV_PI * (Af + Bf * s * invTf);
+}
+
+// -- Energy-preserving Oren-Nayar --
+static const float EON_EPS         = 1e-7;
+
+// Average directional albedo
+[ForceInline]
+float Eavg_FON(float Af, float Bf) {
+    return Af + FON_E_AVG_CONST * Bf;
+} 
+
+// Directional albedo
+[ForceInline]
+float E_FON(float cosTheta, float Af, float Bf) {
+    // E_f(\omega_o) = \rho(A_F + (B_f / \pi) * G_F(\omega_o))
+    //               = \rho(A_f + (B_f / \pi) * \pi * \sum_{k=1}^4 g_k(1 - \cos\theta_o)^k)
+    //               = \rho(A_f + B_f * \sum_{k=1}^4 g_k(1 - \cos\theta_o)^k)
+    float x  = 1 - cosTheta;
+    float x2 = x * x;
+    // I find this much more readable then using a 2x2 matrix...
+    float gOverPi = dot(FON_G_COEFFS, float4(x, x2, x * x2, x2 * x2));
+    return Af + Bf * gOverPi;
+}
+
+
+float3 f_EON(float3 wo, float3 wi, float3 rho, float r) {
+    // SS (same as f_FON)
+    float Af = 1 / (1 + r * FON_AF_CONST);
+    float Bf = r * Af;
+    float s = dot(wo, wi) - (wi.z * wo.z);
+    float invTf = 1.0;
+    if (s > 0.0) {
+        invTf = 1 / max(max(wi.z, wo.z), 1e-6);
+    }
+    float3 ss = rho * INV_PI * (Af + Bf * s * invTf);
+
+    // MS
+    float Ewo  = E_FON(wo.z, Af, Bf);
+    float Ewi  = E_FON(wi.z, Af, Bf);
+    float Eavg = Eavg_FON(Af, Bf);
+    float oneMinusEavg = 1 - Eavg;
+
+    float3 numerator = rho * rho * Eavg * max(EON_EPS,(1 - Ewo)) * max(EON_EPS,(1 - Ewi));
+    float3 denominator = (1 - rho * oneMinusEavg) * max(EON_EPS,oneMinusEavg);
+    float3 ms = numerator / denominator * INV_PI;
+
+    return ss + ms;
+}
+
+public struct OrenNayarBRDF : IBxDF {
+    private float3 m_rho;
+    private float m_r;
+
+    public __init(float3 rho, float roughness) {
+        m_rho = rho;
+
+#ifdef OREN_NAYAR_QON
+        m_r = roughness * PI_OVER_2; // [0, 1] -> [0, PI/2]
+#else
+        m_r = roughness;
+#endif
+    }
+
+    public Optional<BxDFSample> Sample(float3 wo, float s0, float2 s1) {
+        BxDFSample out;
+        out.wi = CosineHemisphere(s1);
+        if (wo.z < 0) out.wi.z *= -1;
+        out.pdf = CosineHemispherePDF(abs(out.wi.z));
+#if defined(OREN_NAYAR_QON)
+    out.f = f_QON(wo, out.wi, m_rho, m_r);
+#elif defined(OREN_NAYAR_FON)
+    out.f = f_FON(wo, out.wi, m_rho, m_r);
+#else
+    out.f = f_EON(wo, out.wi, m_rho, m_r);
+#endif
+        return out;
+    }
+
+    public float3 Evaluate(float3 wo, float3 wi) {
+        return float3(0, 0, 0);
+    }
+
+    public float PDF(float3 wo, float3 wi) {
+        return 0;
     }
 }

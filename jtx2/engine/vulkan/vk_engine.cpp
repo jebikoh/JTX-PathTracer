@@ -592,11 +592,12 @@ void VkEngine::SaveRenderImage(const std::filesystem::path &path) const {
     VkImage hostImage;
     VmaAllocation hostAlloc;
     VkImageCreateInfo imageInfo = jvk::init::Image(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_TRANSFER_DST_BIT, img.extent, VK_SAMPLE_COUNT_1_BIT);
-    imageInfo.tiling = VK_IMAGE_TILING_LINEAR;
+    imageInfo.tiling            = VK_IMAGE_TILING_LINEAR;
 
     VmaAllocationCreateInfo allocInfo = {};
-    allocInfo.usage                   = VMA_MEMORY_USAGE_GPU_TO_CPU;;
-    allocInfo.requiredFlags           = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    allocInfo.usage                   = VMA_MEMORY_USAGE_GPU_TO_CPU;
+    ;
+    allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     CHECK_VK(vmaCreateImage(m_gfx.allocator, &imageInfo, &allocInfo, &hostImage, &hostAlloc, nullptr));
 
     m_gfx.imBuffer.SubmitAndWait(m_gfx.graphicsQueue, [&](const VkCommandBuffer cmd) {
@@ -605,7 +606,7 @@ void VkEngine::SaveRenderImage(const std::filesystem::path &path) const {
 
         jvk::CopyImageToImage(cmd, img.image, hostImage, extent, extent);
 
-        jvk::TransitionImage(cmd, hostImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL); // Required to map the image
+        jvk::TransitionImage(cmd, hostImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);// Required to map the image
         jvk::TransitionImage(cmd, img.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_renderTargets.outputLayout);
     });
 
@@ -615,7 +616,7 @@ void VkEngine::SaveRenderImage(const std::filesystem::path &path) const {
     vkGetImageSubresourceLayout(m_gfx.ctx, hostImage, &subresource, &subresourceLayout);
 
     uint8_t *pData;
-    vmaMapMemory(m_gfx.allocator, hostAlloc, (void **)&pData);
+    vmaMapMemory(m_gfx.allocator, hostAlloc, (void **) &pData);
     pData += subresourceLayout.offset;
 
     const auto result = Image8u::Save(pData, extent.width, extent.height, 4, path);
@@ -1107,17 +1108,19 @@ void VkEngine::LoadScene(Scene *pScene) {
     offset             = 0;
     for (const auto &material: pScene->materials) {
         GPUMaterialData m{};
-        m.diffuse                                              = vec4(material.parameters.diffuse, 0.0f);
-        m.ior                                                  = vec4(material.parameters.ior, 0.0f);
-        m.k                                                    = vec4(material.parameters.k, 0.0f);
-        m.f0                                                   = vec4(material.parameters.f0, 0.0f);
-        m.emission                                             = vec4(material.parameters.emission, 0.0f);
-        m.emissionStrength                                     = material.parameters.emissionStrength;
-        m.roughness                                            = material.parameters.roughness;
-        m.anisotropy                                           = material.parameters.anisotropy;
-        m.specularTint                                         = material.parameters.specularTint;
-        m.baseColorTexture                                       = material.textureIndices.baseColor;
-        m.type                                                 = material.mType;
+        m.diffuse          = vec4(material.parameters.diffuse, 0.0f);
+        m.ior              = vec4(material.parameters.ior, 0.0f);
+        m.k                = vec4(material.parameters.k, 0.0f);
+        m.f0               = vec4(material.parameters.f0, 0.0f);
+        m.emission         = vec4(material.parameters.emission, 0.0f);
+        m.emissionStrength = material.parameters.emissionStrength;
+        m.roughness        = material.parameters.roughness;
+        m.anisotropy       = material.parameters.anisotropy;
+        m.diffuseRoughness = material.parameters.diffuseRoughness;
+        m.specularTint     = material.parameters.specularTint;
+        m.baseColorTexture = material.textureIndices.baseColor;
+        m.type             = material.mType;
+
         static_cast<GPUMaterialData *>(materialData)[offset++] = m;
     }
 
@@ -1276,6 +1279,7 @@ bool VkEngine::UpdateScene(const RenderContext &ctx, const SceneUpdate &update) 
         data->emissionStrength = material.parameters.emissionStrength;
         data->roughness        = material.parameters.roughness;
         data->anisotropy       = material.parameters.anisotropy;
+        data->diffuseRoughness = material.parameters.diffuseRoughness;
         data->specularTint     = material.parameters.specularTint;
         data->baseColorTexture = material.textureIndices.baseColor;
         data->type             = material.mType;
@@ -1289,8 +1293,8 @@ bool VkEngine::UpdateScene(const RenderContext &ctx, const SceneUpdate &update) 
 
         // Make sure this copy finishes before anything draws
         VkMemoryBarrier2 barrier{};
-        barrier.sType            = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
-        barrier.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
+        barrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+        barrier.srcStageMask  = VK_PIPELINE_STAGE_2_COPY_BIT;
         barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
         if (m_bRayTracingEnabled) {
             barrier.dstStageMask = VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR;
@@ -1312,7 +1316,7 @@ bool VkEngine::UpdateScene(const RenderContext &ctx, const SceneUpdate &update) 
 
         const auto &frame = m_frameData[ctx.frameIndex];
         const auto &obj   = m_pScene->meshes[update.objectIndex];
-        const auto data = static_cast<GPUObjectData *>(frame.objectStagingBuffer.GetMapping());
+        const auto data   = static_cast<GPUObjectData *>(frame.objectStagingBuffer.GetMapping());
         data->world       = glm::mat4(1.0f);
         data->normal      = glm::mat4(1.0f);
         data->startIndex  = obj.startIndex;
@@ -1326,8 +1330,8 @@ bool VkEngine::UpdateScene(const RenderContext &ctx, const SceneUpdate &update) 
         vkCmdCopyBuffer(ctx.cmd, frame.objectStagingBuffer.buffer, m_gpuSceneData.objectBuffer.buffer, 1, &copyRegion);
 
         VkMemoryBarrier2 barrier{};
-        barrier.sType            = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
-        barrier.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT;
+        barrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+        barrier.srcStageMask  = VK_PIPELINE_STAGE_2_COPY_BIT;
         barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
         if (m_bRayTracingEnabled) {
             barrier.dstStageMask = VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR;

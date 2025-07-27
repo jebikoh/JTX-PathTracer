@@ -85,6 +85,7 @@ JtxResult ExportScene(const Scene &scene, const std::filesystem::path &path) {
         params.AddMember("emission", ToJson(material.parameters.emission, allocator), allocator);
         params.AddMember("roughness", material.parameters.roughness, allocator);
         params.AddMember("anisotropy", material.parameters.anisotropy, allocator);
+        params.AddMember("diffuseRoughness", material.parameters.diffuseRoughness, allocator);
         m.AddMember("parameters", params, allocator);
 
         Value tex(kObjectType);

@@ -707,7 +707,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                 ImGui::Separator();
 
                 if (ctx.StartTable("MaterialEditor")) {
-                    const char *materialTypes[] = {"Diffuse", "Dielectric", "C. Conductor", "Conductor", "Thin Dielectric", "Glossy Diffuse"};
+                    const char *materialTypes[] = {"Lambertian", "Dielectric", "C. Conductor", "Conductor", "Thin Dielectric", "Glossy Diffuse", "Oren-Nayar"};
                     int currentType             = mat.mType;
 
                     bool bMaterialUpdated = false;
@@ -728,7 +728,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                     bool bMaterialHasRoughness = false;
 
                     switch (mat.mType) {
-                        case Material::Type::DIFFUSE:
+                        case Material::Type::LAMBERTIAN:
                             ctx.NewRow("Diffuse");
                             bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
                             break;
@@ -766,6 +766,12 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
                             bMaterialHasRoughness = true;
                             break;
+                        case Material::Type::OREN_NAYAR:
+                            ctx.NewRow("Diffuse");
+                            bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
+
+                            ctx.NewRow("Roughness");
+                            bMaterialUpdated |= ImGui::SliderFloat("##roughness", &mat.parameters.diffuseRoughness, 0.0f, 1.0f);
                         default:
                             break;
                     }

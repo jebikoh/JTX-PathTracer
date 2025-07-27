@@ -18,7 +18,7 @@ bool SampleBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3
     const Material &material = *surface.material;
 
     switch (material.mType) {
-        case Material::DIFFUSE: {
+        case Material::LAMBERTIAN: {
             vec3 diffuse;
             if (material.textureIndices.baseColor >= 0) {
                 const auto &tex = scene.textures[material.textureIndices.baseColor];
@@ -86,7 +86,7 @@ vec3 EvalBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &
     const Material &material = *surface.material;
 
     switch (material.mType) {
-        case Material::DIFFUSE: {
+        case Material::LAMBERTIAN: {
             vec3 diffuse;
             if (material.textureIndices.baseColor >= 0) {
                 const auto &tex = scene.textures[material.textureIndices.baseColor];
@@ -130,7 +130,7 @@ float PDFBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &
     const Material &material = *surface.material;
 
     switch (material.mType) {
-        case Material::DIFFUSE: {
+        case Material::LAMBERTIAN: {
             vec3 diffuse;
             if (material.textureIndices.baseColor >= 0) {
                 const auto &tex = scene.textures[material.textureIndices.baseColor];

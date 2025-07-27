@@ -10,15 +10,16 @@ struct Material {
     std::string name;
 
     enum Type {
-        DIFFUSE           = 0,
+        LAMBERTIAN        = 0,
         DIELECTRIC        = 1,
         COMPLEX_CONDUCTOR = 2,
         CONDUCTOR         = 3,
         THIN_DIELECTRIC   = 4,
         GLOSSY_DIFFUSE    = 5,
+        OREN_NAYAR        = 6
     };
 
-    Type mType = DIFFUSE;
+    Type mType = LAMBERTIAN;
 
     struct Parameters {
         vec3 diffuse;
@@ -29,6 +30,7 @@ struct Material {
         float emissionStrength;
         float roughness;
         float anisotropy;
+        float diffuseRoughness;
         bool bAnisotropic;
         float specularTint;
     } parameters;

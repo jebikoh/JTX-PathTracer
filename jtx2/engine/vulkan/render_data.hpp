@@ -62,7 +62,8 @@ struct GPUMaterialData {
     vec4 f0;
     float roughness;
     float anisotropy;
-    float _padding[2];
+    float diffuseRoughness;
+    float _padding;
     vec4 emission;
     float emissionStrength;
     float specularTint;

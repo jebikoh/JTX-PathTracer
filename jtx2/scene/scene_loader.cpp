@@ -112,7 +112,7 @@ JtxResult jtx::detail::LoadObj(const std::filesystem::path &path, jtx::Scene &sc
     if (scene.materials.empty()) {
         LOG_DEBUG(LOADER, "No materials found in OBJ file, adding default material");
         Material mat{};
-        mat.mType = Material::DIFFUSE;
+        mat.mType = Material::LAMBERTIAN;
         mat.parameters.diffuse = vec3(1.0f, 1.0f, 1.0f);
         scene.materials.push_back(mat);
     }
@@ -367,6 +367,7 @@ JtxResult jtx::detail::LoadJtx(const std::filesystem::path &path, Scene &scene) 
         FromJson(params, "emissionStrength", mat.parameters.emissionStrength, 1.0f);
         FromJson(params, "roughness", mat.parameters.roughness);
         FromJson(params, "anisotropy", mat.parameters.anisotropy);
+        FromJson(params, "diffuseRoughness", mat.parameters.diffuseRoughness, 0.0f);
 
         const Value& tex = m_json["textureIndices"];
 

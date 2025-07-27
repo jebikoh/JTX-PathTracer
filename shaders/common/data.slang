@@ -33,8 +33,8 @@ public struct MaterialData {
     public float4 f0;
     public float roughness;
     public float anisotropy;
+    public float diffuseRoughness;
     private float padding0;
-    private float padding1;
     public float4 emission;
     public float emissionStrength;
     public float specularTint;

@@ -12,9 +12,10 @@ Currently implemented:
 - Trowbridge-Reitz (GGX) microfacet distribution
 - BxDFS:
   - Lambertian Diffuse
+  - Energy-Preserving Oren-Nayar (EON) [[Portsmouth 2024]](https://arxiv.org/abs/2410.18026) (No CLTC)
   - Dielectric
   - Conductor (Shlick or Complex Fresnel)
-  - Glossy Diffuse: Specular + Diffuse [[Ashikhmin 2002](https://www.researchgate.net/publication/2523875_An_anisotropic_phong_BRDF_model)] with GGX
+  - Glossy Diffuse: Specular + Diffuse [[Ashikhmin 2002]](https://www.researchgate.net/publication/2523875_An_anisotropic_phong_BRDF_model) (with GGX)
 - HDRI Envmap sampling
 - Physically based camera
 - Post-processing: manual/camera-based exposure, tonemapping (ACES, AgX, Hable)

@@ -98,7 +98,7 @@ void BackendCPU::StartProgressiveRender() {
                                 // TODO: Apply tonemapping
 
                                 // Apply OETF
-                                accIntensity = ApplyGamma(accIntensity / static_cast<float>(sample + 1));
+                                accIntensity = SRGBToLinear(accIntensity / static_cast<float>(sample + 1));
 
                                 // Clamp and scale
                                 accIntensity = ClampIntensity(accIntensity) * 255.999f;

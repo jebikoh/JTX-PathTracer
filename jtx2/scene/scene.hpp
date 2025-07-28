@@ -102,12 +102,12 @@ struct Scene {
         vec3 target{};
         vec3 up{};
 
-        // Focal length (mm): distance from center of lens to convergence point
+        // Focal length (m): distance from center of lens to convergence point
         //                    (i.e. distance from lens to image sensor)
         //                    shorter length -> wider FOV
         //                    larger length  -> narrow FOV
         float focalLength = 0.05f;
-        // Sensor width (mm): physical width of image sensor.
+        // Sensor width (m): physical width of image sensor.
         float sensorWidth = 0.036f;
         // Focal distance (m): distance from lens to point in plane of perfect focus
         float focalDistance = 10.0f;

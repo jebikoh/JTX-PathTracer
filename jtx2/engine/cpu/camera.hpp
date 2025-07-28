@@ -41,7 +41,7 @@ struct ThinLensCamera {
         m_anchor = settings.position - (settings.focalDistance * w) - vpU / 2 - vpV / 2 + 0.5 * (m_du + m_dv);
 
         if (settings.bEnableDof) {
-            m_apertureRadius = (settings.focalLength / settings.fStop) * 0.002;
+            m_apertureRadius = (settings.focalLength / settings.fStop) * 0.5;
         } else {
             m_apertureRadius = 0.0f;
         }
@@ -50,9 +50,9 @@ struct ThinLensCamera {
         m_lensV = v;
     }
 
-    ray GetRay(const uint32_t row, const uint32_t col, const uint32_t stratum, Sampler &rng) const {
-        const uint32_t sx = stratum % sppRow;
-        const uint32_t sy = stratum / sppRow;
+    ray GetRay(const uint32_t row, const uint32_t col, const uint32_t noSample, Sampler &rng) const {
+        const uint32_t sx = noSample % sppRow;
+        const uint32_t sy = noSample / sppRow;
 
         const float dx = rng.Uniform<float>();
         const float dy = rng.Uniform<float>();

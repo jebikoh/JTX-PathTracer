@@ -11,12 +11,15 @@ enum kExposureType {
 };
 
 // https://seblagarde.wordpress.com/wp-content/uploads/2015/07/course_notes_moving_frostbite_to_pbr_v32.pdf
+// https://google.github.io/filament/Filament.md.html#imagingpipeline/physicallybasedcamera
 inline float ComputeManualEV100(const float aperture, const float shutterSpeed, const float ISO) {
     return log2(Sqr(aperture) / shutterSpeed * 100 / ISO);
 }
 
 inline float EV100ToExposure(const float EV100) {
-    return 1.2f * jtx::pow(2.0f, EV100);
+    // Saturation-Based Sensitivity
+    const float maxL = 1.2f * jtx::pow(2.0f, EV100);
+    return 1 / maxL;
 }
 
 // -- Tonemapping --
@@ -42,16 +45,6 @@ inline vec3 Reinhard(const vec3 &v) {
     const float L1 = Luminance(v);
     return v / (1.0f + L1);
 }
-
-inline float ApplyGamma(const float x) {
-    if (x > 0) return jtx::Sqrt(x);
-    return 0.0f;
-}
-
-inline vec3 ApplyGamma(const vec3 &x) {
-    return vec3(ApplyGamma(x.x), ApplyGamma(x.y), ApplyGamma(x.z));
-}
-
 
 inline float ClampIntensity(const float x) {
     return jtx::Clamp(x, 0.0f, 0.999f);

@@ -21,7 +21,7 @@ void GfxContext::Init() {
     InitVulkan();
     InitAllocator();
     InitSwapchain();
-    InitRenderTarget();
+    InitRenderTargets();
     InitFrameData();
     InitImmediateBuffer();
     InitDefaultImages();
@@ -230,8 +230,8 @@ void GfxContext::InitSwapchain() {
     LOG_DEBUG(GFX, "Swapchain Initialized");
 }
 
-void GfxContext::InitRenderTarget() {
-    LOG_DEBUG(GFX, "Initializing render target");
+void GfxContext::InitRenderTargets() {
+    LOG_DEBUG(GFX, "Initializing render targets");
 
     // TODO:
     // Right now, the draw images are initialized to the maximum screen size
@@ -242,11 +242,10 @@ void GfxContext::InitRenderTarget() {
         LOG_FATAL(GFX, "SDL error while retrieving display mode: {}", SDL_GetError());
     }
 
-
     // Draw image 16f
     VkExtent3D drawExtent{};
-    drawExtent.width  = dm->w;
-    drawExtent.height = dm->h;
+    drawExtent.width  = static_cast<uint32_t>(dm->w * dm->pixel_density);
+    drawExtent.height = static_cast<uint32_t>(dm->h * dm->pixel_density);
     drawExtent.depth  = 1;
 
     targets.draw16f.format = VK_FORMAT_R16G16B16A16_SFLOAT;
@@ -292,7 +291,7 @@ void GfxContext::InitRenderTarget() {
 
     const VkImageViewCreateInfo depthImageViewInfo = jvk::init::ImageView(targets.depthStencil.format, targets.depthStencil.image, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
     CHECK_VK(vkCreateImageView(ctx, &depthImageViewInfo, nullptr, &targets.depthStencil.view));
-    LOG_DEBUG(GFX, "Render target Initialized");
+    LOG_DEBUG(GFX, "Render targets Initialized");
 }
 
 void GfxContext::InitFrameData() {
@@ -358,7 +357,7 @@ void GfxContext::Destroy() {
     DestroyDefaultImages();
     DestroyImmediateBuffer();
     DestroyFrameData();
-    DestroyRenderTarget();
+    DestroyRenderTargets();
     DestroySwapchain();
     DestroyAllocator();
     DestroyVulkan();
@@ -401,15 +400,15 @@ void GfxContext::DestroySwapchain() const {
     LOG_DEBUG(GFX, "Swapchain Destroyed");
 }
 
-void GfxContext::DestroyRenderTarget() const {
-    LOG_DEBUG(GFX, "Destroying render target");
+void GfxContext::DestroyRenderTargets() const {
+    LOG_DEBUG(GFX, "Destroying render targets");
 
     if (bRayTracingSupported) targets.draw32f.Destroy(ctx, allocator);
 
     targets.draw16f.Destroy(ctx, allocator);
     targets.depthStencil.Destroy(ctx, allocator);
 
-    LOG_DEBUG(GFX, "Render target destroyed");
+    LOG_DEBUG(GFX, "Render targets destroyed");
 }
 
 void GfxContext::DestroyFrameData() {

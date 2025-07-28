@@ -151,9 +151,7 @@ bool UIRenderer::GetViewportRectangle(jvk::ViewRectangle &out) const {
 
     const ImGuiViewport * mainViewport = ImGui::GetMainViewport();
 
-    const ImVec2 scale = mainViewport->DpiScale > 0.0f
-        ? ImVec2(mainViewport->DpiScale, mainViewport->DpiScale)
-        : ImGui::GetIO().DisplayFramebufferScale;
+    const ImVec2 scale = ImGui::GetIO().DisplayFramebufferScale;
 
     ImVec2 minPos = m_pCentralNode->Pos;
     minPos.x -= mainViewport->Pos.x;
@@ -161,7 +159,6 @@ bool UIRenderer::GetViewportRectangle(jvk::ViewRectangle &out) const {
 
     const auto size = m_pCentralNode->Size;
 
-    // TODO: test this on OSX
     out.x = minPos.x * scale.x;
     out.y = minPos.y * scale.y;
     out.w = size.x * scale.x;

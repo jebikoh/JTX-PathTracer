@@ -215,7 +215,7 @@ private:
     void InitVulkan();
     void InitAllocator();
     void InitSwapchain();
-    void InitRenderTarget();
+    void InitRenderTargets();
     void InitFrameData();
     void InitImmediateBuffer();
     void InitDefaultImages();
@@ -225,7 +225,7 @@ private:
     void DestroyVulkan() const;
     void DestroyAllocator() const;
     void DestroySwapchain() const;
-    void DestroyRenderTarget() const;
+    void DestroyRenderTargets() const;
     void DestroyFrameData();
     void DestroyImmediateBuffer() const;
     void DestroyDefaultImages() const;

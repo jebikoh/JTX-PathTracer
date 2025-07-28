@@ -235,6 +235,7 @@ set(JTX_WING
         jtx2/engine/vulkan/render_data.hpp
         jtx2/engine/vulkan/accel.hpp
         jtx2/engine/vulkan/accel.cpp
+        jtx2/engine/cpu/energy_compensation.hpp
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -465,10 +466,21 @@ set(SLANG_SOURCE_FILES
         "${PROJECT_SOURCE_DIR}/shaders/mesh.slang"
 )
 
+set(SLANG_COMMON_MODULES
+    "${PROJECT_SOURCE_DIR}/shaders/common/bxdf.slang"
+    "${PROJECT_SOURCE_DIR}/shaders/common/color.slang"
+    "${PROJECT_SOURCE_DIR}/shaders/common/constants.slang"
+    "${PROJECT_SOURCE_DIR}/shaders/common/data.slang"
+    "${PROJECT_SOURCE_DIR}/shaders/common/math.slang"
+    "${PROJECT_SOURCE_DIR}/shaders/common/random.slang"
+    "${PROJECT_SOURCE_DIR}/shaders/common/sampling.slang"
+)
+
 function(compile_slang_shader SOURCE_FILE ENTRY_POINT OUTPUT_VAR)
     get_filename_component(SOURCE_NAME ${SOURCE_FILE} NAME_WE)
 
     set(OUTPUT_SPIRV "${SPIRV_OUTPUT_DIR}/${SOURCE_NAME}_${ENTRY_POINT}.spv")
+    set(OUTPUT_DEP_FILE "${SPIRV_OUTPUT_DIR}/${SOURCE_NAME}_${ENTRY_POINT}.spv.d")
     add_custom_command(
             OUTPUT ${OUTPUT_SPIRV}
             COMMAND ${SLANG_COMPILER}
@@ -477,7 +489,7 @@ function(compile_slang_shader SOURCE_FILE ENTRY_POINT OUTPUT_VAR)
             -target spirv
             -entry ${ENTRY_POINT}
             -o ${OUTPUT_SPIRV}
-            DEPENDS ${SOURCE_FILE}
+            DEPENDS ${SOURCE_FILE} ${SLANG_COMMON_MODULES}
             COMMENT "Compiling Slang shader: ${SOURCE_FILE} -> ${ENTRY_POINT}"
     )
     message(STATUS "[JTX] Slang Shader: ${SOURCE_NAME}::${ENTRY_POINT}")

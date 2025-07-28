@@ -131,6 +131,16 @@ private:
     void UpdateGlobalUniformData();
     GPUGlobalUniformData m_gpuGlobalUniformData{};
 
+    // LUTs
+    // TODO: set this up in a more programmatic/safe way
+    struct {
+        jvk::Image ggxReflection;
+    } m_luts;
+    uint32_t m_numLuts = 1;
+
+    void LoadLUTs();
+    void DestroyLUTs() const;
+
     // == Pipelines ==
     void InitPipelines();
     void DestroyPipelines() const;

@@ -3,31 +3,37 @@
 #include <engine/cpu/backend_cpu.hpp>
 #include <scene/scene_loader.hpp>
 #include <thread>
+#include <engine/cpu/energy_compensation.hpp>
 
 using namespace jtx;
 
 int main(int argc, char *argv[]) {
-    Scene scene;
-    CHECK_JTX(LoadScene("../assets/scenes/knobs/knob_hdri.jtx", scene));
+    Logger::AddDefaultSink();
 
-    RenderSettings rs;
-    rs.maxDepth   = 32;
-    rs.sppRow     = 8;
-    rs.sppCol     = 8;
-    rs.tileSize   = 32;
-    rs.numThreads = std::thread::hardware_concurrency() - 1;
-    rs.seed       = 419;
-    rs.tonemapOp        = TMO_REINHARD;
-    rs.EV         = 0.0f;
-    rs.EC         = 0.0f;
+    std::filesystem::path path = "ggx.lut";
+    CHECK_JTX(GenerateGGXReflectionCompensationLUT(path, 419));
 
-    BackendCPU backend;
-    backend.Init(1920, 1080, rs);
-    backend.LoadScene(&scene);
-    backend.StartOfflineRender();
-    CHECK_JTX(backend.SaveRenderOutput("knob_d.png"));
-    backend.Destroy();
-    scene.Destroy();
+    // Scene scene;
+    // CHECK_JTX(LoadScene("../assets/scenes/knobs/knob_hdri.jtx", scene));
+    //
+    // RenderSettings rs;
+    // rs.maxDepth   = 32;
+    // rs.sppRow     = 8;
+    // rs.sppCol     = 8;
+    // rs.tileSize   = 32;
+    // rs.numThreads = std::thread::hardware_concurrency() - 1;
+    // rs.seed       = 419;
+    // rs.tonemapOp        = TMO_REINHARD;
+    // rs.EV         = 0.0f;
+    // rs.EC         = 0.0f;
+    //
+    // BackendCPU backend;
+    // backend.Init(1920, 1080, rs);
+    // backend.LoadScene(&scene);
+    // backend.StartOfflineRender();
+    // CHECK_JTX(backend.SaveRenderOutput("knob_d.png"));
+    // backend.Destroy();
+    // scene.Destroy();
 
     return 0;
 }

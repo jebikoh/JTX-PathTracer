@@ -365,7 +365,13 @@ JtxResult jtx::detail::LoadJtx(const std::filesystem::path &path, Scene &scene) 
         FromJson(params, "f0", mat.parameters.f0);
         FromJson(params, "emission", mat.parameters.emission);
         FromJson(params, "emissionStrength", mat.parameters.emissionStrength, 1.0f);
-        FromJson(params, "roughness", mat.parameters.roughness);
+        if (params.HasMember("roughness") && params["roughness"].IsArray()) {
+            vec2 roughness;
+            FromJson(params, "roughness", roughness);
+            mat.parameters.roughness = roughness.x;
+        } else {
+            FromJson(params, "roughness", mat.parameters.roughness);
+        }
         FromJson(params, "anisotropy", mat.parameters.anisotropy);
         FromJson(params, "diffuseRoughness", mat.parameters.diffuseRoughness, 0.0f);
 

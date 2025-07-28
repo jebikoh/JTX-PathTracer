@@ -9,6 +9,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <backends/imgui_impl_vulkan.h>
 #include <engine/vulkan/accel.hpp>
+#include <engine/cpu/energy_compensation.hpp>
 
 #include <glm/gtx/transform.hpp>
 
@@ -20,6 +21,7 @@ void VkEngine::Init(const bool bEnableRayTracing) {
     m_bRayTracingAvailable = bEnableRayTracing;
 
     InitDescriptors();
+    LoadLUTs();
     InitPipelines();
     if (m_bRayTracingAvailable) {
         InitRayTracingResources();
@@ -41,6 +43,7 @@ void VkEngine::Destroy() {
 
     DestroyScene();
     DestroyPipelines();
+    DestroyLUTs();
     DestroyDescriptors();
 
     LOG_INFO(VKE, "Vulkan engine destroyed");
@@ -49,7 +52,7 @@ void VkEngine::Destroy() {
 void VkEngine::RenderViewport(RenderContext &ctx, ResolveRegion &region, const SceneUpdate &update) {
     TPROFILE_SCOPE();
     // Reset frame count if ray tracing was just enabled
-    m_vpState.bResetAccumulation |= (m_bRayTracingEnabled && !m_bRayTracingEnabledPreviousFrame);
+    m_vpState.bResetAccumulation |= m_bRayTracingEnabled && !m_bRayTracingEnabledPreviousFrame;
     m_bRayTracingEnabledPreviousFrame = m_bRayTracingEnabled;
 
     if (m_camera.HasChanged()) {
@@ -596,7 +599,7 @@ void VkEngine::SaveRenderImage(const std::filesystem::path &path) const {
 
     VmaAllocationCreateInfo allocInfo = {};
     allocInfo.usage                   = VMA_MEMORY_USAGE_GPU_TO_CPU;
-    ;
+
     allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     CHECK_VK(vmaCreateImage(m_gfx.allocator, &imageInfo, &allocInfo, &hostImage, &hostAlloc, nullptr));
 
@@ -681,7 +684,7 @@ void VkEngine::InitDescriptors() {
     }
 
     constexpr VkDescriptorBindingFlags bindingFlags     = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-    std::vector<VkDescriptorBindingFlags> vBindingFlags = {
+    std::vector vBindingFlags = {
             bindingFlags,
             bindingFlags,
             bindingFlags,
@@ -767,6 +770,29 @@ void VkEngine::UpdateGlobalUniformData() {
     m_gpuGlobalUniformData.texCoordBuffer = m_gpuSceneData.uvAddress;
     m_gpuGlobalUniformData.colorBuffer    = m_gpuSceneData.colorAddress;
     m_gpuGlobalUniformData.indexBuffer    = m_gpuSceneData.indexAddress;
+}
+
+void VkEngine::LoadLUTs() {
+    TPROFILE_SCOPE();
+    LOG_DEBUG(VKE, "Loading LUTs");
+    Image32f ggxReflection;
+    CHECK_JTX(Image32f::LoadLUT(GGX_COMPENSATION_LUT_WIDTH, GGX_COMPENSATION_LUT_HEIGHT, 1, "lut/ggx.lut", ggxReflection));
+
+    const VkFormat format   = VK_FORMAT_R32_SFLOAT;
+    const VkExtent3D extent = {GGX_COMPENSATION_LUT_WIDTH, GGX_COMPENSATION_LUT_HEIGHT, 1};
+
+    m_luts.ggxReflection = m_gfx.CreateImage(ggxReflection.pData, extent, 1, format, VK_IMAGE_USAGE_SAMPLED_BIT, sizeof(float));
+
+    LOG_DEBUG(VKE, "LUTs loaded");
+}
+
+void VkEngine::DestroyLUTs() const {
+    TPROFILE_SCOPE();
+    LOG_DEBUG(VKE, "Destroying LUTs");
+
+    m_luts.ggxReflection.Destroy(m_gfx.ctx, m_gfx.allocator);
+
+    LOG_DEBUG(VKE, "LUTs destroyed");
 }
 
 void VkEngine::InitPipelines() {
@@ -949,9 +975,23 @@ void VkEngine::LoadScene(Scene *pScene) {
 
     // -- Textures --
     LOG_DEBUG(VKE, "Loading textures");
-    m_gpuSceneData.textures.resize(pScene->textures.size());
-    LOG_DEBUG(VKE, "    Scene has {} textures", pScene->textures.size());
+
+    // Load LUTs into first few slots
+    // Expand GPU texture array even though theyre stored separately to keep indices accurate
+    // TODO: Setup proper indexing between LUTs and scene textures
+    //       Maybe put LUTs at the end of the texture array?
+    m_gpuSceneData.textures.resize(pScene->textures.size() + m_numLuts);
+
     uint32_t index = 0;
+    writer.WriteImage(kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY,
+        index++,
+        m_luts.ggxReflection.view,
+        m_gfx.defaultSamplers.linear,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+    );
+
+    LOG_DEBUG(VKE, "    Scene has {} textures", pScene->textures.size());
     for (const auto &tex: pScene->textures) {
         if (tex.IsEmpty()) {
             ++index;
@@ -1118,7 +1158,7 @@ void VkEngine::LoadScene(Scene *pScene) {
         m.anisotropy       = material.parameters.anisotropy;
         m.diffuseRoughness = material.parameters.diffuseRoughness;
         m.specularTint     = material.parameters.specularTint;
-        m.baseColorTexture = material.textureIndices.baseColor;
+        m.baseColorTexture = material.textureIndices.baseColor < 0 ? -1 : material.textureIndices.baseColor + m_numLuts;
         m.type             = material.mType;
 
         static_cast<GPUMaterialData *>(materialData)[offset++] = m;
@@ -1240,9 +1280,10 @@ void VkEngine::DestroyScene() {
         LOG_DEBUG(VKE, "Destroyed mesh data");
 
         // -- Textures --
-        for (const auto &tex: m_gpuSceneData.textures) {
-            m_gfx.DestroyImage(tex);
+        for (int i = m_numLuts; i < m_gpuSceneData.textures.size(); i++) {
+            m_gfx.DestroyImage(m_gpuSceneData.textures[i]);
         }
+
         m_gpuSceneData.textures.clear();
         LOG_DEBUG(VKE, "Destroyed textures");
 
@@ -1281,7 +1322,7 @@ bool VkEngine::UpdateScene(const RenderContext &ctx, const SceneUpdate &update) 
         data->anisotropy       = material.parameters.anisotropy;
         data->diffuseRoughness = material.parameters.diffuseRoughness;
         data->specularTint     = material.parameters.specularTint;
-        data->baseColorTexture = material.textureIndices.baseColor;
+        data->baseColorTexture = material.textureIndices.baseColor < 0 ? -1 : material.textureIndices.baseColor + m_numLuts;
         data->type             = material.mType;
 
         VkBufferCopy copyRegion{};

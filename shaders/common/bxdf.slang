@@ -128,18 +128,16 @@ public struct DiffuseBRDF : IBxDF {
 public struct ConductorBRDF : IBxDF {
     private float3 m_f0;
     private GGX m_ggx;
+    private Sampler2D m_lut;
+    private float m_roughness;
 
-    public __init(float3 f0) {
-        m_f0 = f0;
-        m_ggx = GGX();
-    }
-
-    public __init(float3 f0, float2 alpha) {
-        alpha.x = max(alpha.x, GGX_THRESHOLD);
-        alpha.y = max(alpha.y, GGX_THRESHOLD);
+    public __init(float3 f0, float roughness, float anisotropy, Sampler2D lut) {
 
         m_f0  = f0;
-        m_ggx = GGX(alpha);
+        m_ggx = GGX(CalculateGGXAlpha(roughness, anisotropy));
+
+        m_lut = lut;
+        m_roughness = roughness;
     }
 
     public Optional<BxDFSample> Sample(float3 wo, float s0, float2 s1) {
@@ -169,7 +167,14 @@ public struct ConductorBRDF : IBxDF {
         const float3 F = Schlick(wo, wm,  m_f0);
         const float G = m_ggx.EvaluateShadowingMasking(wo, out.wi);
 
-        out.f = D * F * G / (4 * absCosThetaI * absCosThetaO);
+        const float3 f = D * F * G / (4 * absCosThetaI * absCosThetaO);
+        out.f = f;
+
+        // Energy compensation (Turquin 2019)
+        // float2 tx = float2(absCosThetaO, m_roughness);
+        // const float ess = m_lut.SampleLevel(tx, 0.0).r;
+        // const float kms = (1 - ess) * ess;
+        // out.f = (1 + m_f0 * kms) * f;
 
         return out;
     }
@@ -480,3 +485,56 @@ public struct OrenNayarBRDF : IBxDF {
         return 0;
     }
 }
+
+// public struct OpenPBR : IBxDF {
+//     // Diffuse Lobe
+//     float baseWeight;
+//     float3 baseColor;
+//     float baseDiffuseRoughness;
+
+//     // Specular BRDF
+//     float specularWeight;
+//     float specularRoughness;
+//     float specularAnisotropy;
+//     float specularIOR;
+
+//     // // Specular BTDF
+//     // float tranmissionWeight;
+
+//     public __init() {
+//         // Base Color
+//         baseColor            = float3(1, 0.5, 0.5);
+//         baseWeight           = 1.0f;
+//         baseDiffuseRoughness = 1.0f;
+
+//         specularWeight       = 1.0f;
+//         specularRoughness    = 0.3f;
+//         specularAnisotropy   = 0.0f;
+//         specularIOR          = 1.5f;
+//     }
+
+//     public Optional<BxDFSample> Sample(float3 wo, float s0, float2 s1) {
+//         BxDFSample out;
+
+//         // Lobe weights
+
+
+//         // Lobe probabilities
+//         // Ideally, we would adjust each weight by the directional albedo of that lobe (per OpenPBR spec)
+//         // That's a lot of work to setup, so for now, we will just use fresnel-adjuted lobe weights
+
+//         // Sample lobe
+
+//         // Evaluate lobes
+
+//         return out;
+//     }
+
+//     public float3 Evaluate(float3 wo, float3 wi) {
+//         return float3(0, 0, 0);
+//     }
+
+//     public float PDF(float3 wo, float3 wi) {
+//         return 0;
+//     }
+// }

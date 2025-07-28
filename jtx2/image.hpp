@@ -164,8 +164,8 @@ public:
     Image32f(const int w, const int h, const int c)
         : width(w),
           height(h),
-          channels(c),
-          pData(nullptr) {
+          channels(c) {
+        pData = new float[w * h * c];
     }
 
     /**
@@ -193,6 +193,9 @@ public:
 
     JtxResult SaveAs8u(const std::filesystem::path &path, bool bFlip = true) const;
     static JtxResult SaveAs8u(const float *pData, uint32_t width, uint32_t height, uint32_t channels, const std::filesystem::path &path, bool bFlip = true);
+
+    static JtxResult LoadLUT(uint32_t width, uint32_t height, uint32_t channels, const std::filesystem::path &path, Image32f &out);
+    JtxResult SaveLUT(const std::filesystem::path &path) const;
 
     const float &operator[](const int index) const { return pData[index]; }
     float &operator[](const int index) { return pData[index]; }

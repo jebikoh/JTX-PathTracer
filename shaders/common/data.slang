@@ -1,5 +1,7 @@
 module data;
 
+public static const uint GGX_REFLECTION_COMPENSATION_LUT_INDEX = 0;
+
 public struct GlobalUniformData {
     public matrix<float, 4, 4> viewProj;
     public matrix<float, 4, 4> invViewProj;

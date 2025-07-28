@@ -17,10 +17,12 @@
     <inspection_tool class="CppDeprecatedEntity" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="CppMemberFunctionMayBeStatic" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
     <inspection_tool class="CppNonExplicitConversionOperator" enabled="false" level="HINT" enabled_by_default="false" />
+    <inspection_tool class="CppRedundantParentheses" enabled="false" level="HINT" enabled_by_default="false" />
     <inspection_tool class="CppRedundantQualifier" enabled="false" level="HINT" enabled_by_default="false" />
     <inspection_tool class="CppTooWideScope" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
     <inspection_tool class="CppTooWideScopeInitStatement" enabled="false" level="HINT" enabled_by_default="false" />
     <inspection_tool class="CppUninitializedNonStaticDataMember" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="CppUseStructuredBinding" enabled="false" level="HINT" enabled_by_default="false" />
+    <inspection_tool class="CppVariableCanBeMadeConstexpr" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
   </profile>
 </component>

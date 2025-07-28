@@ -329,6 +329,48 @@ JtxResult Image32f::SaveAs8u(const float *pData, const uint32_t width, const uin
     return JTX_ERROR_FILE_WRITE;
 }
 
+JtxResult Image32f::LoadLUT(const uint32_t width, const uint32_t height, const uint32_t channels, const std::filesystem::path &path, Image32f &out) {
+    out.pData    = new float[width * height * channels];
+    out.width    = width;
+    out.height   = height;
+    out.channels = channels;
+
+    std::ifstream lutStream(path, std::ios::in | std::ios::binary);
+    if (!lutStream.is_open()) {
+        LOG_ERROR(TEXTURE, "Failed to open LUT file: {}", path.string());
+        return JTX_ERROR_FILE_LOADING;
+    }
+
+    lutStream.read(reinterpret_cast<char *>(out.pData), width * height * channels * sizeof(float));
+    if (!lutStream.good()) {
+        LOG_ERROR(TEXTURE, "Error while reading LUT file: {}", path.string());
+        lutStream.close();
+        return JTX_ERROR_FILE_LOADING;
+    }
+
+    lutStream.close();
+    return JTX_SUCCESS;
+}
+
+JtxResult Image32f::SaveLUT(const std::filesystem::path &path) const {
+    std::ofstream lutStream(path, std::ios::binary | std::ios::trunc);
+    if (!lutStream.is_open()) {
+        LOG_ERROR(TEXTURE, "Failed to open LUT file for writing: {}", path.string());
+        return JTX_ERROR_FILE_WRITE;
+    }
+
+    lutStream.write(reinterpret_cast<const char *>(pData), width * height * channels * sizeof(float));
+
+    if (!lutStream.good()) {
+        LOG_ERROR(TEXTURE, "Error while writing to LUT file: {}", path.string());
+        lutStream.close();
+        return JTX_ERROR_FILE_WRITE;
+    }
+
+    lutStream.close();
+    return JTX_SUCCESS;
+}
+
 vec3 Image32f::SampleRGB(const vec2 &tx) const {
     auto wx = static_cast<int32_t>(tx.x * width);
     auto wy = static_cast<int32_t>(tx.y * height);

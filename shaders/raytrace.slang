@@ -195,7 +195,7 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
             } else {
                 f0 = mat.f0.rgb;
             }
-            ConductorBRDF brdf = ConductorBRDF(f0, CalculateGGXAlpha(mat.roughness, mat.anisotropy));
+            ConductorBRDF brdf = ConductorBRDF(f0, mat.roughness, mat.anisotropy, textures[GGX_REFLECTION_COMPENSATION_LUT_INDEX]);
             sample = brdf.Sample(wo, prd.s0, prd.s1);
             break;
         }

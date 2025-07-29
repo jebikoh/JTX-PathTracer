@@ -454,7 +454,7 @@ void VkEngine::LoadHDRI() {
         writer.WriteImage(
                 kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY,
                 index, gpuTex.view,
-                m_gfx.defaultSamplers.linear,
+                m_lutSampler,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
         writer.UpdateSet(m_gfx.ctx, m_bindlessDescriptorSet);
@@ -775,6 +775,17 @@ void VkEngine::UpdateGlobalUniformData() {
 void VkEngine::LoadLUTs() {
     TPROFILE_SCOPE();
     LOG_DEBUG(VKE, "Loading LUTs");
+
+    // The default samplers won't work here since we need VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
+    VkSamplerCreateInfo info{};
+    info.sType     = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    info.minFilter = VK_FILTER_NEAREST;
+    info.magFilter = VK_FILTER_NEAREST;
+    info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    CHECK_VK(vkCreateSampler(m_gfx.ctx, &info, nullptr, &m_lutSampler));
+
     Image32f ggxReflection;
     CHECK_JTX(Image32f::LoadLUT(GGX_COMPENSATION_LUT_WIDTH, GGX_COMPENSATION_LUT_HEIGHT, 1, "lut/ggx.lut", ggxReflection));
 
@@ -791,6 +802,7 @@ void VkEngine::DestroyLUTs() const {
     LOG_DEBUG(VKE, "Destroying LUTs");
 
     m_luts.ggxReflection.Destroy(m_gfx.ctx, m_gfx.allocator);
+    vkDestroySampler(m_gfx.ctx, m_lutSampler, nullptr);
 
     LOG_DEBUG(VKE, "LUTs destroyed");
 }
@@ -986,7 +998,7 @@ void VkEngine::LoadScene(Scene *pScene) {
     writer.WriteImage(kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY,
         index++,
         m_luts.ggxReflection.view,
-        m_gfx.defaultSamplers.linear,
+        m_gfx.defaultSamplers.nearest,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
     );
@@ -1013,7 +1025,7 @@ void VkEngine::LoadScene(Scene *pScene) {
         writer.WriteImage(
                 kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY,
                 index, gpuTex.view,
-                m_gfx.defaultSamplers.linear,
+                m_gfx.defaultSamplers.nearest,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
         m_gpuSceneData.textures[index++] = gpuTex;

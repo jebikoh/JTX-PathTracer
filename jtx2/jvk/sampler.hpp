@@ -17,6 +17,9 @@ struct Sampler {
         info.sType     = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         info.minFilter = minFilter;
         info.magFilter = magFilter;
+        info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
         return vkCreateSampler(device, &info, nullptr, &sampler);
     }
 

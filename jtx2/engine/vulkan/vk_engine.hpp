@@ -137,6 +137,7 @@ private:
         jvk::Image ggxReflection;
     } m_luts;
     uint32_t m_numLuts = 1;
+    VkSampler m_lutSampler = VK_NULL_HANDLE;
 
     void LoadLUTs();
     void DestroyLUTs() const;

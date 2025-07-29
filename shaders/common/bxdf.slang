@@ -168,13 +168,12 @@ public struct ConductorBRDF : IBxDF {
         const float G = m_ggx.EvaluateShadowingMasking(wo, out.wi);
 
         const float3 f = D * F * G / (4 * absCosThetaI * absCosThetaO);
-        out.f = f;
 
         // Energy compensation (Turquin 2019)
-        // float2 tx = float2(absCosThetaO, m_roughness);
-        // const float ess = m_lut.SampleLevel(tx, 0.0).r;
-        // const float kms = (1 - ess) * ess;
-        // out.f = (1 + m_f0 * kms) * f;
+        float2 tx = float2(absCosThetaO, m_roughness);
+        const float ess = m_lut.SampleLevel(tx, 0.0).r;
+        const float kms = (1 - ess) / ess;
+        out.f = (1 + F * kms) * f;
 
         return out;
     }

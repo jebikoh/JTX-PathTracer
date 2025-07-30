@@ -707,7 +707,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                 ImGui::Separator();
 
                 if (ctx.StartTable("MaterialEditor")) {
-                    const char *materialTypes[] = {"Lambertian", "Dielectric", "C. Conductor", "Conductor", "Thin Dielectric", "Glossy Diffuse", "Oren-Nayar"};
+                    const char *materialTypes[] = {"Lambertian", "Dielectric", "Conductor", "Thin Dielectric", "Glossy Diffuse", "Oren-Nayar"};
                     int currentType             = mat.mType;
 
                     bool bMaterialUpdated = false;
@@ -737,15 +737,6 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                             bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x, 0.01, 0, 100);
                             bMaterialHasRoughness = true;
                             break;
-                        case Material::Type::COMPLEX_CONDUCTOR:
-                            ctx.NewRow("IOR");
-                            bMaterialUpdated |= ImGui::DragFloat3("##ior", &mat.parameters.ior.x, 0.01);
-
-                            ctx.NewRow("Absorption");
-                            bMaterialUpdated |= ImGui::DragFloat3("##absorption", &mat.parameters.k.x);
-
-                            bMaterialHasRoughness = true;
-                            break;
                         case Material::Type::CONDUCTOR:
                             ctx.NewRow("F0");
                             bMaterialUpdated |= ImGui::ColorEdit3("##f0", &mat.parameters.f0.x);
@@ -756,6 +747,9 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                             ctx.NewRow("IOR");
                             bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x, 0.01, 0, 100);
                             bMaterialHasRoughness = false;
+
+                            ctx.NewRow("Transmission Color");
+                            bMaterialUpdated |= ImGui::ColorEdit3("##transmission", &mat.parameters.transmissionColor.x);
                             break;
                         case Material::Type::GLOSSY_DIFFUSE:
                             ctx.NewRow("Diffuse");

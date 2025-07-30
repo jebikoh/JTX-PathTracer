@@ -181,9 +181,6 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
             break;
         }
         case 2: {
-            break;
-        }
-        case 3: {
             float3 f0;
             if (mat.baseColorTexture >= 0) {
                 float2 tx0 = globalData.texCoords[idx.x];
@@ -191,7 +188,13 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
                 float2 tx2 = globalData.texCoords[idx.z];
             
                 const float2 tx = tx0 * b.x + tx1 * b.y + tx2 * b.z;
-                f0 = textures[mat.baseColorTexture].SampleLevel(tx, 0.0).rgb;
+                const float4 texSample = textures[mat.baseColorTexture].SampleLevel(tx, 0.0);
+
+                if (texSample.a > 0.5) {
+                    f0 = texSample.rgb;
+                } else {
+                    f0 = mat.f0.rgb;
+                }
             } else {
                 f0 = mat.f0.rgb;
             }
@@ -199,9 +202,32 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
             sample = brdf.Sample(wo, prd.s0, prd.s1);
             break;
         }
-        case 4: {
-            ThinDielectricBSDF bsdf = ThinDielectricBSDF(mat.ior.x);
+        case 3: {
+            ThinDielectricBSDF bsdf = ThinDielectricBSDF(mat.ior.x, mat.transmissionColor.rgb);
             sample = bsdf.Sample(wo, prd.s0, prd.s1);
+            break;
+        }
+        case 4: {
+            float3 diffuse;
+            if (mat.baseColorTexture >= 0) {
+                float2 tx0 = globalData.texCoords[idx.x];
+                float2 tx1 = globalData.texCoords[idx.y];
+                float2 tx2 = globalData.texCoords[idx.z];
+            
+                const float2 tx = tx0 * b.x + tx1 * b.y + tx2 * b.z;
+                const float4 texSample = textures[mat.baseColorTexture].SampleLevel(tx, 0.0);
+                if (texSample.a > 0.5) {
+                    diffuse = texSample.rgb;
+                } else {
+                    diffuse = mat.f0.rgb;
+                }
+            } else {
+                diffuse = mat.diffuse.rgb;
+            }
+
+            float3 Rs = lerp(0, 0.08, mat.specularTint);
+            GlossyDiffuseBRDF brdf = GlossyDiffuseBRDF(diffuse, Rs, CalculateGGXAlpha(mat.roughness, mat.anisotropy));
+            sample = brdf.Sample(wo, prd.s0, prd.s1);
             break;
         }
         case 5: {
@@ -212,25 +238,12 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
                 float2 tx2 = globalData.texCoords[idx.z];
             
                 const float2 tx = tx0 * b.x + tx1 * b.y + tx2 * b.z;
-                diffuse = textures[mat.baseColorTexture].SampleLevel(tx, 0.0).rgb;
-            } else {
-                diffuse = mat.diffuse.rgb;
-            }
-
-            float3 Rs = lerp(0, 0.08, mat.specularTint);
-            GlossyDiffuseBRDF brdf = GlossyDiffuseBRDF(diffuse, Rs, CalculateGGXAlpha(mat.roughness, mat.anisotropy));
-            sample = brdf.Sample(wo, prd.s0, prd.s1);
-            break;
-        }
-        case 6: {
-            float3 diffuse;
-            if (mat.baseColorTexture >= 0) {
-                float2 tx0 = globalData.texCoords[idx.x];
-                float2 tx1 = globalData.texCoords[idx.y];
-                float2 tx2 = globalData.texCoords[idx.z];
-            
-                const float2 tx = tx0 * b.x + tx1 * b.y + tx2 * b.z;
-                diffuse = textures[mat.baseColorTexture].SampleLevel(tx, 0.0).rgb;
+                const float4 texSample = textures[mat.baseColorTexture].SampleLevel(tx, 0.0);
+                if (texSample.a > 0.5) {
+                    diffuse = texSample.rgb;
+                } else {
+                    diffuse = mat.f0.rgb;
+                }
             } else {
                 diffuse = mat.diffuse.rgb;
             }
@@ -247,7 +260,12 @@ void closestHitMain(inout Payload prd, in Attributes attribs) {
                 float2 tx2 = globalData.texCoords[idx.z];
             
                 const float2 tx = tx0 * b.x + tx1 * b.y + tx2 * b.z;
-                diffuse = textures[mat.baseColorTexture].SampleLevel(tx, 0.0).rgb;
+                const float4 texSample = textures[mat.baseColorTexture].SampleLevel(tx, 0.0);
+                if (texSample.a > 0.5) {
+                    diffuse = texSample.rgb;
+                } else {
+                    diffuse = mat.f0.rgb;
+                }
             } else {
                 diffuse = mat.diffuse.rgb;
             }

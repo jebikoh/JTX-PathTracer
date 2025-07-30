@@ -169,7 +169,7 @@ public struct ConductorBRDF : IBxDF {
 
         const float3 f = D * F * G / (4 * absCosThetaI * absCosThetaO);
 
-        // Energy compensation (Turquin 2019)
+        // // Energy compensation (Turquin 2019)
         float2 tx = float2(absCosThetaO, m_roughness);
         const float ess = m_lut.SampleLevel(tx, 0.0).r;
         const float kms = (1 - ess) / ess;
@@ -267,15 +267,17 @@ public struct DielectricBSDF : IBxDF {
 
 public struct ThinDielectricBSDF : IBxDF {
     private float m_eta;
+    private float3 m_tc;
 
-    public __init(float eta) {
+    public __init(float eta, float3 transmissionColor) {
         m_eta = eta;
+        m_tc  = transmissionColor;
     }
 
     public Optional<BxDFSample> Sample(float3 wo, float s0, float2 s1) {
         BxDFSample out;
 
-        float R = Fresnel(CosTheta(wo), m_eta);
+        float R = Fresnel(AbsCosTheta(wo), m_eta);
         float T = 1.0f - R;
 
         if (R < 1) {
@@ -290,11 +292,9 @@ public struct ThinDielectricBSDF : IBxDF {
                 out.pdf = R;
         } else {
             // Transmission (BTDF)
-            float eta = m_eta;
-            const bool bRefracted = Refract(wo, float3(0.0f, 0.0f, 1.0f), eta, out.wi);
-            if (!bRefracted) return none;
-            out.f             = float3(T) / AbsCosTheta(out.wi) / (eta * eta); // Non-symmetry
-            out.pdf           = T;
+            out.wi  = -wo;
+            out.f   = float3(T * m_tc) / AbsCosTheta(out.wi);
+            out.pdf = T;
         }
 
         return out;

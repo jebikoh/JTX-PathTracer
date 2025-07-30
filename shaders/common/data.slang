@@ -31,15 +31,15 @@ public struct ObjectData {
 public struct MaterialData {
     public float4 diffuse;
     public float4 ior;
-    public float4 k;
     public float4 f0;
+    public float4 emission;
+    public float4 transmissionColor;
+    public float emissionStrength;
     public float roughness;
     public float anisotropy;
     public float diffuseRoughness;
-    private float padding0;
-    public float4 emission;
-    public float emissionStrength;
     public float specularTint;
     public uint32_t type;
     public int32_t baseColorTexture;
+    private uint32_t padding0;
 }

@@ -361,7 +361,6 @@ JtxResult jtx::detail::LoadJtx(const std::filesystem::path &path, Scene &scene) 
         const Value& params = m_json["parameters"];
         FromJson(params, "diffuse", mat.parameters.diffuse);
         FromJson(params, "ior", mat.parameters.ior);
-        FromJson(params, "k", mat.parameters.k);
         FromJson(params, "f0", mat.parameters.f0);
         FromJson(params, "emission", mat.parameters.emission);
         FromJson(params, "emissionStrength", mat.parameters.emissionStrength, 1.0f);

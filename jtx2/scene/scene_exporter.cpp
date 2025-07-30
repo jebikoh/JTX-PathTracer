@@ -80,7 +80,6 @@ JtxResult ExportScene(const Scene &scene, const std::filesystem::path &path) {
         Value params(kObjectType);
         params.AddMember("diffuse", ToJson(material.parameters.diffuse, allocator), allocator);
         params.AddMember("ior", ToJson(material.parameters.ior, allocator), allocator);
-        params.AddMember("k", ToJson(material.parameters.k, allocator), allocator);
         params.AddMember("f0", ToJson(material.parameters.f0, allocator), allocator);
         params.AddMember("emission", ToJson(material.parameters.emission, allocator), allocator);
         params.AddMember("roughness", material.parameters.roughness, allocator);

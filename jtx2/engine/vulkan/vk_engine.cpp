@@ -8,8 +8,8 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
 #include <backends/imgui_impl_vulkan.h>
-#include <engine/vulkan/accel.hpp>
 #include <engine/cpu/energy_compensation.hpp>
+#include <engine/vulkan/accel.hpp>
 
 #include <glm/gtx/transform.hpp>
 
@@ -683,8 +683,8 @@ void VkEngine::InitDescriptors() {
         builder.AddBinding(kL2Bindings::GPU_TLAS, 1, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_COMPUTE_BIT);
     }
 
-    constexpr VkDescriptorBindingFlags bindingFlags     = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-    std::vector vBindingFlags = {
+    constexpr VkDescriptorBindingFlags bindingFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+    std::vector vBindingFlags                       = {
             bindingFlags,
             bindingFlags,
             bindingFlags,
@@ -778,9 +778,9 @@ void VkEngine::LoadLUTs() {
 
     // The default samplers won't work here since we need VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
     VkSamplerCreateInfo info{};
-    info.sType     = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    info.minFilter = VK_FILTER_NEAREST;
-    info.magFilter = VK_FILTER_NEAREST;
+    info.sType        = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    info.minFilter    = VK_FILTER_NEAREST;
+    info.magFilter    = VK_FILTER_NEAREST;
     info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
@@ -996,12 +996,11 @@ void VkEngine::LoadScene(Scene *pScene) {
 
     uint32_t index = 0;
     writer.WriteImage(kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY,
-        index++,
-        m_luts.ggxReflection.view,
-        m_gfx.defaultSamplers.nearest,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-    );
+                      index++,
+                      m_luts.ggxReflection.view,
+                      m_gfx.defaultSamplers.nearest,
+                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
     LOG_DEBUG(VKE, "    Scene has {} textures", pScene->textures.size());
     for (const auto &tex: pScene->textures) {
@@ -1160,18 +1159,18 @@ void VkEngine::LoadScene(Scene *pScene) {
     offset             = 0;
     for (const auto &material: pScene->materials) {
         GPUMaterialData m{};
-        m.diffuse          = vec4(material.parameters.diffuse, 0.0f);
-        m.ior              = vec4(material.parameters.ior, 0.0f);
-        m.k                = vec4(material.parameters.k, 0.0f);
-        m.f0               = vec4(material.parameters.f0, 0.0f);
-        m.emission         = vec4(material.parameters.emission, 0.0f);
-        m.emissionStrength = material.parameters.emissionStrength;
-        m.roughness        = material.parameters.roughness;
-        m.anisotropy       = material.parameters.anisotropy;
-        m.diffuseRoughness = material.parameters.diffuseRoughness;
-        m.specularTint     = material.parameters.specularTint;
-        m.baseColorTexture = material.textureIndices.baseColor < 0 ? -1 : material.textureIndices.baseColor + m_numLuts;
-        m.type             = material.mType;
+        m.diffuse           = vec4(material.parameters.diffuse, 0.0f);
+        m.ior               = vec4(material.parameters.ior, 0.0f);
+        m.f0                = vec4(material.parameters.f0, 0.0f);
+        m.emission          = vec4(material.parameters.emission, 0.0f);
+        m.transmissionColor = vec4(material.parameters.transmissionColor, 0.0f);
+        m.emissionStrength  = material.parameters.emissionStrength;
+        m.roughness         = material.parameters.roughness;
+        m.anisotropy        = material.parameters.anisotropy;
+        m.diffuseRoughness  = material.parameters.diffuseRoughness;
+        m.specularTint      = material.parameters.specularTint;
+        m.baseColorTexture  = material.textureIndices.baseColor < 0 ? -1 : material.textureIndices.baseColor + m_numLuts;
+        m.type              = material.mType;
 
         static_cast<GPUMaterialData *>(materialData)[offset++] = m;
     }
@@ -1324,18 +1323,18 @@ bool VkEngine::UpdateScene(const RenderContext &ctx, const SceneUpdate &update) 
 
         const auto &material   = m_pScene->materials[update.materialIndex];
         const auto data        = static_cast<GPUMaterialData *>(frame.materialStagingBuffer.GetMapping());
-        data->diffuse          = vec4(material.parameters.diffuse, 0.0f);
-        data->ior              = vec4(material.parameters.ior, 0.0f);
-        data->k                = vec4(material.parameters.k, 0.0f);
-        data->f0               = vec4(material.parameters.f0, 0.0f);
-        data->emission         = vec4(material.parameters.emission, 0.0f);
-        data->emissionStrength = material.parameters.emissionStrength;
-        data->roughness        = material.parameters.roughness;
-        data->anisotropy       = material.parameters.anisotropy;
-        data->diffuseRoughness = material.parameters.diffuseRoughness;
-        data->specularTint     = material.parameters.specularTint;
-        data->baseColorTexture = material.textureIndices.baseColor < 0 ? -1 : material.textureIndices.baseColor + m_numLuts;
-        data->type             = material.mType;
+        data->diffuse           = vec4(material.parameters.diffuse, 0.0f);
+        data->ior               = vec4(material.parameters.ior, 0.0f);
+        data->f0                = vec4(material.parameters.f0, 0.0f);
+        data->emission          = vec4(material.parameters.emission, 0.0f);
+        data->transmissionColor = vec4(material.parameters.transmissionColor, 0.0f);
+        data->emissionStrength  = material.parameters.emissionStrength;
+        data->roughness         = material.parameters.roughness;
+        data->anisotropy        = material.parameters.anisotropy;
+        data->diffuseRoughness  = material.parameters.diffuseRoughness;
+        data->specularTint      = material.parameters.specularTint;
+        data->baseColorTexture  = material.textureIndices.baseColor < 0 ? -1 : material.textureIndices.baseColor + m_numLuts;
+        data->type              = material.mType;
 
         VkBufferCopy copyRegion{};
         copyRegion.srcOffset = 0;

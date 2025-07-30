@@ -453,8 +453,9 @@ void VkEngine::LoadHDRI() {
         jvk::DescriptorWriter writer;
         writer.WriteImage(
                 kL2Bindings::GPU_TEXTURE_SAMPLER_ARRAY,
-                index, gpuTex.view,
-                m_lutSampler,
+                index,
+                gpuTex.view,
+                m_gfx.defaultSamplers.linear,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                 VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
         writer.UpdateSet(m_gfx.ctx, m_bindlessDescriptorSet);

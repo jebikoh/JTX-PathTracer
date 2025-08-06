@@ -5,6 +5,7 @@
 #include <engine/cpu/bxdf/diffuse.hpp>
 #include <engine/cpu/bxdf/glossydiffuse.hpp>
 #include <engine/cpu/bxdf/thin_dielectric.hpp>
+#include <engine/cpu/bxdf/oren_nayar.hpp>
 
 namespace jtx {
 
@@ -26,7 +27,7 @@ bool SampleBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3
             } else {
                 diffuse = material.parameters.diffuse;
             }
-            const auto bxdf = DiffuseBRDF(diffuse);
+            const auto bxdf = LambertianBRDF(diffuse);
             if (bxdf.Sample(woLocal, s0, s1, s)) {
                 if (s.pdf == 0.0f) return false;
                 s.wi = frame.ToWorld(s.wi);
@@ -84,7 +85,7 @@ vec3 EvalBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &
             } else {
                 diffuse = material.parameters.diffuse;
             }
-            const auto bxdf = DiffuseBRDF(diffuse);
+            const auto bxdf = LambertianBRDF(diffuse);
             return bxdf.Evaluate(woLocal, wiLocal);
         }
         case Material::CONDUCTOR: {
@@ -123,7 +124,7 @@ float PDFBxDF(const Scene &scene, const SurfaceAttributes &surface, const vec3 &
             } else {
                 diffuse = material.parameters.diffuse;
             }
-            const auto bxdf = DiffuseBRDF(diffuse);
+            const auto bxdf = LambertianBRDF(diffuse);
             return bxdf.PDF(woLocal, wiLocal);
         }
         case Material::CONDUCTOR: {

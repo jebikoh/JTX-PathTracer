@@ -236,6 +236,7 @@ set(JTX_WING
         jtx2/engine/vulkan/accel.hpp
         jtx2/engine/vulkan/accel.cpp
         jtx2/engine/cpu/energy_compensation.hpp
+        jtx2/engine/cpu/bxdf/oren_nayar.hpp
 )
 
 # ──────────────────────────────────────────────────────────────────────────────

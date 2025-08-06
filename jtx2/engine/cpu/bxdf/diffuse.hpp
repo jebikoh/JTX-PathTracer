@@ -6,9 +6,9 @@
 
 namespace jtx {
 
-class DiffuseBRDF {
+class LambertianBRDF {
 public:
-    explicit DiffuseBRDF(const vec3 &reflectance)
+    explicit LambertianBRDF(const vec3 &reflectance)
         : m_R(reflectance) {}
 
     vec3 Evaluate(const vec3& wo, const vec3& wi) const {

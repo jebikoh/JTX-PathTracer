@@ -56,7 +56,11 @@ add_subdirectory(ext/jtxlib)                 # JTXLib
 add_subdirectory(ext/fastgltf)               # fastglTF
 
 # SDL3
+
 include(FetchContent)
+set(SDL_SHARED OFF CACHE BOOL "Build SDL3 shared library")
+set(SDL_STATIC ON CACHE BOOL "Build SDL3 static library")
+set(SDL_TEST OFF CACHE BOOL "Build SDL3 test programs")
 FetchContent_Declare(
         SDL3
         GIT_REPOSITORY https://github.com/libsdl-org/SDL
@@ -80,7 +84,7 @@ target_sources(imgui PRIVATE
 target_compile_definitions(imgui
         PUBLIC IMGUI_IMPL_VULKAN_USE_VOLK
 )
-target_link_libraries(imgui PUBLIC volk Vulkan::Vulkan SDL3::SDL3)
+target_link_libraries(imgui PUBLIC volk Vulkan::Vulkan SDL3::SDL3-static)
 
 # GLM
 add_library(glm INTERFACE)
@@ -286,7 +290,7 @@ target_link_libraries(JTXCore PUBLIC
         vk-bootstrap::vk-bootstrap
         volk
         jtxlib
-        SDL3::SDL3
+        SDL3::SDL3-static
         imgui
         fmt::fmt
         fastgltf::fastgltf
@@ -345,6 +349,9 @@ target_link_libraries(JTX PRIVATE JTXCore)
 add_executable(JTXEditor jtx2/editor_main.cpp)
 target_link_libraries(JTXEditor PRIVATE JTXCore)
 
+add_executable(JTXGenerateLUTs jtx2/lut.cpp)
+target_link_libraries(JTXGenerateLUTs PRIVATE JTXCore)
+
 # ──────────────────────────────────────────────────────────────────────────────
 #  Post-build
 # ──────────────────────────────────────────────────────────────────────────────
@@ -378,9 +385,16 @@ function(jtx_post_build target)
     # Copy assets post‑build ───────────────────────────────────────────────────────
     add_custom_command(TARGET ${target} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory
-            ${CMAKE_SOURCE_DIR}/jtx2/assets
+            ${CMAKE_SOURCE_DIR}/jtx2/assets/fonts
             ${CMAKE_BINARY_DIR}/assets
-            COMMENT "[JTX] Copying assets directory to output folder"
+            COMMENT "[JTX] Copying fonts to output folder"
+    )
+
+    add_custom_command(TARGET ${target} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/jtx2/assets/luts
+            ${CMAKE_BINARY_DIR}/bin/lut
+            COMMENT "[JTX] Copying luts to output folder"
     )
 endfunction()
 jtx_post_build(JTX)

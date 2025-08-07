@@ -155,7 +155,7 @@ private:
         VkPipeline diffuse   = VK_NULL_HANDLE;
         VkPipeline wireframe = VK_NULL_HANDLE;
     } m_rasterPipelines;
-    glm::vec4 m_wireframeColor{0.8f, 0.8f, 0.8f, 1.0f};
+    glm::vec4 m_wireframeColor{0.8f, 0.8f, 0.8f, 0.3f};
 
     // -- Grid pipeline --
     void InitGridPipeline();

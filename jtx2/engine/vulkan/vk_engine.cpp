@@ -1860,6 +1860,8 @@ bool VkEngine::RayTrace(const VkCommandBuffer cmd, const RtRenderSettings &setti
         vkCmdPipelineBarrier2KHR(cmd, &dependency);
     }
 
+
+
     // Post-processing only applied if RT pipeline was invoked or relevant settings changed
     if (bApplyPostProcessing) {
         state.bPostProcessSettingsChanged = false;
@@ -1878,7 +1880,6 @@ bool VkEngine::RayTrace(const VkCommandBuffer cmd, const RtRenderSettings &setti
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, m_rtPostProcessingPipeline.pipeline);
 
-        // TODO: make a new descriptor set for compute
         vkCmdBindDescriptorSets(
                 cmd,
                 VK_PIPELINE_BIND_POINT_COMPUTE,

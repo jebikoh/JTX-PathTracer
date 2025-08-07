@@ -380,7 +380,8 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
     ImGui::BeginDisabled(m_bRenderWindowOpen);
 
     // Hierarchy
-    static int objSelectionIndex = 0;
+    static int objSelectionIndex    = 0;
+    static bool bHighlightSelection = true;
     {
         ImGui::Begin("Hierarchy");
 
@@ -395,6 +396,21 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                 }
             }
             ImGui::EndListBox();
+        }
+
+        UiDrawContext ctx;
+        ctx.Init();
+        if (ctx.StartTable("##EnableSelectionHighlightTable")) {
+            ctx.NewRow("Highlight Selection");
+            ImGui::Checkbox("##EnableSelectionHighlight", &bHighlightSelection);
+            ctx.EndTable();
+        }
+        ctx.Destroy();
+
+        if (m_pScene && bHighlightSelection) {
+            update.selectionIndex = objSelectionIndex;
+        } else {
+            update.selectionIndex = -1;
         }
 
         ImGui::End();

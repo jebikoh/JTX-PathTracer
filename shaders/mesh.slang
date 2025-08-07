@@ -1,6 +1,7 @@
 import common.data;
 
 struct PushConstant {
+    float4 wireframeColor;
     uint32_t objectId;
 };
 

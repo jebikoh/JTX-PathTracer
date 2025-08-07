@@ -110,7 +110,7 @@ void VkEngine::RenderViewport(RenderContext &ctx, ResolveRegion &region, const S
         region.src[0] = region.dst[0];
         region.src[1] = region.dst[1];
         region.target = kRenderTarget::DRAW16f;
-        Rasterize(ctx, renderArea);
+        Rasterize(ctx, renderArea, update.selectionIndex);
     }
 }
 
@@ -125,12 +125,12 @@ void VkEngine::PopulateContext() {
         obj.objectID         = i;
         obj.start            = mesh.startIndex;
         obj.count            = mesh.numIndices;
-        obj.materialPipeline = &m_materialPipelines.diffuse;
+        obj.materialPipeline = &m_rasterPipelines.diffuse;
         m_drawContext.objects.push_back(obj);
     }
 }
 
-void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
+void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea, const int32_t selectionIndex) {
     TPROFILE_SCOPE();
     // Begin render pass
     VkClearValue drawImageClearValue{};
@@ -195,8 +195,8 @@ void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
         });
 
         // Bind layouts
-        vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_materialPipelines.layout, 0, 1, &frame.gpuGlobalUniformDataDescriptorSet, 0, nullptr);
-        vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_materialPipelines.layout, 1, 1, &m_bindlessDescriptorSet, 0, nullptr);
+        vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_rasterPipelines.layout, 0, 1, &frame.gpuGlobalUniformDataDescriptorSet, 0, nullptr);
+        vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_rasterPipelines.layout, 1, 1, &m_bindlessDescriptorSet, 0, nullptr);
 
         // Bind index buffer
         vkCmdBindIndexBuffer(ctx.cmd, m_gpuSceneData.index, 0, VK_INDEX_TYPE_UINT32);
@@ -211,7 +211,7 @@ void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
 
             DrawPushConstants pushConstants{};
             pushConstants.objectID = r.objectID;
-            vkCmdPushConstants(ctx.cmd, m_materialPipelines.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConstants), &pushConstants);
+            vkCmdPushConstants(ctx.cmd, m_rasterPipelines.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConstants), &pushConstants);
 
             // Need to multiply by 3 because r.count and r.start are relative to vec3u
             vkCmdDrawIndexed(ctx.cmd, r.count * 3, 1, r.start * 3, 0, 0);
@@ -219,6 +219,18 @@ void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea) {
 
         for (const auto &r: opaqueDraws) {
             draw(m_drawContext.objects[r]);
+        }
+
+        if (selectionIndex > -1) {
+            vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_rasterPipelines.wireframe);
+
+            DrawPushConstants pc{};
+            pc.objectID = selectionIndex;
+            pc.wireframeColor = m_wireframeColor;
+            vkCmdPushConstants(ctx.cmd, m_rasterPipelines.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pc), &pc);
+
+            const auto &obj = m_drawContext.objects[selectionIndex];
+            vkCmdDrawIndexed(ctx.cmd, obj.count * 3, 1, obj.start * 3, 0, 0);
         }
     }
 
@@ -321,6 +333,8 @@ void VkEngine::DrawViewportSettingsPanel(UiDrawContext &ctx) {
             ImGui::DragFloat("##NearClip", &m_nearClip, 0.01f, 0.001f, 100.0f);
             ctx.NewRow("Far Clip");
             ImGui::DragFloat("##FarClip", &m_farClip, 1.0f, 1.0f, 1000000.0f);
+            ctx.NewRow("Wireframe Color");
+            ImGui::ColorEdit4("##WireframeColor", &m_wireframeColor.x);
             ctx.EndTable();
         }
         ImGui::TreePop();
@@ -812,7 +826,7 @@ void VkEngine::InitPipelines() {
     TPROFILE_SCOPE();
     LOG_DEBUG(VKE, "Initializing Pipelines");
 
-    InitMaterialPipelines();
+    InitRasterPipelines();
     InitGridPipeline();
     if (m_bRayTracingAvailable) {
         InitRayTracingPipeline();
@@ -831,21 +845,21 @@ void VkEngine::DestroyPipelines() const {
         DestroyRTPostProcessingPipeline();
     }
     DestroyGridPipeline();
-    DestroyMaterialPipelines();
+    DestroyRasterPipelines();
 
     LOG_DEBUG(VKE, "Pipelines destroyed");
 }
 
-void VkEngine::InitMaterialPipelines() {
+void VkEngine::InitRasterPipelines() {
     TPROFILE_SCOPE();
-    LOG_DEBUG(VKE, "Initializing material pipelines");
+    LOG_DEBUG(VKE, "Initializing rasterization pipelines");
     VkShaderModule vertexShader;
     if (!jvk::LoadShaderModule("spv/mesh_vertexMain.spv", m_gfx.ctx, &vertexShader)) {
         LOG_FATAL(VKE, "Failed to load mesh vertex shader");
     }
 
-    VkShaderModule diffuseFragmentShader;
-    if (!jvk::LoadShaderModule("spv/mesh_fragmentMain.spv", m_gfx.ctx, &diffuseFragmentShader)) {
+    VkShaderModule fragmentShader;
+    if (!jvk::LoadShaderModule("spv/mesh_fragmentMain.spv", m_gfx.ctx, &fragmentShader)) {
         LOG_FATAL(VKE, "Failed to load mesh fragment shader");
     }
 
@@ -861,35 +875,58 @@ void VkEngine::InitMaterialPipelines() {
     layoutInfo.pSetLayouts                = descriptorSetLayouts;
     layoutInfo.pushConstantRangeCount     = 1;
     layoutInfo.pPushConstantRanges        = &pc;
-    CHECK_VK(vkCreatePipelineLayout(m_gfx.ctx, &layoutInfo, nullptr, &m_materialPipelines.layout));
+    CHECK_VK(vkCreatePipelineLayout(m_gfx.ctx, &layoutInfo, nullptr, &m_rasterPipelines.layout));
 
     jvk::PipelineBuilder builder;
-    builder.SetShaders(vertexShader, diffuseFragmentShader);
+    builder.SetShaders(vertexShader, fragmentShader);
     builder.SetInputTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     builder.SetPolygonMode(VK_POLYGON_MODE_FILL);
-    builder.SetCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    builder.SetCullMode(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
     builder.SetMultiSamplingNone();
     builder.DisableBlending();
     builder.EnableDepthTest(true, VK_COMPARE_OP_LESS_OR_EQUAL);
     builder.DisableStencilTest();
     builder.SetColorAttachmentFormat(m_gfx.targets.draw16f.format);
     builder.SetDepthAttachmentFormat(m_gfx.targets.depthStencil.format);
-    builder.pipelineLayout = m_materialPipelines.layout;
+    builder.pipelineLayout = m_rasterPipelines.layout;
 
-    m_materialPipelines.diffuse = builder.BuildPipeline(m_gfx.ctx);
+    m_rasterPipelines.diffuse = builder.BuildPipeline(m_gfx.ctx);
 
     // Create more pipelines as needed here
+    vkDestroyShaderModule(m_gfx.ctx, vertexShader, nullptr);
+    vkDestroyShaderModule(m_gfx.ctx, fragmentShader, nullptr);
+
+    LOG_DEBUG(VKE, "Initializing wireframe pipeline");
+
+    // Wireframe uses the same layout
+    if (!jvk::LoadShaderModule("spv/wireframe_vertexMain.spv", m_gfx.ctx, &vertexShader)) {
+        LOG_FATAL(VKE, "Failed to load wireframe vertex shader");
+    }
+
+    if (!jvk::LoadShaderModule("spv/wireframe_fragmentMain.spv", m_gfx.ctx, &fragmentShader)) {
+        LOG_FATAL(VKE, "Failed to load wireframe fragment shader");
+    }
+
+    builder.SetShaders(vertexShader, fragmentShader);
+    builder.SetPolygonMode(VK_POLYGON_MODE_LINE);
+    builder.SetCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+    builder.EnableBlendingAlphaBlend();
+    builder.DisableDepthTest();
+    m_rasterPipelines.wireframe = builder.BuildPipeline(m_gfx.ctx);
 
     vkDestroyShaderModule(m_gfx.ctx, vertexShader, nullptr);
-    vkDestroyShaderModule(m_gfx.ctx, diffuseFragmentShader, nullptr);
-    LOG_DEBUG(VKE, "Material pipelines initialized");
+    vkDestroyShaderModule(m_gfx.ctx, fragmentShader, nullptr);
+
+    LOG_DEBUG(VKE, "Rasterization pipelines initialized");
 }
 
-void VkEngine::DestroyMaterialPipelines() const {
+void VkEngine::DestroyRasterPipelines() const {
     TPROFILE_SCOPE();
-    vkDestroyPipelineLayout(m_gfx.ctx, m_materialPipelines.layout, nullptr);
-    vkDestroyPipeline(m_gfx.ctx, m_materialPipelines.diffuse, nullptr);
+    vkDestroyPipelineLayout(m_gfx.ctx, m_rasterPipelines.layout, nullptr);
+    vkDestroyPipeline(m_gfx.ctx, m_rasterPipelines.wireframe, nullptr);
+    vkDestroyPipeline(m_gfx.ctx, m_rasterPipelines.diffuse, nullptr);
 }
+
 
 void VkEngine::InitGridPipeline() {
     TPROFILE_SCOPE();
@@ -1212,7 +1249,7 @@ void VkEngine::LoadScene(Scene *pScene) {
         rObj.start = mesh.startIndex;
         rObj.count = mesh.numIndices;
         // TODO: assign this dynamically
-        rObj.materialPipeline = &m_materialPipelines.diffuse;
+        rObj.materialPipeline = &m_rasterPipelines.diffuse;
     }
     size_t objSize              = sizeof(GPUObjectData) * gpuObjects.size();
     m_gpuSceneData.objectBuffer = m_gfx.CreateBuffer(objSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);

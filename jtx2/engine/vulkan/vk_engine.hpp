@@ -146,14 +146,16 @@ private:
     void InitPipelines();
     void DestroyPipelines() const;
 
-    // -- Material pipelines --
-    void InitMaterialPipelines();
-    void DestroyMaterialPipelines() const;
+    // -- Rasterization pipelines --
+    void InitRasterPipelines();
+    void DestroyRasterPipelines() const;
     struct MaterialPipelines {
         VkPipelineLayout layout = VK_NULL_HANDLE;
 
-        VkPipeline diffuse = VK_NULL_HANDLE;
-    } m_materialPipelines;
+        VkPipeline diffuse   = VK_NULL_HANDLE;
+        VkPipeline wireframe = VK_NULL_HANDLE;
+    } m_rasterPipelines;
+    glm::vec4 m_wireframeColor{0.8f, 0.8f, 0.8f, 1.0f};
 
     // -- Grid pipeline --
     void InitGridPipeline();
@@ -198,7 +200,7 @@ private:
     // == Rasterization ==
     GPUDrawContext m_drawContext;
     void PopulateContext();
-    void Rasterize(RenderContext &ctx, const VkRect2D &renderArea);
+    void Rasterize(RenderContext &ctx, const VkRect2D &renderArea, int32_t selectionIndex);
 
     // == Ray Tracing ==
     // -- Acceleration Structures --

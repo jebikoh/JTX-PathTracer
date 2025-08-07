@@ -85,6 +85,9 @@ void GfxContext::InitVulkan() {
     // SDL surface
     SDL_Vulkan_CreateSurface(window.pWindow, ctx, nullptr, &ctx.surface);
 
+    VkPhysicalDeviceFeatures features{};
+    features.fillModeNonSolid = VK_TRUE;
+
     // The slang shaders for metal need these
     VkPhysicalDeviceVulkan11Features features11{};
     features11.sType                         = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
@@ -115,6 +118,7 @@ void GfxContext::InitVulkan() {
                                .add_required_extension(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME)
                                .add_required_extension(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME)
                                .add_required_extension(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)
+                               .set_required_features(features)
                                .set_required_features_12(features12)
                                .set_required_features_11(features11)
                                .set_surface(ctx)
@@ -127,6 +131,7 @@ void GfxContext::InitVulkan() {
                               .add_required_extension(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME)
                               .add_required_extension(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)
                               .add_required_extension(VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME)
+                              .set_required_features(features)
                               .set_required_features_12(features12)
                               .set_required_features_11(features11)
                               .set_surface(ctx)

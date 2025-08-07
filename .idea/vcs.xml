@@ -28,15 +28,5 @@
     <mapping directory="$PROJECT_DIR$/ext/vkbootstrap" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/vma" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ext/volk" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/out/build/x64-Benchmark/_deps/sdl3-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/out/build/x64-Debug/_deps/fmt-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/out/build/x64-Debug/_deps/sdl3-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/out/build/x64-Debug/_deps/tracy-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/out/build/x64-Editor-RelWithProfiling/_deps/fmt-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/out/build/x64-Editor-RelWithProfiling/_deps/sdl3-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/out/build/x64-Editor-RelWithProfiling/_deps/tracy-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/out/build/x64-Release-Editor/_deps/fmt-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/out/build/x64-Release-Editor/_deps/sdl3-src" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/out/build/x64-Release-Editor/_deps/tracy-src" vcs="Git" />
   </component>
 </project>

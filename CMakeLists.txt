@@ -503,6 +503,12 @@ list(APPEND SPIRV_BINARY_FILES ${MESH_VERTEX_SPV})
 compile_slang_shader("${PROJECT_SOURCE_DIR}/shaders/mesh.slang" fragmentMain MESH_FRAG_SPV)
 list(APPEND SPIRV_BINARY_FILES ${MESH_FRAG_SPV})
 
+compile_slang_shader("${PROJECT_SOURCE_DIR}/shaders/wireframe.slang" vertexMain WIREFRAME_VERTEX_SPV)
+list(APPEND SPIRV_BINARY_FILES ${WIREFRAME_VERTEX_SPV})
+
+compile_slang_shader("${PROJECT_SOURCE_DIR}/shaders/wireframe.slang" fragmentMain WIREFRAME_FRAG_SPV)
+list(APPEND SPIRV_BINARY_FILES ${WIREFRAME_FRAG_SPV})
+
 compile_slang_shader("${PROJECT_SOURCE_DIR}/shaders/raytrace.slang" rayGenMain RT_RAYGEN_SPV)
 list(APPEND SPIRV_BINARY_FILES ${RT_RAYGEN_SPV})
 

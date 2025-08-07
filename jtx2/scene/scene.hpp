@@ -55,6 +55,7 @@ struct EnvMap {
 };
 
 struct SceneUpdate {
+    int32_t selectionIndex  = -1; // Index of the selected object
     int32_t materialIndex   = -1;
     int32_t objectIndex     = -1;
     // If either of the two above are >=, accumulation will be reset

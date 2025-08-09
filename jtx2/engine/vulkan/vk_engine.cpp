@@ -222,12 +222,12 @@ void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea, const i
         }
 
         if (selectionIndex > -1) {
-            vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_rasterPipelines.wireframe);
+            vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_wireframePipeline.pipeline);
+            vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_wireframePipeline.layout, 0, 1, &frame.gpuGlobalUniformDataDescriptorSet, 0, nullptr);
 
-            DrawPushConstants pc{};
-            pc.objectID = selectionIndex;
+            WireframePushConstants pc{};
             pc.wireframeColor = m_wireframeColor;
-            vkCmdPushConstants(ctx.cmd, m_rasterPipelines.layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pc), &pc);
+            vkCmdPushConstants(ctx.cmd, m_wireframePipeline.layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pc), &pc);
 
             const auto &obj = m_drawContext.objects[selectionIndex];
             vkCmdDrawIndexed(ctx.cmd, obj.count * 3, 1, obj.start * 3, 0, 0);
@@ -579,6 +579,7 @@ void VkEngine::AdvanceRender(const VkCommandBuffer cmd) {
     TPROFILE_SCOPE();
 
     if (RayTrace(cmd, m_renderSettings, m_renderState, m_renderTargets)) {
+        // (Wireframe pipeline is never enabled for final/offline -- we can hardcode this barrier)
         VkImageMemoryBarrier2 barrier{};
         barrier.sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
         barrier.srcStageMask     = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
@@ -896,9 +897,19 @@ void VkEngine::InitRasterPipelines() {
     vkDestroyShaderModule(m_gfx.ctx, vertexShader, nullptr);
     vkDestroyShaderModule(m_gfx.ctx, fragmentShader, nullptr);
 
+    // Wireframe
     LOG_DEBUG(VKE, "Initializing wireframe pipeline");
 
-    // Wireframe uses the same layout
+    pc.offset     = 0;
+    pc.size       = sizeof(WireframePushConstants);
+    pc.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    layoutInfo.setLayoutCount             = 1;
+    layoutInfo.pSetLayouts                = &m_gpuGlobalUniformDataDescriptorLayout;
+    layoutInfo.pushConstantRangeCount     = 1;
+    layoutInfo.pPushConstantRanges        = &pc;
+    CHECK_VK(vkCreatePipelineLayout(m_gfx.ctx, &layoutInfo, nullptr, &m_wireframePipeline.layout));
+
     if (!jvk::LoadShaderModule("spv/wireframe_vertexMain.spv", m_gfx.ctx, &vertexShader)) {
         LOG_FATAL(VKE, "Failed to load wireframe vertex shader");
     }
@@ -907,12 +918,13 @@ void VkEngine::InitRasterPipelines() {
         LOG_FATAL(VKE, "Failed to load wireframe fragment shader");
     }
 
+    builder.pipelineLayout = m_wireframePipeline.layout;
     builder.SetShaders(vertexShader, fragmentShader);
     builder.SetPolygonMode(VK_POLYGON_MODE_LINE);
     builder.SetCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
     builder.EnableBlendingAlphaBlend();
     builder.DisableDepthTest();
-    m_rasterPipelines.wireframe = builder.BuildPipeline(m_gfx.ctx);
+    m_wireframePipeline.pipeline = builder.BuildPipeline(m_gfx.ctx);
 
     vkDestroyShaderModule(m_gfx.ctx, vertexShader, nullptr);
     vkDestroyShaderModule(m_gfx.ctx, fragmentShader, nullptr);
@@ -922,11 +934,10 @@ void VkEngine::InitRasterPipelines() {
 
 void VkEngine::DestroyRasterPipelines() const {
     TPROFILE_SCOPE();
+    m_wireframePipeline.Destroy(m_gfx.ctx, true);
     vkDestroyPipelineLayout(m_gfx.ctx, m_rasterPipelines.layout, nullptr);
-    vkDestroyPipeline(m_gfx.ctx, m_rasterPipelines.wireframe, nullptr);
     vkDestroyPipeline(m_gfx.ctx, m_rasterPipelines.diffuse, nullptr);
 }
-
 
 void VkEngine::InitGridPipeline() {
     TPROFILE_SCOPE();
@@ -1859,8 +1870,6 @@ bool VkEngine::RayTrace(const VkCommandBuffer cmd, const RtRenderSettings &setti
 
         vkCmdPipelineBarrier2KHR(cmd, &dependency);
     }
-
-
 
     // Post-processing only applied if RT pipeline was invoked or relevant settings changed
     if (bApplyPostProcessing) {

@@ -79,8 +79,11 @@ struct GPUMaterialData {
 
 // == Push constants ==
 struct DrawPushConstants {
-    glm::vec4 wireframeColor{0.8f, 0.8f, 0.8f, 0.3f};
     ResourceHandle objectID;
+};
+
+struct WireframePushConstants {
+    glm::vec4 wireframeColor{0.8f, 0.8f, 0.8f, 0.3f};
 };
 
 struct GridPushConstants {

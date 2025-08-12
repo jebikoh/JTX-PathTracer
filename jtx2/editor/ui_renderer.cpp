@@ -701,6 +701,87 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
     // Inspector
     {
         ImGui::Begin("Inspector");
+        const auto drawMaterialEditor = [&](Material &mat, const UiDrawContext &ctx) {
+            if (ctx.StartTable("MaterialEditor")) {
+                const char *materialTypes[] = {"Lambertian", "Dielectric", "Conductor", "Thin Dielectric", "Glossy Diffuse", "Oren-Nayar"};
+                int currentType             = mat.mType;
+
+                bool bMaterialUpdated = false;
+
+                ctx.NewRow("BxDF");
+                if (ImGui::Combo("##BxDF", &currentType, materialTypes, IM_ARRAYSIZE(materialTypes))) {
+                    mat.mType        = static_cast<Material::Type>(currentType);
+                    bMaterialUpdated = true;
+                }
+
+                bool bMaterialHasRoughness = false;
+
+                switch (mat.mType) {
+                    case Material::Type::LAMBERTIAN:
+                        ctx.NewRow("Diffuse");
+                        bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
+                        break;
+                    case Material::Type::DIELECTRIC:
+                        ctx.NewRow("IOR");
+                        bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x, 0.01, 0, 100);
+                        bMaterialHasRoughness = true;
+                        break;
+                    case Material::Type::CONDUCTOR:
+                        ctx.NewRow("F0");
+                        bMaterialUpdated |= ImGui::ColorEdit3("##f0", &mat.parameters.f0.x);
+
+                        bMaterialHasRoughness = true;
+                        break;
+                    case Material::Type::THIN_DIELECTRIC:
+                        ctx.NewRow("IOR");
+                        bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x, 0.01, 0, 100);
+                        bMaterialHasRoughness = false;
+
+                        ctx.NewRow("Transmission Color");
+                        bMaterialUpdated |= ImGui::ColorEdit3("##transmission", &mat.parameters.transmissionColor.x);
+                        break;
+                    case Material::Type::GLOSSY_DIFFUSE:
+                        ctx.NewRow("Diffuse");
+                        bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
+
+                        ctx.NewRow("Specular Tint");
+                        bMaterialUpdated |= ImGui::SliderFloat("##SpecularTint", &mat.parameters.specularTint, 0.0f, 1.0f);
+
+                        bMaterialHasRoughness = true;
+                        break;
+                    case Material::Type::OREN_NAYAR:
+                        ctx.NewRow("Diffuse");
+                        bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
+
+                        ctx.NewRow("Roughness");
+                        bMaterialUpdated |= ImGui::SliderFloat("##roughness", &mat.parameters.diffuseRoughness, 0.0f, 1.0f);
+                    default:
+                        break;
+                }
+
+                if (bMaterialHasRoughness) {
+                    ctx.NewRow("Roughness");
+                    bMaterialUpdated |= ImGui::SliderFloat("##Roughness", &mat.parameters.roughness, 0.0f, 1.0f);
+
+                    ctx.NewRow("Anisotropy");
+                    bMaterialUpdated |= ImGui::SliderFloat("##Anisotropy", &mat.parameters.anisotropy, -1.0f, 1.0f);
+                }
+
+                ctx.NewRow("Emission");
+                bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
+
+                ctx.NewRow("Emission Strength");
+                bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0, 10000);
+
+                if (bMaterialUpdated) {
+                    update.materialIndex = m_pScene->meshes[objSelectionIndex].materialIndex;
+                } else {
+                    update.materialIndex = -1;
+                }
+
+                ctx.EndTable();
+            }
+        };
 
         if (inspectorMode == kInspectorMode::MESH) {
             UiDrawContext ctx;
@@ -708,10 +789,10 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
             char buffer[256];
             if (m_pScene) {
-                strncpy(buffer, m_pScene->meshes[objSelectionIndex].name.c_str(), sizeof(buffer) - 1);
+                strncpy_s(buffer, m_pScene->meshes[objSelectionIndex].name.c_str(), sizeof(buffer) - 1);
                 buffer[sizeof(buffer) - 1] = '\0';
             } else {
-                strncpy(buffer, "No mesh selected", sizeof(buffer));
+                strncpy_s(buffer, "No mesh selected", sizeof(buffer));
             }
 
             if (ctx.StartTable("MeshNameTable", 1, 3)) {
@@ -725,7 +806,8 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
             }
             ctx.InsertPadding();
 
-            if (m_pScene != nullptr) {
+            if (m_pScene) {
+
                 if (ImGui::CollapsingHeader("Material")) {
                     ctx.StartRectangleBackground();
                     int matIndex = m_pScene->meshes[objSelectionIndex].materialIndex;
@@ -739,99 +821,128 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
                     ImGui::Separator();
 
-                    if (ctx.StartTable("MaterialEditor")) {
-                        const char *materialTypes[] = {"Lambertian", "Dielectric", "Conductor", "Thin Dielectric", "Glossy Diffuse", "Oren-Nayar"};
-                        int currentType             = mat.mType;
+                    drawMaterialEditor(mat, ctx);
 
-                        bool bMaterialUpdated = false;
-
-                        strncpy(buffer, mat.name.c_str(), sizeof(buffer) - 1);
-                        buffer[sizeof(buffer) - 1] = '\0';
-                        ctx.NewRow("Name");
-                        if (ImGui::InputText("##MaterialName", buffer, sizeof(buffer))) {
-                            mat.name = buffer;
-                        }
-
-                        ctx.NewRow("BxDF");
-                        if (ImGui::Combo("##BxDF", &currentType, materialTypes, IM_ARRAYSIZE(materialTypes))) {
-                            mat.mType        = static_cast<Material::Type>(currentType);
-                            bMaterialUpdated = true;
-                        }
-
-                        bool bMaterialHasRoughness = false;
-
-                        switch (mat.mType) {
-                            case Material::Type::LAMBERTIAN:
-                                ctx.NewRow("Diffuse");
-                                bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
-                                break;
-                            case Material::Type::DIELECTRIC:
-                                ctx.NewRow("IOR");
-                                bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x, 0.01, 0, 100);
-                                bMaterialHasRoughness = true;
-                                break;
-                            case Material::Type::CONDUCTOR:
-                                ctx.NewRow("F0");
-                                bMaterialUpdated |= ImGui::ColorEdit3("##f0", &mat.parameters.f0.x);
-
-                                bMaterialHasRoughness = true;
-                                break;
-                            case Material::Type::THIN_DIELECTRIC:
-                                ctx.NewRow("IOR");
-                                bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x, 0.01, 0, 100);
-                                bMaterialHasRoughness = false;
-
-                                ctx.NewRow("Transmission Color");
-                                bMaterialUpdated |= ImGui::ColorEdit3("##transmission", &mat.parameters.transmissionColor.x);
-                                break;
-                            case Material::Type::GLOSSY_DIFFUSE:
-                                ctx.NewRow("Diffuse");
-                                bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
-
-                                ctx.NewRow("Specular Tint");
-                                bMaterialUpdated |= ImGui::SliderFloat("##SpecularTint", &mat.parameters.specularTint, 0.0f, 1.0f);
-
-                                bMaterialHasRoughness = true;
-                                break;
-                            case Material::Type::OREN_NAYAR:
-                                ctx.NewRow("Diffuse");
-                                bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
-
-                                ctx.NewRow("Roughness");
-                                bMaterialUpdated |= ImGui::SliderFloat("##roughness", &mat.parameters.diffuseRoughness, 0.0f, 1.0f);
-                            default:
-                                break;
-                        }
-
-                        if (bMaterialHasRoughness) {
-                            ctx.NewRow("Roughness");
-                            bMaterialUpdated |= ImGui::SliderFloat("##Roughness", &mat.parameters.roughness, 0.0f, 1.0f);
-
-                            ctx.NewRow("Anisotropy");
-                            bMaterialUpdated |= ImGui::SliderFloat("##Anisotropy", &mat.parameters.anisotropy, -1.0f, 1.0f);
-                        }
-
-                        ctx.NewRow("Emission");
-                        bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
-
-                        ctx.NewRow("Emission Strength");
-                        bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0, 10000);
-
-                        if (bMaterialUpdated) {
-                            update.materialIndex = m_pScene->meshes[objSelectionIndex].materialIndex;
-                        } else {
-                            update.materialIndex = -1;
-                        }
-
-                        ctx.EndTable();
-                    }
+                    // if (ctx.StartTable("MaterialEditor")) {
+                    //     const char *materialTypes[] = {"Lambertian", "Dielectric", "Conductor", "Thin Dielectric", "Glossy Diffuse", "Oren-Nayar"};
+                    //     int currentType             = mat.mType;
+                    //
+                    //     bool bMaterialUpdated = false;
+                    //
+                    //     strncpy(buffer, mat.name.c_str(), sizeof(buffer) - 1);
+                    //     buffer[sizeof(buffer) - 1] = '\0';
+                    //     ctx.NewRow("Name");
+                    //     if (ImGui::InputText("##MaterialName", buffer, sizeof(buffer))) {
+                    //         mat.name = buffer;
+                    //     }
+                    //
+                    //     ctx.NewRow("BxDF");
+                    //     if (ImGui::Combo("##BxDF", &currentType, materialTypes, IM_ARRAYSIZE(materialTypes))) {
+                    //         mat.mType        = static_cast<Material::Type>(currentType);
+                    //         bMaterialUpdated = true;
+                    //     }
+                    //
+                    //     bool bMaterialHasRoughness = false;
+                    //
+                    //     switch (mat.mType) {
+                    //         case Material::Type::LAMBERTIAN:
+                    //             ctx.NewRow("Diffuse");
+                    //             bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
+                    //             break;
+                    //         case Material::Type::DIELECTRIC:
+                    //             ctx.NewRow("IOR");
+                    //             bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x, 0.01, 0, 100);
+                    //             bMaterialHasRoughness = true;
+                    //             break;
+                    //         case Material::Type::CONDUCTOR:
+                    //             ctx.NewRow("F0");
+                    //             bMaterialUpdated |= ImGui::ColorEdit3("##f0", &mat.parameters.f0.x);
+                    //
+                    //             bMaterialHasRoughness = true;
+                    //             break;
+                    //         case Material::Type::THIN_DIELECTRIC:
+                    //             ctx.NewRow("IOR");
+                    //             bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x, 0.01, 0, 100);
+                    //             bMaterialHasRoughness = false;
+                    //
+                    //             ctx.NewRow("Transmission Color");
+                    //             bMaterialUpdated |= ImGui::ColorEdit3("##transmission", &mat.parameters.transmissionColor.x);
+                    //             break;
+                    //         case Material::Type::GLOSSY_DIFFUSE:
+                    //             ctx.NewRow("Diffuse");
+                    //             bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
+                    //
+                    //             ctx.NewRow("Specular Tint");
+                    //             bMaterialUpdated |= ImGui::SliderFloat("##SpecularTint", &mat.parameters.specularTint, 0.0f, 1.0f);
+                    //
+                    //             bMaterialHasRoughness = true;
+                    //             break;
+                    //         case Material::Type::OREN_NAYAR:
+                    //             ctx.NewRow("Diffuse");
+                    //             bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
+                    //
+                    //             ctx.NewRow("Roughness");
+                    //             bMaterialUpdated |= ImGui::SliderFloat("##roughness", &mat.parameters.diffuseRoughness, 0.0f, 1.0f);
+                    //         default:
+                    //             break;
+                    //     }
+                    //
+                    //     if (bMaterialHasRoughness) {
+                    //         ctx.NewRow("Roughness");
+                    //         bMaterialUpdated |= ImGui::SliderFloat("##Roughness", &mat.parameters.roughness, 0.0f, 1.0f);
+                    //
+                    //         ctx.NewRow("Anisotropy");
+                    //         bMaterialUpdated |= ImGui::SliderFloat("##Anisotropy", &mat.parameters.anisotropy, -1.0f, 1.0f);
+                    //     }
+                    //
+                    //     ctx.NewRow("Emission");
+                    //     bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
+                    //
+                    //     ctx.NewRow("Emission Strength");
+                    //     bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0, 10000);
+                    //
+                    //     if (bMaterialUpdated) {
+                    //         update.materialIndex = m_pScene->meshes[objSelectionIndex].materialIndex;
+                    //     } else {
+                    //         update.materialIndex = -1;
+                    //     }
+                    //
+                    //     ctx.EndTable();
+                    // }
                     ctx.EndRectangleBackground(true);
                 }
             }
 
             ctx.Destroy();
         } else {
-            ImGui::Text("Material Inspector");
+            UiDrawContext ctx;
+            ctx.Init();
+
+            char buffer[256];
+            if (m_pScene) {
+                strncpy_s(buffer, m_pScene->materials[matSelectionIndex].name.c_str(), sizeof(buffer) - 1);
+                buffer[sizeof(buffer) - 1] = '\0';
+            } else {
+                strncpy_s(buffer, "No material selected", sizeof(buffer));
+            }
+
+            if (ctx.StartTable("MaterialNameTable", 1, 3)) {
+                ctx.NewRow("Name");
+                ImGui::BeginDisabled(m_pScene == nullptr);
+                if (ImGui::InputText("##MaterialName", buffer, sizeof(buffer))) {
+                    m_pScene->meshes[matSelectionIndex].name = buffer;
+                }
+                ImGui::EndDisabled();
+                ctx.EndTable();
+            }
+            ctx.InsertPadding();
+
+            if (m_pScene) {
+                auto &mat = m_pScene->materials[matSelectionIndex];
+                drawMaterialEditor(mat, ctx);
+            }
+
+            ctx.Destroy();
         }
 
         ImGui::End();

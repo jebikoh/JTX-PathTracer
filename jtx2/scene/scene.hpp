@@ -55,9 +55,12 @@ struct EnvMap {
 };
 
 struct SceneUpdate {
-    int32_t selectionIndex  = -1; // Index of the selected object
-    int32_t materialIndex   = -1;
-    int32_t objectIndex     = -1;
+    // Selection indices for outline/wireframe
+    int32_t materialSelectionIndex = -1;
+    int32_t meshSelectionIndex     = -1;
+    // Indices for data updates
+    int32_t materialIndex          = -1;
+    int32_t objectIndex            = -1;
     // If either of the two above are >=, accumulation will be reset
     // Can be manually reset via flipping this flag (for HDRI/sky/camera ETC)
     bool bResetAccumulation = false;

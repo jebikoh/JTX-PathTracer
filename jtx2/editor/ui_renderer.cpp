@@ -11,8 +11,6 @@
 #include <backends/imgui_impl_vulkan.h>
 #include <imgui_internal.h>
 
-// #define JTX_UI_DRAW_DEMO_WINDOW
-
 namespace jtx {
 
 void UiDrawContext::Init() {
@@ -93,22 +91,21 @@ void UiDrawContext::NewRow(const char *label) {
 }
 
 void UIRenderer::Init(
-    const std::function<void()> &onImportSceneCallback,
-    const std::function<void()> &onExportSceneCallback,
-    const std::function<void()> &onLoadHDRICallback,
-    const std::function<void()> &onStartRenderImageCallback,
-    const std::function<void()> &onStopRenderImageCallback,
-    const std::function<void()> &onSaveRenderImageCallback)
-{
+        const std::function<void()> &onImportSceneCallback,
+        const std::function<void()> &onExportSceneCallback,
+        const std::function<void()> &onLoadHDRICallback,
+        const std::function<void()> &onStartRenderImageCallback,
+        const std::function<void()> &onStopRenderImageCallback,
+        const std::function<void()> &onSaveRenderImageCallback) {
     TPROFILE_SCOPE();
     LOG_INFO(UI, "Initializing UI renderer");
 
-    m_onImportSceneCallback = onImportSceneCallback;
-    m_onExportSceneCallback = onExportSceneCallback;
-    m_onLoadHDRICallback    = onLoadHDRICallback;
+    m_onImportSceneCallback      = onImportSceneCallback;
+    m_onExportSceneCallback      = onExportSceneCallback;
+    m_onLoadHDRICallback         = onLoadHDRICallback;
     m_onStartRenderImageCallback = onStartRenderImageCallback;
-    m_onStopRenderImageCallback = onStopRenderImageCallback;
-    m_onSaveRenderImageCallback = onSaveRenderImageCallback;
+    m_onStopRenderImageCallback  = onStopRenderImageCallback;
+    m_onSaveRenderImageCallback  = onSaveRenderImageCallback;
 
     constexpr VkDescriptorPoolSize poolSizes[] =
             {
@@ -196,7 +193,7 @@ void UIRenderer::RegisterViewportBackend(const ViewportBackend id, const char *n
 }
 
 void UIRenderer::RegisterRenderBackend(const RenderBackend id, const char *name, const std::function<bool(UiDrawContext &)> &settings) {
-    m_renderBackendNames[id]    = name;
+    m_renderBackendNames[id]  = name;
     m_renderBackendPanels[id] = settings;
 }
 
@@ -208,6 +205,11 @@ void UIRenderer::LoadScene(Scene *scene) {
         m_materials.push_back('\0');
     }
 }
+
+enum class kInspectorMode {
+    MESH,
+    MATERIAL
+};
 
 void UIRenderer::NewFrame(SceneUpdate &update) {
     TPROFILE_SCOPE();
@@ -311,9 +313,9 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                 ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace);
                 ImGui::DockBuilderSetNodeSize(dockspaceId, ImGui::GetMainViewport()->WorkSize);
 
-                ImGuiID dockMainId = dockspaceId;
+                ImGuiID dockMainId  = dockspaceId;
                 ImGuiID dockRightId = ImGui::DockBuilderSplitNode(dockMainId, ImGuiDir_Right, 0.2f, nullptr, &dockMainId);
-                ImGuiID dockLeftId = dockMainId;
+                ImGuiID dockLeftId  = dockMainId;
 
                 ImGui::DockBuilderDockWindow("Render Image", dockLeftId);
                 ImGui::DockBuilderDockWindow("Render Settings", dockRightId);
@@ -341,11 +343,11 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
             ImGui::Begin("Render Image", nullptr, ImGuiWindowFlags_NoTitleBar);
             ImGui::PopStyleVar();
 
-            ImVec2 availableRegion = ImGui::GetContentRegionAvail();
+            ImVec2 availableRegion  = ImGui::GetContentRegionAvail();
             float regionAspectRatio = availableRegion.x / availableRegion.y;
 
-            float imageWidth = static_cast<float>(m_rs.width);
-            float imageHeight = static_cast<float>(m_rs.height);
+            float imageWidth       = static_cast<float>(m_rs.width);
+            float imageHeight      = static_cast<float>(m_rs.height);
             float imageAspectRatio = imageWidth / imageHeight;
 
             ImVec2 imageSize;
@@ -368,7 +370,6 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
             ctx.Destroy();
             ImGui::PopStyleVar();
-
         }
         ImGui::End();
 
@@ -379,11 +380,13 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
     ImGui::BeginDisabled(m_bRenderWindowOpen);
 
+    static kInspectorMode inspectorMode = kInspectorMode::MESH;
     // Hierarchy
-    static int objSelectionIndex    = 0;
-    static bool bHighlightSelection = true;
+    static int objSelectionIndex = 0;
+    static bool bHighlightMesh   = false;
     {
         ImGui::Begin("Hierarchy");
+        if (ImGui::IsWindowFocused()) inspectorMode = kInspectorMode::MESH;
 
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
         if (ImGui::BeginListBox("##SceneHierarchy")) {
@@ -402,15 +405,53 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ctx.Init();
         if (ctx.StartTable("##EnableSelectionHighlightTable")) {
             ctx.NewRow("Highlight Selection");
-            ImGui::Checkbox("##EnableSelectionHighlight", &bHighlightSelection);
+            ImGui::Checkbox("##EnableSelectionHighlight", &bHighlightMesh);
             ctx.EndTable();
         }
         ctx.Destroy();
 
-        if (m_pScene && bHighlightSelection) {
-            update.selectionIndex = objSelectionIndex;
+        if (m_pScene && bHighlightMesh) {
+            update.meshSelectionIndex = objSelectionIndex;
         } else {
-            update.selectionIndex = -1;
+            update.meshSelectionIndex = -1;
+        }
+
+        ImGui::End();
+    }
+
+    // Materials
+    static int matSelectionIndex   = 0;
+    static bool bHighlightMaterial = false;
+    {
+        ImGui::Begin("Materials");
+        if (ImGui::IsWindowFocused()) inspectorMode = kInspectorMode::MATERIAL;
+
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+        if (ImGui::BeginListBox("##Materials")) {
+            if (m_pScene) {
+                const auto &materials = m_pScene->materials;
+                for (int i = 0; i < materials.size(); i++) {
+                    const bool bIsSelected = (matSelectionIndex == i);
+                    if (ImGui::Selectable(materials[i].name.c_str(), bIsSelected)) matSelectionIndex = i;
+                    if (bIsSelected) ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndListBox();
+        }
+
+        UiDrawContext ctx;
+        ctx.Init();
+        if (ctx.StartTable("##EnableMaterialSelectionHighlightTable")) {
+            ctx.NewRow("Highlight Selection");
+            ImGui::Checkbox("##EnableSelectionHighlight", &bHighlightMaterial);
+            ctx.EndTable();
+        }
+        ctx.Destroy();
+
+        if (m_pScene && bHighlightMaterial) {
+            update.materialSelectionIndex = matSelectionIndex;
+        } else {
+            update.materialSelectionIndex = -1;
         }
 
         ImGui::End();
@@ -471,7 +512,7 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
                         static int selectedTmo = m_rs.tonemapOp;
                         ctx.NewRow("Tonemapping");
                         if (ImGui::Combo("##TMO", &selectedTmo, tmo, IM_ARRAYSIZE(tmo))) {
-                            m_rs.tonemapOp    = static_cast<kTonemapOp>(selectedTmo);
+                            m_rs.tonemapOp = static_cast<kTonemapOp>(selectedTmo);
                         }
                         ctx.EndTable();
                     }
@@ -657,167 +698,142 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ImGui::End();
     }
 
-    // Object
+    // Inspector
     {
-        ImGui::Begin("Object");
+        ImGui::Begin("Inspector");
 
-        UiDrawContext ctx;
-        ctx.Init();
+        if (inspectorMode == kInspectorMode::MESH) {
+            UiDrawContext ctx;
+            ctx.Init();
 
-        char buffer[256];
-        if (m_pScene) {
-            strncpy(buffer, m_pScene->meshes[objSelectionIndex].name.c_str(), sizeof(buffer) - 1);
-            buffer[sizeof(buffer) - 1] = '\0';
-        } else {
-            strncpy(buffer, "No mesh selected", sizeof(buffer));
-        }
-
-        if (ctx.StartTable("MeshNameTable", 1, 3)) {
-            ctx.NewRow("Name");
-            ImGui::BeginDisabled(m_pScene == nullptr);
-            if (ImGui::InputText("##MeshName", buffer, sizeof(buffer))) {
-                m_pScene->meshes[objSelectionIndex].name = buffer;
-            }
-            ImGui::EndDisabled();
-            ctx.EndTable();
-        }
-        ctx.InsertPadding();
-
-        if (m_pScene != nullptr) {
-            if (ImGui::CollapsingHeader("Transform")) {
-                ctx.StartRectangleBackground();
-
-                if (ctx.StartTable("TransformEditor")) {
-                    auto &mesh = m_pScene->meshes[objSelectionIndex];
-
-                    vec3 position;
-                    vec3 rotation;
-                    vec3 scale;
-
-                    ctx.NewRow("Position");
-                    ImGui::DragFloat3("##Position", &position.x);
-
-                    ctx.NewRow("Rotation");
-                    ImGui::DragFloat3("##Rotation", &rotation.x);
-
-                    ctx.NewRow("Scale");
-                    ImGui::DragFloat3("##Scale", &scale.x);
-
-                    ctx.EndTable();
-                }
-
-                ctx.EndRectangleBackground(true);
+            char buffer[256];
+            if (m_pScene) {
+                strncpy(buffer, m_pScene->meshes[objSelectionIndex].name.c_str(), sizeof(buffer) - 1);
+                buffer[sizeof(buffer) - 1] = '\0';
+            } else {
+                strncpy(buffer, "No mesh selected", sizeof(buffer));
             }
 
-            if (ImGui::CollapsingHeader("Material")) {
-                ctx.StartRectangleBackground();
-                int matIndex = m_pScene->meshes[objSelectionIndex].materialIndex;
-                auto &mat           = m_pScene->materials[matIndex];
-
-                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                if (ImGui::Combo("##Material", &matIndex, m_materials.c_str())) {
-                    m_pScene->meshes[objSelectionIndex].materialIndex = matIndex;
-                    update.objectIndex = objSelectionIndex;
+            if (ctx.StartTable("MeshNameTable", 1, 3)) {
+                ctx.NewRow("Name");
+                ImGui::BeginDisabled(m_pScene == nullptr);
+                if (ImGui::InputText("##MeshName", buffer, sizeof(buffer))) {
+                    m_pScene->meshes[objSelectionIndex].name = buffer;
                 }
+                ImGui::EndDisabled();
+                ctx.EndTable();
+            }
+            ctx.InsertPadding();
 
-                ImGui::Separator();
+            if (m_pScene != nullptr) {
+                if (ImGui::CollapsingHeader("Material")) {
+                    ctx.StartRectangleBackground();
+                    int matIndex = m_pScene->meshes[objSelectionIndex].materialIndex;
+                    auto &mat    = m_pScene->materials[matIndex];
 
-                if (ctx.StartTable("MaterialEditor")) {
-                    const char *materialTypes[] = {"Lambertian", "Dielectric", "Conductor", "Thin Dielectric", "Glossy Diffuse", "Oren-Nayar"};
-                    int currentType             = mat.mType;
-
-                    bool bMaterialUpdated = false;
-
-                    strncpy(buffer, mat.name.c_str(), sizeof(buffer) - 1);
-                    buffer[sizeof(buffer) - 1] = '\0';
-                    ctx.NewRow("Name");
-                    if (ImGui::InputText("##MaterialName", buffer, sizeof(buffer))) {
-                        mat.name = buffer;
+                    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                    if (ImGui::Combo("##Material", &matIndex, m_materials.c_str())) {
+                        m_pScene->meshes[objSelectionIndex].materialIndex = matIndex;
+                        update.objectIndex                                = objSelectionIndex;
                     }
 
-                    ctx.NewRow("BxDF");
-                    if (ImGui::Combo("##BxDF", &currentType, materialTypes, IM_ARRAYSIZE(materialTypes))) {
-                        mat.mType        = static_cast<Material::Type>(currentType);
-                        bMaterialUpdated = true;
-                    }
+                    ImGui::Separator();
 
-                    bool bMaterialHasRoughness = false;
+                    if (ctx.StartTable("MaterialEditor")) {
+                        const char *materialTypes[] = {"Lambertian", "Dielectric", "Conductor", "Thin Dielectric", "Glossy Diffuse", "Oren-Nayar"};
+                        int currentType             = mat.mType;
 
-                    switch (mat.mType) {
-                        case Material::Type::LAMBERTIAN:
-                            ctx.NewRow("Diffuse");
-                            bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
-                            break;
-                        case Material::Type::DIELECTRIC:
-                            ctx.NewRow("IOR");
-                            bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x, 0.01, 0, 100);
-                            bMaterialHasRoughness = true;
-                            break;
-                        case Material::Type::CONDUCTOR:
-                            ctx.NewRow("F0");
-                            bMaterialUpdated |= ImGui::ColorEdit3("##f0", &mat.parameters.f0.x);
+                        bool bMaterialUpdated = false;
 
-                            bMaterialHasRoughness = true;
-                            break;
-                        case Material::Type::THIN_DIELECTRIC:
-                            ctx.NewRow("IOR");
-                            bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x, 0.01, 0, 100);
-                            bMaterialHasRoughness = false;
+                        strncpy(buffer, mat.name.c_str(), sizeof(buffer) - 1);
+                        buffer[sizeof(buffer) - 1] = '\0';
+                        ctx.NewRow("Name");
+                        if (ImGui::InputText("##MaterialName", buffer, sizeof(buffer))) {
+                            mat.name = buffer;
+                        }
 
-                            ctx.NewRow("Transmission Color");
-                            bMaterialUpdated |= ImGui::ColorEdit3("##transmission", &mat.parameters.transmissionColor.x);
-                            break;
-                        case Material::Type::GLOSSY_DIFFUSE:
-                            ctx.NewRow("Diffuse");
-                            bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
+                        ctx.NewRow("BxDF");
+                        if (ImGui::Combo("##BxDF", &currentType, materialTypes, IM_ARRAYSIZE(materialTypes))) {
+                            mat.mType        = static_cast<Material::Type>(currentType);
+                            bMaterialUpdated = true;
+                        }
 
-                            ctx.NewRow("Specular Tint");
-                            bMaterialUpdated |= ImGui::SliderFloat("##SpecularTint", &mat.parameters.specularTint, 0.0f, 1.0f);
+                        bool bMaterialHasRoughness = false;
 
-                            bMaterialHasRoughness = true;
-                            break;
-                        case Material::Type::OREN_NAYAR:
-                            ctx.NewRow("Diffuse");
-                            bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
+                        switch (mat.mType) {
+                            case Material::Type::LAMBERTIAN:
+                                ctx.NewRow("Diffuse");
+                                bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
+                                break;
+                            case Material::Type::DIELECTRIC:
+                                ctx.NewRow("IOR");
+                                bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x, 0.01, 0, 100);
+                                bMaterialHasRoughness = true;
+                                break;
+                            case Material::Type::CONDUCTOR:
+                                ctx.NewRow("F0");
+                                bMaterialUpdated |= ImGui::ColorEdit3("##f0", &mat.parameters.f0.x);
 
+                                bMaterialHasRoughness = true;
+                                break;
+                            case Material::Type::THIN_DIELECTRIC:
+                                ctx.NewRow("IOR");
+                                bMaterialUpdated |= ImGui::DragFloat("##ior", &mat.parameters.ior.x, 0.01, 0, 100);
+                                bMaterialHasRoughness = false;
+
+                                ctx.NewRow("Transmission Color");
+                                bMaterialUpdated |= ImGui::ColorEdit3("##transmission", &mat.parameters.transmissionColor.x);
+                                break;
+                            case Material::Type::GLOSSY_DIFFUSE:
+                                ctx.NewRow("Diffuse");
+                                bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
+
+                                ctx.NewRow("Specular Tint");
+                                bMaterialUpdated |= ImGui::SliderFloat("##SpecularTint", &mat.parameters.specularTint, 0.0f, 1.0f);
+
+                                bMaterialHasRoughness = true;
+                                break;
+                            case Material::Type::OREN_NAYAR:
+                                ctx.NewRow("Diffuse");
+                                bMaterialUpdated |= ImGui::ColorEdit3("##diffuse", &mat.parameters.diffuse.x);
+
+                                ctx.NewRow("Roughness");
+                                bMaterialUpdated |= ImGui::SliderFloat("##roughness", &mat.parameters.diffuseRoughness, 0.0f, 1.0f);
+                            default:
+                                break;
+                        }
+
+                        if (bMaterialHasRoughness) {
                             ctx.NewRow("Roughness");
-                            bMaterialUpdated |= ImGui::SliderFloat("##roughness", &mat.parameters.diffuseRoughness, 0.0f, 1.0f);
-                        default:
-                            break;
+                            bMaterialUpdated |= ImGui::SliderFloat("##Roughness", &mat.parameters.roughness, 0.0f, 1.0f);
+
+                            ctx.NewRow("Anisotropy");
+                            bMaterialUpdated |= ImGui::SliderFloat("##Anisotropy", &mat.parameters.anisotropy, -1.0f, 1.0f);
+                        }
+
+                        ctx.NewRow("Emission");
+                        bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
+
+                        ctx.NewRow("Emission Strength");
+                        bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0, 10000);
+
+                        if (bMaterialUpdated) {
+                            update.materialIndex = m_pScene->meshes[objSelectionIndex].materialIndex;
+                        } else {
+                            update.materialIndex = -1;
+                        }
+
+                        ctx.EndTable();
                     }
-
-                    if (bMaterialHasRoughness) {
-                        ctx.NewRow("Roughness");
-                        bMaterialUpdated |= ImGui::SliderFloat("##Roughness", &mat.parameters.roughness, 0.0f, 1.0f);
-
-                        ctx.NewRow("Anisotropy");
-                        bMaterialUpdated |= ImGui::SliderFloat("##Anisotropy", &mat.parameters.anisotropy, -1.0f, 1.0f);
-                    }
-
-                    ctx.NewRow("Emission");
-                    bMaterialUpdated |= ImGui::ColorEdit3("##emission", &mat.parameters.emission.x);
-
-                    ctx.NewRow("Emission Strength");
-                    bMaterialUpdated |= ImGui::DragFloat("Strength", &mat.parameters.emissionStrength, 0.5, 0, 10000);
-
-                    if (bMaterialUpdated) {
-                        update.materialIndex = m_pScene->meshes[objSelectionIndex].materialIndex;
-                    } else {
-                        update.materialIndex = -1;
-                    }
-
-                    ctx.EndTable();
+                    ctx.EndRectangleBackground(true);
                 }
-                ctx.EndRectangleBackground(true);
             }
+
+            ctx.Destroy();
         } else {
-            ImGui::BeginDisabled();
-            ImGui::CollapsingHeader("Transform");
-            ImGui::CollapsingHeader("Material");
-            ImGui::EndDisabled();
+            ImGui::Text("Material Inspector");
         }
 
-        ctx.Destroy();
         ImGui::End();
     }
 
@@ -1007,12 +1023,13 @@ void UIRenderer::SetLayout(const ImGuiID dockSpaceId, const ImGuiViewport *viewp
 
     ImGuiID dockMainId           = dockSpaceId;
     ImGuiID dockRightId          = ImGui::DockBuilderSplitNode(dockMainId, ImGuiDir_Right, 0.2f, nullptr, &dockMainId);
-    const ImGuiID dockRightTopId = ImGui::DockBuilderSplitNode(dockRightId, ImGuiDir_Up, 0.25f, nullptr, &dockRightId);
+    const ImGuiID dockRightTopId = ImGui::DockBuilderSplitNode(dockRightId, ImGuiDir_Up, 0.2f, nullptr, &dockRightId);
 
     ImGui::DockBuilderDockWindow("Settings", dockRightId);
-    ImGui::DockBuilderDockWindow("Object", dockRightId);
+    ImGui::DockBuilderDockWindow("Inspector", dockRightId);
     ImGui::DockBuilderDockWindow("Scene", dockRightId);
     ImGui::DockBuilderDockWindow("Hierarchy", dockRightTopId);
+    ImGui::DockBuilderDockWindow("Materials", dockRightTopId);
 
     ImGui::DockBuilderFinish(dockSpaceId);
 

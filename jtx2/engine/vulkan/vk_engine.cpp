@@ -110,7 +110,7 @@ void VkEngine::RenderViewport(RenderContext &ctx, ResolveRegion &region, const S
         region.src[0] = region.dst[0];
         region.src[1] = region.dst[1];
         region.target = kRenderTarget::DRAW16f;
-        Rasterize(ctx, renderArea, update.selectionIndex);
+        Rasterize(ctx, renderArea, update.meshSelectionIndex);
     }
 }
 

@@ -380,12 +380,15 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
     ImGui::BeginDisabled(m_bRenderWindowOpen);
 
-    static kInspectorMode inspectorMode = kInspectorMode::MESH;
+    static auto inspectorMode = kInspectorMode::MESH;
     // Hierarchy
+    update.selection.material    = -1;
+    update.selection.mesh        = -1;
+
+    // > Objects
     static int objSelectionIndex = 0;
     static bool bHighlightMesh   = false;
-    {
-        ImGui::Begin("Hierarchy");
+    if (ImGui::Begin("Hierarchy")) {
         if (ImGui::IsWindowFocused()) inspectorMode = kInspectorMode::MESH;
 
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
@@ -411,19 +414,15 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ctx.Destroy();
 
         if (m_pScene && bHighlightMesh) {
-            update.meshSelectionIndex = objSelectionIndex;
-        } else {
-            update.meshSelectionIndex = -1;
+            update.selection.mesh = objSelectionIndex;
         }
-
-        ImGui::End();
     }
+    ImGui::End();
 
-    // Materials
+    // > Materials
     static int matSelectionIndex   = 0;
     static bool bHighlightMaterial = false;
-    {
-        ImGui::Begin("Materials");
+    if (ImGui::Begin("Materials")) {
         if (ImGui::IsWindowFocused()) inspectorMode = kInspectorMode::MATERIAL;
 
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
@@ -449,13 +448,11 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ctx.Destroy();
 
         if (m_pScene && bHighlightMaterial) {
-            update.materialSelectionIndex = matSelectionIndex;
-        } else {
-            update.materialSelectionIndex = -1;
+            update.selection.material = matSelectionIndex;
         }
 
-        ImGui::End();
     }
+    ImGui::End();
 
     // Settings
     {

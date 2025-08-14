@@ -156,7 +156,7 @@ private:
     } m_rasterPipelines;
 
     jvk::Pipeline m_wireframePipeline;
-    glm::vec4 m_wireframeColor{0.8f, 0.8f, 0.8f, 0.3f};
+    glm::vec4 m_wireframeColor{1.f, 0.2f, 0.2f, 0.1f};
 
     // -- Grid pipeline --
     void InitGridPipeline();
@@ -200,8 +200,8 @@ private:
 
     // == Rasterization ==
     GPUDrawContext m_drawContext;
-    void PopulateContext();
-    void Rasterize(RenderContext &ctx, const VkRect2D &renderArea, int32_t selectionIndex);
+    void PopulateContext(const SceneUpdate::Selection &selection);
+    void Rasterize(RenderContext &ctx, const VkRect2D &renderArea, const SceneUpdate::Selection &selection);
 
     // == Ray Tracing ==
     // -- Acceleration Structures --

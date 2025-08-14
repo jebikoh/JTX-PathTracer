@@ -120,6 +120,7 @@ struct GPURenderObject {
 
 struct GPUDrawContext {
     std::vector<GPURenderObject> objects;
+    std::vector<uint32_t> highlights;
 };
 
 }// namespace jtx

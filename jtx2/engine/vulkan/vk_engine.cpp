@@ -64,7 +64,7 @@ void VkEngine::RenderViewport(RenderContext &ctx, ResolveRegion &region, const S
     UpdateGlobalUniformData();
 
     if (m_bSceneLoaded) {
-        PopulateContext();
+        PopulateContext(update.selection);
         if (UpdateScene(ctx, update)) {
             m_vpState.bResetAccumulation = true;
         }
@@ -110,15 +110,22 @@ void VkEngine::RenderViewport(RenderContext &ctx, ResolveRegion &region, const S
         region.src[0] = region.dst[0];
         region.src[1] = region.dst[1];
         region.target = kRenderTarget::DRAW16f;
-        Rasterize(ctx, renderArea, update.meshSelectionIndex);
+        Rasterize(ctx, renderArea, update.selection);
     }
 }
 
-void VkEngine::PopulateContext() {
+void VkEngine::PopulateContext(const SceneUpdate::Selection &selection) {
     TPROFILE_SCOPE();
     m_drawContext.objects.clear();
+    m_drawContext.highlights.clear();
 
-    // Loop through meshes
+    bool bHighlightMesh     = false;
+    bool bHighlightMaterial = false;
+
+    if (selection.mesh > -1) bHighlightMesh = true;
+    else if (selection.material > -1)
+        bHighlightMaterial = true;
+
     for (uint32_t i = 0; i < m_pScene->meshes.size(); ++i) {
         const auto &mesh = m_pScene->meshes[i];
         GPURenderObject obj{};
@@ -127,10 +134,17 @@ void VkEngine::PopulateContext() {
         obj.count            = mesh.numIndices;
         obj.materialPipeline = &m_rasterPipelines.diffuse;
         m_drawContext.objects.push_back(obj);
+
+        // We could concatenate this, but I think this is more readable
+        if (bHighlightMesh && (i == selection.mesh)) {
+            m_drawContext.highlights.push_back(i);
+        } else if (bHighlightMaterial && (mesh.materialIndex == selection.material)) {
+            m_drawContext.highlights.push_back(i);
+        }
     }
 }
 
-void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea, const int32_t selectionIndex) {
+void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea, const SceneUpdate::Selection &selection) {
     TPROFILE_SCOPE();
     // Begin render pass
     VkClearValue drawImageClearValue{};
@@ -221,7 +235,7 @@ void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea, const i
             draw(m_drawContext.objects[r]);
         }
 
-        if (selectionIndex > -1) {
+        if (!m_drawContext.highlights.empty()) {
             vkCmdBindPipeline(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_wireframePipeline.pipeline);
             vkCmdBindDescriptorSets(ctx.cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_wireframePipeline.layout, 0, 1, &frame.gpuGlobalUniformDataDescriptorSet, 0, nullptr);
 
@@ -229,8 +243,10 @@ void VkEngine::Rasterize(RenderContext &ctx, const VkRect2D &renderArea, const i
             pc.wireframeColor = m_wireframeColor;
             vkCmdPushConstants(ctx.cmd, m_wireframePipeline.layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pc), &pc);
 
-            const auto &obj = m_drawContext.objects[selectionIndex];
-            vkCmdDrawIndexed(ctx.cmd, obj.count * 3, 1, obj.start * 3, 0, 0);
+            for (const auto id : m_drawContext.highlights) {
+                const auto &obj = m_drawContext.objects[id];
+                vkCmdDrawIndexed(ctx.cmd, obj.count * 3, 1, obj.start * 3, 0, 0);
+            }
         }
     }
 

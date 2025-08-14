@@ -382,8 +382,9 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
 
     static auto inspectorMode = kInspectorMode::MESH;
     // Hierarchy
-    update.selection.material    = -1;
-    update.selection.mesh        = -1;
+    using SType = SceneUpdate::Selection::kType;
+    update.selection.type  = SType::NONE;
+    update.selection.index = 0;
 
     // > Objects
     static int objSelectionIndex = 0;
@@ -414,7 +415,8 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ctx.Destroy();
 
         if (m_pScene && bHighlightMesh) {
-            update.selection.mesh = objSelectionIndex;
+            update.selection.type  = SType::MESH;
+            update.selection.index = objSelectionIndex;
         }
     }
     ImGui::End();
@@ -448,7 +450,8 @@ void UIRenderer::NewFrame(SceneUpdate &update) {
         ctx.Destroy();
 
         if (m_pScene && bHighlightMaterial) {
-            update.selection.material = matSelectionIndex;
+            update.selection.type  = SType::MATERIAL;
+            update.selection.index = matSelectionIndex;
         }
 
     }

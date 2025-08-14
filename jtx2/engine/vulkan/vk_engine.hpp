@@ -200,7 +200,10 @@ private:
 
     // == Rasterization ==
     GPUDrawContext m_drawContext;
+    // TODO: I think it would be nicer if we just specify the type of selection
+    //       instead of having to figure it out manually each time...
     void PopulateContext(const SceneUpdate::Selection &selection);
+    void PopulateContextHighlights(const SceneUpdate::Selection &selection);
     void Rasterize(RenderContext &ctx, const VkRect2D &renderArea, const SceneUpdate::Selection &selection);
 
     // == Ray Tracing ==

@@ -119,12 +119,9 @@ void VkEngine::PopulateContext(const SceneUpdate::Selection &selection) {
     m_drawContext.objects.clear();
     m_drawContext.highlights.clear();
 
-    bool bHighlightMesh     = false;
-    bool bHighlightMaterial = false;
-
-    if (selection.mesh > -1) bHighlightMesh = true;
-    else if (selection.material > -1)
-        bHighlightMaterial = true;
+    using SType = SceneUpdate::Selection::kType;
+    const bool bHighlightMesh     = selection.type == SType::MESH;
+    const bool bHighlightMaterial = selection.type == SType::MATERIAL;
 
     for (uint32_t i = 0; i < m_pScene->meshes.size(); ++i) {
         const auto &mesh = m_pScene->meshes[i];
@@ -136,10 +133,32 @@ void VkEngine::PopulateContext(const SceneUpdate::Selection &selection) {
         m_drawContext.objects.push_back(obj);
 
         // We could concatenate this, but I think this is more readable
-        if (bHighlightMesh && (i == selection.mesh)) {
+        const bool bHighlight = (bHighlightMesh && (i == selection.index)) || (bHighlightMaterial && (mesh.materialIndex == selection.index));
+        if (bHighlight) {
             m_drawContext.highlights.push_back(i);
-        } else if (bHighlightMaterial && (mesh.materialIndex == selection.material)) {
-            m_drawContext.highlights.push_back(i);
+        }
+    }
+}
+
+void VkEngine::PopulateContextHighlights(const SceneUpdate::Selection &selection) {
+    TPROFILE_SCOPE();
+    m_drawContext.highlights.clear();
+    
+    using SType = SceneUpdate::Selection::kType;
+    const bool bHighlightMesh     = selection.type == SType::MESH;
+    const bool bHighlightMaterial = selection.type == SType::MATERIAL;
+
+    for (uint32_t i = 0; i < m_pScene->meshes.size(); ++i) {
+        const auto &mesh = m_pScene->meshes[i];
+
+        const bool bHighlight = (bHighlightMesh && (i == selection.index)) || (bHighlightMaterial && (mesh.materialIndex == selection.index));
+        if (bHighlight) {
+            m_drawContext.highlights.push_back(m_drawContext.objects.size());
+
+            GPURenderObject obj{};
+            obj.start            = mesh.startIndex;
+            obj.count            = mesh.numIndices;
+            m_drawContext.objects.push_back(obj);
         }
     }
 }

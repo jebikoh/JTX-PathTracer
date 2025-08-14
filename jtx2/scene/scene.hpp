@@ -57,8 +57,12 @@ struct EnvMap {
 struct SceneUpdate {
     // Selection indices for outline/wireframe
     struct Selection {
-        int32_t material = -1;
-        int32_t mesh = -1;
+        enum class kType {
+            NONE,
+            MESH,
+            MATERIAL,
+        } type;
+        uint32_t index;
     } selection;
     // Indices for data updates
     int32_t materialIndex          = -1;

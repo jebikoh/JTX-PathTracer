@@ -50,6 +50,8 @@ https://github.com/user-attachments/assets/75a9206b-2e38-4193-a30f-23a2879dcdbb
 
 <img width="1920" height="1080" alt="mustang_2" src="https://github.com/user-attachments/assets/2a9e19aa-59a1-4a9f-96c6-588b001dbdbc" />
 
+<img width="1920" height="1080" alt="mustang_close_up_evm1" src="https://github.com/user-attachments/assets/f0a7cf1d-e19f-4317-96da-04de612c67d0" />
+
 <img width="1920" height="1080" alt="EON_PI_2" src="https://github.com/user-attachments/assets/894decf5-716d-431d-bca0-01e79cc61072" />
 
 <img width="1920" height="1080" alt="conductor_aniso" src="https://github.com/user-attachments/assets/55e42707-ef1e-4db1-b4ac-96ce25796600" />

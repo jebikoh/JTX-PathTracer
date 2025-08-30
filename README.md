@@ -1,5 +1,6 @@
 # JTX Path Tracer
 
+Taking a break from this project to work on other rendering stuff :)
 
 (The previous version of the project can be found in the `main` branch under the `src/` directory)
 

@@ -230,6 +230,7 @@ set(JTX_BACKEND_CPU
 
 set(JTX_BACKEND
         jtx2/engine/backends.hpp
+        jtx2/engine/vulkan/render_system.hpp
 )
 
 set(JTX_WING
@@ -241,6 +242,7 @@ set(JTX_WING
         jtx2/engine/vulkan/accel.cpp
         jtx2/engine/cpu/energy_compensation.hpp
         jtx2/engine/cpu/bxdf/oren_nayar.hpp
+        jtx2/engine/vulkan/queue.hpp
 )
 
 # ──────────────────────────────────────────────────────────────────────────────

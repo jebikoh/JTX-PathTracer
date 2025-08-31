@@ -197,18 +197,18 @@ struct GfxContext {
      */
     void NotifyResize() { window.bSwapchainOutOfDate = true; }
 
-    /**
-     * Will create an external window with this GFX context
-     * @param extent window extent
-     * @param out window to initialize
-     */
-    void CreateExternalWindow(VkExtent2D extent, Window &out) const;
-
-    /**
-     * Destroys an external window that was created with this GFX context
-     * @param in window to destroy
-     */
-    void DestroyExternalWindow(Window &in) const;
+//    /**
+//     * Will create an external window with this GFX context
+//     * @param extent window extent
+//     * @param out window to initialize
+//     */
+//    void CreateExternalWindow(VkExtent2D extent, Window &out) const;
+//
+//    /**
+//     * Destroys an external window that was created with this GFX context
+//     * @param in window to destroy
+//     */
+//    void DestroyExternalWindow(Window &in) const;
 
 private:
     void InitWindow();
@@ -230,6 +230,53 @@ private:
     void DestroyImmediateBuffer() const;
     void DestroyDefaultImages() const;
     void DestroyDefaultSamplers() const;
+};
+
+/**
+ * Contains core GPU resources; does not contain any rendering code.
+ *
+ * Can be initialized in headless mode to avoid surface/swapchain creation.
+ * In this case, relevant structures will be VK_NULL_HANDLE and associated
+ * methods will be undefined.
+ */
+struct GpuContext {
+    void Init(bool bHeadless = false);
+    void Destroy();
+
+    jvk::VkContext ctx;
+    VmaAllocator alloc;
+
+    struct {
+        jvk::Swapchain chain;
+        std::vector<jvk::Semaphore> semaphores;
+        bool bOutOfDate = false;
+    } swapchain;
+
+    struct {
+        jvk::CommandPool commandPool;
+        jvk::CommandBuffer commandBuffer;
+
+        jvk::Semaphore imageAvailableSemaphore;
+        jvk::Fence drawFence;
+    } frameData[JTX_MAX_FRAMES_IN_FLIGHT];
+
+    struct {
+        jvk::Queue graphics;
+        jvk::Queue transfer;
+    } queues;
+    jvk::ImmediateBuffer imBuffer;
+private:
+    void InitVulkan();
+    void InitAllocator();
+    void InitSwapchain();
+    void InitFrameData();
+    void InitImmediateBuffer();
+
+    void DestroyVulkan();
+    void DestroyAllocator();
+    void DestroySwapchain();
+    void DestroyFrameData();
+    void DestroyImmediateBuffer();
 };
 
 }// namespace jtx

@@ -587,43 +587,43 @@ void GfxContext::DestroyBuffer(jvk::Buffer &buffer) const {
     buffer.Destroy(allocator);
 }
 
-void GfxContext::CreateExternalWindow(const VkExtent2D extent, Window &out) const {
-    TPROFILE_SCOPE();
-    SDL_Init(SDL_INIT_VIDEO);
-    constexpr auto windowFlags = static_cast<SDL_WindowFlags>(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
-    out.pWindow                = SDL_CreateWindow(
-            "JTX Render",
-            static_cast<int>(extent.width),
-            static_cast<int>(extent.height),
-            windowFlags);
-    out.id = SDL_GetWindowID(out.pWindow);
-
-    int w, h;
-    SDL_GetWindowSizeInPixels(out.pWindow, &w, &h);
-    out.extent.width  = w;
-    out.extent.height = h;
-
-    SDL_Vulkan_CreateSurface(out.pWindow, ctx, nullptr, &out.surface);
-
-    out.swapchain.Init(ctx, out.surface, w, h);
-    const uint32_t count = out.swapchain.GetSwapchainImageCount();
-    out.semaphores.resize(count);
-    for (auto &sem: out.semaphores) {
-        sem.Init(ctx);
-    }
-}
-
-void GfxContext::DestroyExternalWindow(Window &in) const {
-    TPROFILE_SCOPE();
-    vkDeviceWaitIdle(ctx);
-    for (auto &sem: in.semaphores) {
-        sem.Destroy();
-    }
-    in.swapchain.Destroy(ctx);
-    vkDestroySurfaceKHR(ctx, in.surface, nullptr);
-    SDL_DestroyWindow(in.pWindow);
-    in = {};
-}
+//void GfxContext::CreateExternalWindow(const VkExtent2D extent, Window &out) const {
+//    TPROFILE_SCOPE();
+//    SDL_Init(SDL_INIT_VIDEO);
+//    constexpr auto windowFlags = static_cast<SDL_WindowFlags>(SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
+//    out.pWindow                = SDL_CreateWindow(
+//            "JTX Render",
+//            static_cast<int>(extent.width),
+//            static_cast<int>(extent.height),
+//            windowFlags);
+//    out.id = SDL_GetWindowID(out.pWindow);
+//
+//    int w, h;
+//    SDL_GetWindowSizeInPixels(out.pWindow, &w, &h);
+//    out.extent.width  = w;
+//    out.extent.height = h;
+//
+//    SDL_Vulkan_CreateSurface(out.pWindow, ctx, nullptr, &out.surface);
+//
+//    out.swapchain.Init(ctx, out.surface, w, h);
+//    const uint32_t count = out.swapchain.GetSwapchainImageCount();
+//    out.semaphores.resize(count);
+//    for (auto &sem: out.semaphores) {
+//        sem.Init(ctx);
+//    }
+//}
+//
+//void GfxContext::DestroyExternalWindow(Window &in) const {
+//    TPROFILE_SCOPE();
+//    vkDeviceWaitIdle(ctx);
+//    for (auto &sem: in.semaphores) {
+//        sem.Destroy();
+//    }
+//    in.swapchain.Destroy(ctx);
+//    vkDestroySurfaceKHR(ctx, in.surface, nullptr);
+//    SDL_DestroyWindow(in.pWindow);
+//    in = {};
+//}
 
 #pragma endregion
 

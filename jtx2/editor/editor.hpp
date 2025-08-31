@@ -62,4 +62,13 @@ private:
     bool m_bDestroyRenderResources = false;
 };
 
+//
+struct UI {
+    void Init();
+    void Destroy();
+
+private:
+
+};
+
 }// namespace jtx

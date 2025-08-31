@@ -4,6 +4,7 @@
 #include <scene/scene_loader.hpp>
 #include <thread>
 #include <engine/cpu/energy_compensation.hpp>
+#include <engine/vulkan/render_system.hpp>
 
 using namespace jtx;
 
